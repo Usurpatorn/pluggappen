@@ -26,7 +26,8 @@ const daysSince = (p) => { if (!p || !p.lastDay) return 99; return Math.round((n
 let sent = 0;
 for (const s of subs) {
   const msgs = [];
-  if (s.kid === 'parent') {
+  if (slot === 'test') { msgs.push({ title: 'Pluggapp – test', body: `Notiserna fungerar på den här enheten (${s.kid === 'parent' ? 'förälder' : (KIDS[s.kid] || s.kid)}).`, tag: 'test' }); }
+  else if (s.kid === 'parent') {
     if (slot === 'evening') { const late = Object.entries(KIDS).filter(([k]) => daysSince(profiles[k]) >= 3).map(([, n]) => n); if (late.length) msgs.push({ title: 'Pluggapp', body: `${late.join(' och ')} har inte övat på 3 dagar.`, tag: 'parent-inactive' }); const done = Object.entries(KIDS).filter(([k]) => practicedToday(profiles[k])).map(([, n]) => n); if (done.length && dow === 0) msgs.push({ title: 'Veckan är slut', body: `${done.join(', ')} pluggade idag. Kolla veckorapporten i föräldraläget.`, tag: 'parent-week' }); }
   } else {
     const p = profiles[s.kid]; const name = KIDS[s.kid] || s.kid;

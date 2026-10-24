@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       slot:
-        description: 'afternoon eller evening'
+        description: 'afternoon, evening eller test (test skickar till alla enheter)'
         default: 'afternoon'
 jobs:
   send:
