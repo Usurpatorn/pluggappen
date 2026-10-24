@@ -1,5 +1,5 @@
 <!doctype html><html lang="sv"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="theme-color" content="#fbfaf6"><meta name="apple-mobile-web-app-title" content="Pluggapp"><link rel="apple-touch-icon" href="icon-v2.png"><link rel="icon" href="icon-v2.png"><style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
-<script>window.PLUGG_BUILD = '2026-10-24 22:05';</script>
+<script>window.PLUGG_BUILD = '2026-10-24 22:53';</script>
 <script>window.PLUGG_SYNC = window.PLUGG_SYNC || { projectId: "pluggappen", apiKey: "AIzaSyBexTJ4xs1dL0EytcH2N74pY84PuJQZVYQ" }; if (window.PLUGG_SYNC.projectId.startsWith("__")) window.PLUGG_SYNC = null; window.PLUGG_PUSH_KEY = "BPB-A8j28EB8I1cdEMseKa05bLaVDXnDpe9PBbTjekO6ReD_I2hKjJfQnuS1HkoBr8RafRaqWf2sWuQdghiXQX0"; if ("serviceWorker" in navigator) { window.addEventListener("load", function () { navigator.serviceWorker.register("./sw.js").catch(function () {}); }); }</script>
 <title>Öhgrens Pluggapp</title>
 <meta name="claude:viewport-fit-sides" content="cover">
@@ -369,6 +369,22 @@ canvas.confetti { position: fixed; inset: 0; width: 100%; height: 100%; pointer-
 .boxes { display: inline-flex; gap: 2px; } .boxes i { width: 8px; height: 8px; border-radius: 2px; background: var(--line); } .boxes i.on { background: var(--good); }
 .danger { color: var(--bad); border-color: var(--bad) !important; }
 .week { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; }
+/* ämnesflikar */
+.subject-wrap { display: flex; flex-direction: column; gap: 10px; min-width: 0; max-width: 100%; } .subject-wrap > * { min-width: 0; max-width: 100%; }
+.subj-tabs { display: grid; width: 100%; grid-auto-flow: column; grid-auto-columns: minmax(84px, 1fr); gap: 8px; overflow-x: auto; padding: 4px 2px 6px; scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+.subj-tabs::-webkit-scrollbar { display: none; }
+.subj { scroll-snap-align: start; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 8px 8px; border-radius: 16px; background: var(--card); border: 2px solid var(--line); color: var(--ink); font-weight: 700; font-size: .85rem; min-height: 78px; transition: transform .12s ease, border-color .12s ease, background .12s ease; }
+.subj .si { font-size: 1.5rem; line-height: 1; }
+.subj .sl { white-space: nowrap; }
+.subj .sp { width: 100%; height: 4px; border-radius: 2px; background: var(--soft); overflow: hidden; margin-top: 2px; } .subj .sp i { display: block; height: 100%; background: var(--acc); border-radius: 2px; }
+.subj.on { border-color: var(--acc); background: var(--acc-soft); color: var(--acc-ink); transform: translateY(-1px); }
+.subj:active { transform: scale(.97); }
+.focus .subj .sp { display: none; }
+/* svenska: lyssna-ruta och lästext */
+.listen-box { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 6px 0 2px; }
+.listen-box .speak-btn.big { min-width: 64px; min-height: 64px; font-size: 1.6rem; border-radius: 20px; }
+.readbox { text-align: left; background: var(--soft); border-radius: 14px; padding: 12px 14px; font-size: 1.02rem; line-height: 1.55; width: 100%; }
+.readbox p { margin: 6px 0 0; }
 </style>
 <div class="wrap" id="app" aria-live="polite"></div>
 <canvas class="confetti hidden" id="confetti"></canvas>
@@ -1916,6 +1932,514 @@ const MORE_SKILLS = {
     { id: 'talrad', name: 'Talraden till 100', short: 'Talraden', icon: '↔', gen: genTalrad, method: METHOD_MORE.talrad },
   ],
 };
+/* ========= Svenska åk 2–3 (Clara) – generatorer med oändlig variation + textbanker ========= */
+// Alla uppgifter följer samma form som matten: { type, text, answer, choices, steps, hint, level, fig }
+
+const SV = {};
+const svSpeak = (word) => (typeof TTS !== 'undefined' && TTS.ok ? `<div class="listen-box"><button class="speak-btn big" data-speak="${word}" data-lang="sv" aria-label="Lyssna">🔊</button><button class="pill" data-speak="${word}" data-lang="sv" data-rate="0.6">🐢 Långsamt</button></div>` : '');
+const svRead = (html) => `<div class="readbox">${html}</div>`;
+const uniq = (arr) => [...new Set(arr)];
+
+/* ---------- Stavning: dubbelteckning, ng-, sj-, tj- och j-ljud ---------- */
+// [rätt, fel-varianter…, nivå]
+SV.STAV = [
+  ['katt', ['kat', 'kattt'], 1], ['hatt', ['hat'], 1], ['boll', ['bol'], 1], ['sommar', ['somar'], 1], ['vatten', ['vaten'], 1], ['hoppa', ['hopa'], 1], ['glass', ['glas'], 1],
+  ['buss', ['bus'], 1], ['mamma', ['mama'], 1], ['pappa', ['papa'], 1], ['kall', ['kal'], 1], ['full', ['ful'], 1], ['natt', ['nat'], 1], ['sitta', ['sita'], 1], ['äpple', ['äple', 'eple'], 1],
+  ['ring', ['rinng', 'rin'], 1], ['säng', ['sängg', 'sänng'], 1], ['många', ['mångga', 'monga'], 1], ['finger', ['fingger'], 2], ['pengar', ['penggar'], 2], ['sjunga', ['sunga', 'sjungga'], 2],
+  ['skjorta', ['sjorta', 'schorta'], 2], ['stjärna', ['sjärna', 'skjärna'], 2], ['skön', ['sjön', 'schön'], 2], ['sju', ['sjuu', 'shu'], 2], ['sked', ['skjed', 'sjed'], 2], ['skinka', ['sjinka'], 2],
+  ['kjol', ['tjol', 'kjoll'], 2], ['tjock', ['kjock', 'tjok'], 2], ['kyckling', ['kykling', 'tjyckling'], 2], ['köpa', ['tjöpa', 'köppa'], 2], ['kedja', ['tjedja', 'kedia'], 2],
+  ['hjärta', ['järta', 'hjerta'], 2], ['hjälpa', ['jälpa', 'hjelpa'], 2], ['gjorde', ['jorde', 'gorde'], 2], ['ljus', ['jus', 'lius'], 2], ['djur', ['jur', 'djuur'], 2], ['hjul', ['jul', 'hjull'], 2],
+  ['ledsen', ['lessen', 'ledsn'], 3], ['bäst', ['best', 'bäss'], 3], ['värld', ['väld', 'värd'], 3], ['sällan', ['sälan', 'sellan'], 3], ['tycker', ['tyker', 'tycer'], 3], ['också', ['oxå', 'också'], 3],
+  ['mycket', ['myket', 'mycet'], 3], ['nästan', ['nestan', 'nässtan'], 3], ['dricka', ['drika', 'dricker'], 3], ['bröd', ['brö', 'bröd '], 3], ['tänka', ['tenka', 'tängka'], 3], ['hälsa', ['helsa', 'hällsa'], 3],
+  ['chans', ['sjans', 'schans'], 3], ['chokl ad'.replace(' ', ''), ['sjoklad', 'schoklad'], 3], ['sjuksköterska', ['sjukskötterska', 'sjukskjöterska'], 3], ['skillnad', ['skilnad', 'skjillnad'], 3],
+  ['gärna', ['järna', 'gerna'], 3], ['genast', ['jenast', 'gennast'], 3], ['ängel', ['engel', 'änggel'], 3], ['bygga', ['byga', 'byggga'], 3],
+];
+SV.genStavning = (level) => {
+  const pool = SV.STAV.filter(w => w[2] <= level);
+  const [word, wrongs] = R.pick(pool);
+  const mode = R.pick(level === 1 ? ['pick', 'pick', 'dictate'] : ['pick', 'dictate', 'dictate', 'gap']);
+  const why = (w) => /([a-zåäö])\1/.test(w) ? `Kort vokal → dubbelteckna konsonanten: <b>${w}</b>.` : /ng/.test(w) ? `Ng-ljudet stavas med <b>ng</b>: <b>${w}</b>.` : /^(sj|skj|stj|sk[eiyäö]|sch|ch)/.test(w) ? `Sj-ljudet kan stavas sj, skj, stj eller sk framför e, i, y, ä, ö: <b>${w}</b>.` : /^(tj|k[eiyäö])/.test(w) ? `Tj-ljudet stavas tj eller k framför e, i, y, ä, ö: <b>${w}</b>.` : /^(hj|gj|lj|dj|g[eiyäö])/.test(w) ? `J-ljudet kan stavas hj, gj, lj, dj eller g: <b>${w}</b>.` : `Rätt stavning: <b>${w}</b>.`;
+  if (mode === 'pick') {
+    const choices = R.shuffle(uniq([word, ...wrongs]).slice(0, 3));
+    return { type: 'choicetext', text: 'Vilket ord är rätt stavat?', choices, answer: choices.indexOf(word), steps: [why(word)], hint: 'Säg ordet långsamt. Är vokalen kort eller lång?', level, fig: svSpeak(word) };
+  }
+  if (mode === 'gap') {
+    // ta bort den kritiska delen
+    const m = word.match(/([a-zåäö])\1|ng|^(sj|skj|stj|sch|ch|tj|hj|gj|lj|dj|sk|k|g)/);
+    const part = m ? m[0] : word.slice(0, 2); const idx = word.indexOf(part);
+    const gapped = word.slice(0, idx) + '_'.repeat(part.length) + word.slice(idx + part.length);
+    return { type: 'text', text: `Vilka bokstäver saknas? <b>${gapped}</b>`, answer: [part, word], display: word, steps: [why(word)], hint: `Hela ordet är ${word.length} bokstäver. Lyssna igen.`, level, fig: svSpeak(word) };
+  }
+  return { type: 'text', text: 'Lyssna och skriv ordet.', answer: [word], steps: [why(word)], hint: `Ordet börjar på <b>${word[0]}</b> och har ${word.length} bokstäver.`, level, fig: svSpeak(word) };
+};
+
+/* ---------- Ordklasser ---------- */
+SV.SUBST = ['hund', 'bil', 'skola', 'bok', 'sol', 'stol', 'flicka', 'pojke', 'äpple', 'hus', 'katt', 'cykel', 'blomma', 'tröja', 'fisk', 'tåg', 'lärare', 'mamma', 'skog', 'boll'];
+SV.VERB = ['springer', 'hoppar', 'läser', 'sover', 'äter', 'skrattar', 'simmar', 'sjunger', 'ritar', 'cyklar', 'leker', 'bakar', 'gråter', 'klättrar', 'dansar', 'skriver', 'tittar', 'dricker', 'bygger', 'städar'];
+SV.ADJ = ['röd', 'stor', 'glad', 'liten', 'snabb', 'varm', 'mjuk', 'hög', 'kall', 'söt', 'gammal', 'tung', 'ljus', 'arg', 'trött', 'blöt', 'lång', 'tyst', 'vacker', 'hungrig'];
+SV.MENINGAR = [
+  ['Den lilla hunden springer i parken.', { subst: ['hunden', 'parken'], verb: ['springer'], adj: ['lilla'] }],
+  ['Mamma bakar goda bullar.', { subst: ['Mamma', 'bullar'], verb: ['bakar'], adj: ['goda'] }],
+  ['Katten sover på den varma stolen.', { subst: ['Katten', 'stolen'], verb: ['sover'], adj: ['varma'] }],
+  ['Pojken läser en spännande bok.', { subst: ['Pojken', 'bok'], verb: ['läser'], adj: ['spännande'] }],
+  ['Fåglarna sjunger i den gröna skogen.', { subst: ['Fåglarna', 'skogen'], verb: ['sjunger'], adj: ['gröna'] }],
+  ['Clara ritar en stor sol.', { subst: ['Clara', 'sol'], verb: ['ritar'], adj: ['stor'] }],
+  ['Den snabba bilen kör på vägen.', { subst: ['bilen', 'vägen'], verb: ['kör'], adj: ['snabba'] }],
+  ['Barnen leker med en röd boll.', { subst: ['Barnen', 'boll'], verb: ['leker'], adj: ['röd'] }],
+  ['Läraren skriver på tavlan.', { subst: ['Läraren', 'tavlan'], verb: ['skriver'], adj: [] }],
+  ['Den trötta björnen sover hela vintern.', { subst: ['björnen', 'vintern'], verb: ['sover'], adj: ['trötta'] }],
+];
+const KLASS = { subst: 'substantiv', verb: 'verb', adj: 'adjektiv' };
+const KLASS_WHY = { subst: 'Substantiv är namn på saker, djur, människor och platser – man kan sätta <b>en</b> eller <b>ett</b> framför.', verb: 'Verb är något man <b>gör</b> eller något som händer – man kan sätta <b>att</b> framför.', adj: 'Adjektiv beskriver <b>hur</b> något är – man kan sätta <b>är</b> framför: "är röd".' };
+SV.genOrdklass = (level) => {
+  const kinds = ['subst', 'verb', 'adj'];
+  if (level === 1 || (level === 2 && R.chance(0.5))) {
+    const k = R.pick(kinds); const bank = { subst: SV.SUBST, verb: SV.VERB, adj: SV.ADJ };
+    const correct = R.pick(bank[k]); const others = kinds.filter(x => x !== k).map(x => R.pick(bank[x]));
+    const choices = R.shuffle([correct, ...others]);
+    return { type: 'choicetext', text: `Vilket ord är ett <b>${KLASS[k]}</b>?`, choices, answer: choices.indexOf(correct), steps: [KLASS_WHY[k]], hint: k === 'verb' ? 'Vilket ord kan man göra?' : k === 'adj' ? 'Vilket ord beskriver hur något är?' : 'Vilket ord kan man sätta en/ett framför?', level };
+  }
+  if (level === 2) {
+    const k = R.pick(kinds); const bank = { subst: SV.SUBST, verb: SV.VERB, adj: SV.ADJ }; const w = R.pick(bank[k]);
+    const choices = R.shuffle(['substantiv', 'verb', 'adjektiv']);
+    return { type: 'choicetext', text: `Vilken ordklass tillhör ordet <b>${w}</b>?`, choices, answer: choices.indexOf(KLASS[k]), steps: [KLASS_WHY[k]], hint: 'Testa: "en/ett …", "att …" eller "är …". Vilket passar?', level };
+  }
+  const [sent, parts] = R.pick(SV.MENINGAR); const k = R.pick(kinds.filter(x => parts[x].length));
+  const words = sent.replace(/[.!?]/g, '').split(' ');
+  const correct = parts[k][0]; const wrong = R.shuffle(words.filter(w => !parts[k].includes(w) && !['Den', 'en', 'på', 'i', 'med', 'hela'].includes(w))).slice(0, 3);
+  const choices = R.shuffle([correct, ...wrong]);
+  return { type: 'choicetext', text: `Hitta ett <b>${KLASS[k]}</b> i meningen:<br><i>${sent}</i>`, choices, answer: choices.indexOf(correct), steps: [KLASS_WHY[k]], hint: k === 'verb' ? 'Vad gör någon i meningen?' : k === 'adj' ? 'Vilket ord beskriver hur något är?' : 'Vem eller vad handlar meningen om?', level };
+};
+
+/* ---------- Motsatsord ---------- */
+SV.MOTSATS = [
+  ['stor', 'liten', 1], ['varm', 'kall', 1], ['glad', 'ledsen', 1], ['snabb', 'långsam', 1], ['ljus', 'mörk', 1], ['dag', 'natt', 1], ['upp', 'ner', 1], ['hög', 'låg', 1], ['gammal', 'ung', 1], ['tung', 'lätt', 1],
+  ['öppen', 'stängd', 2], ['torr', 'blöt', 2], ['full', 'tom', 2], ['rik', 'fattig', 2], ['stark', 'svag', 2], ['hård', 'mjuk', 2], ['bred', 'smal', 2], ['tjock', 'tunn', 2], ['början', 'slut', 2], ['vinter', 'sommar', 2],
+  ['modig', 'feg', 3], ['vild', 'tam', 3], ['sann', 'falsk', 3], ['vän', 'fiende', 3], ['lugn', 'orolig', 3], ['dyr', 'billig', 3], ['ren', 'smutsig', 3], ['skarp', 'slö', 3], ['frisk', 'sjuk', 3], ['tyst', 'högljudd', 3],
+];
+SV.genMotsats = (level) => {
+  const pool = SV.MOTSATS.filter(p => p[2] <= level); const [a, b] = R.shuffle(R.pick(pool).slice(0, 2));
+  if (level < 3 || R.chance(0.4)) {
+    const wrong = R.shuffle(pool.filter(p => p[0] !== a && p[1] !== a).map(p => R.pick([p[0], p[1]]))).slice(0, 3);
+    const choices = R.shuffle([b, ...wrong]);
+    return { type: 'choicetext', text: `Vad är motsatsen till <b>${a}</b>?`, choices, answer: choices.indexOf(b), steps: [`<b>${a}</b> och <b>${b}</b> är motsatsord – de betyder tvärtom.`], hint: 'Tänk: om något inte är ' + a + ', vad är det då?', level };
+  }
+  return { type: 'text', text: `Skriv motsatsen till <b>${a}</b>.`, answer: [b], steps: [`<b>${a}</b> – <b>${b}</b>.`], hint: `Ordet börjar på <b>${b[0]}</b>.`, level };
+};
+
+/* ---------- Synonymer ---------- */
+SV.SYN = [
+  [['glad', 'lycklig', 'nöjd'], 1], [['stor', 'enorm', 'jättestor'], 1], [['liten', 'pytteliten', 'mini'], 1], [['snabb', 'kvick', 'rask'], 1], [['fin', 'vacker', 'snygg'], 1], [['börja', 'starta', 'sätta igång'], 1],
+  [['prata', 'tala', 'snacka'], 2], [['titta', 'kika', 'se'], 2], [['springa', 'rusa', 'jogga'], 2], [['arg', 'ilsken', 'sur'], 2], [['rädd', 'skraj', 'skrämd'], 2], [['kall', 'kylig', 'iskall'], 2], [['smart', 'klok', 'klyftig'], 2],
+  [['trött', 'sömnig', 'utmattad'], 3], [['svår', 'knepig', 'krånglig'], 3], [['gammal', 'åldrig', 'antik'], 3], [['konstig', 'märklig', 'underlig'], 3], [['skratta', 'fnissa', 'gapskratta'], 3], [['äta', 'mumsa', 'käka'], 3],
+];
+SV.genSynonym = (level) => {
+  const pool = SV.SYN.filter(p => p[1] <= level); const group = R.pick(pool)[0]; const [a, b] = R.shuffle(group).slice(0, 2);
+  const wrong = R.shuffle(pool.filter(p => p[0] !== group).map(p => R.pick(p[0]))).slice(0, 3);
+  const choices = R.shuffle([b, ...wrong]);
+  return { type: 'choicetext', text: `Vilket ord betyder nästan samma sak som <b>${a}</b>?`, choices, answer: choices.indexOf(b), steps: [`<b>${a}</b> och <b>${b}</b> är synonymer – ord som betyder ungefär samma sak.`], hint: 'Byt ut ordet i en mening – vilket passar lika bra?', level };
+};
+
+/* ---------- Sammansatta ord ---------- */
+SV.SAMMANSATT = [
+  ['fot', 'boll', 1], ['sol', 'sken', 1], ['snö', 'gubbe', 1], ['tand', 'borste', 1], ['hus', 'djur', 1], ['is', 'glass', 1], ['bok', 'hylla', 1], ['regn', 'båge', 1], ['jul', 'gran', 1], ['bil', 'väg', 1],
+  ['skol', 'gård', 2], ['sim', 'hall', 2], ['sov', 'rum', 2], ['frukost', 'bord', 2], ['hund', 'koppel', 2], ['vatten', 'kanna', 2], ['fjäril', 'håv', 2], ['lek', 'park', 2], ['natt', 'lampa', 2], ['sommar', 'lov', 2],
+  ['ishockey', 'klubba', 3], ['brand', 'bil', 3], ['sjuk', 'hus', 3], ['födelse', 'dag', 3], ['kyl', 'skåp', 3], ['tvätt', 'maskin', 3], ['jord', 'gubbe', 3], ['hand', 'duk', 3], ['tid', 'ning', 3], ['bad', 'strand', 3],
+];
+SV.genSammansatt = (level) => {
+  const pool = SV.SAMMANSATT.filter(p => p[2] <= level); const [a, b] = R.pick(pool); const word = a + b;
+  const mode = R.pick(level === 1 ? ['join', 'join', 'split'] : ['join', 'split', 'split']);
+  if (mode === 'join') return { type: 'text', text: `Sätt ihop orden till ett ord: <b>${a}</b> + <b>${b}</b> = ?`, answer: [word], steps: [`<b>${a}</b> + <b>${b}</b> = <b>${word}</b>. Ett sammansatt ord är två ord som blir ett.`], hint: 'Skriv orden direkt efter varandra utan mellanslag.', level };
+  const wrongs = R.shuffle(pool.filter(p => p[0] !== a).map(p => `${p[0]} + ${R.chance(0.5) ? b : p[1]}`)).slice(0, 3);
+  const correct = `${a} + ${b}`; const choices = R.shuffle([correct, ...wrongs]);
+  return { type: 'choicetext', text: `Vilka två ord bildar <b>${word}</b>?`, choices, answer: choices.indexOf(correct), steps: [`<b>${word}</b> = <b>${a}</b> + <b>${b}</b>.`], hint: 'Var kan du dela ordet så att båda delarna är riktiga ord?', level };
+};
+
+/* ---------- Bokstavsordning ---------- */
+SV.genAbc = (level) => {
+  const bank = uniq([...SV.SUBST, ...SV.ADJ, 'apa', 'banan', 'citron', 'delfin', 'elefant', 'fisk', 'giraff', 'hare', 'igelkott', 'jordgubbe', 'kanin', 'lejon', 'mus', 'noshörning', 'orm', 'panda', 'räv', 'sköldpadda', 'tiger', 'uggla', 'val', 'zebra', 'älg', 'örn']);
+  let words;
+  if (level === 1) { words = []; const used = new Set(); for (const w of R.shuffle(bank)) { if (!used.has(w[0])) { used.add(w[0]); words.push(w); } if (words.length === 4) break; } }
+  else if (level === 2) { const byFirst = {}; bank.forEach(w => (byFirst[w[0]] = byFirst[w[0]] || []).push(w)); const groups = Object.values(byFirst).filter(g => g.length >= 2); const g = R.pick(groups); words = uniq([...R.shuffle(g).slice(0, 2), ...R.shuffle(bank.filter(w => w[0] !== g[0][0])).slice(0, 3)]); }
+  else { const byFirst = {}; bank.forEach(w => (byFirst[w[0]] = byFirst[w[0]] || []).push(w)); const groups = Object.values(byFirst).filter(g => g.length >= 3); const g = R.pick(groups); words = uniq([...R.shuffle(g).slice(0, 3), ...R.shuffle(bank.filter(w => w[0] !== g[0][0])).slice(0, 3)]); }
+  const sorted = words.slice().sort((x, y) => x.localeCompare(y, 'sv'));
+  return { type: 'order', text: 'Sätt orden i bokstavsordning (som i en ordbok):', items: sorted, answer: sorted, steps: [`<b>Rätt ordning:</b> ${sorted.join(', ')}.`, level > 1 ? 'Börjar två ord på samma bokstav? Titta på <b>andra</b> bokstaven.' : 'Alfabetet: a b c d e f g h i j k l m n o p q r s t u v w x y z å ä ö.'], hint: 'Sjung alfabetet tyst för dig själv.', level };
+};
+
+/* ---------- Meningar: ordföljd, stor bokstav och skiljetecken ---------- */
+SV.MENING_ORD = [
+  ['Jag', 'gillar', 'glass', '.'], ['Hunden', 'skäller', 'på', 'katten', '.'], ['Vad', 'heter', 'du', '?'], ['Vi', 'åker', 'till', 'skolan', '.'], ['Vill', 'du', 'leka', 'med', 'mig', '?'],
+  ['Solen', 'skiner', 'idag', '.'], ['Mormor', 'bakar', 'bullar', 'på', 'lördag', '.'], ['Var', 'bor', 'din', 'kompis', '?'], ['Clara', 'läser', 'en', 'rolig', 'bok', '.'], ['Vilken', 'fin', 'teckning', '!'],
+  ['Imorgon', 'ska', 'vi', 'bada', '.'], ['Hur', 'gammal', 'är', 'du', '?'], ['Den', 'röda', 'bilen', 'är', 'snabb', '.'], ['Titta', 'på', 'den', 'stora', 'elefanten', '!'], ['Pappa', 'lagar', 'mat', 'i', 'köket', '.'],
+];
+SV.SKILJE = [
+  ['Vad heter du?', ['Vad heter du.', 'Vad heter du!', 'vad heter du?']], ['Jag har en hund.', ['jag har en hund.', 'Jag har en hund?', 'Jag har en hund']], ['Hjälp, det brinner!', ['Hjälp, det brinner.', 'hjälp det brinner!', 'Hjälp, det brinner?']],
+  ['Vill du ha en kaka?', ['Vill du ha en kaka.', 'vill du ha en kaka?', 'Vill du ha en kaka!']], ['Clara bor i Luleå.', ['clara bor i luleå.', 'Clara bor i luleå.', 'Clara bor i Luleå?']], ['Vilken fin hund!', ['Vilken fin hund.', 'vilken fin hund!', 'Vilken fin hund?']],
+  ['Hur många år är du?', ['Hur många år är du.', 'hur många år är du?', 'Hur många år är du!']], ['Vi reser till Spanien i sommar.', ['Vi reser till spanien i sommar.', 'vi reser till Spanien i sommar.', 'Vi reser till Spanien i sommar?']],
+  ['Akta dig!', ['Akta dig.', 'akta dig!', 'Akta dig?']], ['Idag är det måndag.', ['Idag är det Måndag.', 'idag är det måndag.', 'Idag är det måndag?']],
+];
+SV.genMening = (level) => {
+  if (level === 1 || R.chance(0.5)) {
+    const [correct, wrongs] = R.pick(SV.SKILJE); const choices = R.shuffle([correct, ...wrongs.slice(0, level === 1 ? 2 : 3)]);
+    return { type: 'choicetext', text: 'Vilken mening är rätt skriven?', choices, answer: choices.indexOf(correct), steps: ['En mening börjar med <b>stor bokstav</b>. Namn på personer och platser har också stor bokstav.', 'Frågor slutar med <b>?</b>, utrop med <b>!</b> och vanliga meningar med <b>.</b>'], hint: 'Kolla första bokstaven och tecknet på slutet.', level };
+  }
+  const w = R.pick(SV.MENING_ORD.filter(s => level >= 3 || s.length <= 5)); const punct = w[w.length - 1]; const words = w.slice(0, -1);
+  const items = words.map((x, i) => (i === words.length - 1 ? x + punct : x));
+  return { type: 'order', text: 'Sätt orden i rätt ordning så att det blir en mening:', items, answer: items, steps: [`<b>${items.join(' ')}</b>`, 'Ordet med stor bokstav står först, och ordet med skiljetecken står sist.'], hint: 'Vilket ord har stor bokstav? Det ska stå först.', level };
+};
+
+/* ---------- Böjning: plural och tempus ---------- */
+SV.PLURAL = [['bil', 'bilar'], ['hund', 'hundar'], ['flicka', 'flickor'], ['skola', 'skolor'], ['katt', 'katter'], ['bok', 'böcker'], ['hus', 'hus'], ['äpple', 'äpplen'], ['stol', 'stolar'], ['blomma', 'blommor'], ['mus', 'möss'], ['fot', 'fötter'], ['hand', 'händer'], ['barn', 'barn'], ['träd', 'träd'], ['tand', 'tänder'], ['man', 'män'], ['öga', 'ögon'], ['öra', 'öron'], ['gås', 'gäss']];
+SV.TEMPUS = [['springer', 'sprang', 'har sprungit'], ['äter', 'åt', 'har ätit'], ['sover', 'sov', 'har sovit'], ['läser', 'läste', 'har läst'], ['hoppar', 'hoppade', 'har hoppat'], ['skriver', 'skrev', 'har skrivit'], ['dricker', 'drack', 'har druckit'], ['går', 'gick', 'har gått'], ['ser', 'såg', 'har sett'], ['sitter', 'satt', 'har suttit'], ['simmar', 'simmade', 'har simmat'], ['leker', 'lekte', 'har lekt'], ['kommer', 'kom', 'har kommit'], ['får', 'fick', 'har fått'], ['ger', 'gav', 'har gett'], ['säger', 'sa', 'har sagt']];
+SV.genBojning = (level) => {
+  if (level === 1 || (level === 2 && R.chance(0.5))) {
+    const [one, many] = R.pick(SV.PLURAL);
+    if (level === 1) { const wrongs = R.shuffle(SV.PLURAL.filter(p => p[0] !== one).map(p => p[1])).slice(0, 3); const choices = R.shuffle([many, ...wrongs]); return { type: 'choicetext', text: `En <b>${one}</b> – flera …?`, choices, answer: choices.indexOf(many), steps: [`En ${one}, flera <b>${many}</b>.`], hint: 'Säg "flera …" högt. Vad låter rätt?', level }; }
+    return { type: 'text', text: `En <b>${one}</b> – flera …? Skriv ordet.`, answer: [many], steps: [`En ${one}, flera <b>${many}</b>.`], hint: many === one ? 'Vissa ord ser likadana ut i flertal!' : `Ordet börjar på <b>${many.slice(0, 2)}</b>.`, level };
+  }
+  const [nu, da, har] = R.pick(SV.TEMPUS);
+  if (level === 2 || R.chance(0.6)) return { type: 'text', text: `Idag <b>${nu}</b> jag. Igår … jag. Skriv ordet som saknas.`, answer: [da], steps: [`Idag ${nu}, igår <b>${da}</b>. Det kallas dåtid (preteritum).`], hint: `Ordet börjar på <b>${da.slice(0, 2)}</b>.`, level };
+  return { type: 'text', text: `Idag <b>${nu}</b> jag. Jag <b>har</b> … Skriv ordet som saknas.`, answer: [har.replace('har ', ''), har], display: har, steps: [`Idag ${nu}, jag <b>${har}</b>.`], hint: `Ordet börjar på <b>${har.replace('har ', '').slice(0, 2)}</b>.`, level };
+};
+
+/* ---------- Läsförståelse ---------- */
+SV.TEXTER = [
+  { lvl: 1, title: 'Kaninen Pelle', text: 'Pelle är en vit kanin med långa öron. Han bor i en bur i trädgården. Varje morgon får han en morot och lite hö. På kvällen hoppar han runt på gräsmattan. Pelle gillar inte regn. Då gömmer han sig i sitt lilla hus.', qs: [['Vilken färg har Pelle?', ['Vit', 'Brun', 'Svart', 'Grå']], ['Vad får Pelle varje morgon?', ['En morot och hö', 'En kaka', 'Fisk', 'Bröd']], ['Vad gör Pelle när det regnar?', ['Gömmer sig i sitt hus', 'Hoppar på gräsmattan', 'Sover i buren', 'Äter morötter']]] },
+  { lvl: 1, title: 'Till simhallen', text: 'På lördag åker Sara och hennes pappa till simhallen. Sara har en blå baddräkt och en gul badmössa. I simhallen finns en stor bassäng och en rutschkana. Sara åker rutschkanan fem gånger. Sedan köper pappa varm choklad i kafét.', qs: [['När åker Sara till simhallen?', ['På lördag', 'På måndag', 'På söndag', 'På fredag']], ['Vilken färg har badmössan?', ['Gul', 'Blå', 'Röd', 'Grön']], ['Hur många gånger åker Sara rutschkanan?', ['Fem', 'Tre', 'Två', 'Tio']], ['Vad köper pappa i kafét?', ['Varm choklad', 'Glass', 'Bullar', 'Saft']]] },
+  { lvl: 1, title: 'Snö!', text: 'När Alex vaknade var allt vitt. Det hade snöat hela natten. Alex tog på sig overallen, vantarna och mössan. Ute byggde han en snögubbe med sin storasyster. Snögubben fick en morot till näsa och två kottar till ögon.', qs: [['Vad hade hänt under natten?', ['Det hade snöat', 'Det hade regnat', 'Det hade blåst', 'Det hade åskat']], ['Vem byggde Alex snögubben med?', ['Sin storasyster', 'Sin pappa', 'Sin kompis', 'Sin hund']], ['Vad fick snögubben till näsa?', ['En morot', 'En kotte', 'En sten', 'En pinne']]] },
+  { lvl: 2, title: 'Bibliotekets hemlighet', text: 'Nära skolan ligger ett gammalt bibliotek. Längst in, bakom hyllan med sagoböcker, finns en liten dörr som nästan ingen känner till. Maja upptäckte den en regnig tisdag. Bakom dörren fanns ett rum fullt av gamla kartor. På en av kartorna var ett kryss ritat med röd penna. "Det måste vara en skatt", viskade Maja. Hon bestämde sig för att komma tillbaka nästa dag med sin kompis Noah.', qs: [['Var finns den lilla dörren?', ['Bakom hyllan med sagoböcker', 'Vid ingången', 'I källaren', 'Bakom lärarens bord']], ['Vilken dag hittade Maja dörren?', ['En tisdag', 'En lördag', 'En måndag', 'En fredag']], ['Vad fanns i rummet?', ['Gamla kartor', 'Guldmynt', 'Leksaker', 'Gamla böcker']], ['Vad tänker Maja göra?', ['Komma tillbaka med Noah', 'Berätta för läraren', 'Ta med kartan hem', 'Glömma alltihop']]] },
+  { lvl: 2, title: 'Igelkotten', text: 'Igelkotten är ett litet djur med taggar på ryggen. Taggarna skyddar den mot rävar och andra fiender. När igelkotten blir rädd rullar den ihop sig till en boll. Igelkottar äter insekter, sniglar och maskar. På hösten äter den extra mycket, för hela vintern sover den i en hög av löv. Det kallas att gå i ide.', qs: [['Vad gör igelkotten när den blir rädd?', ['Rullar ihop sig till en boll', 'Springer iväg', 'Klättrar upp i ett träd', 'Gräver ner sig']], ['Vad äter igelkottar?', ['Insekter, sniglar och maskar', 'Gräs och löv', 'Bär och frukt', 'Fisk']], ['Varför äter igelkotten mycket på hösten?', ['Den ska sova hela vintern', 'Den ska flytta söderut', 'Den ska få ungar', 'Den fryser']], ['Vad betyder "gå i ide"?', ['Sova hela vintern', 'Leta mat', 'Bygga bo', 'Byta taggar']]] },
+  { lvl: 2, title: 'Fotbollsmatchen', text: 'Det var sista matchen för säsongen. Lisas lag låg under med 1–2 och det var bara två minuter kvar. Lisa fick bollen vid mittlinjen. Hon sprang förbi en försvarare, sedan en till. Målvakten kom ut mot henne. Lisa sköt lågt i hörnet – mål! 2–2. Publiken jublade. Matchen slutade oavgjort, men Lisa kände sig som en vinnare.', qs: [['Hur låg Lisas lag innan hennes mål?', ['Under med 1–2', 'Över med 2–1', '0–0', 'Under med 0–3']], ['Hur många försvarare sprang Lisa förbi?', ['Två', 'En', 'Tre', 'Ingen']], ['Hur slutade matchen?', ['Oavgjort 2–2', 'Lisas lag vann', 'Lisas lag förlorade', '3–2']], ['Varför kände sig Lisa som en vinnare?', ['Hon gjorde ett viktigt mål', 'Laget vann', 'Hon fick en medalj', 'Tränaren berömde henne']]] },
+  { lvl: 3, title: 'Resan till månen', text: 'År 1969 landade människor på månen för första gången. Rymdfarkosten hette Apollo 11 och astronauterna var tre: Neil Armstrong, Buzz Aldrin och Michael Collins. Bara två av dem gick ner på månens yta – Collins stannade kvar i farkosten som kretsade runt månen. Resan tog ungefär tre dagar åt varje håll. På månen finns ingen luft, så astronauterna hade rymddräkter med syrgas. Fotspåren de lämnade finns kvar än idag, eftersom det inte blåser på månen.', qs: [['Vilket år landade människor på månen första gången?', ['1969', '1999', '1950', '2001']], ['Hur många astronauter gick ner på månens yta?', ['Två', 'Tre', 'En', 'Fyra']], ['Varför behövde astronauterna syrgas?', ['Det finns ingen luft på månen', 'Det var kallt', 'De skulle sova', 'Rymddräkterna var tunga']], ['Varför finns fotspåren kvar?', ['Det blåser inte på månen', 'De är gjorda av metall', 'Månen är gjord av sten', 'Astronauterna målade dem']]] },
+  { lvl: 3, title: 'Den gamla klockan', text: 'På vinden hos farmor stod en gammal klocka som hade stannat för länge sedan. Elias torkade bort dammet och såg att visarna pekade på kvart över tre. "Den stannade samma dag som din farfar och jag gifte oss", sa farmor och log. Elias hittade en nyckel på klockans baksida. Han vred försiktigt tre varv. Plötsligt började klockan ticka igen. Farmor fick tårar i ögonen, men hon såg glad ut.', qs: [['Var stod klockan?', ['På vinden hos farmor', 'I köket', 'I farmors sovrum', 'I källaren']], ['Vilken tid visade klockan?', ['Kvart över tre', 'Halv tre', 'Kvart i tre', 'Klockan tre']], ['Hur fick Elias igång klockan?', ['Han vred nyckeln tre varv', 'Han bytte batteri', 'Han skakade den', 'Han ringde en klockmakare']], ['Varför fick farmor tårar i ögonen?', ['Hon blev rörd och glad', 'Hon var ledsen att klockan gick', 'Hon fick damm i ögonen', 'Hon var arg på Elias']]] },
+  { lvl: 3, title: 'Allemansrätten', text: 'I Sverige har vi något som kallas allemansrätten. Den betyder att alla får vara i naturen, även på mark som någon annan äger. Du får plocka bär, svamp och blommor, tälta en natt och bada i sjöar. Men det finns regler: du får inte gå nära någons hus, inte bryta grenar från levande träd och inte lämna skräp efter dig. Man brukar säga: inte störa, inte förstöra.', qs: [['Vad betyder allemansrätten?', ['Alla får vara i naturen', 'Alla får bygga hus i skogen', 'Alla äger skogen', 'Bara barn får vara i skogen']], ['Vilket av detta får du göra?', ['Plocka bär och svamp', 'Bryta grenar från levande träd', 'Lämna skräp', 'Gå in i någons trädgård']], ['Hur länge får man tälta på samma plats?', ['En natt', 'En vecka', 'En månad', 'Hur länge som helst']], ['Vilken regel sammanfattar allemansrätten?', ['Inte störa, inte förstöra', 'Alltid fråga först', 'Bara på dagen', 'Ta med allt du hittar']]] },
+];
+SV.genLasa = (level) => {
+  const pool = SV.TEXTER.filter(t => t.lvl <= level && t.lvl >= Math.max(1, level - 1)); const t = R.pick(pool); const [q, ch] = R.pick(t.qs);
+  const correct = ch[0]; const choices = R.shuffle(ch.slice());
+  return { type: 'choicetext', text: q, choices, answer: choices.indexOf(correct), steps: [`Svaret står i texten: <b>${correct}</b>.`], hint: 'Läs texten en gång till och leta efter orden i frågan.', level, fig: svRead(`<div class="row" style="justify-content:space-between;align-items:center"><div class="eyebrow">${t.title}</div>${typeof TTS !== 'undefined' && TTS.ok ? `<button class="pill" data-speak="${esc(t.text)}" data-lang="sv" data-rate="0.85">🔊 Lyssna</button>` : ''}</div><p>${t.text}</p>`) };
+};
+
+/* ---------- Rim ---------- */
+SV.RIM = [['hus', 'mus', 'ljus', 'grus'], ['katt', 'hatt', 'natt', 'skatt'], ['bil', 'fil', 'pil', 'mil'], ['sol', 'stol', 'kjol', 'fiol'], ['boll', 'troll', 'koll', 'moll'], ['hund', 'rund', 'stund', 'lund'], ['bok', 'kok', 'krok', 'tok'], ['ko', 'sko', 'bro', 'ro'], ['tåg', 'våg', 'låg', 'såg'], ['glass', 'pass', 'lass', 'kass'], ['räv', 'väv', 'säv', 'näv'], ['snö', 'sjö', 'ö', 'hö'], ['apa', 'gapa', 'skapa', 'tapa'], ['fisk', 'disk', 'frisk', 'risk'], ['bord', 'ord', 'jord', 'nord']];
+SV.genRim = (level) => {
+  const g = R.pick(SV.RIM); const [a, b] = R.shuffle(g).slice(0, 2);
+  const wrong = R.shuffle(SV.RIM.filter(x => x !== g).map(x => R.pick(x))).slice(0, 3);
+  if (level >= 2 && R.chance(0.5)) return { type: 'text', text: `Skriv ett ord som rimmar på <b>${a}</b>.`, answer: g.filter(x => x !== a), display: g.filter(x => x !== a).join(' / '), steps: [`Ord som rimmar på ${a}: <b>${g.filter(x => x !== a).join(', ')}</b>.`], hint: 'Ord som rimmar slutar likadant.', level };
+  const choices = R.shuffle([b, ...wrong]);
+  return { type: 'choicetext', text: `Vilket ord rimmar på <b>${a}</b>?`, choices, answer: choices.indexOf(b), steps: [`<b>${a}</b> och <b>${b}</b> slutar likadant – de rimmar.`], hint: 'Säg orden högt. Vilka låter lika på slutet?', level };
+};
+
+const METHOD_SV = {
+  stavning: `<p><b>Dubbelteckning:</b> när vokalen är kort skriver vi två konsonanter: ka<b>tt</b>, bo<b>ll</b>, so<b>mm</b>ar. Lång vokal → en konsonant: h<b>at</b>, b<b>ol</b>.</p><p><b>Ng-ljudet</b> stavas ng: ri<b>ng</b>, sä<b>ng</b>.</p><p><b>Sj-ljudet</b> kan stavas sj (sju), skj (skjorta), stj (stjärna) eller sk framför e, i, y, ä, ö (sked, skön).</p><p><b>Tj-ljudet</b> stavas tj (tjock) eller k framför e, i, y, ä, ö (kjol, köpa, kyckling).</p><p><b>J-ljudet</b> kan stavas j, hj (hjärta), gj (gjorde), lj (ljus), dj (djur).</p>`,
+  ordklass: `<p>Ord kan sorteras i <b>ordklasser</b>:</p><ul><li><b>Substantiv</b> – namn på saker, djur, människor, platser. Test: sätt <b>en</b> eller <b>ett</b> framför: <i>en hund, ett hus</i>.</li><li><b>Verb</b> – något man gör eller något som händer. Test: sätt <b>att</b> framför: <i>att springa, att sova</i>.</li><li><b>Adjektiv</b> – beskriver hur något är. Test: sätt <b>är</b> framför: <i>är röd, är stor</i>.</li></ul>`,
+  motsats: `<p><b>Motsatsord</b> betyder tvärtom: stor – liten, varm – kall, glad – ledsen.</p><p>Knep: "Om något inte är <i>stort</i>, vad är det då?"</p>`,
+  synonym: `<p><b>Synonymer</b> är ord som betyder nästan samma sak: glad – lycklig – nöjd. Med synonymer blir texter mer spännande att läsa.</p><p>Test: byt ut ordet i en mening. Passar det nya ordet lika bra?</p>`,
+  sammansatt: `<p>Ett <b>sammansatt ord</b> är två (eller fler) ord som sätts ihop till ett: fot + boll = <b>fotboll</b>.</p><p>Det sista ordet bestämmer vad det är: en <i>fotboll</i> är en boll, en <i>bollfot</i> skulle vara en fot!</p><p>Ibland läggs ett <b>s</b> in: födelse + dag = födelse<b>s</b>dag.</p>`,
+  abc: `<p>I en ordbok eller ett register står orden i <b>bokstavsordning</b>: a b c d e f g h i j k l m n o p q r s t u v w x y z å ä ö.</p><p>Om två ord börjar på samma bokstav tittar du på <b>andra</b> bokstaven, sedan tredje, och så vidare: <i>bil</i> kommer före <i>bok</i> eftersom i kommer före o.</p>`,
+  mening: `<p>En mening börjar med <b>stor bokstav</b> och slutar med ett <b>skiljetecken</b>:</p><ul><li><b>.</b> punkt – vanlig mening: <i>Jag har en hund.</i></li><li><b>?</b> frågetecken – fråga: <i>Vad heter du?</i></li><li><b>!</b> utropstecken – utrop: <i>Akta dig!</i></li></ul><p>Namn på personer, platser och länder har alltid stor bokstav: <i>Clara, Luleå, Sverige</i>. Veckodagar och månader har liten bokstav på svenska.</p>`,
+  bojning: `<p><b>Flertal (plural):</b> en bil – flera bil<b>ar</b>, en flicka – flera flick<b>or</b>, en katt – flera katt<b>er</b>, ett äpple – flera äppl<b>en</b>. Vissa ord ändras helt: en mus – flera möss. Och några ser likadana ut: ett hus – flera hus.</p><p><b>Tidsform (tempus):</b> idag <i>springer</i> jag (nutid), igår <i>sprang</i> jag (dåtid), jag <i>har sprungit</i> (har-form).</p>`,
+  lasa: `<p>Så läser du för att förstå:</p><ol><li>Läs rubriken – vad tror du texten handlar om?</li><li>Läs hela texten en gång.</li><li>Läs frågan. Leta efter samma ord i texten.</li><li>Läs meningen runt omkring – där finns oftast svaret.</li></ol><p>Tryck på högtalaren om du vill höra texten uppläst.</p>`,
+  rim: `<p>Ord som <b>rimmar</b> slutar likadant: hus – mus – ljus. Rim gör det lättare att komma ihåg ramsor, sånger och dikter.</p>`,
+};
+
+const SV_SKILLS = {
+  clara: [
+    { id: 'sv_stavning', name: 'Stavning', short: 'Stavning', icon: '✏️', group: 'sv', subject: 'Svenska', gen: SV.genStavning, method: METHOD_SV.stavning },
+    { id: 'sv_lasa', name: 'Läsförståelse', short: 'Läsa', icon: '📖', group: 'sv', subject: 'Svenska', gen: SV.genLasa, method: METHOD_SV.lasa },
+    { id: 'sv_ordklass', name: 'Ordklasser', short: 'Ordklasser', icon: '🏷️', group: 'sv', subject: 'Svenska', gen: SV.genOrdklass, method: METHOD_SV.ordklass },
+    { id: 'sv_mening', name: 'Meningar och skiljetecken', short: 'Meningar', icon: '❗', group: 'sv', subject: 'Svenska', gen: SV.genMening, method: METHOD_SV.mening },
+    { id: 'sv_motsats', name: 'Motsatsord', short: 'Motsatser', icon: '↔️', group: 'sv', subject: 'Svenska', gen: SV.genMotsats, method: METHOD_SV.motsats },
+    { id: 'sv_synonym', name: 'Synonymer', short: 'Synonymer', icon: '🟰', group: 'sv', subject: 'Svenska', gen: SV.genSynonym, method: METHOD_SV.synonym },
+    { id: 'sv_sammansatt', name: 'Sammansatta ord', short: 'Sammansatta', icon: '🧩', group: 'sv', subject: 'Svenska', gen: SV.genSammansatt, method: METHOD_SV.sammansatt },
+    { id: 'sv_bojning', name: 'Flertal och tidsformer', short: 'Böjning', icon: '🔁', group: 'sv', subject: 'Svenska', gen: SV.genBojning, method: METHOD_SV.bojning },
+    { id: 'sv_abc', name: 'Bokstavsordning', short: 'ABC', icon: '🔤', group: 'sv', subject: 'Svenska', gen: SV.genAbc, method: METHOD_SV.abc },
+    { id: 'sv_rim', name: 'Rim', short: 'Rim', icon: '🎵', group: 'sv', subject: 'Svenska', gen: SV.genRim, method: METHOD_SV.rim },
+  ],
+};
+/* ========= NO och SO åk 1–3 (Clara) – enligt Lgr22 centralt innehåll ========= */
+// Q(fråga, [rätt, fel…], förklaring)  ·  O(fråga, [rätt ordning], förklaring) = sätt i ordning
+const QN = (q, choices, why) => ({ q, choices, why });
+const ON = (q, items, why) => ({ order: true, q, items, why });
+
+const NO2 = [
+  { id: 'no_arstider', name: 'Årstider, månader och dygnet', short: 'Årstider', icon: '🍂', lgr: 'Årstidsväxlingar i naturen. Hur man känner igen årstider. Dygnet och månadernas namn.',
+    read: `<p>Året har <b>fyra årstider</b>: vår, sommar, höst och vinter. På <b>våren</b> smälter snön, fåglarna kommer tillbaka och träden får knoppar. På <b>sommaren</b> är det varmt och ljust nästan hela dygnet i Luleå. På <b>hösten</b> blir löven gula och röda och faller av, och många fåglar flyttar söderut. På <b>vintern</b> är det kallt, mörkt och snö.</p><p>Året har <b>12 månader</b>: januari, februari, mars, april, maj, juni, juli, augusti, september, oktober, november, december. En vecka har 7 dagar och ett dygn har 24 timmar.</p>`,
+    qs: [
+      QN('Hur många årstider finns det?', ['Fyra', 'Tre', 'Två', 'Tolv'], 'Vår, sommar, höst och vinter.'),
+      QN('Vilken årstid faller löven av träden?', ['Hösten', 'Våren', 'Sommaren', 'Vintern'], 'På hösten blir löven gula och röda innan de faller.'),
+      QN('Vad händer på våren?', ['Snön smälter och fåglarna kommer tillbaka', 'Löven faller', 'Det blir mörkt och kallt', 'Björnen går i ide'], 'Våren är när naturen vaknar.'),
+      QN('Hur många månader har ett år?', ['12', '10', '7', '24'], 'Januari till december – tolv månader.'),
+      QN('Vilken månad kommer efter mars?', ['April', 'Maj', 'Februari', 'Juni'], 'Januari, februari, mars, april …'),
+      QN('Vilken är årets första månad?', ['Januari', 'December', 'Mars', 'Augusti'], 'Nyår firas 1 januari.'),
+      QN('Hur många dagar har en vecka?', ['7', '5', '10', '12'], 'Måndag till söndag.'),
+      QN('Hur många timmar har ett dygn?', ['24', '12', '60', '7'], 'Ett dygn = en dag och en natt = 24 timmar.'),
+      QN('Varför är det ljust nästan hela natten i Luleå på sommaren?', ['Luleå ligger långt norrut, nära polcirkeln', 'Solen är större på sommaren', 'Det finns många lampor', 'Det är alltid ljust på sommaren överallt'], 'Ju längre norrut, desto ljusare sommarnätter – midnattssol.'),
+      QN('Vilka månader är vintermånader i Sverige?', ['December, januari, februari', 'Juni, juli, augusti', 'Mars, april, maj', 'September, oktober, november'], 'Vintern är december–februari.'),
+      ON('Sätt månaderna i rätt ordning:', ['januari', 'februari', 'mars', 'april'], 'Årets fyra första månader.'),
+      ON('Sätt månaderna i rätt ordning:', ['september', 'oktober', 'november', 'december'], 'Årets fyra sista månader.'),
+      ON('Sätt veckodagarna i rätt ordning:', ['måndag', 'tisdag', 'onsdag', 'torsdag', 'fredag'], 'Veckan börjar på måndag.'),
+      ON('Sätt årstiderna i ordning, börja med våren:', ['vår', 'sommar', 'höst', 'vinter'], 'Efter vintern kommer våren igen.'),
+    ] },
+  { id: 'no_djur', name: 'Djur och växter i närmiljön', short: 'Djur & växter', icon: '🦔', lgr: 'Djur och växter i närmiljön och hur de kan sorteras och grupperas. Enkla näringskedjor och livscykler.',
+    read: `<p>Djur kan sorteras i grupper. <b>Däggdjur</b> har päls och ungarna diar mjölk (hund, älg, människa). <b>Fåglar</b> har fjädrar och lägger ägg. <b>Fiskar</b> andas med gälar och lever i vatten. <b>Insekter</b> har sex ben och kroppen i tre delar (myra, bi, fjäril). <b>Kräldjur</b> som ormar och ödlor har fjäll, <b>groddjur</b> som grodor börjar livet i vatten.</p><p>En <b>näringskedja</b> visar vem som äter vem: gräs → hare → räv. Växter är alltid först, för de gör sin egen mat av solljus. En <b>livscykel</b> visar hur ett djur växer: ägg → larv → puppa → fjäril.</p><p>På vintern <b>sover</b> björnen och igelkotten, flyttfåglarna <b>flyttar</b> söderut, och haren byter till <b>vit päls</b>.</p>`,
+    qs: [
+      QN('Vilken djurgrupp har päls och diar sina ungar?', ['Däggdjur', 'Fåglar', 'Fiskar', 'Insekter'], 'Däggdjur = djur som ger di (mjölk).'),
+      QN('Hur många ben har en insekt?', ['Sex', 'Fyra', 'Åtta', 'Två'], 'Spindlar har åtta ben – de är inte insekter!'),
+      QN('Vilket djur är en fågel?', ['Talgoxe', 'Fladdermus', 'Groda', 'Fjäril'], 'Fåglar har fjädrar. Fladdermusen är ett däggdjur som kan flyga.'),
+      QN('Vad har fiskar för att andas under vatten?', ['Gälar', 'Lungor', 'Näsa', 'Fenor'], 'Gälarna tar upp syre ur vattnet.'),
+      QN('Vilket djur är ett däggdjur?', ['Älg', 'Gädda', 'Humla', 'Orm'], 'Älgen har päls och ungarna diar.'),
+      QN('Vad kommer alltid först i en näringskedja?', ['En växt', 'Ett rovdjur', 'Människan', 'En insekt'], 'Växter gör sin egen näring av solljus – allt annat äter växter eller djur som ätit växter.'),
+      QN('Vad gör björnen på vintern?', ['Sover i ide', 'Flyttar söderut', 'Byter färg', 'Simmar i havet'], 'Björnen äter mycket på hösten och sover sedan hela vintern.'),
+      QN('Varför byter haren till vit päls på vintern?', ['För att inte synas i snön', 'För att det är fint', 'För att hålla värmen', 'För att springa fortare'], 'Vit päls i snö = kamouflage mot räven.'),
+      QN('Vad gör flyttfåglar på hösten?', ['Flyger söderut där det finns mat', 'Sover i ide', 'Bygger bo', 'Lägger ägg'], 'Till exempel tranan och svalan flyttar.'),
+      QN('Vad behöver en växt för att växa?', ['Vatten, ljus och näring', 'Bara vatten', 'Mörker', 'Kött'], 'Växter gör näring av solljus, vatten och luft.'),
+      QN('Vilka delar har en blomma?', ['Rot, stjälk, blad och blomma', 'Ben, mage och huvud', 'Gälar och fenor', 'Päls och svans'], 'Roten suger upp vatten, stjälken bär upp, bladen fångar ljus.'),
+      QN('Vad är ett rovdjur?', ['Ett djur som äter andra djur', 'Ett djur som äter gräs', 'Ett djur som sover på vintern', 'Ett djur som lever i vatten'], 'Räv, varg och lo är rovdjur.'),
+      ON('Sätt fjärilens livscykel i rätt ordning:', ['ägg', 'larv', 'puppa', 'fjäril'], 'Larven äter, förpuppas och blir en fjäril.'),
+      ON('Sätt näringskedjan i rätt ordning (vem äts av vem):', ['gräs', 'hare', 'räv'], 'Växten först, sedan växtätaren, sist rovdjuret.'),
+      ON('Sätt grodans livscykel i rätt ordning:', ['ägg (rom)', 'grodyngel', 'liten groda med ben', 'vuxen groda'], 'Grodan börjar livet i vatten.'),
+    ] },
+  { id: 'no_kroppen', name: 'Kroppen och sinnena', short: 'Kroppen', icon: '🫀', lgr: 'Människans kroppsdelar, deras namn och funktion. Människans upplevelser av ljus, ljud, temperatur, smak och doft med hjälp av olika sinnen.',
+    read: `<p>Vi har <b>fem sinnen</b>: syn (ögonen), hörsel (öronen), lukt (näsan), smak (tungan) och känsel (huden).</p><p>Inuti kroppen finns <b>skelettet</b> som håller oss uppe, <b>musklerna</b> som gör att vi kan röra oss, <b>hjärtat</b> som pumpar blod, <b>lungorna</b> som vi andas med, <b>magen</b> som bryter ner maten och <b>hjärnan</b> som styr allt.</p><p>För att må bra behöver kroppen sömn, bra mat, rörelse och vatten.</p>`,
+    qs: [
+      QN('Hur många sinnen har människan?', ['Fem', 'Tre', 'Två', 'Tio'], 'Syn, hörsel, lukt, smak och känsel.'),
+      QN('Vilket sinne använder du med tungan?', ['Smak', 'Lukt', 'Hörsel', 'Känsel'], 'Tungan känner sött, salt, surt, beskt och umami.'),
+      QN('Vad gör hjärtat?', ['Pumpar runt blodet i kroppen', 'Bryter ner maten', 'Styr tankarna', 'Hjälper oss andas'], 'Hjärtat slår ungefär 80 gånger i minuten när du vilar.'),
+      QN('Vad andas vi med?', ['Lungorna', 'Magen', 'Hjärtat', 'Skelettet'], 'Lungorna tar upp syre ur luften.'),
+      QN('Vad håller kroppen uppe?', ['Skelettet', 'Huden', 'Blodet', 'Håret'], 'Skelettet har över 200 ben.'),
+      QN('Vilket organ styr hela kroppen?', ['Hjärnan', 'Magen', 'Hjärtat', 'Njurarna'], 'Hjärnan skickar signaler genom nerverna.'),
+      QN('Med vilket sinne känner du att något är varmt?', ['Känsel', 'Syn', 'Smak', 'Hörsel'], 'Känseln sitter i huden.'),
+      QN('Vad gör musklerna?', ['Gör att vi kan röra oss', 'Pumpar blod', 'Smakar maten', 'Ser ljus'], 'Musklerna drar i skelettet.'),
+      QN('Varför behöver vi sova?', ['Kroppen och hjärnan vilar och växer', 'För att bli hungriga', 'För att se bättre', 'Det behöver vi inte'], 'Barn behöver 9–11 timmars sömn.'),
+      QN('Var bryts maten ner?', ['I magen och tarmarna', 'I lungorna', 'I hjärtat', 'I skelettet'], 'Näringen går sedan ut i blodet.'),
+      QN('Vilket sinne använder du när du lyssnar på musik?', ['Hörsel', 'Syn', 'Lukt', 'Smak'], 'Örat fångar upp ljudvågor.'),
+      QN('Vad händer med pulsen när du springer?', ['Den blir snabbare', 'Den blir långsammare', 'Den stannar', 'Inget'], 'Musklerna behöver mer syre, så hjärtat pumpar fortare.'),
+    ] },
+  { id: 'no_vatten', name: 'Vatten, luft och väder', short: 'Vatten & väder', icon: '💧', lgr: 'Vattnets olika former: fast, flytande och gas. Övergångar mellan formerna: avdunstning, kokning, kondensering, smältning och stelning. Luftens egenskaper. Vattnets kretslopp.',
+    read: `<p>Vatten finns i <b>tre former</b>: <b>fast</b> (is), <b>flytande</b> (vatten) och <b>gas</b> (vattenånga). När is blir varm <b>smälter</b> den. När vatten blir kallt <b>fryser</b> (stelnar) det – vid 0 grader. När vatten kokar vid 100 grader blir det <b>ånga</b>. Ånga som kyls ner blir vattendroppar igen – det kallas <b>kondensera</b> (som imma på ett kallt glas).</p><p><b>Vattnets kretslopp:</b> solen värmer havet → vatten avdunstar och stiger som ånga → ångan kyls och blir moln → regn eller snö faller → vattnet rinner i bäckar och älvar tillbaka till havet.</p><p><b>Luft</b> finns överallt fast vi inte ser den. Luft tar plats (blås upp en ballong!) och väger lite. Vind är luft som rör sig.</p>`,
+    qs: [
+      QN('Vilka tre former kan vatten ha?', ['Fast, flytande och gas', 'Kall, varm och het', 'Salt, sött och surt', 'Hav, sjö och älv'], 'Is, vatten och vattenånga.'),
+      QN('Vad kallas vatten i fast form?', ['Is', 'Ånga', 'Regn', 'Dimma'], 'Vid 0 grader fryser vatten till is.'),
+      QN('Vad händer när is blir varm?', ['Den smälter', 'Den fryser', 'Den kokar', 'Den försvinner'], 'Smälta = fast blir flytande.'),
+      QN('Vid vilken temperatur fryser vatten?', ['0 grader', '100 grader', '10 grader', '−100 grader'], 'Under 0 grader är vatten is.'),
+      QN('Vid vilken temperatur kokar vatten?', ['100 grader', '0 grader', '50 grader', '1000 grader'], 'Då blir vattnet till ånga.'),
+      QN('Vad kallas det när ånga blir till vattendroppar?', ['Kondensera', 'Smälta', 'Frysa', 'Koka'], 'Som när badrumsspegeln blir immig.'),
+      QN('Varför blir det imma på ett glas med kall saft?', ['Vattenånga i luften kyls mot glaset och blir droppar', 'Saften läcker ut', 'Glaset svettas', 'Det regnar inne'], 'Kondens!'),
+      QN('Vad är ett moln?', ['Små vattendroppar eller iskristaller i luften', 'Rök', 'Bomull', 'Ånga som är varm'], 'Molnen bildas när vattenånga kyls ner högt upp.'),
+      QN('Vad är vind?', ['Luft som rör sig', 'Vatten som rör sig', 'Ljud', 'Kall ånga'], 'Vind är luft i rörelse.'),
+      QN('Vad händer med en pöl på en varm sommardag?', ['Vattnet avdunstar och blir ånga', 'Vattnet fryser', 'Vattnet blir salt', 'Inget'], 'Avdunsta = flytande blir gas utan att koka.'),
+      QN('Tar luft plats?', ['Ja – blås upp en ballong så ser du', 'Nej, luft är ingenting', 'Bara på vintern', 'Bara utomhus'], 'Luft är en gas som tar plats och väger lite.'),
+      QN('Var kommer regnet ifrån?', ['Från moln där vattendroppar blivit tunga', 'Från havet direkt', 'Från solen', 'Från berg'], 'Dropparna i molnet slås ihop, blir tunga och faller.'),
+      ON('Sätt vattnets kretslopp i rätt ordning:', ['solen värmer havet', 'vatten avdunstar och stiger', 'ångan kyls och blir moln', 'regn faller', 'vattnet rinner tillbaka till havet'], 'Sedan börjar det om – ett kretslopp.'),
+      ON('Sätt i ordning från kallast till varmast:', ['is', 'kallt vatten', 'varmt vatten', 'ånga'], 'Ju varmare, desto snabbare rör sig vattnets små delar.'),
+    ] },
+  { id: 'no_rymden', name: 'Jorden, solen och månen', short: 'Rymden', icon: '🌙', lgr: 'Jordens, solens och månens rörelser i förhållande till varandra. Månens olika faser. Stjärnbilder och stjärnhimlens utseende vid olika tider på året.',
+    read: `<p><b>Jorden</b> är en planet som snurrar runt sig själv ett varv per <b>dygn</b> – det är därför vi har dag och natt. Samtidigt går jorden runt <b>solen</b> – ett varv tar ett <b>år</b>. Solen är en <b>stjärna</b>, ett enormt klot av het gas som ger oss ljus och värme.</p><p><b>Månen</b> går runt jorden på ungefär en månad. Månen lyser inte själv – den speglar solens ljus. Därför ser den olika ut: <b>nymåne</b> (osynlig), <b>halvmåne</b>, <b>fullmåne</b>. Det kallas månens faser.</p><p>I vårt <b>solsystem</b> finns åtta planeter: Merkurius, Venus, Jorden, Mars, Jupiter, Saturnus, Uranus och Neptunus. På natthimlen kan vi se <b>stjärnbilder</b> som Karlavagnen.</p>`,
+    qs: [
+      QN('Varför har vi dag och natt?', ['Jorden snurrar runt sig själv', 'Solen slocknar på natten', 'Månen skymmer solen', 'Molnen täcker solen'], 'Den sida som är vänd mot solen har dag.'),
+      QN('Hur lång tid tar det för jorden att gå ett varv runt solen?', ['Ett år', 'Ett dygn', 'En månad', 'En vecka'], 'Därför är ett år 365 dagar.'),
+      QN('Vad är solen?', ['En stjärna', 'En planet', 'En måne', 'En komet'], 'Solen är vår närmaste stjärna.'),
+      QN('Varför lyser månen?', ['Den speglar solens ljus', 'Den brinner', 'Den har lampor', 'Den är gjord av guld'], 'Månen har inget eget ljus.'),
+      QN('Vad går månen runt?', ['Jorden', 'Solen', 'Mars', 'Inget'], 'Ett varv tar ungefär en månad.'),
+      QN('Vad kallas det när hela månen syns rund och lysande?', ['Fullmåne', 'Nymåne', 'Halvmåne', 'Månförmörkelse'], 'Då är hela den solbelysta sidan vänd mot oss.'),
+      QN('Hur många planeter finns det i vårt solsystem?', ['Åtta', 'Fem', 'Tio', 'Tolv'], 'Merkurius, Venus, Jorden, Mars, Jupiter, Saturnus, Uranus, Neptunus.'),
+      QN('Vilken planet är närmast solen?', ['Merkurius', 'Jorden', 'Mars', 'Jupiter'], 'Merkurius är liten och mycket het.'),
+      QN('Vilken planet kallas den röda planeten?', ['Mars', 'Venus', 'Jupiter', 'Saturnus'], 'Marken på Mars innehåller rost som gör den röd.'),
+      QN('Vilken är den största planeten?', ['Jupiter', 'Jorden', 'Mars', 'Merkurius'], 'Jupiter är så stor att 1 300 jordklot skulle få plats i den.'),
+      QN('Vad är Karlavagnen?', ['En stjärnbild', 'En planet', 'En måne', 'En raket'], 'Sju stjärnor som ser ut som en vagn.'),
+      QN('Vad är det som gör att vi har årstider?', ['Jorden lutar lite när den går runt solen', 'Solen flyttar sig', 'Månen täcker solen', 'Jorden snurrar fortare på sommaren'], 'När vår del av jorden lutar mot solen är det sommar.'),
+      ON('Sätt planeterna i ordning från solen:', ['Merkurius', 'Venus', 'Jorden', 'Mars'], 'De fyra innersta planeterna.'),
+      ON('Sätt i storleksordning, minst först:', ['månen', 'jorden', 'solen'], 'Solen är över 100 gånger bredare än jorden.'),
+    ] },
+  { id: 'no_material', name: 'Material, kraft och ljus', short: 'Material & kraft', icon: '🧲', lgr: 'Materials egenskaper och hur material och föremål kan sorteras. Balans, tyngdpunkt och jämvikt. Friktion. Magneter. Ljusets egenskaper och skuggor. Hur ljud uppstår.',
+    read: `<p>Saker är gjorda av olika <b>material</b>: trä, metall, plast, glas, papper, tyg. Material har olika <b>egenskaper</b>: hårt eller mjukt, tungt eller lätt, flyter eller sjunker, leder värme eller inte. <b>Magneter</b> drar till sig järn, men inte trä eller plast.</p><p><b>Friktion</b> är motståndet när saker gnids mot varandra. Lite friktion = halt (is, skridskor). Mycket friktion = greppar (gummisulor). <b>Tyngdpunkt</b> och <b>balans</b>: ett torn välter om tyngdpunkten hamnar utanför foten.</p><p><b>Ljus</b> går rakt fram. När något står i vägen blir det en <b>skugga</b>. <b>Ljud</b> uppstår när något <b>vibrerar</b> (darrar), som en gitarrsträng. Ljudet färdas genom luften till örat.</p>`,
+    qs: [
+      QN('Vilket material drar en magnet till sig?', ['Järn', 'Trä', 'Plast', 'Papper'], 'Magneter drar bara till sig vissa metaller, framför allt järn.'),
+      QN('Varför är det halt på is?', ['Isen har väldigt lite friktion', 'Isen är mjuk', 'Isen är varm', 'Isen är gjord av glas'], 'Friktion = hur mycket det tar emot.'),
+      QN('Vad händer med en skugga när ljuset kommer från sidan?', ['Den blir lång', 'Den försvinner', 'Den blir rund', 'Den blir ljus'], 'På morgonen och kvällen är skuggorna långa.'),
+      QN('Hur uppstår ljud?', ['Något vibrerar', 'Något lyser', 'Något blir varmt', 'Något blir vått'], 'Känn på halsen när du pratar – det vibrerar!'),
+      QN('Vilket material flyter på vatten?', ['Trä', 'Sten', 'Järn', 'Glas'], 'Trä är lättare än vatten.'),
+      QN('Vad gör att ett högt torn av klossar välter?', ['Tyngdpunkten hamnar utanför foten', 'Klossarna är för färgglada', 'Det blåser', 'Klossarna är för lätta'], 'Bred bas och tyngd längst ner ger bra balans.'),
+      QN('Varför har gymnastikskor gummisulor?', ['Gummi ger mycket friktion så man inte halkar', 'Gummi är billigt', 'Gummi ser fint ut', 'Gummi är tungt'], 'Mer friktion = bättre grepp.'),
+      QN('Vad behövs för att det ska bli en skugga?', ['Ljus och något som står i vägen', 'Bara mörker', 'Vatten', 'Vind'], 'Ljuset går rakt fram och stoppas av föremålet.'),
+      QN('Vilket material är genomskinligt?', ['Glas', 'Trä', 'Metall', 'Tyg'], 'Ljuset går igenom glaset.'),
+      QN('Hur kan vi sortera skräp för återvinning?', ['Efter material: papper, plast, glas, metall', 'Efter färg', 'Efter storlek', 'Man kan inte sortera skräp'], 'Återvinning sparar på jordens resurser.'),
+      QN('Vad händer med ljudet när något vibrerar snabbare?', ['Tonen blir ljusare (högre)', 'Tonen blir mörkare', 'Det blir tyst', 'Ljudet blir blått'], 'En kort, spänd sträng vibrerar snabbt och låter ljust.'),
+      QN('Vilket material leder värme bäst?', ['Metall', 'Trä', 'Ull', 'Plast'], 'Därför blir en metallsked varm i den heta soppan.'),
+    ] },
+];
+
+const SO2 = [
+  { id: 'so_karta', name: 'Kartan, väderstreck och Sverige', short: 'Kartan', icon: '🧭', lgr: 'Rumsuppfattning med hjälp av mentala kartor och fysiska kartor över närområdet och Sverige. Väderstreck. Namn och läge på Sveriges landskap, Nordens länder, världsdelarna och världshaven.',
+    read: `<p>En <b>karta</b> är en bild av marken sedd uppifrån. De fyra <b>väderstrecken</b> är <b>norr</b> (uppåt på kartan), <b>söder</b> (nedåt), <b>öster</b> (höger) och <b>väster</b> (vänster). En <b>kompass</b> pekar alltid mot norr.</p><p><b>Sverige</b> ligger i <b>Norden</b> tillsammans med Norge, Danmark, Finland och Island. Sveriges huvudstad är <b>Stockholm</b>. Luleå ligger i landskapet <b>Norrbotten</b>, långt upp i norr. Sverige är indelat i 25 landskap. Världen har sju <b>världsdelar</b>: Europa, Asien, Afrika, Nordamerika, Sydamerika, Oceanien och Antarktis.</p>`,
+    qs: [
+      QN('Vilket väderstreck är uppåt på en karta?', ['Norr', 'Söder', 'Öster', 'Väster'], 'Norr är nästan alltid uppåt.'),
+      QN('Vilket väderstreck är till höger på kartan?', ['Öster', 'Väster', 'Norr', 'Söder'], 'Solen går upp i öster.'),
+      QN('Vart pekar en kompass?', ['Mot norr', 'Mot söder', 'Mot solen', 'Mot hemmet'], 'Kompassnålen är en magnet som pekar mot norr.'),
+      QN('Vad heter Sveriges huvudstad?', ['Stockholm', 'Göteborg', 'Luleå', 'Oslo'], 'Där finns riksdagen och kungen.'),
+      QN('I vilket landskap ligger Luleå?', ['Norrbotten', 'Skåne', 'Lappland', 'Västerbotten'], 'Norrbotten är Sveriges nordligaste kustlandskap.'),
+      QN('Vilka länder tillhör Norden?', ['Sverige, Norge, Danmark, Finland och Island', 'Sverige, Tyskland och Polen', 'Sverige, Spanien och Italien', 'Bara Sverige'], 'Norden = de nordiska länderna.'),
+      QN('Vilket land ligger väster om Sverige?', ['Norge', 'Finland', 'Danmark', 'Ryssland'], 'Norge delar en lång gräns med Sverige i väster.'),
+      QN('Vilket land ligger öster om Sverige, på andra sidan Bottenviken?', ['Finland', 'Norge', 'Danmark', 'Island'], 'Från Luleå är det nära till Finland.'),
+      QN('I vilken världsdel ligger Sverige?', ['Europa', 'Asien', 'Afrika', 'Nordamerika'], 'Europa är en av sju världsdelar.'),
+      QN('Hur många världsdelar finns det?', ['Sju', 'Fem', 'Tre', 'Tio'], 'Europa, Asien, Afrika, Nordamerika, Sydamerika, Oceanien, Antarktis.'),
+      QN('Vad kallas den stora, öppna ytan av salt vatten mellan världsdelarna?', ['Hav', 'Sjö', 'Älv', 'Bäck'], 'Till exempel Atlanten och Stilla havet.'),
+      QN('Vad visar blått på en karta?', ['Vatten', 'Skog', 'Berg', 'Städer'], 'Sjöar, hav och älvar.'),
+      QN('Om du går mot norr från Luleå, vad kommer du till så småningom?', ['Lappland och fjällen', 'Stockholm', 'Danmark', 'Göteborg'], 'Norr om Norrbotten ligger Lappland och sedan Norge.'),
+      ON('Sätt i ordning från norr till söder:', ['Luleå', 'Umeå', 'Stockholm', 'Malmö'], 'Luleå ligger längst norrut, Malmö längst söderut.'),
+    ] },
+  { id: 'so_trafik', name: 'Trafik och säkerhet', short: 'Trafik', icon: '🚦', lgr: 'Trafikregler och hur man beter sig i trafiken på ett säkert sätt.',
+    read: `<p>I trafiken gäller regler för att ingen ska skadas. Som <b>fotgängare</b> går du på trottoaren eller, om det inte finns någon, på vägens <b>vänstra</b> sida så att du ser bilarna som kommer emot dig. Du går över gatan vid ett <b>övergångsställe</b>: stanna, titta åt vänster, höger och vänster igen, och gå först när det är fritt. Rött ljus = stanna, grönt = gå.</p><p>På <b>cykel</b> ska du ha <b>hjälm</b> (lag tills man fyllt 15), och cykeln ska ha lampor och <b>reflexer</b>. Cyklister kör på vägens <b>högra</b> sida. <b>Reflexer</b> gör att bilar ser dig i mörkret – utan reflex syns du först på 20–30 meter, med reflex på över 100 meter. I bilen ska alla ha <b>bälte</b>.</p>`,
+    qs: [
+      QN('Vilken sida ska du gå på om det inte finns trottoar?', ['Vänster sida, mot trafiken', 'Höger sida', 'Mitt på vägen', 'Det spelar ingen roll'], 'Då ser du bilarna som kommer emot dig.'),
+      QN('Vad betyder rött ljus för fotgängare?', ['Stanna och vänta', 'Spring fort', 'Gå', 'Titta åt höger'], 'Vänta tills det blir grönt.'),
+      QN('Vad ska du ha på huvudet när du cyklar?', ['Hjälm', 'Mössa', 'Keps', 'Inget'], 'Lag för alla under 15 år – och smart för alla.'),
+      QN('Vilken sida cyklar man på?', ['Höger sida', 'Vänster sida', 'Mitt på vägen', 'På trottoaren'], 'Cykeln är ett fordon och följer högertrafik.'),
+      QN('Varför ska du ha reflexer i mörkret?', ['Bilförare ser dig mycket tidigare', 'De är fina', 'De lyser upp vägen', 'De håller värmen'], 'Med reflex syns du på över 100 meters håll.'),
+      QN('Hur gör du innan du går över ett övergångsställe?', ['Stannar och tittar vänster, höger, vänster', 'Springer snabbt', 'Tittar på mobilen', 'Blundar'], 'Gå först när det är fritt, och gå – spring inte.'),
+      QN('Vad ska alla i bilen ha på sig?', ['Bilbälte', 'Hjälm', 'Reflex', 'Mössa'], 'Bältet håller fast dig om bilen bromsar hårt.'),
+      QN('Vad betyder en skylt med en gående person i en blå cirkel?', ['Gångbana – här ska fotgängare gå', 'Förbjudet att gå', 'Här får bilar köra', 'Cykelbana'], 'Blå runda skyltar är påbud – det man ska göra.'),
+      QN('Vad betyder en trekantig skylt med röd kant?', ['Varning', 'Stopp', 'Parkering', 'Gå här'], 'Trekant med röd kant = var uppmärksam, här finns en fara.'),
+      QN('Vad betyder en rund skylt med röd kant?', ['Förbud – det är inte tillåtet', 'Varning', 'Här får man göra det', 'Information'], 'Till exempel förbjudet att cykla.'),
+      QN('När får en cykel saknas lampor?', ['Aldrig i mörker', 'Alltid', 'På sommaren', 'När man har hjälm'], 'Vit lampa fram, röd lampa bak när det är mörkt.'),
+      QN('Vad gör du om bollen rullar ut i gatan?', ['Stannar och tittar innan du hämtar den', 'Springer efter den direkt', 'Ropar på bollen', 'Kastar en till'], 'Bilarna hinner inte stanna om du springer ut.'),
+    ] },
+  { id: 'so_samhalle', name: 'Regler, demokrati och pengar', short: 'Samhället', icon: '🏛️', lgr: 'Normer och regler i elevernas vardag. Demokratiska beslut i klassen (klassråd). Pengars användning och värde. Barnets rättigheter enligt barnkonventionen. Yrken och verksamheter i närområdet.',
+    read: `<p>Överallt finns <b>regler</b>: i familjen, i skolan, i trafiken och i lagar som gäller alla i Sverige. Regler finns för att vi ska vara snälla och säkra tillsammans.</p><p><b>Demokrati</b> betyder att alla får vara med och bestämma. I klassen har ni <b>klassråd</b> där ni <b>röstar</b> – det förslag som får flest röster vinner. I Sverige väljer vuxna vilka som ska sitta i <b>riksdagen</b> och bestämma lagar.</p><p><b>Barnkonventionen</b> är regler som säger att alla barn har rätt att gå i skolan, att vara trygga, att säga vad de tycker, att leka och att vila. <b>Pengar</b> används för att köpa saker. Vuxna får lön när de arbetar. Olika <b>yrken</b> behövs i ett samhälle: lärare, läkare, brandman, polis, busschaufför, bagare.</p>`,
+    qs: [
+      QN('Vad betyder demokrati?', ['Att alla får vara med och bestämma', 'Att en person bestämmer allt', 'Att ingen bestämmer', 'Att bara vuxna får prata'], 'Demos = folk, krati = styre.'),
+      QN('Hur fattar man beslut på ett klassråd?', ['Alla får säga sitt och sedan röstar man', 'Läraren bestämmer', 'Den som skriker högst vinner', 'Man singlar slant'], 'Förslaget med flest röster vinner.'),
+      QN('Varför finns det regler?', ['För att alla ska vara trygga och må bra tillsammans', 'För att vuxna gillar regler', 'För att det ska vara tråkigt', 'Ingen vet'], 'Regler skyddar oss och gör det rättvist.'),
+      QN('Vad är barnkonventionen?', ['Regler om alla barns rättigheter', 'En bok med sagor', 'En skola', 'En lek'], 'Den gäller alla barn i hela världen och är lag i Sverige.'),
+      QN('Vilket är en rättighet alla barn har enligt barnkonventionen?', ['Att gå i skolan', 'Att äta godis varje dag', 'Att köra bil', 'Att bestämma över vuxna'], 'Även rätt till trygghet, lek, vila och att säga sin åsikt.'),
+      QN('Vad får vuxna när de arbetar?', ['Lön', 'Betyg', 'Medalj', 'Presenter'], 'Lön är pengar för arbetet.'),
+      QN('Vad heter Sveriges valuta (pengar)?', ['Kronor', 'Euro', 'Dollar', 'Pund'], '1 krona = 100 öre.'),
+      QN('Vem släcker bränder?', ['Brandmän', 'Poliser', 'Läkare', 'Bagare'], 'Ring 112 om det brinner.'),
+      QN('Vilket nummer ringer du vid en olycka?', ['112', '911', '123', '100'], 'SOS Alarm svarar på 112 i hela Sverige.'),
+      QN('Vem bestämmer lagarna i Sverige?', ['Riksdagen', 'Kungen', 'Polisen', 'Lärarna'], 'Riksdagen väljs av folket vart fjärde år.'),
+      QN('Vad är en kompromiss?', ['Att båda ger med sig lite så alla blir nöjda', 'Att en vinner allt', 'Att man slåss', 'Att man går hem'], 'Bra när man inte tycker lika.'),
+      QN('Vad betyder det att vara källkritisk?', ['Att fundera på om det man läser eller hör är sant', 'Att läsa allt', 'Att tro på allt', 'Att kritisera kompisar'], 'Vem säger det? Hur vet de det? Kan jag kolla på ett annat ställe?'),
+    ] },
+  { id: 'so_hogtider', name: 'Högtider, traditioner och förr i tiden', short: 'Förr & högtider', icon: '🕯️', lgr: 'Kristendomens roll i skolan och på hemorten förr i tiden. Religioner och platser för religionsutövning i närområdet. Några högtider, symboler och berättelser inom kristendom, islam och judendom. Hemortens historia och livet förr.',
+    read: `<p><b>Högtider</b> är dagar vi firar. Många svenska högtider kommer från <b>kristendomen</b>: <b>jul</b> (Jesus föds), <b>påsk</b> (Jesus dör och uppstår) och <b>lucia</b> den 13 december. <b>Midsommar</b> firar sommaren med stång och dans.</p><p>I Sverige finns många <b>religioner</b>. Kristna går till <b>kyrkan</b>, muslimer till <b>moskén</b> och judar till <b>synagogan</b>. Inom <b>islam</b> fastar man under <b>ramadan</b> och firar <b>eid</b>. Inom <b>judendomen</b> firar man <b>chanukka</b> med ljus.</p><p><b>Förr i tiden</b> fanns inga bilar, datorer eller elektricitet. Barn i Luleå för 100 år sedan gick till skolan till fots, skrev på griffeltavla och många hjälpte till med djur och fiske. Vi kan lära oss om förr genom gamla <b>foton</b>, <b>föremål</b> och genom att <b>fråga äldre</b> människor.</p>`,
+    qs: [
+      QN('Vad firar man på julen inom kristendomen?', ['Att Jesus föddes', 'Att det är vinter', 'Att skolan slutar', 'Att Jesus uppstod'], 'Julen firas den 24–25 december.'),
+      QN('Vad firar kristna på påsken?', ['Att Jesus dog och uppstod', 'Att Jesus föddes', 'Att det är vår', 'Att ägg är goda'], 'Påsken är kristendomens viktigaste högtid.'),
+      QN('Vilket datum är lucia?', ['13 december', '24 december', '1 januari', '6 juni'], 'Lucia går med ljus i håret i den mörkaste tiden.'),
+      QN('Var går muslimer för att be?', ['Moskén', 'Kyrkan', 'Synagogan', 'Templet'], 'Moskén är islams gudstjänstlokal.'),
+      QN('Vad heter judarnas gudstjänstlokal?', ['Synagogan', 'Kyrkan', 'Moskén', 'Skolan'], 'Där läser man ur Toran.'),
+      QN('Vad är ramadan?', ['En månad då muslimer fastar på dagen', 'En jullek', 'En stad', 'En maträtt'], 'Efter ramadan firas eid med fest och mat.'),
+      QN('När firas midsommar?', ['I juni', 'I december', 'I mars', 'I oktober'], 'Nära årets längsta dag.'),
+      QN('Vad är en tradition?', ['Något man gör på samma sätt år efter år', 'En ny uppfinning', 'En sorts mat', 'En bok'], 'Till exempel att äta semla på fettisdagen.'),
+      QN('Hur kan vi ta reda på hur det var förr i tiden?', ['Gamla foton, föremål och äldre människors berättelser', 'Gissa', 'Titta på nya filmer', 'Det går inte'], 'Det kallas historiska källor.'),
+      QN('Vad skrev barn på i skolan för 100 år sedan?', ['Griffeltavla', 'Dator', 'Surfplatta', 'Mobil'], 'En liten tavla av skiffer som man skrev på med en griffel.'),
+      QN('Vilket av detta fanns INTE för 100 år sedan?', ['Internet', 'Hästar', 'Båtar', 'Kyrkor'], 'Internet kom på 1990-talet.'),
+      QN('Vad är en symbol för kristendomen?', ['Korset', 'Halvmånen', 'Davidsstjärnan', 'Hjulet'], 'Halvmånen förknippas med islam och Davidsstjärnan med judendomen.'),
+      ON('Sätt i ordning, äldst först:', ['hästdroska', 'ångtåg', 'bil', 'rymdraket'], 'Hur människor rest genom historien.'),
+      ON('Sätt årets högtider i ordning, börja från januari:', ['påsk', 'midsommar', 'lucia', 'jul'], 'Påsk på våren, midsommar i juni, lucia 13 december, jul 24 december.'),
+    ] },
+];
+
+// Generator: 75 % flervalsfråga, 25 % sätt-i-ordning (när ämnet har sådana), undviker upprepning
+const recentNS = {};
+function makeNaSoGen(topic) {
+  return function gen(level, opts = {}) {
+    const recent = recentNS[topic.id] || (recentNS[topic.id] = []);
+    const orders = topic.qs.filter(q => q.order); const plain = topic.qs.filter(q => !q.order);
+    if (!opts.noOpen && orders.length && R.chance(level >= 2 ? 0.3 : 0.2)) {
+      const o = R.pick(orders);
+      return { type: 'order', text: o.q, items: o.items.slice(), answer: o.items, steps: [`<b>Rätt ordning:</b> ${o.items.join(' → ')}`, o.why], hint: 'Vad kommer först?', level };
+    }
+    let pool = plain.filter(q => !recent.includes(q)); if (!pool.length) { recent.length = 0; pool = plain.slice(); }
+    const item = R.pick(pool); recent.push(item); if (recent.length > Math.max(3, plain.length - 2)) recent.shift();
+    const correct = item.choices[0]; const choices = R.shuffle(item.choices.slice(0, level === 1 ? 3 : 4));
+    return { type: 'choicetext', text: item.q, choices, answer: choices.indexOf(correct), steps: [item.why], hint: 'Läs på-sidan har svaret. Ett alternativ passar bäst.', level };
+  };
+}
+const lgrTag = (t, subj) => `<div class="eyebrow" style="margin-bottom:6px">Lgr22 · ${subj} åk 1–3</div><p class="muted" style="font-size:.9rem;margin:0 0 10px"><i>${t.lgr}</i></p>`;
+const NASO_SKILLS = {
+  clara: [
+    ...NO2.map(t => ({ id: t.id, name: t.name, short: t.short, icon: t.icon, group: 'no', subject: 'NO', gen: makeNaSoGen(t), method: lgrTag(t, 'NO') + t.read })),
+    ...SO2.map(t => ({ id: t.id, name: t.name, short: t.short, icon: t.icon, group: 'so', subject: 'SO', gen: makeNaSoGen(t), method: lgrTag(t, 'SO') + t.read })),
+  ],
+};
+/* ========= Clara: matte som växer – nivå 4 på befintliga moment + nya moment enligt Lgr22 åk 1–3 ========= */
+// Lgr22 matematik åk 1–3 (centralt innehåll): naturliga tal 0–1000 och positionssystemet, de fyra räknesätten,
+// huvudräkning och skriftliga metoder, enkla bråk, likhetstecknet, mönster i talföljder, geometriska objekt och
+// symmetri, mätning av längd/massa/volym/tid, tabeller och diagram, problemlösning.
+
+const L4 = {
+  plus20: () => { // nivå 4: plus till 100 med tiotalsövergång
+    const a = R.int(23, 78), b = R.int(5, 99 - a); if ((a % 10) + (b % 10) < 10) return L4.plus20();
+    const ans = a + b; return { type: 'num', text: `${m(`${a} + ${b}`)} = ?`, answer: ans, level: 4, steps: [`Tiotalen först: ${m(`${a} + ${Math.floor(b / 10) * 10} = ${a + Math.floor(b / 10) * 10}`)}`, `Sedan entalen: ${m(`${a + Math.floor(b / 10) * 10} + ${b % 10} = ${ans}`)}`], hint: 'Lägg till tiotalen först, sedan entalen.' };
+  },
+  minus20: () => { // nivå 4: minus till 100 med tiotalsövergång
+    const a = R.int(31, 99), b = R.int(5, a - 10); if ((a % 10) >= (b % 10)) return L4.minus20();
+    const ans = a - b; return { type: 'num', text: `${m(`${a} − ${b}`)} = ?`, answer: ans, level: 4, steps: [`Ta bort tiotalen först: ${m(`${a} − ${Math.floor(b / 10) * 10} = ${a - Math.floor(b / 10) * 10}`)}`, `Sedan entalen: ${m(`${a - Math.floor(b / 10) * 10} − ${b % 10} = ${ans}`)}`], hint: 'Ta bort tiotalen först, sedan entalen.' };
+  },
+  tal100: () => { // nivå 4: tre tal, eller till 200
+    if (R.chance(0.5)) { const a = R.int(10, 60), b = R.int(10, 60), c = R.int(5, 40); const ans = a + b + c; return { type: 'num', text: `${m(`${a} + ${b} + ${c}`)} = ?`, answer: ans, level: 4, steps: [`${m(`${a} + ${b} = ${a + b}`)}`, `${m(`${a + b} + ${c} = ${ans}`)}`], hint: 'Räkna ihop två tal i taget. Börja gärna med de som blir jämna tiotal.' }; }
+    const a = R.int(101, 180), b = R.int(10, 199 - a); const add = R.chance(0.5); const ans = add ? a + b : a - b; return { type: 'num', text: `${m(`${a} ${add ? '+' : '−'} ${b}`)} = ?`, answer: ans, level: 4, steps: [`Hundratalet står kvar, räkna med resten: ${m(`${a - 100} ${add ? '+' : '−'} ${b} = ${ans - 100}`)}`, `Lägg tillbaka hundratalet: ${m(ans)}`], hint: 'Tänk bort hundratalet så länge.' };
+  },
+  dubbelt: () => { const half = R.chance(0.5); const base = R.int(26, 99); if (half) { const n = base * 2; return { type: 'num', text: `Hälften av ${m(n)} är?`, answer: base, level: 4, steps: [`Dela upp: hälften av ${Math.floor(n / 100) * 100 || Math.floor(n / 10) * 10} och hälften av resten.`, `${m(`${base} + ${base} = ${n}`)}`], hint: 'Ta hälften av tiotalen och hälften av entalen var för sig.' }; } return { type: 'num', text: `Dubbelt så mycket som ${m(base)} är?`, answer: base * 2, level: 4, steps: [`Dubbla tiotalen: ${Math.floor(base / 10) * 20}, dubbla entalen: ${(base % 10) * 2}`, `${m(`${Math.floor(base / 10) * 20} + ${(base % 10) * 2} = ${base * 2}`)}`], hint: 'Dubbla tiotalen och entalen var för sig.' }; },
+  tabell: () => { const table = R.pick([3, 4, 6, 7, 8, 9]); const k = R.int(2, 10); const div = R.chance(0.35); if (div) return { type: 'num', text: `${m(`${table * k} / ${table}`)} = ?`, answer: k, level: 4, steps: [`Tänk: ${table} gånger vad blir ${table * k}?`, `${m(`${table} · ${k} = ${table * k}`)}, så svaret är ${m(k)}`], hint: `Hoppa ${table} i taget tills du kommer till ${table * k}. Hur många hopp?` }; return { type: 'num', text: `${m(`${k} · ${table}`)} = ?`, answer: k * table, level: 4, steps: [`${m(`${k} · ${table}`)} betyder ${k} stycken ${table}:or.`, table === 9 ? `Knep för 9:an: ${m(`${k} · 10 − ${k} = ${k * 9}`)}` : table === 4 ? `Knep för 4:an: dubbelt och dubbelt igen: ${m(`${k} · 2 = ${k * 2}, ${k * 2} · 2 = ${k * 4}`)}` : `${m(Array(Math.min(k, 5)).fill(table).join(' + ') + (k > 5 ? ' + …' : '') + ' = ' + k * table)}`], hint: `Kan du ${m(`${k} · ${table - 1}`)} eller ${m(`${k} · ${table + 1}`)}? Lägg till eller ta bort ${k}.`, choices: T.choices(k * table, 4, table) }; },
+  saknas: () => { const mult = R.chance(0.4); if (mult) { const t = R.pick([2, 3, 4, 5, 10]), k = R.int(2, 10); return { type: 'num', text: `${m(`${t} · ▢ = ${t * k}`)} Vilket tal ska stå i rutan?`, answer: k, level: 4, steps: [`Hur många ${t}:or behövs för att komma till ${t * k}?`, `${m(`${t} · ${k} = ${t * k}`)}`], hint: `Hoppa ${t} i taget och räkna hoppen.` }; } const total = R.int(40, 200), a = R.int(10, total - 10), b = total - a; const add = R.chance(0.6); if (add) return { type: 'num', text: `${m(`▢ + ${b} = ${total}`)} Vilket tal ska stå i rutan?`, answer: a, level: 4, steps: [`Likhetstecknet betyder "lika mycket på båda sidor".`, `${m(`${total} − ${b} = ${a}`)}`], hint: 'Vad måste du lägga till för att det ska bli lika?' }; return { type: 'num', text: `${m(`${total} − ▢ = ${a}`)} Vilket tal ska stå i rutan?`, answer: b, level: 4, steps: [`${m(`${total} − ${a} = ${b}`)}`], hint: 'Hur stor är skillnaden mellan talen?' }; },
+  klockan2: () => { const h = R.int(1, 12), mm = R.pick([5, 10, 20, 25, 35, 40, 50, 55]); const names = { 5: `fem över ${h}`, 10: `tio över ${h}`, 20: `tjugo över ${h}`, 25: `fem i halv ${h % 12 + 1}`, 35: `fem över halv ${h % 12 + 1}`, 40: `tjugo i ${h % 12 + 1}`, 50: `tio i ${h % 12 + 1}`, 55: `fem i ${h % 12 + 1}` }; const correct = names[mm]; const wrong = R.shuffle(Object.entries(names).filter(([k]) => Number(k) !== mm).map(([, v]) => v)).slice(0, 3); const choices = R.shuffle([correct, ...wrong]); return { type: 'choicetext', fig: VIS.clock(h, mm), text: 'Vad är klockan?', choices, answer: choices.indexOf(correct), level: 4, steps: [`Minutvisaren (den långa) pekar på ${mm / 5} → ${mm} minuter.`, `Klockan är <b>${correct}</b> (${h}:${String(mm).padStart(2, '0')}).`], hint: 'Varje siffra på urtavlan är 5 minuter för den långa visaren.' }; },
+  pengar: () => { const n = R.pick(NAMES); const items = [['en bok', R.int(45, 95)], ['ett spel', R.int(100, 180)], ['en tröja', R.int(120, 199)], ['en boll', R.int(30, 80)], ['godis', R.int(15, 45)]]; const [i1, p1] = R.pick(items); let [i2, p2] = R.pick(items); while (i2 === i1) [i2, p2] = R.pick(items); const sum = p1 + p2; const pay = sum <= 200 ? 200 : 500; return { type: 'num', text: `${n} köper ${i1} för ${p1} kr och ${i2} för ${p2} kr och betalar med ${pay} kr. Hur mycket får ${n} tillbaka?`, answer: pay - sum, level: 4, steps: [`Först kostnaden: ${m(`${p1} + ${p2} = ${sum}`)} kr`, `Sedan växeln: ${m(`${pay} − ${sum} = ${pay - sum}`)} kr`], hint: 'Räkna först ut vad allt kostar tillsammans.' }; },
+  former: () => { const q = R.pick([() => { const s = R.int(2, 9); return { type: 'num', fig: VIS.rect(s, s, { grid: true }), text: `Kvadraten har sidan ${s} rutor. Hur många rutor är arean?`, answer: s * s, level: 4, steps: [`Area = rader · kolumner = ${m(`${s} · ${s} = ${s * s}`)}`], hint: 'Räkna en rad och multiplicera med antalet rader.' }; }, () => { const a = R.int(2, 9), b = R.int(2, 9); return { type: 'num', fig: VIS.rect(a, b), text: `Rektangeln är ${a} cm bred och ${b} cm hög. Hur lång är omkretsen i cm?`, answer: 2 * (a + b), level: 4, steps: [`Omkrets = alla sidor: ${m(`${a} + ${b} + ${a} + ${b} = ${2 * (a + b)}`)}`], hint: 'Gå runt hela figuren och lägg ihop alla sidorna.' }; }, () => { const names = { kub: 6, rätblock: 6, cylinder: 3, kon: 2, klot: 1, pyramid: 5 }; const [nm, f] = R.pick(Object.entries(names)); const choices = R.shuffle([...new Set([f, ...R.shuffle([1, 2, 3, 5, 6]).filter(x => x !== f).slice(0, 3)])]); return { type: 'choicetext', text: `Hur många ytor (sidor) har en <b>${nm}</b>?`, choices: choices.map(String), answer: choices.indexOf(f), level: 4, steps: [`En ${nm} har ${f} ${f === 1 ? 'yta' : 'ytor'}.`, 'Kub och rätblock: 6, pyramid med fyrkantig botten: 5, cylinder: 3 (två cirklar + en böjd), kon: 2, klot: 1.'], hint: 'Tänk på en tärning, en burk, en strut, en boll.' }; }]); return q(); },
+  talrad: () => { const step = R.pick([2, 3, 4, 5, 10, 25, 50, 100]); const start = step === 100 ? R.int(1, 5) * 100 : step === 50 ? R.int(1, 10) * 50 : step === 25 ? R.int(1, 8) * 25 : R.int(1, 30) * step; const down = R.chance(0.35); const seq = Array.from({ length: 5 }, (_, i) => down ? start + 4 * step - i * step : start + i * step); const pos = R.int(2, 4); const ans = seq[pos]; const shown = seq.map((v, i) => (i === pos ? '▢' : v)).join(', '); return { type: 'num', text: `Vilket tal saknas? ${m(shown)}`, answer: ans, level: 4, steps: [`Talen ${down ? 'minskar' : 'ökar'} med ${step} varje gång.`, `${m(`${seq[pos - 1]} ${down ? '−' : '+'} ${step} = ${ans}`)}`], hint: 'Hur mycket är det mellan två tal som står bredvid varandra?' }; },
+};
+
+/* ---- Nya moment ---- */
+function genTal1000(level) {
+  if (level === 1) { const h = R.int(1, 9), t = R.int(0, 9), e = R.int(0, 9); const n = h * 100 + t * 10 + e; const ask = R.pick(['h', 't', 'e']); const ans = ask === 'h' ? h : ask === 't' ? t : e; const name = { h: 'hundratal', t: 'tiotal', e: 'ental' }[ask]; return { type: 'num', text: `Hur många <b>${name}</b> har talet ${m(n)}?`, answer: ans, level, steps: [`${m(n)} = ${h} hundratal, ${t} tiotal och ${e} ental.`, `${m(`${h * 100} + ${t * 10} + ${e} = ${n}`)}`], hint: 'Siffran längst till vänster är hundratalen, i mitten tiotalen, till höger entalen.', choices: T.choices(ans, 4, 2).map(x => Math.max(0, x)) }; }
+  if (level === 2) { const n = R.int(101, 999); const nxt = R.pick(['+1', '−1', '+10', '−10', '+100', '−100']); const d = { '+1': 1, '−1': -1, '+10': 10, '−10': -10, '+100': 100, '−100': -100 }[nxt]; if (n + d < 0 || n + d > 1000) return genTal1000(level); return { type: 'num', text: `Vilket tal är ${nxt.replace('+', '').replace('−', '')} ${d > 0 ? 'mer' : 'mindre'} än ${m(n)}?`, answer: n + d, level, steps: [`${m(`${n} ${d > 0 ? '+' : '−'} ${Math.abs(d)} = ${n + d}`)}`], hint: Math.abs(d) === 1 ? 'Ändra entalssiffran – tänk på om den går över 9 eller under 0.' : Math.abs(d) === 10 ? 'Ändra tiotalssiffran.' : 'Ändra hundratalssiffran.' }; }
+  if (level === 3) { const a = R.int(100, 900), b = R.int(10, 999 - a); const add = R.chance(0.5); const x = R.int(1, 9) * 100, y = R.int(1, 9) * 100; if (!add) { const big = Math.max(x, y), small = Math.min(x, y); if (big === small) return genTal1000(level); return { type: 'num', text: `${m(`${big} − ${small}`)} = ?`, answer: big - small, level, steps: [`Räkna med hundratalen: ${m(`${big / 100} − ${small / 100} = ${(big - small) / 100}`)}, alltså ${m(big - small)}`], hint: 'Tänk i hundralappar.' }; } if (x + y > 1000) return genTal1000(level); return { type: 'num', text: `${m(`${x} + ${y}`)} = ?`, answer: x + y, level, steps: [`${m(`${x / 100} + ${y / 100} = ${(x + y) / 100}`)} hundratal, alltså ${m(x + y)}`], hint: 'Tänk i hundralappar.' }; }
+  const add = R.chance(0.5); const a = R.int(120, 880), b = add ? R.int(11, 999 - a) : R.int(11, a - 10); const ans = add ? a + b : a - b; return { type: 'num', text: `${m(`${a} ${add ? '+' : '−'} ${b}`)} = ?`, answer: ans, level, steps: [`Hundratal: ${m(`${a} ${add ? '+' : '−'} ${Math.floor(b / 100) * 100} = ${add ? a + Math.floor(b / 100) * 100 : a - Math.floor(b / 100) * 100}`)}`, `Tiotal: ${add ? '+' : '−'} ${Math.floor((b % 100) / 10) * 10} → ${add ? a + Math.floor(b / 10) * 10 : a - Math.floor(b / 10) * 10}`, `Ental: ${add ? '+' : '−'} ${b % 10} → ${m(ans)}`], hint: 'Hundratal, sedan tiotal, sedan ental.' };
+}
+function genBrak2(level) {
+  if (level === 1) { const d = R.pick([2, 4]); const shaded = R.int(1, d - 1); const correct = `${shaded}/${d}`; const choices = R.shuffle([...new Set([correct, `${d - shaded}/${d}`, `${shaded}/${d + 1}`, `${d}/${shaded}`])]).slice(0, 3); if (!choices.includes(correct)) choices[0] = correct; return { type: 'choicetext', fig: VIS.pie(shaded, d), text: 'Hur stor del av cirkeln är färgad?', choices, answer: choices.indexOf(correct), level, steps: [`Cirkeln är delad i ${d} lika delar och ${shaded} är färgad${shaded > 1 ? 'e' : ''}: <b>${correct}</b>${shaded / d === 0.5 ? ' = hälften' : ''}.`], hint: `Räkna delarna: ${d} totalt. Hur många är färgade?` }; }
+  if (level === 2) { const d = R.pick([2, 3, 4]); const total = d * R.int(2, 6); const ans = total / d; const name = { 2: 'Hälften', 3: 'En tredjedel', 4: 'En fjärdedel' }[d]; return { type: 'num', text: `${name} av ${m(total)} är?`, answer: ans, level, steps: [`Dela ${total} i ${d} lika stora delar: ${m(`${total} / ${d} = ${ans}`)}`], hint: `Hur många gånger får ${d} plats i ${total}?`, choices: T.choices(ans, 4, 2) }; }
+  if (level === 3) { const d = R.pick([3, 4, 5, 6, 8]); const k = R.int(1, d - 1); const choices = R.shuffle([`${k}/${d}`, `${d - k}/${d}`, `${k}/${d + 1}`, `${d}/${k}`].filter((x, i, a) => a.indexOf(x) === i)).slice(0, 4); return { type: 'choicetext', fig: VIS.pie(k, d), text: 'Hur stor del är färgad? Skriv som bråk.', choices, answer: choices.indexOf(`${k}/${d}`), level, steps: [`${d} delar, ${k} färgade: <b>${k}/${d}</b>. Talet under strecket är antalet delar, talet över är hur många som är färgade.`], hint: 'Nämnaren (under) = alla delar. Täljaren (över) = de färgade.' }; }
+  const d = R.pick([2, 3, 4, 5, 10]); const k = R.int(1, d - 1); const total = d * R.int(2, 10); const ans = (total / d) * k; return { type: 'num', text: `${m(`${k}/${d}`)} av ${m(total)} är?`, answer: ans, level, steps: [`En ${d}-del av ${total}: ${m(`${total} / ${d} = ${total / d}`)}`, `${k} sådana delar: ${m(`${k} · ${total / d} = ${ans}`)}`], hint: `Räkna först ut en ${d}-del, multiplicera sedan med ${k}.` };
+}
+function genMonster(level) {
+  if (level === 1) { const step = R.pick([1, 2, 5, 10]); const start = step === 10 ? R.int(1, 5) * 10 : R.int(1, 10); const seq = Array.from({ length: 4 }, (_, i) => start + i * step); return { type: 'num', text: `Fortsätt mönstret: ${m(seq.join(', ') + ', ▢')}`, answer: start + 4 * step, level, steps: [`Varje tal är ${step} mer än det förra.`, `${m(`${seq[3]} + ${step} = ${start + 4 * step}`)}`], hint: 'Hur mycket ökar det varje gång?', choices: T.choices(start + 4 * step, 4, step) }; }
+  if (level === 2) { const step = R.pick([2, 3, 4, 5, 10]); const down = R.chance(0.4); const start = down ? R.int(6, 12) * step : R.int(1, 15); const seq = Array.from({ length: 4 }, (_, i) => down ? start - i * step : start + i * step); const ans = down ? start - 4 * step : start + 4 * step; return { type: 'num', text: `Fortsätt mönstret: ${m(seq.join(', ') + ', ▢')}`, answer: ans, level, steps: [`Varje tal ${down ? 'minskar' : 'ökar'} med ${step}.`, `${m(`${seq[3]} ${down ? '−' : '+'} ${step} = ${ans}`)}`], hint: 'Jämför två tal bredvid varandra.' }; }
+  if (level === 3) { const kind = R.pick(['double', 'alt', 'grow']); if (kind === 'double') { const start = R.pick([1, 2, 3, 5]); const seq = [start, start * 2, start * 4, start * 8]; return { type: 'num', text: `Fortsätt mönstret: ${m(seq.join(', ') + ', ▢')}`, answer: start * 16, level, steps: ['Varje tal är dubbelt så stort som det förra.', `${m(`${start * 8} · 2 = ${start * 16}`)}`], hint: 'Testa: är nästa tal dubbelt?' }; } if (kind === 'alt') { const a = R.int(1, 5), b = R.int(6, 10); const seq = [a, b, a + 1, b + 1, a + 2, b + 2]; return { type: 'num', text: `Fortsätt mönstret: ${m(seq.join(', ') + ', ▢')}`, answer: a + 3, level, steps: ['Två mönster varvas: vartannat tal hör ihop.', `${m(`${a}, ${a + 1}, ${a + 2}, ${a + 3}`)} och ${m(`${b}, ${b + 1}, ${b + 2}`)}`], hint: 'Titta på vartannat tal.' }; } const start = R.int(1, 5); const seq = [start, start + 1, start + 3, start + 6, start + 10]; return { type: 'num', text: `Fortsätt mönstret: ${m(seq.join(', ') + ', ▢')}`, answer: start + 15, level, steps: ['Ökningen växer: +1, +2, +3, +4 …', `${m(`${start + 10} + 5 = ${start + 15}`)}`], hint: 'Skriv upp hur mycket det ökar varje gång.' }; }
+  const n = R.int(3, 8); const kind = R.pick(['sq', 'tri']); if (kind === 'sq') return { type: 'num', fig: VIS.rect(n, n, { grid: true }), text: `Mönstret växer: 1, 4, 9, 16 … Figuren har sidan ${n}. Hur många rutor?`, answer: n * n, level, steps: [`Kvadrattal: ${m(`${n} · ${n} = ${n * n}`)}`], hint: 'Sidan gånger sidan.' }; const seq = []; for (let i = 1; i <= n; i++) seq.push(i); return { type: 'num', text: `Trappan har ${n} steg: ${m(seq.join(' + '))}. Hur många rutor har trappan?`, answer: (n * (n + 1)) / 2, level, steps: [`Lägg ihop: ${m(seq.join(' + ') + ' = ' + (n * (n + 1)) / 2)}`, 'Knep: para ihop första och sista talet.'], hint: 'Lägg ihop stegen ett i taget.' };
+}
+function genMatning(level) {
+  if (level === 1) { const q = R.pick([() => { const obj = R.pick([['en penna', 'cm'], ['ett klassrum', 'm'], ['vägen till skolan', 'km'], ['en myra', 'mm'], ['en säng', 'm'], ['en bok', 'cm']]); const choices = R.shuffle(['mm', 'cm', 'm', 'km']); return { type: 'choicetext', text: `Vilken enhet passar bäst för att mäta ${obj[0]}?`, choices, answer: choices.indexOf(obj[1]), level, steps: [`${obj[0]} mäts bäst i <b>${obj[1]}</b>. mm = pyttesmått, cm = handflata, m = ett stort steg, km = långt.`], hint: 'Hur stort är det? Litet som en nagel, som en bok, som ett rum eller som en resa?' }; }, () => { const obj = R.pick([['ett äpple', 'g'], ['en vuxen', 'kg'], ['en elefant', 'ton'], ['ett brev', 'g'], ['en hund', 'kg']]); const choices = R.shuffle(['g', 'kg', 'ton']); return { type: 'choicetext', text: `Vilken enhet passar bäst för att väga ${obj[0]}?`, choices, answer: choices.indexOf(obj[1]), level, steps: [`${obj[0]} väger några <b>${obj[1]}</b>. 1 kg = 1000 g, 1 ton = 1000 kg.`], hint: 'Ett äpple är lätt, en människa tung, en elefant jättetung.' }; }]); return q(); }
+  if (level === 2) { const q = R.pick([() => { const mtr = R.int(1, 9); return { type: 'num', text: `Hur många centimeter är ${m(mtr)} meter?`, answer: mtr * 100, level, steps: [`1 m = 100 cm, så ${m(`${mtr} · 100 = ${mtr * 100}`)} cm`], hint: 'En meter är 100 centimeter.' }; }, () => { const cm = R.int(1, 9) * 100; return { type: 'num', text: `Hur många meter är ${m(cm)} cm?`, answer: cm / 100, level, steps: [`100 cm = 1 m, så ${m(`${cm} / 100 = ${cm / 100}`)} m`], hint: 'Hur många hundra får plats?' }; }, () => { const kg = R.int(1, 5); return { type: 'num', text: `Hur många gram är ${m(kg)} kg?`, answer: kg * 1000, level, steps: [`1 kg = 1000 g, så ${m(`${kg} · 1000 = ${kg * 1000}`)} g`], hint: 'Ett kilo är tusen gram.' }; }, () => { const l = R.int(1, 5); return { type: 'num', text: `Hur många deciliter är ${m(l)} liter?`, answer: l * 10, level, steps: [`1 liter = 10 dl, så ${m(`${l} · 10 = ${l * 10}`)} dl`], hint: 'Deci betyder tiondel – det går tio dl på en liter.' }; }]); return q(); }
+  if (level === 3) { const q = R.pick([() => { const a = R.int(1, 3), b = R.int(10, 90); return { type: 'num', text: `${m(`${a} m ${b} cm`)} – hur många centimeter är det sammanlagt?`, answer: a * 100 + b, level, steps: [`${a} m = ${a * 100} cm`, `${m(`${a * 100} + ${b} = ${a * 100 + b}`)} cm`], hint: 'Gör om metrarna till centimeter först.' }; }, () => { const h = R.int(1, 3), mn = R.pick([15, 30, 45]); return { type: 'num', text: `Hur många minuter är ${h} ${h === 1 ? 'timme' : 'timmar'} och ${mn} minuter?`, answer: h * 60 + mn, level, steps: [`${h} timmar = ${h * 60} minuter`, `${m(`${h * 60} + ${mn} = ${h * 60 + mn}`)} minuter`], hint: 'En timme är 60 minuter.' }; }, () => { const items = [['mjölkpaket', 1, 'liter'], ['glas saft', 2, 'dl'], ['badkar', 150, 'liter'], ['tesked', 5, 'ml']]; const [name, v, u] = R.pick(items); const choices = R.shuffle([...new Set([`${v} ${u}`, `${v * 10} ${u}`, `${v} ${u === 'liter' ? 'dl' : 'liter'}`, `${Math.max(1, Math.round(v / 10))} ${u}`])]).slice(0, 4); return { type: 'choicetext', text: `Ungefär hur mycket rymmer ett ${name}?`, choices, answer: choices.indexOf(`${v} ${u}`), level, steps: [`Ett ${name} rymmer ungefär <b>${v} ${u}</b>.`], hint: 'Ett mjölkpaket är en liter. Ett glas är ungefär 2 dl.' }; }]); return q(); }
+  const q = R.pick([() => { const a = R.int(220, 480), b = R.int(50, 200); return { type: 'num', text: `En bräda är ${m(a)} cm. Man sågar av ${m(b)} cm. Hur många cm är kvar?`, answer: a - b, level, steps: [`${m(`${a} − ${b} = ${a - b}`)} cm`], hint: 'Ta bort det som sågas av.' }; }, () => { const g = R.int(2, 9) * 100; const n = R.int(2, 5); return { type: 'num', text: `Ett paket väger ${m(g)} g. Hur många gram väger ${n} paket?`, answer: g * n, level, steps: [`${m(`${n} · ${g} = ${g * n}`)} g${g * n >= 1000 ? ` = ${(g * n / 1000).toString().replace('.', ',')} kg` : ''}`], hint: 'Lägg ihop paketen eller multiplicera.' }; }, () => { const start = R.int(7, 11), dur = R.pick([30, 45, 90]); const endH = start + Math.floor(dur / 60), endM = dur % 60; return { type: 'text', text: `Lektionen börjar ${start}:00 och är ${dur} minuter lång. När slutar den? (t.ex. 9:30)`, answer: [`${endH}:${String(endM).padStart(2, '0')}`, `${endH}.${String(endM).padStart(2, '0')}`, `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`], display: `${endH}:${String(endM).padStart(2, '0')}`, level, steps: [`${dur} minuter = ${Math.floor(dur / 60)} h ${dur % 60} min`, `${start}:00 + ${dur} min = <b>${endH}:${String(endM).padStart(2, '0')}</b>`], hint: '60 minuter är en timme.' }; }]); return q();
+}
+
+const METHOD_CLARA = {
+  tal1000: `<p>Talen upp till 1000 är byggda av <b>hundratal</b>, <b>tiotal</b> och <b>ental</b>. ${m('347')} = 3 hundratal, 4 tiotal och 7 ental = ${m('300 + 40 + 7')}.</p><p>När du räknar med stora tal: ta hundratalen först, sedan tiotalen, sedan entalen.</p><p class="ex">${m('347 + 215: 347 + 200 = 547, + 10 = 557, + 5 = 562')}</p>`,
+  brak2: `<p>Ett <b>bråk</b> är en del av något. ${m('1/2')} = hälften, ${m('1/4')} = en fjärdedel, ${m('1/3')} = en tredjedel.</p><p>Talet <b>under</b> strecket (nämnaren) säger hur många lika stora delar det hela är delat i. Talet <b>över</b> (täljaren) säger hur många delar vi menar.</p><p class="ex">Hälften av 12: ${m('12 / 2 = 6')}. En fjärdedel av 12: ${m('12 / 4 = 3')}. ${m('3/4')} av 12: ${m('3 · 3 = 9')}.</p>`,
+  monster: `<p>Ett <b>mönster</b> i en talföljd följer en regel. Hitta regeln genom att jämföra två tal bredvid varandra: ökar det med lika mycket varje gång? Dubblas det? Varvas två mönster?</p><p class="ex">${m('3, 6, 9, 12 …')} ökar med 3. ${m('2, 4, 8, 16 …')} dubblas. ${m('1, 3, 6, 10 …')} ökar med 2, 3, 4 …</p>`,
+  matning: `<p><b>Längd:</b> 1 km = 1000 m, 1 m = 100 cm, 1 cm = 10 mm.</p><p><b>Vikt (massa):</b> 1 ton = 1000 kg, 1 kg = 1000 g.</p><p><b>Volym:</b> 1 liter = 10 dl = 100 cl = 1000 ml.</p><p><b>Tid:</b> 1 timme = 60 minuter, 1 minut = 60 sekunder, 1 dygn = 24 timmar.</p><p>Välj en enhet som passar storleken: en myra mäts i mm, en resa i km.</p>`,
+};
+const LGR_MATH = {
+  plus20: 'Addition inom talområdet 0–100 med huvudräkning', minus20: 'Subtraktion inom talområdet 0–100 med huvudräkning', tal100: 'Naturliga tal och positionssystemet; de fyra räknesätten', dubbelt: 'Huvudräkning med dubbelt och hälften; samband mellan räknesätt', tabell: 'Multiplikation och division; tabellkunskap', saknas: 'Likhetstecknets betydelse; öppna utsagor', klockan2: 'Mätning av tid; klockan analog och digital', pengar: 'Problemlösning i vardagliga situationer; pengars värde', former: 'Geometriska objekt och deras egenskaper; omkrets och area', talrad: 'Talraden, talens ordning och mönster', tal1000: 'Naturliga tal 0–1000 och positionssystemet; skriftliga räknemetoder', brak2: 'Del av helhet och del av antal; enkla bråk', monster: 'Hur enkla mönster i talföljder kan konstrueras, beskrivas och uttryckas', matning: 'Jämförelser och uppskattningar av längd, massa, volym och tid; vanliga måttenheter',
+};
+
+// Koppla in: nivå 4 på befintliga moment, nya moment, Lgr22-etiketter
+(function () {
+  const clara = KIDS.find(k => k.id === 'clara'); if (!clara) return;
+  const wrap = (skill) => { const orig = skill.gen; if (L4[skill.id]) { skill.gen = (level, opts) => (level >= 4 ? L4[skill.id]() : orig(level, opts)); skill.maxLvl = 4; } if (LGR_MATH[skill.id]) skill.lgr = LGR_MATH[skill.id]; };
+  clara.skills.forEach(wrap); (MORE_SKILLS.clara || []).forEach(wrap);
+  clara.skills.find(s => s.id === 'tabell').name = 'Multiplikation och division';
+  (MORE_SKILLS.clara = MORE_SKILLS.clara || []).push(
+    { id: 'tal1000', name: 'Talen till 1000', short: 'Till 1000', icon: '🔢', gen: genTal1000, method: METHOD_CLARA.tal1000, maxLvl: 4, lgr: LGR_MATH.tal1000 },
+    { id: 'brak2', name: 'Bråk: hälften, tredjedel, fjärdedel', short: 'Bråk', icon: '🍕', gen: genBrak2, method: METHOD_CLARA.brak2, maxLvl: 4, lgr: LGR_MATH.brak2 },
+    { id: 'monster', name: 'Mönster och talföljder', short: 'Mönster', icon: '🔮', gen: genMonster, method: METHOD_CLARA.monster, maxLvl: 4, lgr: LGR_MATH.monster },
+    { id: 'matning', name: 'Mäta: längd, vikt, volym och tid', short: 'Mätning', icon: '📏', gen: genMatning, method: METHOD_CLARA.matning, maxLvl: 4, lgr: LGR_MATH.matning },
+  );
+})();
 /* ========= Cloud sync (only active in the self-hosted build with window.PLUGG_SYNC set) =========
    Data model: one Firestore document per child: families/{familyCode}/profiles/{kidId}
    fields: json (stringValue = the profile), updatedAt (integerValue, ms). Last-writer-wins with field-level merge. */
@@ -2038,7 +2562,7 @@ const todayKey = (d = new Date()) => { const z = new Date(d.getTime() - d.getTim
 const addDays = (key, n) => { const d = new Date(key + 'T00:00:00'); d.setDate(d.getDate() + n); return todayKey(d); };
 const weekKey = () => { const d = new Date(); const day = (d.getDay() + 6) % 7; d.setDate(d.getDate() - day); return todayKey(d); };
 const KID_DEFAULTS = {
-  adam: { settings: { focus: true, sprint: 5, timer: false, tts: true, goal: 10, dark: false }, decks: ['en8_verb', 'en8_ord', 'es_halsa', 'es_siffror', 'es_farger', 'es_djur', 'es_familj', 'es_mat', 'es_kropp', 'es_skola', 'es_klader', 'es_kanslor', 'es_fraser'], exams: [{ id: 'alg12', title: 'Prov 12 Algebra', date: '2026-11-18', skillIds: ['multin', 'forenkla', 'blandat', 'talfoljd', 'ekvation', 'problemekv', 'andragrad'], deckIds: [] }, { id: 'kemi4', title: 'Kemiprov: Syror och baser', date: '2026-11-26', skillIds: ['kemi_syror', 'kemi_baser', 'kemi_ph', 'kemi_starka', 'kemi_neutral', 'kemi_vardag', 'kemi_kropp_natur', 'kemi_saker'], deckIds: [] }] },
+  adam: { settings: { focus: true, sprint: 5, timer: false, tts: true, goal: 10, dark: false }, decks: ['en8_verb', 'en8_ord', 'es_halsa', 'es_siffror', 'es_farger', 'es_djur', 'es_familj', 'es_mat', 'es_kropp', 'es_skola', 'es_klader', 'es_kanslor', 'es_fraser', 'en_djur', 'en_mat', 'en_hem'], exams: [{ id: 'alg12', title: 'Prov 12 Algebra', date: '2026-11-18', skillIds: ['multin', 'forenkla', 'blandat', 'talfoljd', 'ekvation', 'problemekv', 'andragrad'], deckIds: [] }, { id: 'kemi4', title: 'Kemiprov: Syror och baser', date: '2026-11-26', skillIds: ['kemi_syror', 'kemi_baser', 'kemi_ph', 'kemi_starka', 'kemi_neutral', 'kemi_vardag', 'kemi_kropp_natur', 'kemi_saker'], deckIds: [] }] },
   filip: { settings: { focus: false, sprint: 10, timer: false, tts: true, goal: 10 }, paper: 'lulea', decks: ['en_kates_day', 'en_djur', 'en_mat', 'en_hem', 'en_skola', 'en_vader', 'en_verb', 'en_tid', 'en_fraser', 'es_halsa', 'es_siffror', 'es_farger', 'es_djur', 'es_familj', 'es_mat', 'es_kropp', 'es_skola', 'es_klader', 'es_kanslor', 'es_fraser'], exams: [{ id: 'kates_day', title: "Glosförhör: Kate's Day", date: '2026-11-02', skillIds: [], deckIds: ['en_kates_day'] }] },
   clara: { settings: { focus: false, sprint: 8, timer: false, tts: true, goal: 8 }, decks: ['es_halsa', 'es_siffror', 'es_farger', 'es_djur', 'es_familj', 'es_mat', 'es_kropp', 'es_skola', 'es_klader', 'es_kanslor', 'es_fraser'], exams: [] },
 };
@@ -2107,13 +2631,13 @@ function noteMistake(p, item) {
   if (!p.mistakes.some(x => x.id === entry.id)) { p.mistakes.push(entry); if (p.mistakes.length > 60) p.mistakes.shift(); }
 }
 function recordAnswer(kidId, skillId, correct, level, usedHelp) {
-  const p = prof(kidId); const s = skillState(p, skillId);
+  const p = prof(kidId); const s = skillState(p, skillId); const maxLvl = (KIDS.find(k => k.id === kidId)?.skills.find(x => x.id === skillId) || {}).maxLvl || 3;
   s.att++; s.last = Date.now();
   let xp;
   if (correct) {
     s.cor++; s.streak++; s.wrongRun = 0;
     s.m = Math.min(100, s.m + (100 - s.m) * (0.12 + 0.05 * level));
-    if (s.streak >= 4 && s.m >= 55 && s.lvl < 3) { s.lvl++; s.streak = 0; }
+    if (s.streak >= 4 && s.m >= 55 && s.lvl < maxLvl) { s.lvl++; s.streak = 0; }
     xp = 8 + 4 * level + (usedHelp ? 0 : 4);
   } else {
     s.streak = 0; s.wrongRun++;
@@ -2437,6 +2961,7 @@ function recommendSprint(kid) {
 }
 
 VIEWS.home = () => {
+  if (!state.subj) { try { state.subj = localStorage.getItem('pluggappen.subj.' + state.kid) || 'math'; } catch (e) { state.subj = 'math'; } }
   const kid = kidById(state.kid); const p = prof(kid.id); p.kidId = kid.id;
   if (!p.pet) { if (isTeen(kid) || isSport(kid)) { p.pet = 'none'; save(); } else return VIEWS.petpick(); }
   const lvl = levelOf(p.xp); const next = xpForLevel(lvl + 1); const prev = xpForLevel(lvl); const pct = Math.round(((p.xp - prev) / (next - prev)) * 100);
@@ -2472,8 +2997,19 @@ VIEWS.home = () => {
     ${examCards}
     ${PUSH.card(kid.id, 'kid')}
     ${(p.mistakes || []).length ? `<button class="card tap row" data-act="felbok" style="gap:12px"><div class="ic" style="width:44px;height:44px;border-radius:12px;background:var(--bad-soft);color:var(--bad);display:grid;place-items:center;font-size:1.3rem">📕</div><div class="grow"><div style="font-weight:800;font-family:var(--display)">Felboken · ${p.mistakes.length} ${p.mistakes.length === 1 ? 'uppgift' : 'uppgifter'}</div><div class="muted" style="font-size:.9rem">Allt du svarat fel på. Klara dem för att tömma boken.</div></div><span class="chev">›</span></button>` : ''}
-    ${[['math', 'Matte', `<button class="link" data-go="blitz">Blixtläge</button>`], ['no', kid.skills.find(s => s.group === 'no')?.subject || 'NO', ''], ['so', kid.skills.find(s => s.group === 'so')?.subject || 'SO', '']].filter(([g]) => kid.skills.some(s => (s.group || 'math') === g)).map(([g, label, right]) => `<div>
-      <div class="section-h"><h3>${label}</h3>${right}</div>
+    ${(() => {
+      const subjects = [['math', 'Matte', '🔢'], ['sv', 'Svenska', '📖'], ['en', 'Engelska', '🇬🇧'], ['no', 'NO', '🔬'], ['so', 'SO', '🌍'], ['lang', 'Språk', '🗣️']].filter(([g]) => g === 'lang' || kid.skills.some(s => (s.group || 'math') === g));
+      const cur = subjects.some(([g]) => g === state.subj) ? state.subj : subjects[0][0];
+      const avg = (g) => { const list = kid.skills.filter(s => (s.group || 'math') === g); return list.length ? Math.round(list.reduce((a, s) => a + skillState(p, s.id).m, 0) / list.length) : 0; };
+      const tabs = `<div class="subj-tabs" role="tablist">${subjects.map(([g, label, icon]) => `<button class="subj ${g === cur ? 'on' : ''}" role="tab" data-subj="${g}"><span class="si">${icon}</span><span class="sl">${label}</span>${g !== 'lang' ? `<span class="sp"><i style="width:${avg(g)}%"></i></span>` : ''}</button>`).join('')}</div>`;
+      if (cur === 'lang') return `<div class="subject-wrap">${tabs}${decks.length ? `<div style="margin-top:12px">
+      <div class="section-h"><h3>Språk & glosor</h3><button class="link" data-go="courses">Alla kurser</button></div>
+      <button class="go-btn" data-langpass="1" style="margin-bottom:10px;background:var(--ink);box-shadow:var(--shadow)"><div><div class="t">Starta språkpass</div><div class="s">Lektion efter lektion – nya ord, repetition och svårare övningar i ett flöde. Sluta när du vill.</div></div><div class="arrow">${ICON.arrow}</div></button>
+      <div class="deck-grid">${decks.map(d => { const pr = deckProgress(p, d); return `<button class="card tap deck" data-deck="${d.id}"><span class="flag">${LANGS[d.lang]?.flag || '🗂️'}</span><div class="de">${d.emoji}</div><div class="dn">${esc(d.name)}</div><div class="dm">${pr.nw === d.words.length ? `${d.words.length} nya ord` : pr.due ? `${pr.due} att repetera` : `${pr.learned}/${d.words.length} lärda`}</div><div class="mastery hi"><i style="width:${Math.max(2, pr.pct)}%"></i></div></button>`; }).join('')}</div>
+    </div>` : `<div class="card row"><div class="grow"><b>Språk & glosor</b><div class="muted" style="font-size:.9rem">Spanska, engelska eller egna glosor.</div></div><button class="btn secondary" data-go="courses">Välj kurser</button></div>`}}</div>`;
+      const g = cur; const label = subjects.find(x => x[0] === g)[1];
+      return `<div class="subject-wrap">${tabs}
+      <div class="section-h"><h3>${label}</h3>${g === 'math' ? `<button class="link" data-go="blitz">Blixtläge</button>` : `<span class="muted" style="font-size:.85rem">${kid.skills.filter(s => (s.group || 'math') === g).length} moment</span>`}</div>
       <div class="skill-list">
         ${kid.skills.filter(s => (s.group || 'math') === g).map(s => { const st = skillState(p, s.id); const mv = Math.round(st.m); return `
         <div class="card" style="padding:12px 14px">
@@ -2481,19 +3017,14 @@ VIEWS.home = () => {
             <div class="ic">${s.icon}</div>
             <div class="grow" style="min-width:0">
               <div class="nm">${esc(s.name)}</div>
-              <div class="sub"><span>${masteryLabel(st)}</span><span>·</span><span class="lvl-dots" title="Svårighet">${[1, 2, 3].map(i => `<i class="${i <= st.lvl ? 'on' : ''}"></i>`).join('')}</span>${st.att ? `<span>· ${st.cor}/${st.att} rätt</span>` : ''}</div>
+              <div class="sub"><span>${masteryLabel(st)}</span><span>·</span><span class="lvl-dots" title="Svårighet">${Array.from({ length: s.maxLvl || 3 }, (_, i) => i + 1).map(i => `<i class="${i <= st.lvl ? 'on' : ''}"></i>`).join('')}</span>${st.att ? `<span>· ${st.cor}/${st.att} rätt</span>` : ''}</div>
               <div class="mastery ${masteryClass(mv)}"><i style="width:${Math.max(2, mv)}%"></i></div>
             </div>
             <div class="stack" style="gap:6px"><button class="btn secondary" style="min-height:40px;padding:0 14px" data-skill="${s.id}">Öva</button><button class="btn ghost" style="min-height:34px;padding:0 10px;font-size:.9rem" data-method="${s.id}">${g === 'math' ? 'Så gör man' : 'Läs på'}</button></div>
           </div>
         </div>`; }).join('')}
-      </div>
-    </div>`).join('')}
-    ${decks.length ? `<div>
-      <div class="section-h"><h3>Språk & glosor</h3><button class="link" data-go="courses">Alla kurser</button></div>
-      <button class="go-btn" data-langpass="1" style="margin-bottom:10px;background:var(--ink);box-shadow:var(--shadow)"><div><div class="t">Starta språkpass</div><div class="s">Lektion efter lektion – nya ord, repetition och svårare övningar i ett flöde. Sluta när du vill.</div></div><div class="arrow">${ICON.arrow}</div></button>
-      <div class="deck-grid">${decks.map(d => { const pr = deckProgress(p, d); return `<button class="card tap deck" data-deck="${d.id}"><span class="flag">${LANGS[d.lang]?.flag || '🗂️'}</span><div class="de">${d.emoji}</div><div class="dn">${esc(d.name)}</div><div class="dm">${pr.nw === d.words.length ? `${d.words.length} nya ord` : pr.due ? `${pr.due} att repetera` : `${pr.learned}/${d.words.length} lärda`}</div><div class="mastery hi"><i style="width:${Math.max(2, pr.pct)}%"></i></div></button>`; }).join('')}</div>
-    </div>` : `<div class="card row"><div class="grow"><b>Språk & glosor</b><div class="muted" style="font-size:.9rem">Spanska, engelska eller egna glosor.</div></div><button class="btn secondary" data-go="courses">Välj kurser</button></div>`}
+      </div></div>`;
+    })()}
     ${kid.id === 'adam' ? `<div class="card teacher"><div class="eyebrow">Lärarens kommentar · 23/10</div><p style="margin-top:4px">Inför provet behöver du träna mer på metoder och uträkningar på att:</p><ul><li>multiplicera in tal i parenteser</li><li>förenkla uttryck med parenteser</li><li>räkna blandade uppgifter med algebraiska uttryck</li><li>skriva uttryck och formel för talföljd</li></ul></div>` : ''}
     <div>
       <div class="eyebrow" style="margin-bottom:8px">Märken · ${p.badges.length}/${BADGES.length}</div>
@@ -2527,7 +3058,7 @@ VIEWS.method = () => {
   const kid = kidById(state.kid); const s = kid.skills.find(x => x.id === state.skillId);
   render(`${topbar(esc(s.name), 'home')}
   <div class="stack" style="margin-top:6px">
-    <div class="card pad-lg method"><div class="eyebrow" style="margin-bottom:8px">${(s.group || 'math') === 'math' ? 'Så gör man' : 'Läs på'}</div>${s.method}</div>
+    <div class="card pad-lg method"><div class="eyebrow" style="margin-bottom:8px">${(s.group || 'math') === 'math' ? 'Så gör man' : 'Läs på'}</div>${s.lgr ? `<p class="muted" style="font-size:.85rem;margin:0 0 10px"><b>Lgr22 · åk 1–3:</b> <i>${s.lgr}</i></p>` : ''}${s.method}</div>
     <button class="btn big wide" data-skill="${s.id}">Öva på det här</button>
   </div>`);
 };
@@ -2749,7 +3280,7 @@ function mathBody(q, kid, isTest) {
         ${isTest ? '' : `<button class="btn ghost" id="hintBtn">💡 Ledtråd</button>`}
       </div>
       ${isTest ? '' : `<button class="btn ghost wide" id="explainBtn" style="border-style:dashed">🤔 Jag fattar inte – visa hur man gör</button>`}
-      ${q.type !== 'choicetext' && q.type !== 'order' && q.type !== 'open' ? `<details class="sketch" id="sketch"><summary>✏️ Kladdyta – räkna här innan du svarar</summary><div class="sketch-wrap"><canvas id="sketchCanvas" width="600" height="320"></canvas><div class="row" style="margin-top:6px"><button class="btn ghost" style="min-height:36px" id="sketchClear">Rensa</button><span class="muted" style="font-size:.85rem">Rita med fingret. Kladden sparas inte.</span></div></div></details>` : ''}`;
+      ${q.type !== 'choicetext' && q.type !== 'order' && q.type !== 'open' && (q.skill.group || 'math') === 'math' ? `<details class="sketch" id="sketch"><summary>✏️ Kladdyta – räkna här innan du svarar</summary><div class="sketch-wrap"><canvas id="sketchCanvas" width="600" height="320"></canvas><div class="row" style="margin-top:6px"><button class="btn ghost" style="min-height:36px" id="sketchClear">Rensa</button><span class="muted" style="font-size:.85rem">Rita med fingret. Kladden sparas inte.</span></div></div></details>` : ''}`;
 }
 function initSketch() {
   const det = document.getElementById('sketch'); const cv = document.getElementById('sketchCanvas'); if (!det || !cv) return;
@@ -3168,7 +3699,7 @@ app.addEventListener('click', (e) => {
   const t = e.target;
   const sp = t.closest('[data-speak]'); if (sp) { if (sp.dataset.highlight) speakHighlight(document.getElementById('qtext'), sp.dataset.lang); else TTS.speak(sp.dataset.speak, sp.dataset.lang, sp.dataset.rate ? Number(sp.dataset.rate) : 0.9); return; }
   const goBtn = t.closest('[data-go]'); if (goBtn) { const dest = goBtn.dataset.go; if (B && B.timer) clearInterval(B.timer); if (dest === 'home' && !state.kid) return go('start'); return go(dest); }
-  const kidBtn = t.closest('[data-kid]'); if (kidBtn) { state.kid = kidBtn.dataset.kid; go('home'); if (SYNC.active && Date.now() - (SYNC.lastPull[state.kid] || 0) > 20000) SYNC.refresh(state.kid).then(ch => { if (ch && state.screen === 'home') VIEWS.home(); }); return; }
+  const kidBtn = t.closest('[data-kid]'); if (kidBtn) { state.kid = kidBtn.dataset.kid; state.subj = null; go('home'); if (SYNC.active && Date.now() - (SYNC.lastPull[state.kid] || 0) > 20000) SYNC.refresh(state.kid).then(ch => { if (ch && state.screen === 'home') VIEWS.home(); }); return; }
   const petBtn = t.closest('[data-pet]'); if (petBtn) { const p = prof(state.kid); p.pet = petBtn.dataset.pet; save(); confetti(); return go('home'); }
   const kid = state.kid ? kidById(state.kid) : null;
   const skillBtn = t.closest('[data-skill]'); if (skillBtn && kid) return startSession(kid, { skillIds: [skillBtn.dataset.skill] });
@@ -3179,7 +3710,8 @@ app.addEventListener('click', (e) => {
   const testBtn = t.closest('[data-test]'); if (testBtn && kid) return startSession(kid, { mode: 'test', examId: testBtn.dataset.test });
   const planBtn = t.closest('[data-plan]'); if (planBtn && kid) return go('plan', { examId: planBtn.dataset.plan });
   const methodBtn = t.closest('[data-method]'); if (methodBtn && kid) return go('method', { skillId: methodBtn.dataset.method });
-  const rateBtn = t.closest('[data-rate]'); if (rateBtn && S) { const p = prof(S.kid.id); const ids = [...new Set(S.queue.filter(q => q.cat === 'math').map(q => q.skill.id))]; const r = rateBtn.dataset.rate; ids.forEach(id => { const st = skillState(p, id); const acc = S.queue.map((q, i) => q.skill?.id === id ? S.results[i] : null).filter(x => x !== null); const okRate = acc.length ? acc.filter(Boolean).length / acc.length : 0; if (r === 'easy' && okRate >= 0.6 && st.lvl < 3) st.lvl++; if (r === 'hard' && st.lvl > 1) st.lvl--; st.streak = 0; }); save(); document.getElementById('rateCard').innerHTML = `<div class="muted">${r === 'easy' ? 'Tack – nästa sprint blir lite svårare.' : r === 'hard' ? 'Tack – nästa sprint blir lite lättare.' : 'Tack – vi håller den här nivån.'}</div>`; return; }
+  const subjBtn = t.closest('[data-subj]'); if (subjBtn) { state.subj = subjBtn.dataset.subj; try { localStorage.setItem('pluggappen.subj.' + state.kid, state.subj); } catch (e) { /* ignore */ } const y = window.scrollY; VIEWS.home(); window.scrollTo?.(0, y); return; }
+  const rateBtn = t.closest('[data-rate]'); if (rateBtn && S) { const p = prof(S.kid.id); const ids = [...new Set(S.queue.filter(q => q.cat === 'math').map(q => q.skill.id))]; const r = rateBtn.dataset.rate; ids.forEach(id => { const st = skillState(p, id); const acc = S.queue.map((q, i) => q.skill?.id === id ? S.results[i] : null).filter(x => x !== null); const okRate = acc.length ? acc.filter(Boolean).length / acc.length : 0; if (r === 'easy' && okRate >= 0.6 && st.lvl < ((S.kid.skills.find(x => x.id === id) || {}).maxLvl || 3)) st.lvl++; if (r === 'hard' && st.lvl > 1) st.lvl--; st.streak = 0; }); save(); document.getElementById('rateCard').innerHTML = `<div class="muted">${r === 'easy' ? 'Tack – nästa sprint blir lite svårare.' : r === 'hard' ? 'Tack – nästa sprint blir lite lättare.' : 'Tack – vi håller den här nivån.'}</div>`; return; }
   const claimBtn = t.closest('[data-claim]'); if (claimBtn && kid) { claimQuest(kid, claimBtn.dataset.claim); return state.screen === 'home' ? VIEWS.home() : claimBtn.closest('.quest').remove(); }
   const buyBtn = t.closest('[data-buy]'); if (buyBtn && kid) return buy(kid, buyBtn.dataset.buy);
   const blitzBtn = t.closest('[data-blitz]'); if (blitzBtn && kid) return startBlitz(kid, blitzBtn.dataset.blitz);
@@ -3220,7 +3752,7 @@ app.addEventListener('click', (e) => {
 
 /* ========= Boot ========= */
 function boot(snap) {
-  for (const k of KIDS) { if (MORE_SKILLS[k.id]) k.skills.push(...MORE_SKILLS[k.id]); k.skills.forEach(s => { if (!s.group) s.group = 'math'; }); if (SO_SKILLS[k.id]) k.skills.push(...SO_SKILLS[k.id]); if (k.id === 'adam') { k.skills.push(...SO_SKILLS_ADAM); k.teen = true; } if (k.id === 'filip') { k.theme = 'sport'; k.hue = 'rod'; k.emoji = '🏒'; } }
+  for (const k of KIDS) { if (MORE_SKILLS[k.id]) k.skills.push(...MORE_SKILLS[k.id]); k.skills.forEach(s => { if (!s.group) s.group = 'math'; }); if (SO_SKILLS[k.id]) k.skills.push(...SO_SKILLS[k.id]); if (typeof SV_SKILLS !== 'undefined' && SV_SKILLS[k.id]) k.skills.push(...SV_SKILLS[k.id]); if (typeof NASO_SKILLS !== 'undefined' && NASO_SKILLS[k.id]) k.skills.push(...NASO_SKILLS[k.id]); if (k.id === 'adam') { k.skills.push(...SO_SKILLS_ADAM); k.teen = true; } if (k.id === 'filip') { k.theme = 'sport'; k.hue = 'rod'; k.emoji = '🏒'; } }
   load(); TTS.init();
   try { window.claude?.hot?.snapshot?.(() => ({ screen: state.screen, kid: state.kid })); } catch (e) { /* no hot */ }
   let h = (location.hash || '').replace('#', '');
