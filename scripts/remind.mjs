@@ -1,22 +1,25 @@
 // Skickar påminnelser till alla enheter som slagit på notiser. Körs av GitHub Actions.
 import webpush from 'web-push';
-const { FAMILY_CODE, VAPID_PRIVATE_KEY, VAPID_PUBLIC_KEY, FIREBASE_PROJECT, FIREBASE_KEY, FORCE_SLOT } = process.env;
-if (!FAMILY_CODE || !VAPID_PRIVATE_KEY) { console.log('Saknar FAMILY_CODE eller VAPID_PRIVATE_KEY'); process.exit(0); }
-webpush.setVapidDetails('mailto:noreply@example.com', VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+const clean = (v) => (v || '').trim().replace(/^["']|["']$/g, '').trim();
+const FAMILY_CODE = clean(process.env.FAMILY_CODE), VAPID_PRIVATE_KEY = clean(process.env.VAPID_PRIVATE_KEY), VAPID_PUBLIC_KEY = clean(process.env.VAPID_PUBLIC_KEY), FIREBASE_PROJECT = clean(process.env.FIREBASE_PROJECT), FIREBASE_KEY = clean(process.env.FIREBASE_KEY), FORCE_SLOT = clean(process.env.FORCE_SLOT);
+const log = []; const say = (...a) => { const line = a.join(' '); console.log(line); log.push(line); };
+const writeStatus = async (extra) => { try { const base0 = `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT}/databases/(default)/documents/families/${encodeURIComponent(FAMILY_CODE)}/profiles/push_log`; await fetch(`${base0}?key=${FIREBASE_KEY}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fields: { json: { stringValue: JSON.stringify({ at: Date.now(), log: log.slice(-20), ...extra }) }, updatedAt: { integerValue: String(Date.now()) }, kid: { stringValue: 'log' } } }) }); } catch (e) { console.log('kunde inte skriva status', e.message); } };
+if (!FAMILY_CODE || !VAPID_PRIVATE_KEY) { say('Saknar FAMILY_CODE eller VAPID_PRIVATE_KEY (kontrollera repo secrets)'); await writeStatus({ ok: false }); process.exit(0); }
+try { webpush.setVapidDetails('mailto:noreply@example.com', VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY); } catch (e) { say('VAPID-nycklarna stämmer inte: ' + e.message + ' (privat nyckel ska vara 43 tecken, utan citattecken)'); await writeStatus({ ok: false }); process.exit(0); }
 const base = `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT}/databases/(default)/documents/families/${encodeURIComponent(FAMILY_CODE)}/profiles`;
 const KIDS = { adam: 'Adam', filip: 'Filip', clara: 'Clara' };
 const now = new Date(); const stockholm = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Stockholm' }));
 const hour = stockholm.getHours(); const dow = stockholm.getDay(); const today = stockholm.toISOString().slice(0, 10);
 const slot = FORCE_SLOT || (hour < 19 || (hour === 19 && stockholm.getMinutes() < 30) ? 'afternoon' : 'evening');
-console.log('Stockholm', stockholm.toString(), 'slot', slot);
-const list = await fetch(`${base}?key=${FIREBASE_KEY}&pageSize=100`).then(r => r.json());
+say('Stockholm', stockholm.toString(), 'slot', slot);
+let list; try { list = await fetch(`${base}?key=${FIREBASE_KEY}&pageSize=100`).then(r => r.json()); if (list.error) throw new Error(JSON.stringify(list.error)); } catch (e) { say('Kunde inte läsa Firestore: ' + e.message); await writeStatus({ ok: false }); process.exit(0); }
 const docs = list.documents || [];
 const profiles = {}; const subs = [];
 for (const d of docs) {
   const id = d.name.split('/').pop(); const json = d.fields?.json?.stringValue; if (!json) continue;
-  try { const obj = JSON.parse(json); if (id.startsWith('push_')) subs.push({ id, ...obj }); else profiles[id] = obj; } catch (e) { /* skip */ }
+  try { const obj = JSON.parse(json); if (id === 'push_log') continue; if (id.startsWith('push_')) subs.push({ id, ...obj }); else profiles[id] = obj; } catch (e) { /* skip */ }
 }
-console.log('profiler', Object.keys(profiles).join(','), 'enheter med notiser', subs.length);
+say('profiler', Object.keys(profiles).join(','), 'enheter med notiser', subs.length, subs.map(x => x.kid).join(','));
 const practicedToday = (p) => !!(p && p.days && p.days[today] && p.days[today].c > 0);
 const goalDone = (p) => !!(p && p.days && p.days[today] && p.days[today].c >= ((p.settings && p.settings.goal) || 10));
 const daysSince = (p) => { if (!p || !p.lastDay) return 99; return Math.round((new Date(today) - new Date(p.lastDay)) / 86400000); };
@@ -31,8 +34,8 @@ for (const s of subs) {
     if (slot === 'evening' && !practicedToday(p) && p && p.streak > 0) msgs.push({ title: `Streaken går ut ikväll`, body: `${p.streak} dagar i rad – en kort sprint räddar den.`, tag: 'streak', url: `./#${s.kid}-kor` });
   }
   for (const m of msgs) {
-    try { await webpush.sendNotification(s.sub, JSON.stringify(m), { TTL: 3600 * 6 }); sent++; }
-    catch (e) { console.log('fel', s.id, e.statusCode); if (e.statusCode === 404 || e.statusCode === 410) { await fetch(`${base}/${s.id}?key=${FIREBASE_KEY}`, { method: 'DELETE' }).catch(() => {}); console.log('tog bort död prenumeration', s.id); } }
+    try { await webpush.sendNotification(s.sub, JSON.stringify(m), { TTL: 3600 * 6 }); sent++; say('skickade till', s.kid, m.tag); }
+    catch (e) { say('fel', s.id, e.statusCode, (e.body || e.message || '').toString().slice(0, 120)); if (e.statusCode === 404 || e.statusCode === 410) { await fetch(`${base}/${s.id}?key=${FIREBASE_KEY}`, { method: 'DELETE' }).catch(() => {}); say('tog bort död prenumeration', s.id); } }
   }
 }
-console.log('skickade', sent);
+say('skickade totalt', sent); await writeStatus({ ok: true, sent, slot, subs: subs.length });
