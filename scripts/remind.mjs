@@ -1,7 +1,9 @@
 // Skickar påminnelser till alla enheter som slagit på notiser. Körs av GitHub Actions.
 import webpush from 'web-push';
 const clean = (v) => (v || '').trim().replace(/^["']|["']$/g, '').trim();
-const FAMILY_CODE = clean(process.env.FAMILY_CODE), VAPID_PRIVATE_KEY = clean(process.env.VAPID_PRIVATE_KEY), VAPID_PUBLIC_KEY = clean(process.env.VAPID_PUBLIC_KEY), FIREBASE_PROJECT = clean(process.env.FIREBASE_PROJECT), FIREBASE_KEY = clean(process.env.FIREBASE_KEY), FORCE_SLOT = clean(process.env.FORCE_SLOT);
+// Privat nyckel: tål att hela vapid.json, standard-base64 eller nyckel med mellanslag/radbrytningar klistrats in.
+const cleanKey = (v) => { let k = clean(v); const m = k.match(/"privateKey"\s*:\s*"([^"]+)"/); if (m) k = m[1]; k = k.replace(/\s+/g, '').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); const pk = k.match(/[A-Za-z0-9_-]{43}/); return pk ? pk[0] : k; };
+const FAMILY_CODE = clean(process.env.FAMILY_CODE), VAPID_PRIVATE_KEY = cleanKey(process.env.VAPID_PRIVATE_KEY), VAPID_PUBLIC_KEY = clean(process.env.VAPID_PUBLIC_KEY), FIREBASE_PROJECT = clean(process.env.FIREBASE_PROJECT), FIREBASE_KEY = clean(process.env.FIREBASE_KEY), FORCE_SLOT = clean(process.env.FORCE_SLOT);
 const log = []; const say = (...a) => { const line = a.join(' '); console.log(line); log.push(line); };
 const writeStatus = async (extra) => { try { const base0 = `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT}/databases/(default)/documents/families/${encodeURIComponent(FAMILY_CODE)}/profiles/push_log`; await fetch(`${base0}?key=${FIREBASE_KEY}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fields: { json: { stringValue: JSON.stringify({ at: Date.now(), log: log.slice(-20), ...extra }) }, updatedAt: { integerValue: String(Date.now()) }, kid: { stringValue: 'log' } } }) }); } catch (e) { console.log('kunde inte skriva status', e.message); } };
 if (!FAMILY_CODE || !VAPID_PRIVATE_KEY) { say('Saknar FAMILY_CODE eller VAPID_PRIVATE_KEY (kontrollera repo secrets)'); await writeStatus({ ok: false }); process.exit(0); }
