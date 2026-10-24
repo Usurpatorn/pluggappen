@@ -1,0 +1,27 @@
+name: Påminnelser
+on:
+  schedule:
+    - cron: '30 15 * * 1-5'   # 16:30 svensk vintertid (15:30 UTC) – vardagar
+    - cron: '0 18 * * *'      # 19:00 svensk vintertid – streak-påminnelse
+  workflow_dispatch:
+    inputs:
+      slot:
+        description: 'afternoon eller evening'
+        default: 'afternoon'
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm install --no-audit --no-fund web-push@3.6.7
+      - run: node scripts/remind.mjs
+        env:
+          FAMILY_CODE: ${{ secrets.FAMILY_CODE }}
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          VAPID_PUBLIC_KEY: ${{ vars.VAPID_PUBLIC_KEY || 'BPB-A8j28EB8I1cdEMseKa05bLaVDXnDpe9PBbTjekO6ReD_I2hKjJfQnuS1HkoBr8RafRaqWf2sWuQdghiXQX0' }}
+          FIREBASE_PROJECT: pluggappen
+          FIREBASE_KEY: AIzaSyBexTJ4xs1dL0EytcH2N74pY84PuJQZVYQ
+          FORCE_SLOT: ${{ github.event.inputs.slot }}
