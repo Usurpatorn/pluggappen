@@ -2231,11 +2231,24 @@ const BADGES = [
 function checkBadges(kid) { const p = prof(kid.id); const won = []; for (const b of BADGES) if (!p.badges.includes(b.id) && b.test(p, kid)) { p.badges.push(b.id); won.push(b); } if (won.length) { p.gems += 10 * won.length; save(); } return won; }
 
 /* ========= Audio & effects ========= */
-let audioCtx = null;
+let audioCtx = null, audioUnlocked = false;
+// iOS/iPadOS: ljud får bara startas efter ett tryck, och Web Audio tystas av ljudlöst läge tills ett <audio>-element spelats. Låser upp båda vid första trycket.
+function unlockAudio() {
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
+    if (!audioUnlocked) {
+      audioUnlocked = true;
+      const b = audioCtx.createBuffer(1, 1, 22050), src = audioCtx.createBufferSource(); src.buffer = b; src.connect(audioCtx.destination); src.start(0);
+      const a = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAIlYAAESsAAACABAAZGF0YQAAAAA='); a.setAttribute('playsinline', ''); a.volume = 0.01; const pr = a.play(); if (pr && pr.catch) pr.catch(() => {});
+    }
+  } catch (e) { /* no audio */ }
+}
+['touchend', 'pointerdown', 'keydown'].forEach(ev => document.addEventListener(ev, unlockAudio, { passive: true, capture: true }));
 function beep(kind) {
   if (!DB.settings.sound) return;
   try {
-    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    unlockAudio();
     const t = audioCtx.currentTime;
     const notes = kind === 'ok' ? [[523, 0], [659, .09], [784, .18]] : kind === 'win' ? [[523, 0], [659, .1], [784, .2], [1047, .3]] : kind === 'tick' ? [[880, 0]] : [[220, 0], [180, .12]];
     notes.forEach(([f, dt]) => { const o = audioCtx.createOscillator(), g = audioCtx.createGain(); o.type = kind === 'no' ? 'sawtooth' : 'triangle'; o.frequency.value = f; g.gain.setValueAtTime(0.0001, t + dt); g.gain.exponentialRampToValueAtTime(0.15, t + dt + .01); g.gain.exponentialRampToValueAtTime(0.0001, t + dt + .18); o.connect(g).connect(audioCtx.destination); o.start(t + dt); o.stop(t + dt + .2); });
