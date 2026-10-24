@@ -2,7 +2,7 @@
 <script>window.PLUGG_SYNC = window.PLUGG_SYNC || { projectId: "pluggappen", apiKey: "AIzaSyBexTJ4xs1dL0EytcH2N74pY84PuJQZVYQ" }; if (window.PLUGG_SYNC.projectId.startsWith("__")) window.PLUGG_SYNC = null;</script>
 <title>Öhgrens Pluggapp</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&family=Lexend:wght@400;600;700&display=swap">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
 <style>
 /* Layout concept: a ruled maths notebook — one centred column (max 640px) on faintly gridded paper,
@@ -289,6 +289,29 @@ canvas.confetti { position: fixed; inset: 0; width: 100%; height: 100%; pointer-
 
 /* ---- Figures ---- */
 .figwrap { display: flex; justify-content: center; padding: 4px 0; } .figwrap svg { max-width: 100%; height: auto; }
+
+/* ---- Ordering ---- */
+.order-pool { display: grid; gap: 8px; }
+.otile { text-align: left; padding: 10px 14px; border-radius: 12px; background: var(--card); border: 1.5px solid var(--line); box-shadow: var(--shadow); font-size: .98rem; line-height: 1.3; }
+.otile.used { display: none; }
+.order-slots { display: grid; gap: 6px; justify-content: stretch; }
+.order-slots .otile.picked { background: var(--acc-soft); border-color: var(--acc); display: grid; grid-template-columns: 28px 1fr; gap: 8px; align-items: center; }
+.otile .onum { width: 26px; height: 26px; border-radius: 50%; background: var(--acc); color: #fff; display: grid; place-items: center; font-family: var(--display); font-weight: 800; font-size: .85rem; }
+.order-slots .otile.ok { border-color: var(--good); background: var(--good-soft); } .order-slots .otile.no { border-color: var(--bad); background: var(--bad-soft); }
+
+/* ---- Sketch pad ---- */
+.sketch summary { cursor: pointer; color: var(--muted); font-weight: 700; font-size: .95rem; list-style: none; }
+.sketch summary::-webkit-details-marker { display: none; }
+.sketch-wrap { margin-top: 8px; }
+.sketch canvas { width: 100%; height: auto; border: 1.5px dashed var(--line); border-radius: 12px; background: var(--paper); touch-action: none; display: block; }
+
+/* ---- Read-aloud highlight, mic ---- */
+.question .w.hl { background: var(--warn-soft); border-radius: 4px; box-shadow: 0 0 0 2px var(--warn-soft); }
+.speak-btn.listening { animation: pulse 1s ease-in-out infinite; } @keyframes pulse { 0%,100% { transform: scale(1);} 50% { transform: scale(1.08);} }
+
+/* ---- Readability ---- */
+:root[data-font="lexend"] body, :root[data-font="lexend"] .m, :root[data-font="lexend"] h1, :root[data-font="lexend"] h2, :root[data-font="lexend"] h3, :root[data-font="lexend"] .btn { font-family: "Lexend", var(--body); }
+:root[data-size="large"] body { font-size: 19px; } :root[data-size="large"] .question { font-size: 1.4rem; }
 
 /* ---- Focus mode ---- */
 .focus .topbar .pill, .focus .lvl-dots { display: none; }
@@ -1274,6 +1297,7 @@ function buildLesson(p, deck, n = 10, opts = {}) {
       options = ['pick'];
       if (!deck.noListenPick && TTS.has(deck.lang)) options.push('listen');
       if (box >= 1 && !deck.noSpell) options.push('spell');
+      if (box >= 1 && !deck.noListenPick && typeof window !== 'undefined' && (window.SpeechRecognition || window.webkitSpeechRecognition) && !opts.noSpeak) options.push('speak');
       if (box >= 3 && !deck.noSpell) options.push('type');
       if (box >= 2) options.push('pickRev');
     }
@@ -1294,6 +1318,7 @@ function makeWordExercise(deck, word, kind) {
     const choices = R.shuffle([word, ...ds]).map(w => ({ id: w.id, label: w[field], e: rev ? '' : w.e }));
     return { kind: 'pick', deck, word, rev, prompt: rev ? word.t : word.w, promptEmoji: rev ? word.e : '', speak: !rev, choices, correctId: word.id, title: rev ? `Vad heter det på ${LANGS[deck.lang].name.toLowerCase()}?` : 'Vad betyder ordet?' };
   }
+  if (kind === 'speak') return { kind: 'speak', deck, word, title: 'Säg ordet' };
   if (kind === 'listen') {
     const ds = distractors(deck, word, 3, 'w');
     return { kind: 'listen', deck, word, choices: R.shuffle([word, ...ds]).map(w => ({ id: w.id, label: w.w })), correctId: word.id, title: 'Lyssna och välj det du hör' };
@@ -1477,6 +1502,7 @@ const GEO4 = [
 const recentQ = {};
 function makeSoGen(topic) {
   return function gen(level, opts = {}) {
+    if (!opts.noOpen && typeof makeOrderQuestion === 'function' && R.chance(0.15)) { const oq = makeOrderQuestion(topic.id, level); if (oq) return oq; }
     if (!opts.noOpen && typeof makeOpenQuestion === 'function' && R.chance(level >= 2 ? 0.4 : 0.25)) { const oq = makeOpenQuestion(topic.id, level); if (oq) return oq; }
     const recent = recentQ[topic.id] || (recentQ[topic.id] = []);
     let pool = topic.qs.filter(q => !recent.includes(q));
@@ -1592,7 +1618,8 @@ const KEMI4 = [
       Q('Varför ska man jämföra flera källor?', ['För att se om uppgifterna stämmer överens', 'För att det tar längre tid', 'För att få fler bilder', 'Det behöver man inte'], 'Stämmer flera oberoende källor överens är uppgiften troligare sann.'),
     ] },
 ];
-const SO_SKILLS_ADAM = KEMI4.map(t => ({ id: t.id, name: t.name, short: t.short, icon: t.icon, group: 'no', subject: 'Kemi', gen: makeSoGen(t), method: `<div class="eyebrow" style="margin-bottom:6px">Kemi kapitel 4 · Syror och baser</div>${t.read}` }));
+const BEGREPPA = {"kemi_syror": [["Syror och baser", "https://app.begreppa.se/videos/kemi/syror-baser-och-salter/syror-och-baser"]], "kemi_ph": [["Varför blir det surt eller basiskt?", "https://app.begreppa.se/videos/kemi/syror-baser-och-salter/varfor-blir-det-surt-eller-basiskt"], ["Vad berättar egentligen pH-värdet?", "https://app.begreppa.se/videos/kemi/syror-baser-och-salter/vad-berattar-egentligen-ph-vardet"]], "kemi_starka": [["Starka och svaga syror", "https://app.begreppa.se/videos/kemi/syror-baser-och-salter/starka-och-svaga-syror"]], "kemi_neutral": [["Vad är ett salt? / Hur bildas salter?", "https://app.begreppa.se/videos/kemi/syror-baser-och-salter/vad-ar-ett-salt"]], "kemi_vardag": [["Vad är ett salt?", "https://app.begreppa.se/videos/kemi/syror-baser-och-salter/vad-ar-ett-salt"]]};
+const SO_SKILLS_ADAM = KEMI4.map(t => ({ id: t.id, name: t.name, short: t.short, icon: t.icon, group: 'no', subject: 'Kemi', gen: makeSoGen(t), method: `<div class="eyebrow" style="margin-bottom:6px">Kemi kapitel 4 · Syror och baser</div>${t.read}${BEGREPPA[t.id] ? `<div class="eyebrow" style="margin:14px 0 6px">Lärarens filmer (Begreppa)</div>${BEGREPPA[t.id].map(([n, u]) => `<a class="btn ghost" style="min-height:40px;justify-content:flex-start;margin:4px 0;width:100%" href="${u}" target="_blank" rel="noopener">▶ ${n}</a>`).join('')}` : ''}` }));
 /* ========= Open "förklara"-frågor: skriv ett svar, appen letar efter nyckelbegrepp ========= */
 // keys: grupper av godkända formuleringar (stammar räcker: "golfström" matchar "Golfströmmen"). label = vad som visas om gruppen saknas.
 const O = (q, keys, model, hint) => ({ q, keys: keys.map(k => (Array.isArray(k) ? { alts: k, label: k[0] } : k)), model, hint });
@@ -1667,6 +1694,36 @@ const OPEN = {
   ],
 };
 
+// "Sätt i ordning": items i rätt ordning
+const ORDERS = {
+  kemi_neutral: [
+    { q: 'Sätt stegen i rätt ordning för att neutralisera en syra i labbet.', items: ['Mät upp syran i en bägare', 'Tillsätt några droppar indikator (BTB) – lösningen blir gul', 'Droppa i bas lite i taget och rör om', 'Stanna när färgen slår om till grön – lösningen är neutral', 'Nu finns ett salt löst i vattnet'], why: 'Indikatorn visar när pH når 7. Då har vätejonerna och hydroxidjonerna bildat vatten och resten är salt.' },
+    { q: 'Sätt stegen i rätt ordning: vad händer när saltsyra och natriumhydroxid blandas?', items: ['Saltsyran bidrar med vätejoner (H⁺) och kloridjoner (Cl⁻)', 'Natriumhydroxiden bidrar med natriumjoner (Na⁺) och hydroxidjoner (OH⁻)', 'H⁺ och OH⁻ slår sig ihop och bildar vatten (H₂O)', 'Na⁺ och Cl⁻ blir kvar i lösningen', 'När vattnet avdunstar bildas saltkristaller av natriumklorid'], why: 'Syra + bas → salt + vatten. HCl + NaOH → NaCl + H₂O.' },
+  ],
+  kemi_ph: [
+    { q: 'Ordna lösningarna från surast till mest basisk.', items: ['Magsyra (pH 1–2)', 'Läsk (pH 2–3)', 'Rent vatten (pH 7)', 'Blod (pH 7,4)', 'Tvålvatten (pH 9–10)', 'Propplösare (pH 13–14)'], why: 'Lågt pH = surt, 7 = neutralt, högt pH = basiskt.' },
+  ],
+  kemi_saker: [
+    { q: 'Du har fått syra på handen. Sätt stegen i rätt ordning.', items: ['Säg till läraren direkt', 'Skölj med rikligt med vatten i flera minuter', 'Ta av smycken eller kläder som fått syra på sig', 'Låt någon kontrollera huden – sök vård om det svider eller blir rött'], why: 'Vatten späder ut syran snabbt. Säg alltid till en vuxen först.' },
+  ],
+  geo_lasa_karta: [
+    { q: 'Sätt stegen i rätt ordning för att räkna ut ett avstånd med skalan 1:50 000.', items: ['Mät avståndet på kartan med linjal, t.ex. 4 cm', 'Multiplicera med skalans tal: 4 · 50 000 = 200 000 cm', 'Gör om till meter: 200 000 cm = 2 000 m', 'Gör om till kilometer: 2 000 m = 2 km'], why: 'Skalan säger hur många gånger större verkligheten är. Räkna i cm först, gör sedan om till meter och kilometer.' },
+  ],
+  geo_hitta: [
+    { q: 'Sätt stegen i rätt ordning för att hitta Luleå i kartboken.', items: ['Slå upp registret längst bak i boken', 'Leta upp Luleå i bokstavsordning', 'Läs av koden, t.ex. "14 C3"', 'Bläddra till sidan 14', 'Leta i rutan C3 i gradnätet'], why: 'Registret ger sida och ruta, gradnätet leder dig rätt på sidan.' },
+  ],
+  geo_naturresurser: [
+    { q: 'Sätt stegen i rätt ordning: från malm i berget till stål.', items: ['Järnmalm bryts i gruvan i Kiruna', 'Malmen krossas och görs till pellets', 'Pellets fraktas med tåg till hamnen i Luleå eller Narvik', 'I stålverket smälts malmen och blir stål', 'Stålet blir bilar, broar och verktyg'], why: 'Råvara → förädling → färdig vara. Luleå har både hamn och stålverk.' },
+  ],
+  geo_miljo: [
+    { q: 'Sätt händelserna i rätt ordning när en sjö försuras.', items: ['Fabriker och bilar släpper ut svaveldioxid och kväveoxider', 'Gaserna löser sig i regnvattnet och det blir surt regn', 'Regnet rinner ner i sjön och sänker pH', 'Rom och yngel dör, sedan fiskarna', 'Sjön kalkas för att höja pH igen'], why: 'Kalkning hjälper tillfälligt – det viktigaste är att minska utsläppen.' },
+  ],
+};
+function makeOrderQuestion(topicId, level) {
+  const list = ORDERS[topicId]; if (!list || !list.length) return null;
+  const o = R.pick(list);
+  return { type: 'order', text: o.q, items: o.items.slice(), steps: [`<b>Rätt ordning:</b><ol style="margin:6px 0 0;padding-left:20px">${o.items.map(i => `<li>${i}</li>`).join('')}</ol>`, o.why], hint: 'Vad måste hända först för att nästa steg ska vara möjligt?', level, answer: o.items };
+}
 const normOpen = (s) => s.toLowerCase().replace(/[^a-z0-9åäöé⁺⁻+:,\s]/g, ' ').replace(/\s+/g, ' ');
 function checkOpen(q, raw) {
   const a = normOpen(raw || '');
@@ -2004,6 +2061,12 @@ function bumpDay(p, correct, xp) {
   if (correct) { p.weekCorrect = (p.weekCorrect || 0) + 1; if (p.lastDay !== d) { p.streak = p.lastDay === addDays(d, -1) ? p.streak + 1 : 1; p.lastDay = d; } }
   const keys = Object.keys(p.days).sort(); while (keys.length > 90) delete p.days[keys.shift()];
 }
+function serializeQ(q) { const { type, text, answer, choices, steps, hint, level, variables, variable, fig, keys, model, items, display } = q; return { type, text, answer, choices, steps, hint, level, variables, variable, fig, keys, model, items, display }; }
+function noteMistake(p, item) {
+  p.mistakes = p.mistakes || [];
+  const entry = item.cat === 'word' ? { id: 'w_' + item.word.id, at: Date.now(), cat: 'word', deckId: item.deck.id, wordId: item.word.id } : { id: 'm_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6), at: Date.now(), cat: 'math', skillId: item.skill.id, q: serializeQ(item) };
+  if (!p.mistakes.some(x => x.id === entry.id)) { p.mistakes.push(entry); if (p.mistakes.length > 60) p.mistakes.shift(); }
+}
 function recordAnswer(kidId, skillId, correct, level, usedHelp) {
   const p = prof(kidId); const s = skillState(p, skillId);
   s.att++; s.last = Date.now();
@@ -2184,6 +2247,7 @@ const ICON = {
   back: '<svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>',
   arrow: '<svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>',
   speaker: '<svg viewBox="0 0 24 24"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 010 7"/><path d="M18.5 5.5a9 9 0 010 13"/></svg>',
+  mic: '<svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3M8 21h8"/></svg>',
   mute: '<svg viewBox="0 0 24 24"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M22 9l-6 6M16 9l6 6"/></svg>',
   gem: '<svg viewBox="0 0 24 24"><path d="M6 3h12l4 6-10 12L2 9z"/><path d="M2 9h20M12 21L8 9l4-6 4 6-4 12"/></svg>',
   flame: '<svg viewBox="0 0 24 24"><path d="M12 22c4.4 0 8-3.2 8-7.5 0-3.4-2.4-5.7-4-8-.4 2-1.3 3-2.5 3.5C14 7 13 4 10.5 2 11 6 7 7.5 5.5 10.5 4 13.3 4 14.5 4 14.5 4 18.8 7.6 22 12 22z"/></svg>',
@@ -2204,6 +2268,7 @@ function applyLook(kid) {
   root.style.removeProperty('--acc'); root.style.removeProperty('--acc-soft'); root.style.removeProperty('--acc-ink');
   if (p && p.accent && ACCENTS[p.accent]) { const [a, s, i] = ACCENTS[p.accent]; root.style.setProperty('--acc', a); root.style.setProperty('--acc-soft', s); root.style.setProperty('--acc-ink', i); }
   document.body.classList.toggle('focus', !!(p && p.settings.focus));
+  root.setAttribute('data-font', p && p.settings.font === 'lexend' ? 'lexend' : 'standard'); root.setAttribute('data-size', p && p.settings.textsize === 'large' ? 'large' : 'normal');
   // Ljust är standard överallt; mörkt bara om barnet valt det. null = följ telefonen.
   if (p && p.settings.dark === true) root.setAttribute('data-theme', 'dark'); else if (p && p.settings.dark === null) root.removeAttribute('data-theme'); else root.setAttribute('data-theme', 'light');
 }
@@ -2303,6 +2368,7 @@ VIEWS.home = () => {
       <div class="week" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line)"><div class="grow"><div class="qt" style="font-weight:700;font-size:.95rem">${LBL(kid).week}: ${weekTarget} rätt</div><div class="mastery mid" style="margin-top:4px"><i style="width:${Math.min(100, Math.round((p.weekCorrect || 0) / weekTarget * 100))}%"></i></div></div><span class="m">${p.weekCorrect || 0}/${weekTarget}</span></div>
     </div>
     ${examCards}
+    ${(p.mistakes || []).length ? `<button class="card tap row" data-act="felbok" style="gap:12px"><div class="ic" style="width:44px;height:44px;border-radius:12px;background:var(--bad-soft);color:var(--bad);display:grid;place-items:center;font-size:1.3rem">📕</div><div class="grow"><div style="font-weight:800;font-family:var(--display)">Felboken · ${p.mistakes.length} ${p.mistakes.length === 1 ? 'uppgift' : 'uppgifter'}</div><div class="muted" style="font-size:.9rem">Allt du svarat fel på. Klara dem för att tömma boken.</div></div><span class="chev">›</span></button>` : ''}
     ${[['math', 'Matte', `<button class="link" data-go="blitz">Blixtläge</button>`], ['no', kid.skills.find(s => s.group === 'no')?.subject || 'NO', ''], ['so', kid.skills.find(s => s.group === 'so')?.subject || 'SO', '']].filter(([g]) => kid.skills.some(s => (s.group || 'math') === g)).map(([g, label, right]) => `<div>
       <div class="section-h"><h3>${label}</h3>${right}</div>
       <div class="skill-list">
@@ -2402,6 +2468,10 @@ VIEWS.shop = () => {
       <button class="card tap shop-item ${!p.accent ? 'owned' : ''}" data-buy="acc_default"><div class="se">${kid.hue === 'orange' ? '🟠' : kid.hue === 'pink' ? '🩷' : '🩵'}</div><div class="sn">Min färg</div><div class="sp muted">${!p.accent ? 'Vald' : 'Byt'}</div></button>
       ${SHOP.filter(i => i.kind === 'accent').map(it => `<button class="card tap shop-item ${active(it) ? 'owned' : ''}" data-buy="${it.id}"><div class="se">${it.e}</div><div class="sn">${it.name}</div><div class="sp ${owned(it) ? 'muted' : 'gem'}">${active(it) ? 'Vald' : owned(it) ? 'Byt' : `💎 ${it.price}`}</div></button>`).join('')}
     </div></div>
+    <div><div class="eyebrow" style="margin-bottom:8px">Läsbarhet</div><div class="shop-grid">
+      <button class="card tap shop-item ${p.settings.font === 'lexend' ? 'owned' : ''}" data-buy="font_toggle"><div class="se">Aa</div><div class="sn">Läsvänligt typsnitt</div><div class="sp muted">${p.settings.font === 'lexend' ? 'På' : 'Av'}</div></button>
+      <button class="card tap shop-item ${p.settings.textsize === 'large' ? 'owned' : ''}" data-buy="size_toggle"><div class="se" style="font-size:2.8rem">A</div><div class="sn">Större text</div><div class="sp muted">${p.settings.textsize === 'large' ? 'På' : 'Av'}</div></button>
+    </div></div>
     <div><div class="eyebrow" style="margin-bottom:8px">Annat</div><div class="shop-grid">${SHOP.filter(i => i.kind === 'freeze').map(it => `<button class="card tap shop-item" data-buy="${it.id}"><div class="se">${it.e}</div><div class="sn">${it.name}</div><div class="sp gem">💎 ${it.price} · du har ${p.freezes}</div></button>`).join('')}</div></div>
   </div>`);
 };
@@ -2409,6 +2479,8 @@ function buy(kid, id) {
   const p = prof(kid.id);
   if (id === 'paper_rutat') { p.paper = 'rutat'; save(); applyLook(kid); return VIEWS.shop(); }
   if (id === 'acc_default') { p.accent = null; save(); applyLook(kid); return VIEWS.shop(); }
+  if (id === 'font_toggle') { p.settings.font = p.settings.font === 'lexend' ? 'standard' : 'lexend'; save(); applyLook(kid); return VIEWS.shop(); }
+  if (id === 'size_toggle') { p.settings.textsize = p.settings.textsize === 'large' ? 'normal' : 'large'; save(); applyLook(kid); return VIEWS.shop(); }
   if (id.startsWith('theme_')) { p.settings.dark = id === 'theme_dark' ? true : id === 'theme_light' ? false : null; save(); applyLook(kid); return VIEWS.shop(); }
   const base = PETS.find(x => !x.shop && 'pet_' + x.id === id); if (base) { p.pet = base.id; save(); toast(`${base.name} följer med dig nu`); return VIEWS.shop(); }
   const it = SHOP.find(x => x.id === id); if (!it) return;
@@ -2458,12 +2530,24 @@ function pickSkills(kid, ids, n) {
 }
 function makeQuestion(kid, skill, levelOverride, genOpts) {
   const st = skillState(prof(kid.id), skill.id); const lvl = levelOverride || st.lvl;
-  const q = skill.gen(lvl, genOpts || {}); q.skill = skill; q.level = lvl; q.cat = 'math'; return q;
+  let q = skill.gen(lvl, genOpts || {});
+  if (!genOpts?.noOpen && ['ekvation', 'forenkla', 'problemekv'].includes(skill.id) && q.steps && q.steps.length >= 4 && R.chance(0.15)) {
+    const items = q.steps.slice(0, -1).map(st => st.replace(/^<b>[^<]*<\/b>\s*/, ''));
+    q = { type: 'order', text: `Sätt lösningens steg i rätt ordning:<br><span class="muted" style="font-size:1rem">${q.text}</span>`, items, answer: items, steps: [`<b>Rätt ordning:</b><ol style="margin:6px 0 0;padding-left:20px">${items.map(i => `<li>${i}</li>`).join('')}</ol>`], hint: 'Vad måste göras först? Oftast: ta bort parenteser, förenkla, samla, dela.', level: lvl };
+  }
+  q.skill = skill; q.level = lvl; q.cat = 'math'; return q;
 }
 function startSession(kid, opts) {
   const p = prof(kid.id); const n = opts.n || p.settings.sprint;
   let queue = [];
-  if (opts.mode === 'test') {
+  if (opts.mode === 'felbok') {
+    const list = R.shuffle((p.mistakes || []).slice()).slice(0, opts.n || 10);
+    for (const mi of list) {
+      if (mi.cat === 'word') { const d = deckById(p, mi.deckId); const w = d && d.words.find(x => x.id === mi.wordId); if (d && w) queue.push({ ...makeWordExercise(d, w, R.pick(['pick', 'type'])), cat: 'word' }); }
+      else { const sk = kid.skills.find(x => x.id === mi.skillId); if (sk) queue.push({ ...mi.q, skill: sk, cat: 'math', mistakeId: mi.id }); }
+    }
+    if (!queue.length) { toast('Felboken är tom!'); return go('home'); }
+  } else if (opts.mode === 'test') {
     const exam = p.exams.find(e => e.id === opts.examId);
     const skills = exam.skillIds.map(id => kid.skills.find(s => s.id === id)).filter(Boolean);
     const mathSkills = skills.filter(s => (s.group || 'math') === 'math'), quizSkills = skills.filter(s => (s.group || 'math') !== 'math');
@@ -2510,7 +2594,7 @@ function startSession(kid, opts) {
 VIEWS.practice = () => {
   const item = S.queue[S.i]; const kid = S.kid; const p = prof(kid.id);
   const isTest = S.mode === 'test'; const focus = p.settings.focus;
-  const title = isTest ? 'Provläge' : item.cat === 'word' ? esc(item.deck.name) : esc(item.skill.short || item.skill.name);
+  const title = isTest ? 'Provläge' : S.mode === 'felbok' ? 'Felboken' : item.cat === 'word' ? esc(item.deck.name) : esc(item.skill.short || item.skill.name);
   const left = S.queue.length - S.i;
   const right = isTest ? `<span class="timer" id="timer">${fmtTime(S.deadline - Date.now())} kvar</span>` : S.opts.bonus ? `<span class="pill warn">2× XP</span>` : p.settings.timer ? `<span class="timer" id="timer">${fmtTime(Date.now() - S.startedAt)}</span>` : focus ? `<span class="left-count">${left} kvar</span>` : `<span class="pill acc">${S.xp} XP</span>`;
   let body;
@@ -2522,6 +2606,7 @@ VIEWS.practice = () => {
     <div class="progress">${S.queue.map((_, i) => `<i class="${i < S.i ? (S.results[i] ? 'ok' : 'no') : i === S.i ? 'cur' : ''}"></i>`).join('')}</div>
     <div class="card pad-lg stack" id="qcard" style="gap:16px">${body}</div>
   </div>`);
+  initSketch();
   const input = document.getElementById('ans');
   if (input && kid.id !== 'clara' && !(item.cat === 'math' && item.type === 'num' && kid.id === 'filip' && focus)) setTimeout(() => input.focus({ preventScroll: true }), 50);
   if (input && input.tagName !== 'TEXTAREA') input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); document.getElementById('submit')?.click(); } });
@@ -2529,7 +2614,10 @@ VIEWS.practice = () => {
 };
 function mathBody(q, kid, isTest) {
   const vars = q.variables || [q.variable];
-  const inputHtml = q.type === 'open'
+  if (q.type === 'order') S.order = { picked: [], shuffled: R.shuffle(q.items.map((t, i) => ({ t, i }))) };
+  const inputHtml = q.type === 'order'
+    ? `<div class="slots order-slots" id="orderSlots"><span class="muted" style="font-size:.9rem;align-self:center">Tryck på stegen i rätt ordning</span></div><div class="order-pool" id="orderPool">${S.order.shuffled.map(o => `<button class="otile" data-otile="${o.i}">${o.t}</button>`).join('')}</div>`
+    : q.type === 'open'
     ? `<textarea class="answer-input" id="ans" rows="4" style="text-align:left;font-family:var(--body);font-weight:400;font-size:1.05rem;min-height:110px;resize:vertical" placeholder="Skriv med egna ord, som på ett prov. Få med de viktiga begreppen."></textarea><p class="muted" style="font-size:.85rem;margin-top:6px">Appen letar efter ${q.keys.length} nyckelbegrepp i ditt svar.</p>`
     : q.type === 'choicetext'
     ? `<div class="wchoices" id="choices">${q.choices.map((c, i) => `<button class="wchoice" data-choice="${i}"><span>${esc(c)}</span></button>`).join('')}</div>`
@@ -2547,16 +2635,28 @@ function mathBody(q, kid, isTest) {
            ${kid.id === 'clara' || q.answer < 0 ? `<div class="keys" style="margin-top:8px;grid-template-columns:repeat(6,1fr)">${['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'].map(k => `<button class="key" data-key="${k}">${k}</button>`).join('')}<button class="key" data-key="−">−</button><button class="key" data-key="⌫">⌫</button></div>` : ''}`
         : `<input class="answer-input" id="ans" autocomplete="off" autocapitalize="off" placeholder="Skriv svaret" aria-label="Ditt svar">`;
   const p = prof(kid.id);
-  return `<div class="row" style="justify-content:space-between"><span class="eyebrow">Uppgift ${S.i + 1} av ${S.queue.length}${isTest && q.part ? ` · ${q.part}-nivå` : ''}${!isTest && !p.settings.focus ? ` · ${esc(q.skill.short || '')}` : ''}</span><span class="row" style="gap:8px">${TTS.ok && p.settings.tts ? `<button class="icon-btn" data-speak="${esc(q.text.replace(/<[^>]+>/g, ''))}" data-lang="sv" style="width:36px;height:36px" aria-label="Läs upp">${ICON.speaker}</button>` : ''}<span class="lvl-dots" aria-label="Svårighet ${q.level}">${[1, 2, 3].map(i => `<i class="${i <= q.level ? 'on' : ''}"></i>`).join('')}</span></span></div>
+  return `<div class="row" style="justify-content:space-between"><span class="eyebrow">Uppgift ${S.i + 1} av ${S.queue.length}${isTest && q.part ? ` · ${q.part}-nivå` : ''}${!isTest && !p.settings.focus ? ` · ${esc(q.skill.short || '')}` : ''}</span><span class="row" style="gap:8px">${TTS.ok && p.settings.tts ? `<button class="icon-btn" data-speak="${esc(q.text.replace(/<[^>]+>/g, ''))}" data-lang="sv" data-highlight="1" style="width:36px;height:36px" aria-label="Läs upp">${ICON.speaker}</button>` : ''}<span class="lvl-dots" aria-label="Svårighet ${q.level}">${[1, 2, 3].map(i => `<i class="${i <= q.level ? 'on' : ''}"></i>`).join('')}</span></span></div>
       ${q.fig ? `<div class="figwrap">${q.fig}</div>` : ''}
       <div class="question" id="qtext">${q.text}</div>
       <div id="inputArea">${inputHtml}</div>
       <div id="fb"></div>
       <div class="row" id="actions">
-        <button class="btn grow" id="submit" ${q.choices || q.type === 'choicetext' ? 'disabled' : ''}>Svara</button>
+        <button class="btn grow" id="submit" ${q.choices || q.type === 'choicetext' || q.type === 'order' ? 'disabled' : ''}>Svara</button>
+        ${q.type === 'order' ? `<button class="btn ghost" id="undoOrder">⌫</button>` : ''}
         ${isTest ? '' : `<button class="btn ghost" id="hintBtn">💡 Ledtråd</button>`}
       </div>
-      ${isTest ? '' : `<button class="btn ghost wide" id="explainBtn" style="border-style:dashed">🤔 Jag fattar inte – visa hur man gör</button>`}`;
+      ${isTest ? '' : `<button class="btn ghost wide" id="explainBtn" style="border-style:dashed">🤔 Jag fattar inte – visa hur man gör</button>`}
+      ${q.type !== 'choicetext' && q.type !== 'order' && q.type !== 'open' ? `<details class="sketch" id="sketch"><summary>✏️ Kladdyta – räkna här innan du svarar</summary><div class="sketch-wrap"><canvas id="sketchCanvas" width="600" height="320"></canvas><div class="row" style="margin-top:6px"><button class="btn ghost" style="min-height:36px" id="sketchClear">Rensa</button><span class="muted" style="font-size:.85rem">Rita med fingret. Kladden sparas inte.</span></div></div></details>` : ''}`;
+}
+function initSketch() {
+  const det = document.getElementById('sketch'); const cv = document.getElementById('sketchCanvas'); if (!det || !cv) return;
+  const ctx = cv.getContext('2d'); if (!ctx) return; let drawing = false, last = null;
+  const pos = (e) => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) * cv.width / r.width, (e.clientY - r.top) * cv.height / r.height]; };
+  ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--ink').trim() || '#1d2433';
+  cv.addEventListener('pointerdown', (e) => { drawing = true; last = pos(e); cv.setPointerCapture(e.pointerId); e.preventDefault(); });
+  cv.addEventListener('pointermove', (e) => { if (!drawing) return; const p = pos(e); ctx.beginPath(); ctx.moveTo(last[0], last[1]); ctx.lineTo(p[0], p[1]); ctx.stroke(); last = p; e.preventDefault(); });
+  const stop = () => { drawing = false; }; cv.addEventListener('pointerup', stop); cv.addEventListener('pointercancel', stop);
+  document.getElementById('sketchClear')?.addEventListener('click', () => ctx.clearRect(0, 0, cv.width, cv.height));
 }
 function wordBody(ex) {
   const lang = ex.deck.lang; const head = `<div class="row" style="justify-content:space-between"><span class="eyebrow">${S.i + 1} av ${S.queue.length} · ${esc(ex.title || 'Nytt ord')}</span><span>${LANGS[lang]?.flag || ''}</span></div>`;
@@ -2567,6 +2667,7 @@ function wordBody(ex) {
     S.match = { left: R.shuffle(ex.pairs.map(w => ({ id: w.id, label: w.w }))), right: R.shuffle(ex.pairs.map(w => ({ id: w.id, label: w.t }))), done: new Set(), sel: null, mistakes: 0, firstTry: new Set(ex.pairs.map(w => w.id)) };
     return `${head}<p style="text-align:center;font-weight:700">Para ihop ${LANGS[lang]?.name.toLowerCase() || 'orden'} med svenska</p><div class="match-grid"><div class="match-col">${S.match.left.map(t => `<button class="mtile" data-mside="l" data-mid="${t.id}">${esc(t.label)}</button>`).join('')}</div><div class="match-col">${S.match.right.map(t => `<button class="mtile" data-mside="r" data-mid="${t.id}">${esc(t.label)}</button>`).join('')}</div></div><div id="fb"></div><div class="row" id="actions"></div>`;
   }
+  if (ex.kind === 'speak') return `${head}<div class="word-card"><div class="we">${ex.word.e || '🗣️'}</div><div class="ww">${esc(ex.word.w)}</div><div class="wt">${esc(ex.word.t)}</div><div class="row" style="justify-content:center;gap:10px">${speakBtn(ex.word.w, lang)}<button class="speak-btn big" id="micBtn" aria-label="Säg ordet" style="background:var(--acc);color:#fff">${ICON.mic}</button></div><div class="muted" id="micStatus">Tryck på mikrofonen och säg ordet</div></div><div id="fb"></div><div class="row" id="actions"><button class="btn ghost grow" id="skipSpeak">Hoppa över</button></div>`;
   if (ex.kind === 'spell') { S.spell = { picked: [] }; return `${head}<div class="prompt-row"><span class="pe">${ex.promptEmoji}</span><span>${esc(ex.prompt)}</span></div><div class="slots" id="slots"><span class="muted" style="font-size:.9rem;align-self:center">Tryck på bokstäverna</span></div><div class="ltiles" id="ltiles">${ex.tiles.map(t => `<button class="ltile" data-tile="${t.i}">${esc(t.c)}</button>`).join('')}</div><div id="fb"></div><div class="row" id="actions"><button class="btn grow" id="submit" disabled>Svara</button><button class="btn ghost" id="undoTile">⌫</button></div>`; }
   // type
   return `${head}<div class="prompt-row"><span class="pe">${ex.promptEmoji}</span><span>${esc(ex.prompt)}</span></div><input class="answer-input" id="ans" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Skriv på ${LANGS[lang]?.name.toLowerCase()}" aria-label="Ditt svar"><div id="fb"></div><div class="row" id="actions"><button class="btn grow" id="submit">Svara</button><button class="btn ghost" id="hintBtn">💡</button></div>`;
@@ -2591,6 +2692,8 @@ function onPractice(e) {
   const tile = t.closest('[data-tile]');
   if (tile && S.spell) { tile.classList.add('used'); S.spell.picked.push({ i: tile.dataset.tile, c: tile.textContent }); renderSlots(); return; }
   if (t.closest('#undoTile') && S.spell) { const last = S.spell.picked.pop(); if (last) document.querySelector(`[data-tile="${last.i}"]`)?.classList.remove('used'); renderSlots(); return; }
+  if (t.closest('#micBtn') && ex.kind === 'speak') { startListening(ex); return; }
+  if (t.closest('#skipSpeak') && ex.kind === 'speak') { S.answered = true; S.results.push(true); return nextQuestion(); }
   if (t.closest('#hintBtn') && ex.kind === 'type') { S.usedHelp = true; document.getElementById('fb').innerHTML = `<div class="hint">💡 ${esc(ex.word.w.length)} tecken, börjar på <b>${esc(ex.word.w[0])}</b>${ex.word.w.includes(' ') ? ` och har ${ex.word.w.split(' ').length} ord` : ''}.</div>`; t.closest('#hintBtn').disabled = true; return; }
   if (t.closest('#submit')) {
     const raw = ex.kind === 'spell' ? S.spell.picked.map(x => x.c).join('') : document.getElementById('ans').value;
@@ -2600,10 +2703,47 @@ function onPractice(e) {
     return finishWord(ex, res.status === 'correct', null, res.note);
   }
 }
+function speakHighlight(el, lang) {
+  if (!el || !TTS.ok) return;
+  if (!el.dataset.wrapped) { // wrap text nodes' words in spans once
+    const walk = (node) => { [...node.childNodes].forEach(ch => { if (ch.nodeType === 3 && ch.textContent.trim()) { const frag = document.createDocumentFragment(); ch.textContent.split(/(\s+)/).forEach(part => { if (part.trim()) { const sp = document.createElement('span'); sp.className = 'w'; sp.textContent = part; frag.appendChild(sp); } else frag.appendChild(document.createTextNode(part)); }); node.replaceChild(frag, ch); } else if (ch.nodeType === 1) walk(ch); }); };
+    walk(el); el.dataset.wrapped = '1';
+  }
+  const spans = [...el.querySelectorAll('span.w')]; const text = spans.map(s => s.textContent).join(' ');
+  const starts = []; let pos = 0; spans.forEach(s => { starts.push(pos); pos += s.textContent.length + 1; });
+  try {
+    speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(text); const code = LANGS[lang]?.tts || 'sv-SE'; u.lang = code; u.rate = 0.95;
+    const v = TTS.voices.find(x => x.lang === code) || TTS.voices.find(x => x.lang.startsWith(code.slice(0, 2))); if (v) u.voice = v;
+    u.onboundary = (ev) => { if (ev.name && ev.name !== 'word') return; let idx = 0; for (let i = 0; i < starts.length; i++) if (starts[i] <= ev.charIndex) idx = i; spans.forEach((s, i) => s.classList.toggle('hl', i === idx)); };
+    u.onend = () => spans.forEach(s => s.classList.remove('hl'));
+    speechSynthesis.speak(u);
+  } catch (e) { /* ignore */ }
+}
+const SR = typeof window !== 'undefined' ? (window.SpeechRecognition || window.webkitSpeechRecognition) : null;
+function startListening(ex) {
+  if (!SR) return toast('Taligenkänning saknas i den här webbläsaren');
+  const status = document.getElementById('micStatus'); const btn = document.getElementById('micBtn');
+  try { speechSynthesis?.cancel(); } catch (e) { /* ignore */ }
+  const rec = new SR(); rec.lang = LANGS[ex.deck.lang]?.tts || 'en-GB'; rec.interimResults = false; rec.maxAlternatives = 5;
+  status.textContent = 'Lyssnar…'; btn.classList.add('listening');
+  rec.onresult = (ev) => {
+    const alts = [...ev.results[0]].map(r => r.transcript); const target = normLoose(coreWord(ex.word.w)); const tw = target.split(' ');
+    const best = alts.map(a => { const na = normLoose(a); const hit = tw.filter(w => na.includes(w)).length; return { a, score: hit / tw.length, exact: na === target || na.includes(target) }; }).sort((x, y) => y.score - x.score)[0];
+    const ok = best && (best.exact || best.score >= 0.6 || (tw.length === 1 && levenshtein(normLoose(best.a), target) <= 1));
+    status.innerHTML = `Jag hörde: <b>${esc(best ? best.a : '…')}</b>`;
+    if (ok) finishWord(ex, true, null, 'Bra uttal!');
+    else { S.speakTries = (S.speakTries || 0) + 1; beep('no'); if (S.speakTries >= 2) { finishWord(ex, false); } else status.innerHTML += ' – försök igen, lyssna först på ordet.'; }
+  };
+  rec.onerror = () => { status.textContent = 'Det gick inte att lyssna. Prova igen eller hoppa över.'; btn.classList.remove('listening'); };
+  rec.onend = () => btn.classList.remove('listening');
+  try { rec.start(); } catch (e) { status.textContent = 'Kunde inte starta mikrofonen.'; }
+}
 function renderSlots() { const el = document.getElementById('slots'); el.innerHTML = S.spell.picked.length ? S.spell.picked.map(x => `<span class="ltile">${esc(x.c)}</span>`).join('') : `<span class="muted" style="font-size:.9rem;align-self:center">Tryck på bokstäverna</span>`; document.getElementById('submit').disabled = !S.spell.picked.length; }
 function finishWord(ex, correct, revealForeign, note) {
   S.answered = true;
   const xp = recordWordAnswer(S.kid.id, ex.word.id, correct);
+  if (S.mode === 'felbok') { const p = prof(S.kid.id); if (correct) { p.mistakes = (p.mistakes || []).filter(x => x.id !== 'w_' + ex.word.id); save(); } }
+  else if (!correct) { noteMistake(prof(S.kid.id), ex); save(); }
   if (correct) { S.streak++; } else S.streak = 0;
   S.xp += xp; S.results.push(correct);
   const fb = document.getElementById('fb');
@@ -2614,7 +2754,11 @@ function finishWord(ex, correct, revealForeign, note) {
   document.getElementById('actions').innerHTML = `<button class="btn grow" id="next">${S.i + 1 < S.queue.length ? 'Nästa →' : 'Visa resultat'}</button>`;
   document.getElementById('next').focus({ preventScroll: true });
 }
+function renderOrder() { const el = document.getElementById('orderSlots'); const O = S.order; el.innerHTML = O.picked.length ? O.picked.map((i, n) => `<div class="otile picked"><span class="onum">${n + 1}</span>${S.queue[S.i].items[i]}</div>`).join('') : `<span class="muted" style="font-size:.9rem;align-self:center">Tryck på stegen i rätt ordning</span>`; document.getElementById('submit').disabled = O.picked.length !== S.queue[S.i].items.length; }
 function onMath(e, q) {
+  const ot = e.target.closest('[data-otile]');
+  if (ot && S.order) { ot.classList.add('used'); S.order.picked.push(Number(ot.dataset.otile)); renderOrder(); return; }
+  if (e.target.closest('#undoOrder') && S.order) { const last = S.order.picked.pop(); if (last !== undefined) document.querySelector(`[data-otile="${last}"]`)?.classList.remove('used'); renderOrder(); return; }
   const key = e.target.closest('[data-key]'); const input = document.getElementById('ans');
   if (key && input) { const k = key.dataset.key; if (k === '⌫') input.value = input.value.trimEnd().slice(0, -1).trimEnd(); else input.value = (input.value + k).replace(/\s{2,}/g, ' '); input.focus({ preventScroll: true }); return; }
   const ch = e.target.closest('[data-choice]');
@@ -2637,27 +2781,36 @@ function checkAnswer(q, raw) {
   if (!s) return { status: 'empty' };
   if (q.type === 'choicetext') return { status: Number(s) === q.answer ? 'correct' : 'wrong' };
   if (q.type === 'open') return checkOpen(q, s);
+  if (q.type === 'order') { const picked = S.order ? S.order.picked : []; if (picked.length !== q.items.length) return { status: 'empty' }; const ok = picked.every((idx, n) => idx === n); const firstWrong = picked.findIndex((idx, n) => idx !== n); return { status: ok ? 'correct' : 'wrong', firstWrong }; }
   if (q.type === 'num') { const n = parseFloat(s.replace(/−|–/g, '-').replace(',', '.').replace(/\s/g, '')); if (!Number.isFinite(n)) return { status: 'invalid', msg: 'Skriv ett tal.' }; return { status: Math.abs(n - q.answer) < 1e-6 ? 'correct' : 'wrong' }; }
   if (q.type === 'expr') { const p = Poly.tryParse(s); if (!p) return { status: 'invalid', msg: 'Jag förstår inte uttrycket. Skriv t.ex. 6x + 15 eller 2x² − 3x.' }; if (!Poly.equal(p, q.answer)) return { status: 'wrong' }; if (!Poly.isSimplified(s, q.answer)) return { status: 'unsimplified' }; return { status: 'correct' }; }
   const norm = normalizeText(s); return { status: q.answer.some(a => normalizeText(a) === norm) ? 'correct' : 'wrong' };
 }
-const answerDisplay = (q) => q.type === 'expr' ? Poly.format(q.answer) : q.type === 'num' ? T.n(q.answer) : q.type === 'choicetext' ? q.choices[q.answer] : q.type === 'open' ? q.model : (q.display || q.answer[0]);
+const answerDisplay = (q) => q.type === 'expr' ? Poly.format(q.answer) : q.type === 'num' ? T.n(q.answer) : q.type === 'choicetext' ? q.choices[q.answer] : q.type === 'open' ? q.model : q.type === 'order' ? 'se ordningen nedan' : (q.display || q.answer[0]);
 function submitMath() {
   const q = S.queue[S.i]; const input = document.getElementById('ans');
-  const raw = q.choices || q.type === 'choicetext' ? (S.selected === undefined ? '' : String(S.selected)) : input.value;
+  const raw = q.type === 'order' ? 'order' : q.choices || q.type === 'choicetext' ? (S.selected === undefined ? '' : String(S.selected)) : input.value;
   const res = checkAnswer(q, raw); const fb = document.getElementById('fb');
-  if (res.status === 'empty') { toast('Skriv ett svar först'); return; }
+  if (res.status === 'empty') { toast(q.type === 'order' ? 'Placera alla steg först' : 'Skriv ett svar först'); return; }
   if (res.status === 'invalid') { fb.innerHTML = `<div class="feedback warn"><span>✍️</span><div><div class="big">Hmm</div><div class="sub">${res.msg}</div></div></div>`; document.getElementById('qcard').classList.add('shake'); setTimeout(() => document.getElementById('qcard')?.classList.remove('shake'), 400); return; }
   if (res.status === 'unsimplified' && !S.retried) { S.retried = true; fb.innerHTML = `<div class="feedback warn"><span>🧐</span><div><div class="big">Nästan!</div><div class="sub">Värdet stämmer, men uttrycket ska förenklas färdigt. Multiplicera in och slå ihop lika termer.</div></div></div>`; return; }
   const correct = res.status === 'correct' && !S.revealed;
   S.answered = true; const isTest = S.mode === 'test';
   let xp = recordAnswer(S.kid.id, q.skill.id, correct, q.level, S.usedHelp || isTest);
+  if (S.mode === 'felbok') { const p = prof(S.kid.id); if (correct) { p.mistakes = (p.mistakes || []).filter(x => x.id !== q.mistakeId); save(); } }
+  else if (!correct) { noteMistake(prof(S.kid.id), q); save(); }
   if (correct) { S.streak++; if (S.streak >= 3) { const b = Math.min(10, S.streak * 2); xp += b; prof(S.kid.id).xp += b; save(); } } else S.streak = 0;
   S.xp += xp; S.results.push(correct);
   if (q.choices || q.type === 'choicetext') document.querySelectorAll('.choice, .wchoice').forEach(c => { const v = Number(c.dataset.choice); if (v === q.answer) c.classList.add('ok'); else if (v === S.selected) c.classList.add('no'); c.disabled = true; });
   if (input) input.disabled = true;
   const praise = R.pick(['Snyggt!', 'Rätt!', 'Perfekt!', 'Så ska det se ut!', 'Boom!', 'Exakt!']);
-  if (q.type === 'open') {
+  if (q.type === 'order') {
+    document.querySelectorAll('.otile').forEach(b => b.disabled = true); document.getElementById('undoOrder')?.remove();
+    document.querySelectorAll('#orderSlots .otile').forEach((el, n) => el.classList.add(S.order.picked[n] === n ? 'ok' : 'no'));
+    if (correct) { beep('ok'); xpPop(xp); fb.innerHTML = `<div class="feedback ok"><span style="font-size:1.4rem">✅</span><div><div class="big">Rätt ordning!</div><div class="sub">Alla ${q.items.length} steg på rätt plats.</div></div></div>`; }
+    else { beep('no'); fb.innerHTML = `<div class="feedback no"><span style="font-size:1.4rem">❌</span><div><div class="big">Inte riktigt</div><div class="sub">Första felet är på plats ${res.firstWrong + 1}.</div></div></div>`; if (!isTest) showSteps(q, false); }
+  }
+  else if (q.type === 'open') {
     const hitTxt = res.hit?.length ? `Du fick med: ${res.hit.map(k => `<b>${esc(k.label)}</b>`).join(', ')}.` : 'Inget av nyckelbegreppen hittades.';
     const missTxt = res.miss?.length ? ` Saknas: ${res.miss.map(k => `<b>${esc(k.label)}</b>`).join(', ')}.` : '';
     if (correct) { beep('ok'); xpPop(xp); fb.innerHTML = `<div class="feedback ok"><span style="font-size:1.4rem">✅</span><div><div class="big">${res.miss?.length ? 'Bra svar!' : 'Fullständigt svar!'}</div><div class="sub">${hitTxt}${missTxt}</div></div></div>`; }
@@ -2675,7 +2828,7 @@ function submitMath() {
 function nextQuestion() {
   const cur = S.queue[S.i];
   if (cur.cat === 'math' && !S.results[S.i] && S.mode === 'practice' && S.queue.length < 18) S.queue.push(makeQuestion(S.kid, cur.skill, cur.level));
-  S.i++; S.usedHelp = false; S.retried = false; S.revealed = false; S.answered = false; S.selected = undefined; S.match = null; S.spell = null;
+  S.i++; S.usedHelp = false; S.retried = false; S.revealed = false; S.answered = false; S.selected = undefined; S.match = null; S.spell = null; S.order = null;
   if (S.i >= S.queue.length) return finishSession();
   VIEWS.practice();
 }
@@ -2718,7 +2871,7 @@ function finishSession() {
   render(`${topbar(S.mode === 'test' ? 'Provresultat' : 'Resultat', 'home')}
   <div class="stack" style="margin-top:6px">
     <div class="card pad-lg summary-hero stack" style="gap:6px">
-      <div class="eyebrow">${S.mode === 'test' ? `Provläge · ${fmtTime(Date.now() - S.startedAt)}` : LBL(S.kid).done}</div>
+      <div class="eyebrow">${S.mode === 'test' ? `Provläge · ${fmtTime(Date.now() - S.startedAt)}` : S.mode === 'felbok' ? `Felboken · ${(p.mistakes || []).length} kvar` : LBL(S.kid).done}</div>
       <div class="big">${c}/${n}</div>
       ${grade ? `<div class="row" style="justify-content:center;gap:8px"><span class="pill ${grade === 'Ännu inte E' ? 'bad' : grade === 'E' ? 'warn' : 'good'}" style="font-size:1rem;padding:6px 14px">Indikation: ${grade}</span></div><p class="muted" style="font-size:.85rem">Indikationen bygger på att E-nivån kräver minst 60 % rätt och C/A minst hälften rätt på respektive del. Lärarens prov kan vikta annorlunda.</p>` : ''}
       <p style="font-weight:700">${msg}</p>
@@ -2729,6 +2882,7 @@ function finishSession() {
     ${won.length ? `<div class="card" style="border:2px solid var(--acc)"><div class="eyebrow">Nytt märke! +${10 * won.length} 💎</div><div class="badge-row" style="margin-top:8px">${won.map(b => `<span class="badge"><span class="e">${b.e}</span>${b.name}</span>`).join('')}</div></div>` : ''}
     ${partRows ? `<div class="card"><div class="eyebrow" style="margin-bottom:8px">Per nivå</div><div class="breakdown">${partRows}</div></div>` : ''}
     ${Object.keys(by).length > 1 ? `<div class="card"><div class="eyebrow" style="margin-bottom:8px">Per område</div><div class="breakdown">${Object.values(by).map(b => `<div class="r"><div><div style="font-weight:700">${esc(b.name)}</div><div class="mastery ${b.c / b.n < .5 ? 'lo' : b.c / b.n < .8 ? 'mid' : 'hi'}"><i style="width:${Math.round(b.c / b.n * 100)}%"></i></div></div><span class="m">${b.c}/${b.n}</span></div>`).join('')}</div></div>` : ''}
+    ${S.mode === 'practice' && S.queue.some(q => q.cat === 'math') ? `<div class="card" id="rateCard"><div class="eyebrow" style="margin-bottom:8px">Hur kändes det?</div><div class="row"><button class="btn ghost grow" data-rate="easy">😎 Lätt</button><button class="btn ghost grow" data-rate="ok">🙂 Lagom</button><button class="btn ghost grow" data-rate="hard">😓 Svårt</button></div><p class="muted" style="font-size:.85rem;margin-top:6px">Lätt höjer svårigheten nästa gång, svårt sänker den.</p></div>` : ''}
     ${S.opts.bonus ? `<div class="card" style="border:2px solid var(--warn);text-align:center"><b>Bonussprint: dubbel XP!</b> <span class="muted">+${S.xp} XP extra</span></div>` : ''}
     ${offerBonus ? `<button class="btn big wide" style="background:var(--warn);box-shadow:none" data-act="bonus">⚡ Bonussprint – dubbel XP i 5 uppgifter</button>` : ''}
     ${S.chain ? '' : needBreak ? `<button class="btn big wide" style="background:var(--warn);box-shadow:none" data-go="break">Ta en kort paus (2 min)</button><button class="btn ghost wide" data-act="again">Nej, en till</button>` : `<button class="btn ${offerBonus ? 'ghost' : 'big'} wide" data-act="again">${LBL(S.kid).again}</button>`}
@@ -2896,6 +3050,8 @@ function parentSettings(kid, p) {
     ${tg('tts', 'Uppläsning', 'Läs upp ord och uppgifter med telefonens röst (bra för yngre barn och språk).')}
     ${tg('timer', 'Visa tid', 'Visar en klocka under sprintar. Av = mindre stress.')}
     ${tg('dark', 'Mörkt tema', 'Mörk bakgrund i appen (barnet kan också byta i butiken).')}
+    <div class="toggle"><div><div class="tl">Läsvänligt typsnitt</div><div class="td">Lexend – jämnare bokstäver, lättare att läsa vid dyslexi.</div></div><button class="switch ${s.font === 'lexend' ? 'on' : ''}" data-setting-val="font:${s.font === 'lexend' ? 'standard' : 'lexend'}" aria-label="Läsvänligt typsnitt"></button></div>
+    <div class="toggle"><div><div class="tl">Större text</div><div class="td">Lite större bokstäver i hela appen.</div></div><button class="switch ${s.textsize === 'large' ? 'on' : ''}" data-setting-val="textsize:${s.textsize === 'large' ? 'normal' : 'large'}" aria-label="Större text"></button></div>
     <div class="toggle"><div><div class="tl">Sprintlängd</div><div class="td">Antal uppgifter per sprint</div></div><div class="seg">${[5, 8, 10, 15].map(n => `<button class="${s.sprint === n ? 'on' : ''}" data-sprint="${n}">${n}</button>`).join('')}</div></div>
     <div class="toggle"><div><div class="tl">Dagligt mål</div><div class="td">Rätt svar per dag</div></div><div class="seg">${[5, 8, 10, 15, 20].map(n => `<button class="${s.goal === n ? 'on' : ''}" data-goal="${n}">${n}</button>`).join('')}</div></div>
   </div>
@@ -2905,7 +3061,7 @@ function parentSettings(kid, p) {
 /* ========= Event delegation ========= */
 app.addEventListener('click', (e) => {
   const t = e.target;
-  const sp = t.closest('[data-speak]'); if (sp) { TTS.speak(sp.dataset.speak, sp.dataset.lang, sp.dataset.rate ? Number(sp.dataset.rate) : 0.9); return; }
+  const sp = t.closest('[data-speak]'); if (sp) { if (sp.dataset.highlight) speakHighlight(document.getElementById('qtext'), sp.dataset.lang); else TTS.speak(sp.dataset.speak, sp.dataset.lang, sp.dataset.rate ? Number(sp.dataset.rate) : 0.9); return; }
   const goBtn = t.closest('[data-go]'); if (goBtn) { const dest = goBtn.dataset.go; if (B && B.timer) clearInterval(B.timer); if (dest === 'home' && !state.kid) return go('start'); return go(dest); }
   const kidBtn = t.closest('[data-kid]'); if (kidBtn) { state.kid = kidBtn.dataset.kid; go('home'); if (SYNC.active && Date.now() - (SYNC.lastPull[state.kid] || 0) > 20000) SYNC.refresh(state.kid).then(ch => { if (ch && state.screen === 'home') VIEWS.home(); }); return; }
   const petBtn = t.closest('[data-pet]'); if (petBtn) { const p = prof(state.kid); p.pet = petBtn.dataset.pet; save(); confetti(); return go('home'); }
@@ -2918,6 +3074,7 @@ app.addEventListener('click', (e) => {
   const testBtn = t.closest('[data-test]'); if (testBtn && kid) return startSession(kid, { mode: 'test', examId: testBtn.dataset.test });
   const planBtn = t.closest('[data-plan]'); if (planBtn && kid) return go('plan', { examId: planBtn.dataset.plan });
   const methodBtn = t.closest('[data-method]'); if (methodBtn && kid) return go('method', { skillId: methodBtn.dataset.method });
+  const rateBtn = t.closest('[data-rate]'); if (rateBtn && S) { const p = prof(S.kid.id); const ids = [...new Set(S.queue.filter(q => q.cat === 'math').map(q => q.skill.id))]; const r = rateBtn.dataset.rate; ids.forEach(id => { const st = skillState(p, id); const acc = S.queue.map((q, i) => q.skill?.id === id ? S.results[i] : null).filter(x => x !== null); const okRate = acc.length ? acc.filter(Boolean).length / acc.length : 0; if (r === 'easy' && okRate >= 0.6 && st.lvl < 3) st.lvl++; if (r === 'hard' && st.lvl > 1) st.lvl--; st.streak = 0; }); save(); document.getElementById('rateCard').innerHTML = `<div class="muted">${r === 'easy' ? 'Tack – nästa sprint blir lite svårare.' : r === 'hard' ? 'Tack – nästa sprint blir lite lättare.' : 'Tack – vi håller den här nivån.'}</div>`; return; }
   const claimBtn = t.closest('[data-claim]'); if (claimBtn && kid) { claimQuest(kid, claimBtn.dataset.claim); return state.screen === 'home' ? VIEWS.home() : claimBtn.closest('.quest').remove(); }
   const buyBtn = t.closest('[data-buy]'); if (buyBtn && kid) return buy(kid, buyBtn.dataset.buy);
   const blitzBtn = t.closest('[data-blitz]'); if (blitzBtn && kid) return startBlitz(kid, blitzBtn.dataset.blitz);
@@ -2925,6 +3082,7 @@ app.addEventListener('click', (e) => {
   const togDeck = t.closest('[data-toggle-deck]'); if (togDeck) { const pid = state.screen === 'parent' ? state.tab : state.kid; const p = prof(pid); const id = togDeck.dataset.toggleDeck; if (p.enabledDecks.includes(id)) { p.enabledDecks = p.enabledDecks.filter(x => x !== id); p.removedDefaults = [...(p.removedDefaults || []), id]; } else { p.enabledDecks = [...p.enabledDecks, id]; p.removedDefaults = (p.removedDefaults || []).filter(x => x !== id); } save(); return state.screen === 'parent' ? VIEWS.parent() : VIEWS.courses(); }
   const tabBtn = t.closest('[data-tab]'); if (tabBtn) { state.tab = tabBtn.dataset.tab; state.sub = 'overview'; state.editDeck = null; return VIEWS.parent(); }
   const subBtn = t.closest('[data-sub]'); if (subBtn) { state.sub = subBtn.dataset.sub; return VIEWS.parent(); }
+  const setVal = t.closest('[data-setting-val]'); if (setVal) { const [k, v] = setVal.dataset.settingVal.split(':'); const p = prof(state.tab); p.settings[k] = v; save(); return VIEWS.parent(); }
   const setBtn = t.closest('[data-setting]'); if (setBtn) { const p = prof(state.tab); p.settings[setBtn.dataset.setting] = !p.settings[setBtn.dataset.setting]; save(); return VIEWS.parent(); }
   const sprBtn = t.closest('[data-sprint]'); if (sprBtn) { prof(state.tab).settings.sprint = Number(sprBtn.dataset.sprint); save(); return VIEWS.parent(); }
   const goalBtn = t.closest('[data-goal]'); if (goalBtn) { prof(state.tab).settings.goal = Number(goalBtn.dataset.goal); save(); return VIEWS.parent(); }
@@ -2934,8 +3092,9 @@ app.addEventListener('click', (e) => {
   const act = t.closest('[data-act]');
   if (act) {
     const a = act.dataset.act;
+    if (a === 'felbok') return startSession(kid, { mode: 'felbok', n: Math.min(10, (prof(kid.id).mistakes || []).length) });
     if (a === 'bonus') { if (!S) return go('home'); return startSession(S.kid, { ...S.opts, n: 5, bonus: true, chainStats: undefined }); }
-    if (a === 'again') { if (!S) return go('home'); if (S.mode === 'test') return startSession(S.kid, { mode: 'test', examId: S.examId }); return startSession(S.kid, S.opts); }
+    if (a === 'again') { if (!S) return go('home'); if (S.mode === 'test') return startSession(S.kid, { mode: 'test', examId: S.examId }); if (S.mode === 'felbok') return (prof(S.kid.id).mistakes || []).length ? startSession(S.kid, { mode: 'felbok', n: 10 }) : go('home'); return startSession(S.kid, S.opts); }
     if (a === 'sound' || a === 'toggleSound') { DB.settings.sound = !DB.settings.sound; save(); return a === 'sound' ? VIEWS.home() : VIEWS.parent(); }
     if (a === 'saveFamily') { const v = document.getElementById('famCode').value.trim().replace(/[^a-zA-Z0-9\-]/g, ''); if (v.length < 6) return toast('Minst 6 tecken, bara bokstäver, siffror och bindestreck'); DB.settings.family = v; save(); toast('Synkar…'); SYNC.refreshAll().then(() => { toast(SYNC.status === 'ok' ? 'Synk aktiv' : 'Synkfel – kontrollera uppkopplingen'); VIEWS.parent(); }); return; }
     if (a === 'copyFamLink') { const link = location.origin + location.pathname + '#fam-' + SYNC.family; navigator.clipboard?.writeText(link).then(() => toast('Länk kopierad – skicka den till barnets andra enhet')).catch(() => toast(link)); return; }
