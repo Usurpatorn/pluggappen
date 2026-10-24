@@ -2898,7 +2898,8 @@ function boot(snap) {
   load(); TTS.init();
   try { window.claude?.hot?.snapshot?.(() => ({ screen: state.screen, kid: state.kid })); } catch (e) { /* no hot */ }
   let h = (location.hash || '').replace('#', '');
-  if (h.startsWith('fam-') && SYNC.cfg) { DB.settings.family = h.slice(4); try { localStorage.setItem(STORE_KEY, JSON.stringify(DB)); } catch (e) { /* ignore */ } h = ''; try { history.replaceState(null, '', location.pathname); } catch (e) { /* ignore */ } }
+  if (h.startsWith('fam-') && SYNC.cfg) { DB.settings.family = h.slice(4); try { localStorage.setItem(STORE_KEY, JSON.stringify(DB)); } catch (e) { /* ignore */ } h = ''; } // hash is kept so a home-screen shortcut carries the code (iOS gives it separate storage)
+  if (!h && SYNC.cfg && SYNC.family && !location.hash) { try { history.replaceState(null, '', location.pathname + '#fam-' + SYNC.family); } catch (e) { /* ignore */ } }
   if (SYNC.active) { SYNC.refreshAll().then((changed) => { if (state.screen === 'start' || (changed && state.screen === 'home')) VIEWS[state.screen](); }); document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && SYNC.active && state.screen !== 'practice' && state.screen !== 'blitzplay') SYNC.refreshAll().then((changed) => { if (changed && VIEWS[state.screen]) VIEWS[state.screen](); }); }); }
   const [hk, hact] = h.split('-');
   if (snap && snap.kid && kidById(snap.kid)) { state.kid = snap.kid; go('home'); }
