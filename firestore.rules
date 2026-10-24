@@ -1,0 +1,13 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Pluggappen: en profil per barn under en hemlig familjekod. Ingen inloggning – koden är nyckeln.
+    match /families/{family}/profiles/{kid} {
+      allow read: if family.size() >= 6;
+      allow write: if family.size() >= 6
+        && request.resource.data.keys().hasOnly(['json', 'updatedAt', 'kid'])
+        && request.resource.data.json is string
+        && request.resource.data.json.size() < 900000;
+    }
+  }
+}
