@@ -1885,7 +1885,7 @@ const todayKey = (d = new Date()) => { const z = new Date(d.getTime() - d.getTim
 const addDays = (key, n) => { const d = new Date(key + 'T00:00:00'); d.setDate(d.getDate() + n); return todayKey(d); };
 const weekKey = () => { const d = new Date(); const day = (d.getDay() + 6) % 7; d.setDate(d.getDate() - day); return todayKey(d); };
 const KID_DEFAULTS = {
-  adam: { settings: { focus: true, sprint: 5, timer: false, tts: true, goal: 10, dark: true }, decks: ['en8_verb', 'en8_ord', 'es_halsa', 'es_siffror', 'es_farger', 'es_djur', 'es_familj', 'es_mat', 'es_kropp', 'es_skola', 'es_klader', 'es_kanslor', 'es_fraser'], exams: [{ id: 'alg12', title: 'Prov 12 Algebra', date: '2026-11-18', skillIds: ['multin', 'forenkla', 'blandat', 'talfoljd', 'ekvation', 'problemekv', 'andragrad'], deckIds: [] }, { id: 'kemi4', title: 'Kemiprov: Syror och baser', date: '2026-11-26', skillIds: ['kemi_syror', 'kemi_baser', 'kemi_ph', 'kemi_starka', 'kemi_neutral', 'kemi_vardag', 'kemi_kropp_natur', 'kemi_saker'], deckIds: [] }] },
+  adam: { settings: { focus: true, sprint: 5, timer: false, tts: true, goal: 10, dark: false }, decks: ['en8_verb', 'en8_ord', 'es_halsa', 'es_siffror', 'es_farger', 'es_djur', 'es_familj', 'es_mat', 'es_kropp', 'es_skola', 'es_klader', 'es_kanslor', 'es_fraser'], exams: [{ id: 'alg12', title: 'Prov 12 Algebra', date: '2026-11-18', skillIds: ['multin', 'forenkla', 'blandat', 'talfoljd', 'ekvation', 'problemekv', 'andragrad'], deckIds: [] }, { id: 'kemi4', title: 'Kemiprov: Syror och baser', date: '2026-11-26', skillIds: ['kemi_syror', 'kemi_baser', 'kemi_ph', 'kemi_starka', 'kemi_neutral', 'kemi_vardag', 'kemi_kropp_natur', 'kemi_saker'], deckIds: [] }] },
   filip: { settings: { focus: false, sprint: 10, timer: false, tts: true, goal: 10 }, paper: 'lulea', decks: ['en_kates_day', 'en_djur', 'en_mat', 'en_hem', 'en_skola', 'en_vader', 'en_verb', 'en_tid', 'en_fraser', 'es_halsa', 'es_siffror', 'es_farger', 'es_djur', 'es_familj', 'es_mat', 'es_kropp', 'es_skola', 'es_klader', 'es_kanslor', 'es_fraser'], exams: [{ id: 'kates_day', title: "Glosförhör: Kate's Day", date: '2026-11-02', skillIds: [], deckIds: ['en_kates_day'] }] },
   clara: { settings: { focus: false, sprint: 8, timer: false, tts: true, goal: 8 }, decks: ['es_halsa', 'es_siffror', 'es_farger', 'es_djur', 'es_familj', 'es_mat', 'es_kropp', 'es_skola', 'es_klader', 'es_kanslor', 'es_fraser'], exams: [] },
 };
@@ -1898,6 +1898,7 @@ function load() {
     const p = { ...d, ...old, settings: { ...d.settings, ...(old.settings || {}) } };
     if (!old.exams && KID_DEFAULTS[k.id]) p.exams = d.exams; // v1 → v2
     if (!old.enabledDecks) p.enabledDecks = d.enabledDecks;
+    if (!p.v5light) { p.v5light = true; if (p.settings.dark === true) p.settings.dark = false; }
     if (k.id === 'filip' && !p.v4lulea) { p.v4lulea = true; if (!old.paper || old.paper === 'rutat' || old.paper === 'barca') p.paper = 'lulea'; }
     if (!p.v2es) { p.v2es = true; for (const id of d.enabledDecks) if (!p.enabledDecks.includes(id)) p.enabledDecks.push(id); }
     for (const id of d.enabledDecks) if (!p.enabledDecks.includes(id) && !(p.removedDefaults || []).includes(id)) p.enabledDecks.push(id);
@@ -2146,7 +2147,8 @@ function applyLook(kid) {
   root.style.removeProperty('--acc'); root.style.removeProperty('--acc-soft'); root.style.removeProperty('--acc-ink');
   if (p && p.accent && ACCENTS[p.accent]) { const [a, s, i] = ACCENTS[p.accent]; root.style.setProperty('--acc', a); root.style.setProperty('--acc-soft', s); root.style.setProperty('--acc-ink', i); }
   document.body.classList.toggle('focus', !!(p && p.settings.focus));
-  if (p && p.settings.dark) root.setAttribute('data-theme', 'dark'); else if (p && p.settings.dark === false) root.setAttribute('data-theme', 'light'); else root.removeAttribute('data-theme');
+  // Ljust är standard överallt; mörkt bara om barnet valt det. null = följ telefonen.
+  if (p && p.settings.dark === true) root.setAttribute('data-theme', 'dark'); else if (p && p.settings.dark === null) root.removeAttribute('data-theme'); else root.setAttribute('data-theme', 'light');
 }
 function render(html) { app.innerHTML = html; window.scrollTo({ top: 0 }); }
 function kidById(id) { return KIDS.find(k => k.id === id); }
@@ -2332,8 +2334,8 @@ VIEWS.shop = () => {
     </div></div>`}
     <div><div class="eyebrow" style="margin-bottom:8px">Tema</div><div class="shop-grid">
       <button class="card tap shop-item ${p.settings.dark ? 'owned' : ''}" data-buy="theme_dark"><div class="se">🌙</div><div class="sn">Mörkt</div><div class="sp muted">${p.settings.dark ? 'Valt' : 'Byt'}</div></button>
-      <button class="card tap shop-item ${p.settings.dark === false ? 'owned' : ''}" data-buy="theme_light"><div class="se">☀️</div><div class="sn">Ljust</div><div class="sp muted">${p.settings.dark === false ? 'Valt' : 'Byt'}</div></button>
-      <button class="card tap shop-item ${p.settings.dark == null ? 'owned' : ''}" data-buy="theme_auto"><div class="se">◐</div><div class="sn">Som telefonen</div><div class="sp muted">${p.settings.dark == null ? 'Valt' : 'Byt'}</div></button>
+      <button class="card tap shop-item ${p.settings.dark === false || p.settings.dark === undefined ? 'owned' : ''}" data-buy="theme_light"><div class="se">☀️</div><div class="sn">Ljust</div><div class="sp muted">${p.settings.dark === false ? 'Valt' : 'Byt'}</div></button>
+      <button class="card tap shop-item ${p.settings.dark === null ? 'owned' : ''}" data-buy="theme_auto"><div class="se">◐</div><div class="sn">Som telefonen</div><div class="sp muted">${p.settings.dark == null ? 'Valt' : 'Byt'}</div></button>
     </div></div>
     <div><div class="eyebrow" style="margin-bottom:8px">Papper</div><div class="shop-grid">
       <button class="card tap shop-item ${p.paper === 'rutat' ? 'owned' : ''}" data-buy="paper_rutat"><div class="se">🟦</div><div class="sn">Rutat papper</div><div class="sp muted">${p.paper === 'rutat' ? 'Valt' : 'Byt'}</div></button>
