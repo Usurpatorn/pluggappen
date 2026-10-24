@@ -7,7 +7,7 @@ const base = `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT}/d
 const KIDS = { adam: 'Adam', filip: 'Filip', clara: 'Clara' };
 const now = new Date(); const stockholm = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Stockholm' }));
 const hour = stockholm.getHours(); const dow = stockholm.getDay(); const today = stockholm.toISOString().slice(0, 10);
-const slot = FORCE_SLOT || (hour < 18 ? 'afternoon' : 'evening');
+const slot = FORCE_SLOT || (hour < 19 || (hour === 19 && stockholm.getMinutes() < 30) ? 'afternoon' : 'evening');
 console.log('Stockholm', stockholm.toString(), 'slot', slot);
 const list = await fetch(`${base}?key=${FIREBASE_KEY}&pageSize=100`).then(r => r.json());
 const docs = list.documents || [];

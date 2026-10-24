@@ -1,8 +1,8 @@
 name: Påminnelser
 on:
   schedule:
-    - cron: '30 15 * * 1-5'   # 16:30 svensk vintertid (15:30 UTC) – vardagar
-    - cron: '0 18 * * *'      # 19:00 svensk vintertid – streak-påminnelse
+    - cron: '30 17 * * 1-5'   # 18:30 svensk vintertid (17:30 UTC) – vardagar
+    - cron: '0 19 * * *'      # 20:00 svensk vintertid – streak-påminnelse
   workflow_dispatch:
     inputs:
       slot:
