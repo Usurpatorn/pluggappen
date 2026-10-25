@@ -56,7 +56,7 @@ const LE = {
   rebuildIfLate(p, C, t, last) { if (!(t < last)) return; const fresh = LE2.replay(p.le.log, C.cat, C.pol, p.le.base); for (const k of Object.keys(C.L)) delete C.L[k]; Object.assign(C.L, fresh); C.n = p.le.log.length; },
   newSessId(p) { const dev = LE.dev(); const sseq = ((p.le.seqs || {})[dev] || 0) + 1; p.le.seqs = { ...(p.le.seqs || {}), [dev]: sseq }; return { id: dev + ':' + sseq, dev }; },
   // Efter ett pass: packa loggen och håll le långt under dokumentgränsen (1 MiB). Normalt ~30–70 kB.
-  housekeep(kid) { const p = prof(kid.id); const C = LE.state(kid); if (LE2.compact(p.le, C.cat, C.pol, Date.now())) LE.invalidate(kid.id); if (JSON.stringify(p.le).length > 250000) { p.le.shadow = p.le.shadow.slice(-15); LE.invalidate(kid.id); } },
+  housekeep(kid) { const p = prof(kid.id); const C = LE.state(kid); if (LE2.compact(p.le, C.cat, C.pol, LE.now())) LE.invalidate(kid.id); if (JSON.stringify(p.le).length > 250000) { p.le.shadow = p.le.shadow.slice(-15); LE.invalidate(kid.id); } },
   ensure(kid) { return LE.guard(() => LE.state(kid).ref, 'ensure'); },
   mergeLE(a, b) { try { return LE2.mergeLE(a, b); } catch (e) { LE.errors.push({ where: 'merge', msg: String(e.message).slice(0, 120), t: Date.now() }); return a || b; } },
   // serverMs: dokumentets updateTime. fresh = svaret på vår egen uppladdning (≈ serverns "nu") → mät klockavvikelse.

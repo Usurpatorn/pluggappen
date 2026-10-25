@@ -483,16 +483,18 @@ const LE2 = (() => {
   /* Sammanslagning av två enheters le (kommutativ, idempotent). Bas: flest inbakade händelser vinner; lika → tidigast t0; lika → hash.
      Loggarna förenas på dev:seq (vid krock på samma nyckel väljs deterministiskt). Skuggposter och v2-passposter förenas på id.
      Belöningsmarkörer (rw) förenas som union – samma belöning delas aldrig ut två gånger efter synk. */
-  const SHADOW_MAX = 40, LOG_SOFT = 300, LOG_HARD = 450, FOLD_AGE = 14 * DAY, RW_MAX = 400, RW_DAYS = 21;
+  const SHADOW_MAX = 40, LOG_SOFT = 300, LOG_HARD = 450, FOLD_AGE = 14 * DAY, RW_MAX = 400, RW_DAYS = 21, RW_AHEAD = 7;   // RW_AHEAD: markörer mer än en vecka fram i tiden (fel klocka) tas bort
   /* Belöningsmarkörer "TYP:dygn[:nyckel]" (MA:koncept saknar dygn och behålls alltid – en per koncept). Gallras efter ÅLDER, inte antal:
      en dags- eller veckomarkör får aldrig falla bort medan den gäller (annars kunde samma belöning delas ut igen). Deterministiskt: åldern
      räknas från den nyaste markörens dygn, inte från klockan, så två enheter gallrar likadant. */
   const rwDay = (k) => { const m = /^[A-Z]+:(\d+)(?::|$)/.exec(k); return m ? Number(m[1]) : null; };
-  function pruneRw(list) {
-    const u = [...new Set(list || [])]; const days = u.map(rwDay).filter(d => d != null); const top = days.length ? Math.max(...days) : 0;
-    const keep = u.filter(k => { const d = rwDay(k); return d == null || d >= top - RW_DAYS; });
+  // today: passets dygn (då gallras på ålder och markörer långt i framtiden – från en enhet med fel klocka – tas bort, granskning H3).
+  // Utan today (sammanslagning): bara union och ett tak, ordnat på dygn – deterministiskt och utan klocka.
+  function pruneRw(list, today) {
+    const u = [...new Set(list || [])];
+    const keep = today == null ? u : u.filter(k => { const d = rwDay(k); return d == null || (d >= today - RW_DAYS && d <= today + RW_AHEAD); });
     keep.sort((a, b) => ((rwDay(a) == null ? -1 : rwDay(a)) - (rwDay(b) == null ? -1 : rwDay(b))) || (a < b ? -1 : a > b ? 1 : 0));
-    return keep.slice(-RW_MAX);
+    return keep.length > RW_MAX ? [...keep.filter(k => rwDay(k) == null), ...keep.filter(k => rwDay(k) != null)].slice(-RW_MAX) : keep;
   }
   function mergeLE(a, b) {
     if (!a || !a.v) return b && b.v ? b : (a || b || null); if (!b || !b.v) return a;
@@ -500,10 +502,10 @@ const LE2 = (() => {
     const rank = (x) => [-(x.folded || 0), x.t0 || 0, hash(stable(x.base || {}))];
     const ra = rank(a), rb = rank(b); const cmp = ra[0] - rb[0] || ra[1] - rb[1] || (ra[2] < rb[2] ? -1 : ra[2] > rb[2] ? 1 : 0);
     const pick = cmp <= 0 ? a : b; const other = pick === a ? b : a;
-    // Granskning M10: händelser som redan är inbakade i den valda basen tas bort via enhetsvisa vattenmärken (fw); sent anlända
-    // offlinehändelser som är äldre än basen men inte inbakade behålls. Äldre baser utan fw: tidsgränsen t0 (bara om något är inbakat).
-    const fw = pick.fw; const evDev = (e) => Array.isArray(e) ? e[1] : e.dev, evSeq = (e) => Array.isArray(e) ? e[2] : e.seq;
-    const log = mergeLog(a.log, b.log).filter(e => fw ? evSeq(e) > (fw[evDev(e)] || 0) : !((pick.folded || 0) > 0 && evT(e) <= (pick.t0 || 0)));
+    // Händelser inbakade i den valda basen tas bort med tidsgränsen t0 – bara om något faktiskt är inbakat (folded > 0), så en migrering
+    // på en enhet med fel klocka (t0 i framtiden) aldrig kastar riktiga bevis. Granskning M10 (sena offlinebevis äldre än en packad bas)
+    // prövades med enhetsvisa vattenmärken men gav dataförlust/dubbelräkning med 1.2.0-enheter → återställt, dokumenterad begränsning.
+    const log = mergeLog(a.log, b.log).filter(e => !((pick.folded || 0) > 0 && evT(e) <= (pick.t0 || 0)));
     const seqs = { ...(other.seqs || {}) }; for (const [d, n] of Object.entries(pick.seqs || {})) seqs[d] = Math.max(seqs[d] || 0, n);
     const sh = new Map(); for (const r of [...(other.shadow || []), ...(pick.shadow || [])]) { const o = sh.get(r.id); sh.set(r.id, !o || (r.done && !o.done) || ((r.a || []).length > (o.a || []).length) ? r : o); }
     const shadow = [...sh.values()].sort((x, y) => x.t - y.t || (x.id < y.id ? -1 : 1)).slice(-SHADOW_MAX);
@@ -520,12 +522,11 @@ const LE2 = (() => {
     if (cut <= 0) return false;
     while (cut < log.length && evT(log[cut]) === evT(log[cut - 1])) cut++;
     const folded = log.slice(0, cut); const base = replay(folded, cat, pol, le.base);
-    const fw = { ...(le.fw || {}) }; for (const e of folded) { const d = Array.isArray(e) ? e[1] : e.dev, q = Array.isArray(e) ? e[2] : e.seq; fw[d] = Math.max(fw[d] || 0, q); } le.fw = fw;
     le.base = base; le.t0 = evT(folded[folded.length - 1]); le.folded = (le.folded || 0) + folded.length; le.log = log.slice(cut);
     return true;
   }
   // Belöningsmarkörer: "typ:dygn:nyckel". En markör per belöning → samma belöning två gånger (omstart, två enheter efter synk) ger inget.
-  function rewardOnce(le, key) { le.rw = le.rw || []; if (le.rw.includes(key)) return false; const d = rwDay(key); const top = Math.max(-1, ...le.rw.map(rwDay).filter(x => x != null)); if (d != null && d < top - RW_DAYS) return false; le.rw = pruneRw([...le.rw, key]); return true; }
+  function rewardOnce(le, key, today) { le.rw = le.rw || []; if (le.rw.includes(key)) return false; const d = rwDay(key); const t = today != null ? today : d; if (d != null && t != null && (d < t - RW_DAYS || d > t + RW_AHEAD)) return false; le.rw = pruneRw([...le.rw, key], t); return true; }
 
   /* ---------- Migrering v1 → le (deterministisk, idempotent, v1 orört) ---------- */
   function migrateV1(p, cat, mapping, now, pol) {

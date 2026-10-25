@@ -4,7 +4,8 @@
 'use strict';
 process.env.TZ = 'Europe/Stockholm';
 const fs = require('fs'); const path = require('path'); const zlib = require('zlib');
-const { mkWin, tools, FIX } = require('./le/childflow.js');
+const { mkWin, tools, FIX, rng } = require('./le/childflow.js');
+const trnd = rng((Number(process.env.SEED) || 777) + 1);   // testets egna val (rätt/fel) är också deterministiska
 const { v2tools, enableV2, toStart } = require('./le/v2driver.js');
 let fails = 0, checks = 0; const ok = (c, m) => { checks++; if (!c) { fails++; console.log('FAIL', m); } };
 const OLD = path.join(require('os').tmpdir(), 'pluggappen-1.2.0-' + process.pid + '.html');
@@ -16,8 +17,8 @@ const wN = mkWin({ seed: 4711, fixedClock: true }); const TN = tools(wN);
 setTimeout(() => { try {
   TN.PA().FAMILY.apply(FIX); TN.PA().load(); TN.PA().rerender(); const D = v2tools(wN, TN);
   enableV2(wN, TN, 'k8'); openKid(TN, 'k8');
-  for (let i = 0; i < 3; i++) { TN.click(TN.$('[data-v2="kor"]') || TN.$('[data-v2="extra"]')); D.run((it) => Math.random() < 0.35); toStart(TN); openKid(TN, 'k8'); wN.__advance(86400000); TN.click(TN.$('[data-go="start"]')); openKid(TN, 'k8'); }
-  TN.click(TN.$('[data-v2="testa"]')); D.run(() => Math.random() < 0.3); toStart(TN);
+  for (let i = 0; i < 3; i++) { TN.click(TN.$('[data-v2="kor"]') || TN.$('[data-v2="extra"]')); D.run((it) => trnd() < 0.35); toStart(TN); openKid(TN, 'k8'); wN.__advance(86400000); TN.click(TN.$('[data-go="start"]')); openKid(TN, 'k8'); }
+  TN.click(TN.$('[data-v2="testa"]')); D.run(() => trnd() < 0.3); toStart(TN);
   const pN = TN.PA().DB.profiles.k8; TN.PA().flushSave();
   ok(pN.le.log.some(e => e.length > 14) && pN.le.shadow.some(r => r.e === 2) && pN.tests.some(t => t.v2), 'v2-data finns: utökade bevis, v2-passposter, Testa mig-resultat');
   const logN = pN.le.log.length, rw = (pN.le.rw || []).slice(), skillsAtt = Object.values(pN.skills).reduce((a, s) => a + s.att, 0);

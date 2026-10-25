@@ -203,7 +203,11 @@ const fresh2 = (cid, st, extra = {}) => { const L = E.newLE(); const c = E.cstat
   ok(!E.rewardOnce(le, 'CO:2000') && !E.rewardOnce(le, 'FO:2001') && !E.rewardOnce(le, 'MA:s:x'), 'after 240 newer markers the week/day/mastery markers still block a second award');
   for (let d = 2007; d <= 2030; d++) E.rewardOnce(le, `FO:${d}`);
   ok(!le.rw.includes('CO:2000') && le.rw.includes('MA:s:x') && le.rw.length <= E.RW_MAX, 'markers older than 21 days are pruned; mastery markers are kept; size bounded');
-  ok(!E.rewardOnce(le, 'FO:2001'), 'a marker older than the window is never awarded again (offline device with an old clock)');
+  ok(!E.rewardOnce(le, 'FO:2001', 2030), 'a marker older than the window is never awarded again (offline device with an old clock)');
+  // verifiering: en enhet med klockan 60 dygn fram får inte blockera riktiga dagars belöningar
+  { const f = { v: 2, log: [], rw: [] }; ok(E.rewardOnce(f, 'FO:2090', 2090), 'future-clock session sets a far-future marker');
+    ok(E.rewardOnce(f, 'FO:2030', 2030) && E.rewardOnce(f, 'REM:2030:s:a', 2030), 'back on the real clock: today\'s rewards still work (no 60-day lockout)');
+    ok(!f.rw.includes('FO:2090'), 'the far-future marker is pruned on the real day'); }
   const a = { v: 2, base: {}, t0: 0, log: [], rw: le.rw.slice(0, 10) }, b = { v: 2, base: {}, t0: 0, log: [], rw: le.rw.slice(5) };
   ok(E.stable(E.mergeLE(a, b).rw) === E.stable(E.mergeLE(b, a).rw) && E.mergeLE(a, b).rw.length === le.rw.length, 'pruned merge is commutative and loses nothing still valid'); }
 // C7. Planering: nytt får plats först, väntat-länge garanteras, provets sista dygn, ämnesrättvisa, ingen utfyllnad med lågt värde
@@ -244,13 +248,21 @@ const evq = (cid, ok, t, seq, extra = {}) => ({ cid, ok, kind: 'free', k: 0, hel
 // M9: sammanslagning blandar aldrig versioner
 { const v2 = { v: 2, base: E.newLE(), t0: 0, log: [E.encodeEv(evq('m1', true, T0, 1))] }, v3 = { v: 3, future: { x: 1 }, log: 'annat format' };
   ok(E.mergeLE(v2, v3) === v3 && E.mergeLE(v3, v2) === v3 && v3.log === 'annat format', 'M9: v2 + okänd v3 → v3 lämnas orörd, i båda ordningarna'); }
-// M10: sent anlända offlinebevis från en annan enhet försvinner inte när den första enheten har packat sin logg
-{ const base = E.newLE(); const A = { v: 2, ev: 2, base, t0: 0, folded: 0, log: [], seqs: {} };
-  for (let i = 1; i <= 360; i++) A.log.push(E.encodeEv({ ...evq('m' + (1 + i % 3), i % 4 > 0, T0 + i * 3600000, i), dev: 'A' }));
-  const B = { ...JSON.parse(JSON.stringify(A)), log: [...A.log.slice(0, 10), E.encodeEv({ ...evq('m2', true, T0 + 5 * 3600000 + 1, 1), dev: 'B' })] };
-  ok(E.compact(A, CAT, pol, T0 + 40 * DAY) && A.fw && A.fw.A > 0, 'M10: packning sparar enhetsvisa vattenmärken');
-  const m = E.mergeLE(A, B); ok(m.log.some(e => e[1] === 'B'), 'M10: B:s gamla offlinebevis (äldre än basen) finns kvar efter sammanslagning');
-  ok(!m.log.some(e => e[1] === 'A' && e[2] <= A.fw.A), 'M10: redan inbakade A-bevis dubbleras inte'); }
+// M10 (verifieringen): vattenmärkesförsöket gav dataförlust och dubbelräkning → återställt till tidsgränsen. Kontrollera att packning +
+// sammanslagning varken tappar eller dubbelräknar – även med en dokumentkopia utan nya fält (som en 1.2.0-enhet skriver).
+{ const mk = () => { const A = { v: 2, ev: 2, base: E.newLE(), t0: 0, folded: 0, log: [], seqs: {} };
+    for (let i = 1; i <= 360; i++) A.log.push(E.encodeEv({ ...evq('m' + (1 + i % 3), i % 4 > 0, T0 + i * 3600000, i), dev: 'A' })); return A; };
+  const full = mk(); const truth = st(E.replay(full.log, CAT, pol).c);
+  const A = mk(); ok(E.compact(A, CAT, pol, T0 + 40 * DAY) && A.folded > 0, 'packing folds old events');
+  ok(st(E.replay(A.log, CAT, pol, A.base).c) === truth, 'packed state = full history');
+  const self = E.mergeLE(A, JSON.parse(JSON.stringify(A))); ok(self.log.length === A.log.length && st(E.replay(self.log, CAT, pol, self.base).c) === truth, 'merging a packed document with itself loses nothing');
+  const stale = mk(); const m1 = E.mergeLE(A, stale), m2 = E.mergeLE(stale, A);
+  ok(st(E.replay(m1.log, CAT, pol, m1.base).c) === truth && st(m1) === st(m2), 'packed + unpacked copy (old device): no double counting, order-independent');
+  // framtidsstämplade händelser (klocka fram) följt av riktiga: packning + självsammanslagning behåller allt
+  const F = { v: 2, ev: 2, base: E.newLE(), t0: 0, folded: 0, log: [], seqs: {} }; for (let i = 1; i <= 3; i++) F.log.push(E.encodeEv({ ...evq('m3', true, T0 + 90 * DAY + i * 1000, i), dev: 'T' }));
+  for (let i = 4; i <= 340; i++) F.log.push(E.encodeEv({ ...evq('m' + (1 + i % 2), true, T0 + i * 3600000, i), dev: 'T' }));
+  const fTruth = st(E.replay(F.log, CAT, pol).c); E.compact(F, CAT, pol, T0 + 40 * DAY); const fm = E.mergeLE(F, JSON.parse(JSON.stringify(F)));
+  ok(st(E.replay(fm.log, CAT, pol, fm.base).c) === fTruth && fm.log.filter(e => e[3] === 'm3').length === 3, 'future-stamped events survive packing + merge (verification repro)'); }
 // L5: utgångna Felboken-poster räknas inte i beredskap, last eller insikter
 { const L = E.newLE(); const c = E.cstate(L, 'm1'); c.st = 3; c.n = 8; c.lastOk = T0 - 40 * DAY; c.due = T0 + 5 * DAY; c.fb = { s: 'open', at: T0 - 45 * DAY, wd: E.dayIdx(T0 - 45 * DAY), wrong: 1, items: [] };
   ok(E.readiness(c, T0) !== 'Öva lite mer' && E.learningLoad(L, CAT, T0) === 0 && !E.felbokVisible(L, T0).length, 'L5: en Felboken-post äldre än 30 dygn räknas inte någonstans'); }

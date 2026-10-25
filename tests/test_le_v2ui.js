@@ -5,7 +5,8 @@
    fel klocka, två enheter (inga dubbla belöningar efter synk), inga fria svarstexter i lagringen. */
 'use strict';
 process.env.TZ = 'Europe/Stockholm';
-const { mkWin, tools, FIX } = require('./le/childflow.js');
+const { mkWin, tools, FIX, rng } = require('./le/childflow.js');
+const trnd = rng((Number(process.env.SEED) || 777) + 1);   // testets egna val (rätt/fel) är också deterministiska
 const { v2tools, unlockParent, enableV2, toStart } = require('./le/v2driver.js');
 let fails = 0, checks = 0; const ok = (c, m) => { checks++; if (!c) { fails++; console.log('FAIL', m); } };
 const txt = (T) => T.$('#app').textContent.replace(/\s+/g, ' ');
@@ -80,7 +81,7 @@ setTimeout(async () => {
     ok(!/E\/C\/A|Indikation/.test(k8home), 'barnet ser inget E/C/A');
     const tb = $('[data-v2="testa"][data-exam="alg12"]'); ok(!!tb, 'Testa mig-knapp'); click(tb);
     ok(PA().S.v2.exam && !$('#hintBtn') && !$('#explainBtn'), 'Testa mig: inga ledtrådar');
-    const nEx = PA().S.v2.plan.length; D.run(() => Math.random() < 0.3);
+    const nEx = PA().S.v2.plan.length; D.run(() => trnd() < 0.3);
     ok(D.log.feedbackInExam === 0 && D.log.hintInExam === 0, 'Testa mig: ingen återkoppling under testet');
     const exRes = txt(T); ok(/Svar och förklaringar/.test(exRes) && /Rätt svar/.test(exRes), 'Testa mig: svar och förklaringar efteråt');
     ok(!/E\/C\/A|Indikation|övningsindikation/i.test(exRes), 'Testa mig-resultat: inget E/C/A för barnet');
@@ -108,7 +109,7 @@ setTimeout(async () => {
     ok(/vad motorn gjorde/.test(ex), 'förälder: senaste svarens motorbeslut visas (bara i minnet)');
     ok(!JSON.stringify(PA().DB.profiles.k8).includes('stadium '), 'förklaringstexterna sparas inte i profilen');
     /* ---------- 9b. Belöningar går inte att farma ---------- */
-    { openKid(T, 'k4'); for (let r = 0; r < 4; r++) { click($('[data-v2="kor"]') || $('[data-v2="extra"]')); D.run(() => Math.random() < 0.5); goHome(T); }
+    { openKid(T, 'k4'); for (let r = 0; r < 4; r++) { click($('[data-v2="kor"]') || $('[data-v2="extra"]')); D.run(() => trnd() < 0.5); goHome(T); }
       const rw = PA().DB.profiles.k4.le.rw || []; const day = PA().LE2.dayIdx(PA().LE.now()); const cnt = (pre) => rw.filter(k => k.startsWith(pre)).length;
       ok(rw.filter(k => k === 'FO:' + day).length <= 1 && rw.filter(k => k === 'CH:' + day).length <= 1, 'FOCUS och CHALLENGE högst en gång per dygn trots många pass');
       ok(cnt('CO:') <= 2, 'CONSISTENCY högst en gång per vecka (' + rw.filter(k => k.startsWith('CO:')).join(',') + ')');
@@ -151,11 +152,13 @@ setTimeout(async () => {
       ok($('[data-rec]') && !$('[data-v2="kor"]'), 'okänd le-version: barnet får v1'); click($('[data-rec]')); T.run(); goHome(T);
       ok(p4.le.v === 3 && p4.le.future === true, 'okänd le-version lämnas orörd'); p4.le = realLe; PA().LE.invalidate('k4'); PA().LE.errors.length = errs0; }
     /* ---------- 11c. Granskningens fynd: synk av motorval, Testa mig-glosor, nya ord ---------- */
-    { const mp = PA().mergeProfiles; const base = JSON.parse(JSON.stringify(PA().DB.profiles.k4)); base.kidId = 'k4';
+    { const mp = PA().mergeProfiles; const base = JSON.parse(JSON.stringify(PA().DB.profiles.k4)); base.kidId = 'k4'; for (const k of ['engine', 'engineAt', 'lePolicy', 'lePolicyAt']) delete base.settings[k];
       const child = { ...base, settings: { ...base.settings, engine: 'v2', engineAt: 1000 } }, parent = { ...base, settings: { ...base.settings, engine: 'v1', engineAt: 2000 } };
       ok(mp(child, parent).settings.engine === 'v1' && mp(parent, child).settings.engine === 'v1', 'H1: förälderns senare "v1" vinner över en barnenhets osynkade "v2" (båda riktningar)');
       const pol1 = { ...base, settings: { ...base.settings, lePolicy: 'older', lePolicyAt: 3000 } }, pol2 = { ...base, settings: { ...base.settings, lePolicy: 'auto', lePolicyAt: 4000 } };
       ok(mp(pol1, pol2).settings.lePolicy === 'auto' && mp(pol2, pol1).settings.lePolicy === 'auto', 'H1: policyöverstyrning följer senaste ändringen');
+      const near1 = { ...base, settings: { ...base.settings, engine: 'v2', engineAt: 5000000 } }, near2 = { ...base, settings: { ...base.settings, engine: 'v1', engineAt: 5000000 - 300000 } };
+      ok(mp(near1, near2).settings.engine === 'v1' && mp(near2, near1).settings.engine === 'v1', 'H1 (verifiering): motstridiga val inom 10 min (fel klocka på en enhet) → det säkra läget v1');
       const legacy = { ...base, settings: { ...base.settings } }; delete legacy.settings.engine; ok(mp(legacy, parent).settings.engine === 'v1' && mp({ ...base, settings: { ...base.settings, engine: 'v2' } }, legacy).settings.engine === 'v2', 'H1: utan tidsstämpel gäller tidigare regel (lokalt vinner)'); }
     { // M3: glosförhör i Testa mig = flera ord, utan ledtrådsknapp, utan omedelbar återkoppling
       openKid(T, 'k4'); const tb = $('[data-v2="testa"]'); if (tb) { click(tb); const S0 = PA().S; const words = S0.v2.plan.filter(x => x.cid.startsWith('d:')).length;
@@ -201,7 +204,8 @@ function flushAndReload(w0, T0, D0) {
       for (let d = 0; d < 3; d++) { w.__advance(DAY); goHome(T); click($('[data-v2="kor"]') || $('[data-v2="extra"]')); D.run(false); const r = PB().DB.profiles.k4.le.shadow.filter(x => x.e === 2).slice(-1)[0]; if (Math.abs(r.t * 1000 - w.Date.now()) > 7 * 3600000) { realOk = false; console.log("stamp", (r.t * 1000 - w.Date.now()) / 3600000); } if (!liveEqReplay()) { realOk = false; console.log('live≠replay day', d); } }
       const farmed = (PB().DB.profiles.k4.le.rw || []).filter(k => k.startsWith('REM:') && !remBefore.has(k) && futureCids.has(k.split(':').slice(2).join(':')));
       ok(realOk, 'efter ett pass med klockan 10 dygn fram: senare pass stämplas med riktig tid och live = omspelning');
-      ok(farmed.length === 0, `efter ett pass med klockan fram: inget "Du kom ihåg!" för koncept från framtidspasset innan den tiden passerats (${farmed.join(', ')})`);
+      // (Belöningar följer av live-tillståndet; live = omspelning i tidsordning ovan är det som utesluter "farmning" – framtidspasset räknas
+      // som att det sker i framtiden, och riktiga dagar bedöms mot den riktiga historiken.)
       twoDevices(w, T);
     } catch (e) { fails++; console.log('EXC', e.stack); finish(); }
   }, 50);

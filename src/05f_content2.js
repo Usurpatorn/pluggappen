@@ -40,7 +40,8 @@ const RECALL = (() => {
   function check(q, raw) {
     const s = norm(raw); if (!s) return { status: 'empty' };
     const A = q.accept; if (!A) return { status: s === norm(q.display) ? 'correct' : 'wrong' };
-    if (A.numeric) { const t = s.replace(/\s+/g, ''); if (!/^-?\d+([.,]\d+)?$/.test(t)) return /\d/.test(t) ? { status: 'wrong' } : { status: 'invalid', msg: 'Skriv ett tal.' }; return { status: Math.abs(parseFloat(t.replace(',', '.')) - parseFloat(A.c.replace(',', '.'))) < 1e-9 ? 'correct' : 'wrong' }; }   // granskning M5: hela svaret måste vara ett tal ("7 eller 14" är fel)
+    // Granskning M5 + verifiering: läs talen ur det RÅA svaret ("6,0", "6.0" och "6 ben" = 6). Fler än ett tal ("7 eller 14", "8/10") = fel.
+    if (A.numeric) { const nums = String(raw).replace(/−|–/g, '-').match(/-?\d+(?:[.,]\d+)?/g) || []; if (!nums.length) return { status: 'invalid', msg: 'Skriv ett tal.' }; if (nums.length > 1) return { status: 'wrong' }; return { status: Math.abs(parseFloat(nums[0].replace(',', '.')) - parseFloat(A.c.replace(',', '.'))) < 1e-9 ? 'correct' : 'wrong' }; }
     if (s === A.c) return { status: 'correct' };
     const d0 = lev(s, A.c); const dMin = Math.min(Infinity, ...A.distract.map(d => lev(s, d)));
     if (d0 <= tolOf(A.c) && d0 < dMin) return { status: 'correct', note: `Rätt stavat: <b>${q.display.replace(/[<>&]/g, '')}</b>` };

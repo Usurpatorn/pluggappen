@@ -230,7 +230,7 @@ const V2 = {
     const V = S.v2; const day = LE2.dayIdx(V.start); const out = [];
     for (const rw of list) {
       const key = rw === 'REMEMBERED' ? `REM:${day}:${cid}` : rw === 'COMEBACK' ? `CB:${day}:${cid}` : rw === 'CHALLENGE' ? `CH:${day}` : rw === 'MASTERY' ? `MA:${cid}` : rw === 'FOCUS' ? `FO:${day}` : rw === 'CONSISTENCY' ? `CO:${7 * Math.floor((day + 3) / 7) - 3}` : null;   // måndagen i passets vecka (dygn räknat från 1970-01-01, en torsdag)
-      if (!key || !LE2.rewardOnce(p.le, key)) continue;
+      if (!key || !LE2.rewardOnce(p.le, key, day)) continue;
       const a = LE2.CFG.reward[rw] || {}; if (a.xp) { p.xp += a.xp; S.xp += a.xp; } if (a.gems) p.gems += a.gems;
       out.push({ k: rw, xp: a.xp || 0, gems: a.gems || 0 });
     }
@@ -382,7 +382,7 @@ const V2 = {
   parentClick(a, el) {
     const kid = kidById(state.tab); if (!kid) return;
     if (a === 'engineAsk') { state.v2ask = kid.id; return VIEWS.parent(); }
-    if (a === 'engine') { const v = el.dataset.val; state.v2ask = null; if (v === 'v2' || v === 'v1') { const p = prof(kid.id); p.settings.engine = v; p.settings.engineAt = Date.now(); LE.invalidate(kid.id); save(); toast(v === 'v2' ? `v2 på för ${kid.name}` : `${kid.name} kör v1`); } return VIEWS.parent(); }
+    if (a === 'engine') { const v = el.dataset.val; state.v2ask = null; if (v === 'v2' || v === 'v1') { const p = prof(kid.id); p.settings.engine = v; p.settings.engineAt = LE.now(); /* serverkorrigerad tid */ LE.invalidate(kid.id); save(); toast(v === 'v2' ? `v2 på för ${kid.name}` : `${kid.name} kör v1`); } return VIEWS.parent(); }
     if (a === 'preview') return V2.startPreview(kid);
   },
   // Förälderns förhandsvisning: hela barnflödet med v2 på en kopia. Inget sparas, inget synkas; allt återställs när den avslutas.
@@ -393,7 +393,9 @@ const V2 = {
   },
   restoreSandbox() {
     const sb = V2.sandbox; if (!sb) return null; V2.sandbox = null; if (S && S.timer) clearInterval(S.timer); S = null;
-    DB.profiles[sb.kidId] = JSON.parse(sb.snap); LE.invalidate(sb.kidId); delete V2.lastReasons[sb.kidId]; state.tab = sb.tab; return sb;
+    DB.profiles[sb.kidId] = JSON.parse(sb.snap); LE.invalidate(sb.kidId); delete V2.lastReasons[sb.kidId]; state.tab = sb.tab;
+    const rp = DB.profiles[sb.kidId]; if (typeof SYNC !== 'undefined' && (rp.updatedAt || 0) > (rp.syncedAt || 0)) SYNC.schedulePush(sb.kidId);   // riktiga osynkade ändringar laddas upp igen
+    return sb;
   },
   endPreview() { const sb = V2.restoreSandbox(); state.kid = null; if (sb) state.tab = sb.tab; go(sb ? 'parent' : 'start'); },
   previewBar() { return V2.sandbox ? `<div class="card row" style="gap:8px;background:var(--warn-soft,#fff3d6);border:2px solid var(--warn)"><div class="grow" style="font-size:.9rem"><b>Förhandsvisning av v2</b> – inget sparas.</div><button class="btn ghost" data-v2="endPreview" style="min-height:36px">Avsluta</button></div>` : ''; },
