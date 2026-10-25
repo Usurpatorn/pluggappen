@@ -1,4 +1,4 @@
-/* Öhgrens Pluggapp – service worker: offline + push */
+/* Pluggapp – service worker: offline + push */
 const CACHE = 'pluggapp-v1';
 const CORE = ['./', './index.html', './icon-v2.png'];
 
@@ -27,7 +27,7 @@ self.addEventListener('fetch', (e) => {
 
 self.addEventListener('push', (e) => {
   let data = {}; try { data = e.data ? e.data.json() : {}; } catch (err) { data = { title: 'Pluggapp', body: e.data ? e.data.text() : '' }; }
-  const title = data.title || 'Öhgrens Pluggapp';
+  const title = data.title || 'Pluggapp';
   e.waitUntil(self.registration.showNotification(title, { body: data.body || 'Dags för en sprint!', icon: './icon-v2.png', badge: './icon-v2.png', tag: data.tag || 'pluggapp', data: { url: data.url || './' } }));
 });
 self.addEventListener('notificationclick', (e) => {

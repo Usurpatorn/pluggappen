@@ -9,7 +9,7 @@ const writeStatus = async (extra) => { try { const base0 = `https://firestore.go
 if (!FAMILY_CODE || !VAPID_PRIVATE_KEY) { say('Saknar FAMILY_CODE eller VAPID_PRIVATE_KEY (kontrollera repo secrets)'); await writeStatus({ ok: false }); process.exit(0); }
 try { webpush.setVapidDetails('mailto:noreply@example.com', VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY); } catch (e) { say('VAPID-nycklarna stämmer inte: ' + e.message + ' (privat nyckel ska vara 43 tecken, utan citattecken)'); await writeStatus({ ok: false }); process.exit(0); }
 const base = `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT}/databases/(default)/documents/families/${encodeURIComponent(FAMILY_CODE)}/profiles`;
-const KIDS = { adam: 'Adam', filip: 'Filip', clara: 'Clara' };
+let KIDS = {}; // id -> namn, läses från familjens privata konfiguration (_config) – inga namn i koden
 const now = new Date(); const stockholm = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Stockholm' }));
 const hour = stockholm.getHours(); const dow = stockholm.getDay(); const today = stockholm.toISOString().slice(0, 10);
 const slot = FORCE_SLOT || (hour < 19 || (hour === 19 && stockholm.getMinutes() < 30) ? 'afternoon' : 'evening');
@@ -21,9 +21,9 @@ const docs = list.documents || [];
 const profiles = {}; const subs = [];
 for (const d of docs) {
   const id = d.name.split('/').pop(); const json = d.fields?.json?.stringValue; if (!json) continue;
-  try { const obj = JSON.parse(json); if (id === 'push_log') continue; if (id.startsWith('push_')) subs.push({ id, ...obj }); else profiles[id] = obj; } catch (e) { /* skip */ }
+  try { const obj = JSON.parse(json); if (id === '_config') { for (const k of obj.kids || []) KIDS[k.id] = k.name; continue; } if (id === 'push_log' || id.startsWith('_')) continue; if (id.startsWith('push_')) subs.push({ id, ...obj }); else profiles[id] = obj; } catch (e) { /* skip */ }
 }
-say('profiler', Object.keys(profiles).join(','), 'enheter med notiser', subs.length, subs.map(x => x.kid).join(','));
+say('profiler', Object.keys(profiles).length, 'barn i konfig', Object.keys(KIDS).length, 'enheter med notiser', subs.length);
 const practicedToday = (p) => !!(p && p.days && p.days[today] && p.days[today].c > 0);
 const goalDone = (p) => !!(p && p.days && p.days[today] && p.days[today].c >= ((p.settings && p.settings.goal) || 10));
 const daysSince = (p) => { if (!p || !p.lastDay) return -1; return Math.round((new Date(today) - new Date(p.lastDay)) / 86400000); }; // -1 = har aldrig övat (räknas inte som inaktiv)

@@ -1,7 +1,7 @@
 <!doctype html><html lang="sv"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="theme-color" content="#fbfaf6"><meta name="apple-mobile-web-app-title" content="Pluggapp"><link rel="apple-touch-icon" href="icon-v2.png"><link rel="icon" href="icon-v2.png"><style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
-<script>window.PLUGG_BUILD = '2026-10-24 22:53';</script>
+<script>window.PLUGG_BUILD = '2026-10-25 09:09';</script>
 <script>window.PLUGG_SYNC = window.PLUGG_SYNC || { projectId: "pluggappen", apiKey: "AIzaSyBexTJ4xs1dL0EytcH2N74pY84PuJQZVYQ" }; if (window.PLUGG_SYNC.projectId.startsWith("__")) window.PLUGG_SYNC = null; window.PLUGG_PUSH_KEY = "BPB-A8j28EB8I1cdEMseKa05bLaVDXnDpe9PBbTjekO6ReD_I2hKjJfQnuS1HkoBr8RafRaqWf2sWuQdghiXQX0"; if ("serviceWorker" in navigator) { window.addEventListener("load", function () { navigator.serviceWorker.register("./sw.js").catch(function () {}); }); }</script>
-<title>Öhgrens Pluggapp</title>
+<title>Pluggapp</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&family=Lexend:wght@400;600;700&display=swap">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
@@ -207,7 +207,7 @@ canvas.confetti { position: fixed; inset: 0; width: 100%; height: 100%; pointer-
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"])[data-paper="hav"] body { --paper: #0f2430; --grid: rgba(120,200,240,.1); } :root:not([data-theme="light"])[data-paper="skog"] body { --paper: #14211a; --grid: rgba(140,220,140,.1); } }
 :root[data-theme="dark"][data-paper="hav"] body { --paper: #0f2430; --grid: rgba(120,200,240,.1); } :root[data-theme="dark"][data-paper="skog"] body { --paper: #14211a; --grid: rgba(140,220,140,.1); }
 
-/* ---- Sport theme (Filip) ---- */
+/* ---- Sport theme (hockey) ---- */
 [data-hue="rod"] { --acc: #c8202a; --acc-soft: #fbe0e1; --acc-ink: #7d1016; --acc-glow: rgba(200,32,42,.28); }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) [data-hue="rod"], :root:not([data-theme="light"])[data-hue="rod"] { --acc: #ef5a62; --acc-soft: #3f1719; --acc-ink: #ffd4d6; --acc-glow: rgba(239,90,98,.3); } }
 :root[data-theme="dark"] [data-hue="rod"], :root[data-theme="dark"][data-hue="rod"] { --acc: #ef5a62; --acc-soft: #3f1719; --acc-ink: #ffd4d6; --acc-glow: rgba(239,90,98,.3); }
@@ -558,7 +558,7 @@ const T = {
 const m = (s) => `<span class="m">${s}</span>`;
 const NAMES = ['Mira', 'Noah', 'Elsa', 'Omar', 'Lova', 'Ali', 'Signe', 'Hugo', 'Lina', 'Elias'];
 
-/* ---------------- ADAM — Algebra (åk 8) ---------------- */
+/* ---------------- ÅK 8 — Algebra ---------------- */
 
 // A1: multiplicera in tal i parenteser
 function genMultIn(level) {
@@ -967,7 +967,7 @@ function genAndragrad(level) {
     hint: 'Samma ordning som vanliga ekvationer: ta bort talet, dela med talet framför x², dra roten ur.' };
 }
 
-/* ---------------- FILIP — åk 4 ---------------- */
+/* ---------------- ÅK 4 ---------------- */
 function genMult(level) {
   let a, b;
   if (level === 1) { a = R.int(2, 5); b = R.int(2, 10); }
@@ -1021,7 +1021,7 @@ function genProblem(level) {
   }
 }
 
-/* ---------------- CLARA — åk 2 ---------------- */
+/* ---------------- ÅK 2 ---------------- */
 function genPlus20(level) {
   let a, b;
   if (level === 1) { a = R.int(1, 9); b = R.int(1, 10 - a); }
@@ -1123,10 +1123,11 @@ const METHOD = {
   saknas: `<p>Tänk "hur långt är det från det ena talet till det andra?". ${m('6 + ▢ = 10: från 6 till 10 är det 4.')}</p>`,
 };
 
-const KIDS = [
-  {
-    id: 'adam', name: 'Adam', grade: 'Åk 8', emoji: '🧮', hue: 'teal', born: 2012,
-    exam: { title: 'Prov 12 Algebra', date: '2026-11-18', skills: ['multin', 'forenkla', 'blandat', 'talfoljd'] },
+/* ---------------- Kursmallar (generiska – inga personuppgifter här) ----------------
+   Vilka barn som finns, vad de heter och vilken mall de följer ligger i familjens privata konfiguration (FAMILY),
+   som laddas från familjens egna molnlagring efter parkoppling. KIDS byggs vid start av buildKids(). */
+const TEMPLATES = {
+  ak8: { label: 'Åk 8', grade: 'Åk 8', defaults: { focus: true, sprint: 5, timer: false, tts: true, goal: 10 }, decks: ['en8_verb', 'en8_ord', 'es_halsa', 'es_siffror', 'es_farger', 'es_djur', 'es_familj', 'es_mat', 'es_kropp', 'es_skola', 'es_klader', 'es_kanslor', 'es_fraser', 'en_djur', 'en_mat', 'en_hem'],
     skills: [
       { id: 'multin', name: 'Multiplicera in i parenteser', short: 'Parenteser', icon: '✕', gen: genMultIn, method: METHOD.multin, focus: true },
       { id: 'forenkla', name: 'Förenkla uttryck med parenteser', short: 'Förenkla', icon: '≡', gen: genForenkla, method: METHOD.forenkla, focus: true },
@@ -1135,19 +1136,15 @@ const KIDS = [
       { id: 'ekvation', name: 'Ekvationer (även med parenteser)', short: 'Ekvationer', icon: '=', gen: genEkvation, method: METHOD.ekvation },
       { id: 'problemekv', name: 'Problemlösning med ekvationer', short: 'Problem', icon: '💬', gen: genProblemEkv, method: METHOD.problemekv },
       { id: 'andragrad', name: 'Enkla andragradsekvationer', short: 'x²', icon: '²', gen: genAndragrad, method: METHOD.andragrad },
-    ],
-  },
-  {
-    id: 'filip', name: 'Filip', grade: 'Åk 4', emoji: '🚀', hue: 'orange', born: 2016,
+    ] },
+  ak4: { label: 'Åk 4', grade: 'Åk 4', defaults: { focus: false, sprint: 10, timer: false, tts: true, goal: 10 }, decks: ['en_djur', 'en_mat', 'en_hem', 'en_skola', 'en_vader', 'en_verb', 'en_tid', 'en_fraser', 'es_halsa', 'es_siffror', 'es_farger', 'es_djur', 'es_familj', 'es_mat', 'es_kropp', 'es_skola', 'es_klader', 'es_kanslor', 'es_fraser'],
     skills: [
       { id: 'mult', name: 'Multiplikation', short: 'Gånger', icon: '·', gen: genMult, method: METHOD.mult },
       { id: 'div', name: 'Division', short: 'Delat', icon: '/', gen: genDiv, method: METHOD.div },
       { id: 'addsub', name: 'Plus och minus med stora tal', short: 'Plus & minus', icon: '±', gen: genAddSub, method: METHOD.addsub },
       { id: 'problem', name: 'Problemlösning', short: 'Problem', icon: '?', gen: genProblem, method: METHOD.problem },
-    ],
-  },
-  {
-    id: 'clara', name: 'Clara', grade: 'Åk 2', emoji: '🦄', hue: 'pink', born: 2018,
+    ] },
+  ak2: { label: 'Åk 2', grade: 'Åk 2', defaults: { focus: false, sprint: 8, timer: false, tts: true, goal: 8 }, decks: ['es_halsa', 'es_siffror', 'es_farger', 'es_djur', 'es_familj', 'es_mat', 'es_kropp', 'es_skola', 'es_klader', 'es_kanslor', 'es_fraser', 'en_djur', 'en_mat', 'en_hem'],
     skills: [
       { id: 'plus20', name: 'Plus upp till 20', short: 'Plus', icon: '+', gen: genPlus20, method: METHOD.plus20 },
       { id: 'minus20', name: 'Minus upp till 20', short: 'Minus', icon: '−', gen: genMinus20, method: METHOD.minus20 },
@@ -1155,17 +1152,20 @@ const KIDS = [
       { id: 'dubbelt', name: 'Dubbelt och hälften', short: 'Dubbelt', icon: '⇄', gen: genDubbelt, method: METHOD.dubbelt },
       { id: 'tabell', name: 'Tabellerna 2, 5 och 10', short: 'Tabeller', icon: '×', gen: genTabell, method: METHOD.tabell },
       { id: 'saknas', name: 'Vilket tal saknas?', short: 'Saknas', icon: '▢', gen: genSaknas, method: METHOD.saknas },
-    ],
-  },
-];
+    ] },
+};
+// Fylls av buildKids(FAMILY) vid start – tom tills familjen är parkopplad.
+const KIDS = [];
 
 /* ========= Language learning: decks, spaced repetition, exercise generation ========= */
 const LANGS = { es: { name: 'Spanska', flag: '🇪🇸', tts: 'es-ES' }, en: { name: 'Engelska', flag: '🇬🇧', tts: 'en-GB' }, sv: { name: 'Svenska', flag: '🇸🇪', tts: 'sv-SE' } };
 // deck: { id, lang, name, emoji, level, words: [{ id, w (foreign), t (swedish), e (emoji) }], noSpell }
 const mkDeck = (id, lang, name, emoji, level, rows, opts = {}) => ({ id, lang, name, emoji, level, builtin: true, ...opts, words: rows.map((r, i) => ({ id: id + '_' + i, w: r[0], t: r[1], e: r[2] || '' })) });
 
+// Familjens egna/skolans glosor ligger inte här utan i familjekonfigurationen (FAMILY.kids[].decks) och byggs med deckFromConfig().
+const deckFromConfig = (d) => ({ id: d.id, lang: d.lang || 'en', name: d.name, emoji: d.emoji || '📘', level: d.level || 2, builtin: false, fromConfig: true, words: d.words.map((r, i) => ({ id: d.id + '_' + i, w: r[0], t: r[1], e: r[2] || '' })) });
 const BUILTIN_DECKS = [
-  // ---------- Spanska (Clara-nivå) ----------
+  // ---------- Spanska (nybörjare, lågstadiet) ----------
   mkDeck('es_halsa', 'es', 'Hälsa och säg hej', '👋', 1, [
     ['hola', 'hej', '👋'], ['adiós', 'hej då', '🚪'], ['buenos días', 'god morgon', '🌅'], ['buenas noches', 'god natt', '🌙'], ['gracias', 'tack', '🙏'],
     ['por favor', 'snälla', '🤲'], ['sí', 'ja', '✅'], ['no', 'nej', '❌'], ['¿cómo estás?', 'hur mår du?', '🙂'], ['muy bien', 'mycket bra', '👍'],
@@ -1213,7 +1213,7 @@ const BUILTIN_DECKS = [
     ['Me gusta el helado.', 'Jag gillar glass.', '🍦'], ['Tengo un perro.', 'Jag har en hund.', '🐶'], ['¿Dónde está el baño?', 'Var är toaletten?', '🚻'], ['Tengo ocho años.', 'Jag är åtta år.', '🎂'],
     ['Quiero agua.', 'Jag vill ha vatten.', '💧'], ['Vamos a jugar.', 'Vi leker.', '🎲'], ['Está lloviendo.', 'Det regnar.', '🌧️'], ['Hace sol.', 'Det är sol.', '☀️'],
   ], { noSpell: true }),
-  // ---------- Engelska åk 4 (Filip) ----------
+  // ---------- Engelska åk 4 ----------
   mkDeck('en_djur', 'en', 'Animals', '🐾', 1, [
     ['dog', 'hund', '🐶'], ['cat', 'katt', '🐱'], ['horse', 'häst', '🐴'], ['cow', 'ko', '🐮'], ['bird', 'fågel', '🐦'], ['fish', 'fisk', '🐟'],
     ['rabbit', 'kanin', '🐰'], ['mouse', 'mus', '🐭'], ['sheep', 'får', '🐑'], ['pig', 'gris', '🐷'], ['bear', 'björn', '🐻'], ['owl', 'uggla', '🦉'],
@@ -1246,12 +1246,7 @@ const BUILTIN_DECKS = [
     ['What is your name?', 'Vad heter du?', '🏷️'], ['How old are you?', 'Hur gammal är du?', '🎂'], ['I like football.', 'Jag gillar fotboll.', '⚽'], ['Where do you live?', 'Var bor du?', '🏠'],
     ['Can I have some water, please?', 'Kan jag få lite vatten, tack?', '💧'], ['I have two brothers.', 'Jag har två bröder.', '👦👦'], ['It is raining.', 'Det regnar.', '🌧️'], ['See you tomorrow!', 'Vi ses imorgon!', '👋'],
   ], { noSpell: true }),
-  mkDeck('en_kates_day', 'en', "Magic! 4 · 9 Kate's Day", '⏰', 2, [
-    ['it rings', '(den) ringer', '⏰'], ['he wakes her up', '(han) väcker (henne)', '🛏️'], ['I get up', '(jag) går upp', '🧍'], ['I brush my teeth', '(jag) borstar tänderna', '🪥'],
-    ['I get dressed', '(jag) tar/klär på (mig)', '👕'], ['breakfast', 'frukost', '🥣'], ['it finishes', '(den) slutar', '🏁'], ['in the afternoon', 'på eftermiddagen', '🌤️'],
-    ['best friend', 'bästis', '🧑‍🤝‍🧑'], ['she drives me', '(hon) kör (mig)', '🚗'], ['we have dinner', '(vi) äter middag', '🍽️'], ['I read', '(jag) läser', '📖'],
-  ]),
-  // ---------- Engelska åk 8 (Adam) ----------
+  // ---------- Engelska åk 8 ----------
   mkDeck('en8_verb', 'en', 'Irregular verbs', '🔁', 3, [
     ['go – went – gone', 'gå', '🚶'], ['see – saw – seen', 'se', '👀'], ['take – took – taken', 'ta', '🤲'], ['write – wrote – written', 'skriva', '✍️'], ['eat – ate – eaten', 'äta', '🍽️'],
     ['speak – spoke – spoken', 'tala', '🗣️'], ['buy – bought – bought', 'köpa', '🛒'], ['think – thought – thought', 'tänka', '💭'], ['bring – brought – brought', 'ta med', '🎁'], ['catch – caught – caught', 'fånga', '🥎'],
@@ -1532,7 +1527,7 @@ function makeSoGen(topic) {
   };
 }
 const SO_SKILLS = {
-  filip: GEO4.map(t => ({ id: t.id, name: t.name, short: t.short, icon: t.icon, group: 'so', subject: 'Geografi', gen: makeSoGen(t), method: `<div class="eyebrow" style="margin-bottom:6px">Puls SO 4 · s. 36–73</div>${t.read}` })),
+  ak4: GEO4.map(t => ({ id: t.id, name: t.name, short: t.short, icon: t.icon, group: 'so', subject: 'Geografi', gen: makeSoGen(t), method: `<div class="eyebrow" style="margin-bottom:6px">Puls SO 4 · s. 36–73</div>${t.read}` })),
 };
 /* ========= NO/Kemi åk 8: Kapitel 4 "Syror och baser" – kunskapsfrågor per delområde ========= */
 const KEMI4 = [
@@ -1636,7 +1631,8 @@ const KEMI4 = [
     ] },
 ];
 const BEGREPPA = {"kemi_syror": [["Syror och baser", "https://app.begreppa.se/videos/kemi/syror-baser-och-salter/syror-och-baser"]], "kemi_ph": [["Varför blir det surt eller basiskt?", "https://app.begreppa.se/videos/kemi/syror-baser-och-salter/varfor-blir-det-surt-eller-basiskt"], ["Vad berättar egentligen pH-värdet?", "https://app.begreppa.se/videos/kemi/syror-baser-och-salter/vad-berattar-egentligen-ph-vardet"]], "kemi_starka": [["Starka och svaga syror", "https://app.begreppa.se/videos/kemi/syror-baser-och-salter/starka-och-svaga-syror"]], "kemi_neutral": [["Vad är ett salt? / Hur bildas salter?", "https://app.begreppa.se/videos/kemi/syror-baser-och-salter/vad-ar-ett-salt"]], "kemi_vardag": [["Vad är ett salt?", "https://app.begreppa.se/videos/kemi/syror-baser-och-salter/vad-ar-ett-salt"]]};
-const SO_SKILLS_ADAM = KEMI4.map(t => ({ id: t.id, name: t.name, short: t.short, icon: t.icon, group: 'no', subject: 'Kemi', gen: makeSoGen(t), method: `<div class="eyebrow" style="margin-bottom:6px">Kemi kapitel 4 · Syror och baser</div>${t.read}${BEGREPPA[t.id] ? `<div class="eyebrow" style="margin:14px 0 6px">Lärarens filmer (Begreppa)</div>${BEGREPPA[t.id].map(([n, u]) => `<a class="btn ghost" style="min-height:40px;justify-content:flex-start;margin:4px 0;width:100%" href="${u}" target="_blank" rel="noopener">▶ ${n}</a>`).join('')}` : ''}` }));
+const KEMI_SKILLS = KEMI4.map(t => ({ id: t.id, name: t.name, short: t.short, icon: t.icon, group: 'no', subject: 'Kemi', gen: makeSoGen(t), method: `<div class="eyebrow" style="margin-bottom:6px">Kemi kapitel 4 · Syror och baser</div>${t.read}${BEGREPPA[t.id] ? `<div class="eyebrow" style="margin:14px 0 6px">Lärarens filmer (Begreppa)</div>${BEGREPPA[t.id].map(([n, u]) => `<a class="btn ghost" style="min-height:40px;justify-content:flex-start;margin:4px 0;width:100%" href="${u}" target="_blank" rel="noopener">▶ ${n}</a>`).join('')}` : ''}` }));
+if (typeof SO_SKILLS !== 'undefined') SO_SKILLS.ak8 = [...(SO_SKILLS.ak8 || []), ...KEMI_SKILLS]; // kemi ingår i åk 8-mallen
 /* ========= Open "förklara"-frågor: skriv ett svar, appen letar efter nyckelbegrepp ========= */
 // keys: grupper av godkända formuleringar (stammar räcker: "golfström" matchar "Golfströmmen"). label = vad som visas om gruppen saknas.
 const O = (q, keys, model, hint) => ({ q, keys: keys.map(k => (Array.isArray(k) ? { alts: k, label: k[0] } : k)), model, hint });
@@ -1809,11 +1805,11 @@ const VIS = {
     return `<svg class="fig" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" role="img" aria-label="${name}"><g fill="var(--acc-soft)" stroke="var(--ink)" stroke-width="3" stroke-linejoin="round">${body}</g></svg>`;
   },
 };
-/* ========= Grundkurser matte: Filip (åk 4) och Clara (åk 2) ========= */
+/* ========= Grundkurser matte: mallarna åk 4 och åk 2 ========= */
 const timeStr = (h, mm) => `${h}:${String(mm).padStart(2, '0')}`;
 const timeAnswers = (h, mm) => { const a = [timeStr(h, mm), timeStr(h % 12 === 0 ? 12 : h % 12, mm), `${String(h).padStart(2, '0')}:${String(mm).padStart(2, '0')}`, timeStr(h, mm).replace(':', '.'), timeStr(h % 12 === 0 ? 12 : h % 12, mm).replace(':', '.')]; if (h >= 12 && h % 12 !== 0) a.push(timeStr(h - 12, mm)); return [...new Set(a)]; };
 
-/* ---- Filip: bråk ---- */
+/* ---- Åk 4: bråk ---- */
 function genBrak(level) {
   const n1 = R.pick(NAMES);
   if (level === 1) {
@@ -1835,7 +1831,7 @@ function genBrak(level) {
 function simplifyAlts(n, d) { const g = gcd(n, d); if (g === 1 || n === d) return []; return [`${n / g}/${d / g}`]; }
 function gcd(a, b) { return b ? gcd(b, a % b) : a; }
 
-/* ---- Filip: geometri (omkrets & area) ---- */
+/* ---- Åk 4: geometri (omkrets & area) ---- */
 function genGeometri(level) {
   if (level === 1) { const square = R.chance(0.4); if (square) { const s = R.int(2, 12); return { type: 'num', fig: VIS.rect(s, s), text: `En kvadrat har sidan ${s} cm. Hur stor är omkretsen? (svara i cm)`, answer: 4 * s, level, steps: [`Omkrets = alla sidor ihop. En kvadrat har fyra lika sidor.`, `${m(`4 · ${s} = ${4 * s}`)} cm`], hint: 'Fyra sidor som alla är lika långa.' }; } const a = R.int(2, 12), b = R.int(2, 12); return { type: 'num', fig: VIS.rect(a, b), text: `En rektangel är ${a} cm lång och ${b} cm bred. Hur stor är omkretsen? (svara i cm)`, answer: 2 * (a + b), level, steps: [`Omkrets = runt hela figuren: ${m(`${a} + ${b} + ${a} + ${b}`)}`, `${m(`2 · ${a} + 2 · ${b} = ${2 * a} + ${2 * b} = ${2 * (a + b)}`)} cm`], hint: 'Två långa och två korta sidor.' }; }
   if (level === 2) { const a = R.int(2, 12), b = R.int(2, 12); return { type: 'num', fig: VIS.rect(a, b, { grid: true }), text: `En rektangel är ${a} cm lång och ${b} cm bred. Hur stor är arean? (svara i cm²)`, answer: a * b, level, steps: [`Area = hur många rutor som får plats inuti: längd · bredd.`, `${m(`${a} · ${b} = ${a * b}`)} cm²`], hint: 'Area = längd gånger bredd.' }; }
@@ -1844,7 +1840,7 @@ function genGeometri(level) {
   const s = R.int(3, 12); return { type: 'num', text: `En kvadrat har arean ${s * s} cm². Hur lång är en sida? (svara i cm)`, answer: s, level, steps: [`Area = sida · sida. Vilket tal gånger sig självt blir ${s * s}?`, `${m(`${s} · ${s} = ${s * s}`)}, så sidan är ${m(s)} cm`], hint: 'Vilket tal gånger sig självt?' };
 }
 
-/* ---- Filip: enheter ---- */
+/* ---- Åk 4: enheter ---- */
 function genEnheter(level) {
   const fmt = (x) => String(Math.round(x * 1000) / 1000).replace('.', ',');
   const ask = (text, ans, steps, hint) => ({ type: 'num', text, answer: ans, level, steps, hint });
@@ -1861,7 +1857,7 @@ function genEnheter(level) {
   const kg = R.int(1, 4), g = R.int(1, 9) * 100; return { type: 'num', text: `Ett paket väger ${kg} kg och ${g} g. Hur många kilogram är det? (decimaltal)`, answer: kg + g / 1000, level, steps: [`${g} g = ${fmt(g / 1000)} kg`, `${m(`${kg} + ${fmt(g / 1000)} = ${fmt(kg + g / 1000)}`)} kg`], hint: '1000 g = 1 kg, så 500 g = 0,5 kg.' };
 }
 
-/* ---- Filip: klockan och tid ---- */
+/* ---- Åk 4: klockan och tid ---- */
 function genKlockan(level) {
   if (level === 1) {
     const h = R.int(1, 11), mm = R.pick([0, 15, 30, 45]); const words = { 0: `klockan ${h}`, 15: `kvart över ${h}`, 30: `halv ${h + 1}`, 45: `kvart i ${h + 1}` };
@@ -1877,14 +1873,14 @@ function genKlockan(level) {
   return { type: 'num', text: `Lektionen börjar ${timeStr(h1, m1)} och slutar ${timeStr(h2, m2)}. Hur många minuter varar den?`, answer: diff, level, steps: [`Från ${timeStr(h1, m1)} till ${timeStr(h1 + 1, m1)} är 60 min.`, `Räkna timmar och minuter var för sig och lägg ihop: ${m(`${diff}`)} min`], hint: 'Räkna hela timmar först, sedan minuterna som är kvar.' };
 }
 
-/* ---- Clara: klockan ---- */
+/* ---- Åk 2: klockan ---- */
 function genKlockan2(level) {
   if (level === 1) { const h = R.int(1, 12); const mm = R.pick([0, 30]); const correct = mm === 0 ? `Klockan är ${h}` : `Klockan är halv ${h === 12 ? 1 : h + 1}`; const wrong = R.shuffle([`Klockan är halv ${h}`, `Klockan är ${h === 12 ? 1 : h + 1}`, `Klockan är kvart över ${h}`, mm === 0 ? `Klockan är halv ${h === 12 ? 1 : h + 1}` : `Klockan är ${h}`]).filter(x => x !== correct).slice(0, 3); const ch = R.shuffle([correct, ...wrong]); return { type: 'choicetext', fig: VIS.clock(h, mm), text: `Vad är klockan?`, choices: ch, answer: ch.indexOf(correct), level, steps: [mm === 0 ? `:00 betyder hel timme – klockan är ${h}.` : `:30 betyder halv – och man säger halv till nästa timme: halv ${h === 12 ? 1 : h + 1}.`], hint: mm === 30 ? 'Halv = en halvtimme kvar till nästa timme.' : 'Noll minuter = hel timme.' }; }
   if (level === 2) { const h = R.int(1, 12), mm = R.pick([15, 45]); const correct = mm === 15 ? `kvart över ${h}` : `kvart i ${h === 12 ? 1 : h + 1}`; const ch = R.shuffle([correct, mm === 15 ? `kvart i ${h}` : `kvart över ${h}`, `halv ${h === 12 ? 1 : h + 1}`, `klockan ${h}`]); return { type: 'choicetext', fig: VIS.clock(h, mm), text: `Vad är klockan?`, choices: ch, answer: ch.indexOf(correct), level, steps: [`:15 = kvart över (en kvart har gått). :45 = kvart i (en kvart kvar till nästa timme).`, `Svar: ${correct}`], hint: ':15 är kvart över, :45 är kvart i nästa timme.' }; }
   const h = R.int(1, 10), add = R.pick([1, 2]); return { type: 'text', text: `Klockan är ${timeStr(h, 0)}. Vad är klockan om ${add === 1 ? 'en timme' : 'två timmar'}? (t.ex. 5:00)`, answer: timeAnswers(h + add, 0), display: timeStr(h + add, 0), level, steps: [`En timme framåt = timtalet ökar med ett.`, `${timeStr(h, 0)} + ${add} h = ${m(timeStr(h + add, 0))}`], hint: 'Räkna timmarna framåt.' };
 }
 
-/* ---- Clara: pengar ---- */
+/* ---- Åk 2: pengar ---- */
 function genPengar(level) {
   const n1 = R.pick(NAMES);
   if (level === 1) { const coins = { 1: R.int(0, 4), 5: R.int(0, 3), 10: R.int(0, 3) }; const total = coins[1] + 5 * coins[5] + 10 * coins[10] || 7; const parts = Object.entries(coins).filter(([, c]) => c > 0).map(([v, c]) => `${c} st ${v}-kron${c > 1 ? 'or' : 'a'}`); if (!parts.length) { coins[5] = 1; coins[1] = 2; parts.push('1 st 5-krona', '2 st 1-kronor'); } const t = coins[1] + 5 * coins[5] + 10 * coins[10]; return { type: 'num', fig: VIS.coins(coins), text: `${n1} har de här mynten. Hur många kronor är det?`, answer: t, level, steps: [`Räkna tiorna först: ${10 * coins[10]} kr. Sedan femmorna: ${5 * coins[5]} kr. Sedan enkronorna: ${coins[1]} kr.`, `${m(`${10 * coins[10]} + ${5 * coins[5]} + ${coins[1]} = ${t}`)} kr`], hint: 'Börja med de största mynten.', choices: T.choices(t, 4, 3) }; }
@@ -1892,7 +1888,7 @@ function genPengar(level) {
   const a = R.int(12, 45), b = R.int(10, 40), pay = R.pick([50, 100]); const sum = a + b; if (sum > pay) return genPengar(level); return { type: 'num', text: `${n1} köper en bok för ${a} kr och pennor för ${b} kr och betalar med en ${pay}-lapp. Hur mycket får ${n1} tillbaka?`, answer: pay - sum, level, steps: [`Vad kostar allt? ${m(`${a} + ${b} = ${sum}`)} kr`, `Tillbaka: ${m(`${pay} − ${sum} = ${pay - sum}`)} kr`], hint: 'Lägg först ihop priserna.' };
 }
 
-/* ---- Clara: former ---- */
+/* ---- Åk 2: former ---- */
 function genFormer(level) {
   const shapes = [['triangel', 3, 3], ['kvadrat', 4, 4], ['rektangel', 4, 4], ['femhörning', 5, 5], ['sexhörning', 6, 6]];
   if (level === 1) { const [name, corners] = R.pick(shapes.slice(0, 3)); return { type: 'num', fig: VIS.shape(name), text: `Hur många hörn har den här figuren (en ${name})?`, answer: corners, level, steps: [`En ${name} har ${corners} hörn och ${corners} sidor.`], hint: 'Räkna "spetsarna".', choices: T.choices(corners, 4, 2).filter(x => x > 0) }; }
@@ -1900,7 +1896,7 @@ function genFormer(level) {
   const [name, , sides] = R.pick(shapes); const k = R.int(2, 4); return { type: 'num', text: `Du ritar ${k} ${name === 'triangel' ? 'trianglar' : name === 'kvadrat' ? 'kvadrater' : name === 'rektangel' ? 'rektanglar' : name === 'femhörning' ? 'femhörningar' : 'sexhörningar'}. Hur många sidor ritar du totalt?`, answer: k * sides, level, steps: [`En ${name} har ${sides} sidor.`, `${m(`${k} · ${sides} = ${k * sides}`)} sidor`], hint: `Varje ${name} har ${sides} sidor. Lägg ihop.` };
 }
 
-/* ---- Clara: talraden ---- */
+/* ---- Åk 2: talraden ---- */
 function genTalrad(level) {
   if (level === 1) { const variant = R.int(1, 2); if (variant === 1) { const n = R.int(10, 98); const after = R.chance(0.5); const lo = Math.max(0, n - 5), hi = lo + 10; return { type: 'num', fig: VIS.numberLine(lo, hi, 1, [{ value: n, label: String(n) }, { value: after ? n + 1 : n - 1, label: '?', color: 'var(--warn)' }]), text: `Vilket tal kommer ${after ? 'efter' : 'före'} ${m(n)}?`, answer: after ? n + 1 : n - 1, level, steps: [`${after ? 'Ett steg framåt' : 'Ett steg bakåt'} på talraden: ${m(after ? n + 1 : n - 1)}`], hint: after ? 'Räkna ett steg uppåt.' : 'Räkna ett steg bakåt.', choices: T.choices(after ? n + 1 : n - 1, 4, 2) }; } const a = R.int(10, 99); let b = R.int(10, 99); while (b === a) b = R.int(10, 99); const big = Math.max(a, b); const ch = [String(a), String(b)]; return { type: 'choicetext', text: `Vilket tal är <b>störst</b>?`, choices: ch, answer: ch.indexOf(String(big)), level, steps: [`Jämför tiotalen först: ${Math.floor(a / 10)} och ${Math.floor(b / 10)}.${Math.floor(a / 10) === Math.floor(b / 10) ? ' Lika – jämför då entalen.' : ''}`, `${m(big)} är störst.`], hint: 'Titta på tiotalssiffran först.' }; }
   if (level === 2) { const step = R.pick([2, 5, 10]); const start = step === 10 ? R.int(1, 5) * 10 : step === 5 ? R.int(1, 10) * 5 : R.int(1, 20) * 2; const seq = [start, start + step, start + 2 * step, start + 3 * step]; return { type: 'num', text: `Fortsätt mönstret: ${m(seq.join(', ') + ', ?')}`, answer: start + 4 * step, level, steps: [`Talen ökar med ${step} varje gång.`, `${m(`${seq[3]} + ${step} = ${start + 4 * step}`)}`], hint: `Hur mycket ökar det varje gång?`, choices: T.choices(start + 4 * step, 4, step) }; }
@@ -1919,20 +1915,20 @@ const METHOD_MORE = {
   talrad: `<p>Talraden går 0, 1, 2 … 100. Efter 39 kommer 40. Jämför tal genom att titta på tiotalen först: 74 är större än 47 för 7 tiotal är mer än 4.</p><p class="ex">Mönster: 5, 10, 15 … ökar med 5 varje gång.</p>`,
 };
 const MORE_SKILLS = {
-  filip: [
+  ak4: [
     { id: 'brak', name: 'Bråk', short: 'Bråk', icon: '½', gen: genBrak, method: METHOD_MORE.brak },
     { id: 'geometri', name: 'Omkrets och area', short: 'Geometri', icon: '▭', gen: genGeometri, method: METHOD_MORE.geometri },
     { id: 'enheter', name: 'Enheter: längd, vikt, volym', short: 'Enheter', icon: '📏', gen: genEnheter, method: METHOD_MORE.enheter },
     { id: 'klockan', name: 'Klockan och tid', short: 'Klockan', icon: '🕒', gen: genKlockan, method: METHOD_MORE.klockan },
   ],
-  clara: [
+  ak2: [
     { id: 'klockan2', name: 'Klockan: hel, halv, kvart', short: 'Klockan', icon: '🕒', gen: genKlockan2, method: METHOD_MORE.klockan2 },
     { id: 'pengar', name: 'Räkna med pengar', short: 'Pengar', icon: '🪙', gen: genPengar, method: METHOD_MORE.pengar },
     { id: 'former', name: 'Former och hörn', short: 'Former', icon: '△', gen: genFormer, method: METHOD_MORE.former },
     { id: 'talrad', name: 'Talraden till 100', short: 'Talraden', icon: '↔', gen: genTalrad, method: METHOD_MORE.talrad },
   ],
 };
-/* ========= Svenska åk 2–3 (Clara) – generatorer med oändlig variation + textbanker ========= */
+/* ========= Svenska åk 2–3 (mallen åk 2) – generatorer med oändlig variation + textbanker ========= */
 // Alla uppgifter följer samma form som matten: { type, text, answer, choices, steps, hint, level, fig }
 
 const SV = {};
@@ -1983,7 +1979,7 @@ SV.MENINGAR = [
   ['Katten sover på den varma stolen.', { subst: ['Katten', 'stolen'], verb: ['sover'], adj: ['varma'] }],
   ['Pojken läser en spännande bok.', { subst: ['Pojken', 'bok'], verb: ['läser'], adj: ['spännande'] }],
   ['Fåglarna sjunger i den gröna skogen.', { subst: ['Fåglarna', 'skogen'], verb: ['sjunger'], adj: ['gröna'] }],
-  ['Clara ritar en stor sol.', { subst: ['Clara', 'sol'], verb: ['ritar'], adj: ['stor'] }],
+  ['Mira ritar en stor sol.', { subst: ['Mira', 'sol'], verb: ['ritar'], adj: ['stor'] }],
   ['Den snabba bilen kör på vägen.', { subst: ['bilen', 'vägen'], verb: ['kör'], adj: ['snabba'] }],
   ['Barnen leker med en röd boll.', { subst: ['Barnen', 'boll'], verb: ['leker'], adj: ['röd'] }],
   ['Läraren skriver på tavlan.', { subst: ['Läraren', 'tavlan'], verb: ['skriver'], adj: [] }],
@@ -2069,12 +2065,12 @@ SV.genAbc = (level) => {
 /* ---------- Meningar: ordföljd, stor bokstav och skiljetecken ---------- */
 SV.MENING_ORD = [
   ['Jag', 'gillar', 'glass', '.'], ['Hunden', 'skäller', 'på', 'katten', '.'], ['Vad', 'heter', 'du', '?'], ['Vi', 'åker', 'till', 'skolan', '.'], ['Vill', 'du', 'leka', 'med', 'mig', '?'],
-  ['Solen', 'skiner', 'idag', '.'], ['Mormor', 'bakar', 'bullar', 'på', 'lördag', '.'], ['Var', 'bor', 'din', 'kompis', '?'], ['Clara', 'läser', 'en', 'rolig', 'bok', '.'], ['Vilken', 'fin', 'teckning', '!'],
+  ['Solen', 'skiner', 'idag', '.'], ['Mormor', 'bakar', 'bullar', 'på', 'lördag', '.'], ['Var', 'bor', 'din', 'kompis', '?'], ['Elsa', 'läser', 'en', 'rolig', 'bok', '.'], ['Vilken', 'fin', 'teckning', '!'],
   ['Imorgon', 'ska', 'vi', 'bada', '.'], ['Hur', 'gammal', 'är', 'du', '?'], ['Den', 'röda', 'bilen', 'är', 'snabb', '.'], ['Titta', 'på', 'den', 'stora', 'elefanten', '!'], ['Pappa', 'lagar', 'mat', 'i', 'köket', '.'],
 ];
 SV.SKILJE = [
   ['Vad heter du?', ['Vad heter du.', 'Vad heter du!', 'vad heter du?']], ['Jag har en hund.', ['jag har en hund.', 'Jag har en hund?', 'Jag har en hund']], ['Hjälp, det brinner!', ['Hjälp, det brinner.', 'hjälp det brinner!', 'Hjälp, det brinner?']],
-  ['Vill du ha en kaka?', ['Vill du ha en kaka.', 'vill du ha en kaka?', 'Vill du ha en kaka!']], ['Clara bor i Luleå.', ['clara bor i luleå.', 'Clara bor i luleå.', 'Clara bor i Luleå?']], ['Vilken fin hund!', ['Vilken fin hund.', 'vilken fin hund!', 'Vilken fin hund?']],
+  ['Vill du ha en kaka?', ['Vill du ha en kaka.', 'vill du ha en kaka?', 'Vill du ha en kaka!']], ['Omar bor i Umeå.', ['omar bor i umeå.', 'Omar bor i umeå.', 'Omar bor i Umeå?']], ['Vilken fin hund!', ['Vilken fin hund.', 'vilken fin hund!', 'Vilken fin hund?']],
   ['Hur många år är du?', ['Hur många år är du.', 'hur många år är du?', 'Hur många år är du!']], ['Vi reser till Spanien i sommar.', ['Vi reser till spanien i sommar.', 'vi reser till Spanien i sommar.', 'Vi reser till Spanien i sommar?']],
   ['Akta dig!', ['Akta dig.', 'akta dig!', 'Akta dig?']], ['Idag är det måndag.', ['Idag är det Måndag.', 'idag är det måndag.', 'Idag är det måndag?']],
 ];
@@ -2137,14 +2133,14 @@ const METHOD_SV = {
   synonym: `<p><b>Synonymer</b> är ord som betyder nästan samma sak: glad – lycklig – nöjd. Med synonymer blir texter mer spännande att läsa.</p><p>Test: byt ut ordet i en mening. Passar det nya ordet lika bra?</p>`,
   sammansatt: `<p>Ett <b>sammansatt ord</b> är två (eller fler) ord som sätts ihop till ett: fot + boll = <b>fotboll</b>.</p><p>Det sista ordet bestämmer vad det är: en <i>fotboll</i> är en boll, en <i>bollfot</i> skulle vara en fot!</p><p>Ibland läggs ett <b>s</b> in: födelse + dag = födelse<b>s</b>dag.</p>`,
   abc: `<p>I en ordbok eller ett register står orden i <b>bokstavsordning</b>: a b c d e f g h i j k l m n o p q r s t u v w x y z å ä ö.</p><p>Om två ord börjar på samma bokstav tittar du på <b>andra</b> bokstaven, sedan tredje, och så vidare: <i>bil</i> kommer före <i>bok</i> eftersom i kommer före o.</p>`,
-  mening: `<p>En mening börjar med <b>stor bokstav</b> och slutar med ett <b>skiljetecken</b>:</p><ul><li><b>.</b> punkt – vanlig mening: <i>Jag har en hund.</i></li><li><b>?</b> frågetecken – fråga: <i>Vad heter du?</i></li><li><b>!</b> utropstecken – utrop: <i>Akta dig!</i></li></ul><p>Namn på personer, platser och länder har alltid stor bokstav: <i>Clara, Luleå, Sverige</i>. Veckodagar och månader har liten bokstav på svenska.</p>`,
+  mening: `<p>En mening börjar med <b>stor bokstav</b> och slutar med ett <b>skiljetecken</b>:</p><ul><li><b>.</b> punkt – vanlig mening: <i>Jag har en hund.</i></li><li><b>?</b> frågetecken – fråga: <i>Vad heter du?</i></li><li><b>!</b> utropstecken – utrop: <i>Akta dig!</i></li></ul><p>Namn på personer, platser och länder har alltid stor bokstav: <i>Mira, Umeå, Sverige</i>. Veckodagar och månader har liten bokstav på svenska.</p>`,
   bojning: `<p><b>Flertal (plural):</b> en bil – flera bil<b>ar</b>, en flicka – flera flick<b>or</b>, en katt – flera katt<b>er</b>, ett äpple – flera äppl<b>en</b>. Vissa ord ändras helt: en mus – flera möss. Och några ser likadana ut: ett hus – flera hus.</p><p><b>Tidsform (tempus):</b> idag <i>springer</i> jag (nutid), igår <i>sprang</i> jag (dåtid), jag <i>har sprungit</i> (har-form).</p>`,
   lasa: `<p>Så läser du för att förstå:</p><ol><li>Läs rubriken – vad tror du texten handlar om?</li><li>Läs hela texten en gång.</li><li>Läs frågan. Leta efter samma ord i texten.</li><li>Läs meningen runt omkring – där finns oftast svaret.</li></ol><p>Tryck på högtalaren om du vill höra texten uppläst.</p>`,
   rim: `<p>Ord som <b>rimmar</b> slutar likadant: hus – mus – ljus. Rim gör det lättare att komma ihåg ramsor, sånger och dikter.</p>`,
 };
 
 const SV_SKILLS = {
-  clara: [
+  ak2: [
     { id: 'sv_stavning', name: 'Stavning', short: 'Stavning', icon: '✏️', group: 'sv', subject: 'Svenska', gen: SV.genStavning, method: METHOD_SV.stavning },
     { id: 'sv_lasa', name: 'Läsförståelse', short: 'Läsa', icon: '📖', group: 'sv', subject: 'Svenska', gen: SV.genLasa, method: METHOD_SV.lasa },
     { id: 'sv_ordklass', name: 'Ordklasser', short: 'Ordklasser', icon: '🏷️', group: 'sv', subject: 'Svenska', gen: SV.genOrdklass, method: METHOD_SV.ordklass },
@@ -2157,7 +2153,7 @@ const SV_SKILLS = {
     { id: 'sv_rim', name: 'Rim', short: 'Rim', icon: '🎵', group: 'sv', subject: 'Svenska', gen: SV.genRim, method: METHOD_SV.rim },
   ],
 };
-/* ========= NO och SO åk 1–3 (Clara) – enligt Lgr22 centralt innehåll ========= */
+/* ========= NO och SO åk 1–3 (mallen åk 2) – enligt Lgr22 centralt innehåll ========= */
 // Q(fråga, [rätt, fel…], förklaring)  ·  O(fråga, [rätt ordning], förklaring) = sätt i ordning
 const QN = (q, choices, why) => ({ q, choices, why });
 const ON = (q, items, why) => ({ order: true, q, items, why });
@@ -2359,12 +2355,12 @@ function makeNaSoGen(topic) {
 }
 const lgrTag = (t, subj) => `<div class="eyebrow" style="margin-bottom:6px">Lgr22 · ${subj} åk 1–3</div><p class="muted" style="font-size:.9rem;margin:0 0 10px"><i>${t.lgr}</i></p>`;
 const NASO_SKILLS = {
-  clara: [
+  ak2: [
     ...NO2.map(t => ({ id: t.id, name: t.name, short: t.short, icon: t.icon, group: 'no', subject: 'NO', gen: makeNaSoGen(t), method: lgrTag(t, 'NO') + t.read })),
     ...SO2.map(t => ({ id: t.id, name: t.name, short: t.short, icon: t.icon, group: 'so', subject: 'SO', gen: makeNaSoGen(t), method: lgrTag(t, 'SO') + t.read })),
   ],
 };
-/* ========= Clara: matte som växer – nivå 4 på befintliga moment + nya moment enligt Lgr22 åk 1–3 ========= */
+/* ========= Åk 2-mallen: matte som växer – nivå 4 på befintliga moment + nya moment enligt Lgr22 åk 1–3 ========= */
 // Lgr22 matematik åk 1–3 (centralt innehåll): naturliga tal 0–1000 och positionssystemet, de fyra räknesätten,
 // huvudräkning och skriftliga metoder, enkla bråk, likhetstecknet, mönster i talföljder, geometriska objekt och
 // symmetri, mätning av längd/massa/volym/tid, tabeller och diagram, problemlösning.
@@ -2417,7 +2413,7 @@ function genMatning(level) {
   const q = R.pick([() => { const a = R.int(220, 480), b = R.int(50, 200); return { type: 'num', text: `En bräda är ${m(a)} cm. Man sågar av ${m(b)} cm. Hur många cm är kvar?`, answer: a - b, level, steps: [`${m(`${a} − ${b} = ${a - b}`)} cm`], hint: 'Ta bort det som sågas av.' }; }, () => { const g = R.int(2, 9) * 100; const n = R.int(2, 5); return { type: 'num', text: `Ett paket väger ${m(g)} g. Hur många gram väger ${n} paket?`, answer: g * n, level, steps: [`${m(`${n} · ${g} = ${g * n}`)} g${g * n >= 1000 ? ` = ${(g * n / 1000).toString().replace('.', ',')} kg` : ''}`], hint: 'Lägg ihop paketen eller multiplicera.' }; }, () => { const start = R.int(7, 11), dur = R.pick([30, 45, 90]); const endH = start + Math.floor(dur / 60), endM = dur % 60; return { type: 'text', text: `Lektionen börjar ${start}:00 och är ${dur} minuter lång. När slutar den? (t.ex. 9:30)`, answer: [`${endH}:${String(endM).padStart(2, '0')}`, `${endH}.${String(endM).padStart(2, '0')}`, `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`], display: `${endH}:${String(endM).padStart(2, '0')}`, level, steps: [`${dur} minuter = ${Math.floor(dur / 60)} h ${dur % 60} min`, `${start}:00 + ${dur} min = <b>${endH}:${String(endM).padStart(2, '0')}</b>`], hint: '60 minuter är en timme.' }; }]); return q();
 }
 
-const METHOD_CLARA = {
+const METHOD_AK2 = {
   tal1000: `<p>Talen upp till 1000 är byggda av <b>hundratal</b>, <b>tiotal</b> och <b>ental</b>. ${m('347')} = 3 hundratal, 4 tiotal och 7 ental = ${m('300 + 40 + 7')}.</p><p>När du räknar med stora tal: ta hundratalen först, sedan tiotalen, sedan entalen.</p><p class="ex">${m('347 + 215: 347 + 200 = 547, + 10 = 557, + 5 = 562')}</p>`,
   brak2: `<p>Ett <b>bråk</b> är en del av något. ${m('1/2')} = hälften, ${m('1/4')} = en fjärdedel, ${m('1/3')} = en tredjedel.</p><p>Talet <b>under</b> strecket (nämnaren) säger hur många lika stora delar det hela är delat i. Talet <b>över</b> (täljaren) säger hur många delar vi menar.</p><p class="ex">Hälften av 12: ${m('12 / 2 = 6')}. En fjärdedel av 12: ${m('12 / 4 = 3')}. ${m('3/4')} av 12: ${m('3 · 3 = 9')}.</p>`,
   monster: `<p>Ett <b>mönster</b> i en talföljd följer en regel. Hitta regeln genom att jämföra två tal bredvid varandra: ökar det med lika mycket varje gång? Dubblas det? Varvas två mönster?</p><p class="ex">${m('3, 6, 9, 12 …')} ökar med 3. ${m('2, 4, 8, 16 …')} dubblas. ${m('1, 3, 6, 10 …')} ökar med 2, 3, 4 …</p>`,
@@ -2429,21 +2425,23 @@ const LGR_MATH = {
 
 // Koppla in: nivå 4 på befintliga moment, nya moment, Lgr22-etiketter
 (function () {
-  const clara = KIDS.find(k => k.id === 'clara'); if (!clara) return;
+  const tpl = TEMPLATES.ak2; if (!tpl) return;
   const wrap = (skill) => { const orig = skill.gen; if (L4[skill.id]) { skill.gen = (level, opts) => (level >= 4 ? L4[skill.id]() : orig(level, opts)); skill.maxLvl = 4; } if (LGR_MATH[skill.id]) skill.lgr = LGR_MATH[skill.id]; };
-  clara.skills.forEach(wrap); (MORE_SKILLS.clara || []).forEach(wrap);
-  clara.skills.find(s => s.id === 'tabell').name = 'Multiplikation och division';
-  (MORE_SKILLS.clara = MORE_SKILLS.clara || []).push(
-    { id: 'tal1000', name: 'Talen till 1000', short: 'Till 1000', icon: '🔢', gen: genTal1000, method: METHOD_CLARA.tal1000, maxLvl: 4, lgr: LGR_MATH.tal1000 },
-    { id: 'brak2', name: 'Bråk: hälften, tredjedel, fjärdedel', short: 'Bråk', icon: '🍕', gen: genBrak2, method: METHOD_CLARA.brak2, maxLvl: 4, lgr: LGR_MATH.brak2 },
-    { id: 'monster', name: 'Mönster och talföljder', short: 'Mönster', icon: '🔮', gen: genMonster, method: METHOD_CLARA.monster, maxLvl: 4, lgr: LGR_MATH.monster },
-    { id: 'matning', name: 'Mäta: längd, vikt, volym och tid', short: 'Mätning', icon: '📏', gen: genMatning, method: METHOD_CLARA.matning, maxLvl: 4, lgr: LGR_MATH.matning },
+  tpl.skills.forEach(wrap); (MORE_SKILLS.ak2 || []).forEach(wrap);
+  tpl.skills.find(s => s.id === 'tabell').name = 'Multiplikation och division';
+  (MORE_SKILLS.ak2 = MORE_SKILLS.ak2 || []).push(
+    { id: 'tal1000', name: 'Talen till 1000', short: 'Till 1000', icon: '🔢', gen: genTal1000, method: METHOD_AK2.tal1000, maxLvl: 4, lgr: LGR_MATH.tal1000 },
+    { id: 'brak2', name: 'Bråk: hälften, tredjedel, fjärdedel', short: 'Bråk', icon: '🍕', gen: genBrak2, method: METHOD_AK2.brak2, maxLvl: 4, lgr: LGR_MATH.brak2 },
+    { id: 'monster', name: 'Mönster och talföljder', short: 'Mönster', icon: '🔮', gen: genMonster, method: METHOD_AK2.monster, maxLvl: 4, lgr: LGR_MATH.monster },
+    { id: 'matning', name: 'Mäta: längd, vikt, volym och tid', short: 'Mätning', icon: '📏', gen: genMatning, method: METHOD_AK2.matning, maxLvl: 4, lgr: LGR_MATH.matning },
   );
 })();
 /* ========= Cloud sync (only active in the self-hosted build with window.PLUGG_SYNC set) =========
    Data model: one Firestore document per child: families/{familyCode}/profiles/{kidId}
-   fields: json (stringValue = the profile), updatedAt (integerValue, ms). Last-writer-wins with field-level merge. */
+   fields: json (stringValue = the profile), updatedAt (integerValue, ms). Last-writer-wins with field-level merge.
+   All requests go through SYNC.fetch, which adds the device's Firebase ID token when AUTH is available (see 04b_auth.js). */
 const SYNC = {
+  fetch(url, opts) { return (typeof AUTH !== 'undefined' && AUTH.ready) ? AUTH.fetch(url, opts) : fetch(url, opts); },
   cfg: (typeof window !== 'undefined' && window.PLUGG_SYNC && window.PLUGG_SYNC.projectId && window.PLUGG_SYNC.apiKey) ? window.PLUGG_SYNC : null,
   get family() { return (DB.settings.family || '').trim(); },
   get active() { return !!(SYNC.cfg && SYNC.family); },
@@ -2452,7 +2450,7 @@ const SYNC = {
   async pull(kidId) {
     if (!SYNC.active) return null;
     try {
-      const r = await fetch(SYNC.url(kidId), { cache: 'no-store' });
+      const r = await SYNC.fetch(SYNC.url(kidId), { cache: 'no-store' });
       if (r.status === 404) { SYNC.status = 'ok'; return null; }
       if (!r.ok) throw new Error('HTTP ' + r.status);
       const doc = await r.json(); const json = doc.fields?.json?.stringValue; const updatedAt = Number(doc.fields?.updatedAt?.integerValue || 0);
@@ -2466,7 +2464,7 @@ const SYNC = {
     const p = prof(kidId); const updatedAt = p.updatedAt || Date.now();
     try {
       const body = { fields: { json: { stringValue: JSON.stringify(p) }, updatedAt: { integerValue: String(updatedAt) }, kid: { stringValue: kidId } } };
-      const r = await fetch(SYNC.url(kidId), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      const r = await SYNC.fetch(SYNC.url(kidId), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       if (!r.ok) throw new Error('HTTP ' + r.status);
       SYNC.status = 'ok'; SYNC.lastError = null; p.syncedAt = updatedAt; p.since = { xp: 0, gems: 0, days: {} }; p._lx = p.xp; p._lg = p.gems; return true;
     } catch (e) { SYNC.status = 'error'; SYNC.lastError = e.message; return false; }
@@ -2477,6 +2475,8 @@ const SYNC = {
     const remote = await SYNC.pull(kidId); SYNC.lastPull[kidId] = Date.now();
     if (!remote) { if (SYNC.active && SYNC.status === 'ok') SYNC.schedulePush(kidId); return false; }
     const local = prof(kidId);
+    // Tombstone: a parent deleted this child's data on another device → reset here instead of re-uploading our copy.
+    if (remote.profile.resetAt && remote.profile.resetAt > (local.resetAt || 0)) { const fresh = { ...defaultProfile(kidId), resetAt: remote.profile.resetAt, syncedAt: remote.updatedAt, updatedAt: remote.updatedAt }; fresh._lx = fresh.xp; fresh._lg = fresh.gems; DB.profiles[kidId] = fresh; rollover(fresh); try { localStorage.setItem(STORE_KEY, JSON.stringify(DB)); } catch (e) { /* ignore */ } return true; }
     if ((local.syncedAt || 0) >= remote.updatedAt) return false; // we already have this version
     const localChanged = (local.updatedAt || 0) > (local.syncedAt || 0);
     const merged = localChanged ? mergeProfiles(local, remote.profile) : { ...defaultProfile(kidId), ...remote.profile, since: { xp: 0, gems: 0, days: {} } };
@@ -2491,7 +2491,7 @@ const SYNC = {
   badge() {
     if (!SYNC.cfg) return '';
     if (!SYNC.family) return `<span class="pill warn">Synk: ingen familjekod</span>`;
-    return SYNC.status === 'error' ? `<span class="pill bad" title="${esc(SYNC.lastError || '')}">Synk: fel – sparar lokalt</span>` : SYNC.pending.size ? `<span class="pill">Synkar…</span>` : `<span class="pill good">Synk på · ${esc(SYNC.family)}</span>`;
+    return SYNC.status === 'error' ? `<span class="pill bad" title="${esc(SYNC.lastError || '')}">Synk: fel – sparar lokalt</span>` : SYNC.pending.size ? `<span class="pill">Synkar…</span>` : `<span class="pill good">Synk på</span>`;
   },
 };
 function mergeProfiles(a, b) {
@@ -2504,7 +2504,7 @@ function mergeProfiles(a, b) {
   out.words = { ...(b.words || {}) }; for (const [id, w] of Object.entries(a.words || {})) { const o = out.words[id]; out.words[id] = !o || w.seen >= o.seen ? w : o; }
   out.days = { ...(b.days || {}) }; for (const [k, d] of Object.entries(a.days || {})) { const o = out.days[k]; const sd = (since.days || {})[k]; out.days[k] = !o ? d : sd ? { n: o.n + sd.n, c: o.c + sd.c, xp: o.xp + sd.xp, w: Math.max(o.w || 0, d.w || 0) } : { n: Math.max(o.n, d.n), c: Math.max(o.c, d.c), xp: Math.max(o.xp, d.xp), w: Math.max(o.w || 0, d.w || 0) }; }
   const wk = weekKey(); out.weekCorrect = Object.entries(out.days).filter(([k]) => k >= wk).reduce((acc, [, d]) => acc + d.c, 0);
-  out.since = since;
+  out.since = since; out.resetAt = Math.max(a.resetAt || 0, b.resetAt || 0) || undefined;
   out.badges = [...new Set([...(a.badges || []), ...(b.badges || [])])]; out.unlocked = [...new Set([...(a.unlocked || []), ...(b.unlocked || [])])];
   const byId = (arr) => Object.fromEntries((arr || []).map(x => [x.id, x]));
   out.decks = Object.values({ ...byId(b.decks), ...byId(a.decks) }); out.exams = Object.values({ ...byId(b.exams), ...byId(a.exams) });
@@ -2517,6 +2517,74 @@ function mergeProfiles(a, b) {
   out.pet = a.pet || b.pet; out.settings = { ...(b.settings || {}), ...(a.settings || {}) };
   return out;
 }
+/* ========= Familjekonfiguration (privat) =========
+   Allt som är specifikt för EN familj – barnens namn, vilken kursmall de följer, tema, prov, skolans glosor,
+   lärarens kommentar – ligger här, inte i den publika koden. Konfigurationen sparas som dokumentet `_config`
+   i familjens egen molnlagring och cachas lokalt så att appen fungerar offline.
+   Form:
+   { v: 1, updatedAt: <ms>, kids: [ { id, name, template: 'ak8'|'ak4'|'ak2', theme: 'teen'|'sport'|'pet', hue, emoji, paper,
+       exams: [{ id, title, date, skillIds, deckIds }], decks: [{ id, lang, name, emoji, level, words: [[w, t, e], …] }],
+       note: { title, lines: [..] } } ] } */
+const FAMILY = {
+  KEY: 'pluggappen.family.v1',
+  cfg: null,
+  THEMES: { teen: 'Tonåring (rank, inga figurer)', sport: 'Sport (Luleå Hockey-kort)', pet: 'Följeslagare' },
+  loadLocal() { try { const raw = localStorage.getItem(FAMILY.KEY); if (raw) { const c = JSON.parse(raw); if (FAMILY.valid(c)) FAMILY.cfg = c; } } catch (e) { /* ignore */ } },
+  saveLocal() { try { if (FAMILY.cfg) localStorage.setItem(FAMILY.KEY, JSON.stringify(FAMILY.cfg)); else localStorage.removeItem(FAMILY.KEY); } catch (e) { /* ignore */ } },
+  valid(c) {
+    if (!c || typeof c !== 'object' || !Array.isArray(c.kids)) return false;
+    return c.kids.every(k => k && typeof k.id === 'string' && /^[a-z0-9_-]{1,24}$/.test(k.id) && typeof k.name === 'string' && k.name.trim().length >= 1 && k.name.length <= 30 && TEMPLATES[k.template]);
+  },
+  // Normalise + fill defaults; strips unknown keys so the config can never carry executable content.
+  clean(c) {
+    const str = (v, max) => (typeof v === 'string' ? v.slice(0, max) : '');
+    return { v: 1, updatedAt: Number(c.updatedAt) || Date.now(), appName: str(c.appName, 40) || undefined, kids: c.kids.map(k => ({
+      id: k.id, name: str(k.name, 30).trim(), template: k.template, theme: ['teen', 'sport', 'pet'].includes(k.theme) ? k.theme : 'pet',
+      hue: ['teal', 'orange', 'pink', 'slate', 'blaugrana', 'rod'].includes(k.hue) ? k.hue : 'teal', emoji: str(k.emoji, 4) || '🙂', paper: str(k.paper, 20) || null,
+      exams: (Array.isArray(k.exams) ? k.exams : []).map(e => ({ id: str(e.id, 40), title: str(e.title, 60), date: str(e.date, 10), skillIds: (e.skillIds || []).filter(x => typeof x === 'string').slice(0, 60), deckIds: (e.deckIds || []).filter(x => typeof x === 'string').slice(0, 30) })).filter(e => e.id && e.title && /^\d{4}-\d{2}-\d{2}$/.test(e.date)),
+      decks: (Array.isArray(k.decks) ? k.decks : []).map(d => ({ id: str(d.id, 40), lang: ['en', 'es', 'sv', 'de', 'fr'].includes(d.lang) ? d.lang : 'en', name: str(d.name, 60), emoji: str(d.emoji, 4) || '📘', level: [1, 2, 3].includes(d.level) ? d.level : 2, words: (Array.isArray(d.words) ? d.words : []).slice(0, 200).map(w => [str(w[0], 60), str(w[1], 60), str(w[2], 4)]).filter(w => w[0] && w[1]) })).filter(d => d.id && d.name && d.words.length),
+      note: k.note && typeof k.note === 'object' ? { title: str(k.note.title, 60), lines: (Array.isArray(k.note.lines) ? k.note.lines : []).slice(0, 12).map(l => str(l, 200)).filter(Boolean) } : null,
+    })) };
+  },
+  apply(c) { FAMILY.cfg = FAMILY.clean(c); FAMILY.saveLocal(); buildKids(); try { document.title = (FAMILY.cfg.appName || 'Pluggapp'); } catch (e) { /* no DOM */ } },
+  async pull() {
+    if (!SYNC.active) return false;
+    try {
+      const r = await SYNC.fetch(SYNC.url('_config'), { cache: 'no-store' }); if (!r.ok) return false;
+      const doc = await r.json(); const remote = JSON.parse(doc.fields?.json?.stringValue || 'null');
+      if (!FAMILY.valid(remote)) return false;
+      if (!FAMILY.cfg || (remote.updatedAt || 0) > (FAMILY.cfg.updatedAt || 0)) { FAMILY.apply(remote); return true; }
+    } catch (e) { /* offline – keep local */ }
+    return false;
+  },
+  async push() {
+    if (!SYNC.active || !FAMILY.cfg) return false;
+    const body = { fields: { json: { stringValue: JSON.stringify(FAMILY.cfg) }, updatedAt: { integerValue: String(FAMILY.cfg.updatedAt) }, kid: { stringValue: 'config' } } };
+    try { const r = await SYNC.fetch(SYNC.url('_config'), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); return r.ok; } catch (e) { return false; }
+  },
+  // Parent: import a config JSON (pasted). Returns { ok, msg }.
+  async importJson(text) {
+    let c; try { c = JSON.parse(text); } catch (e) { return { ok: false, msg: 'Det där är inte giltig JSON.' }; }
+    if (!FAMILY.valid(c)) return { ok: false, msg: 'Konfigurationen saknar barn, eller har ett okänt mall-id (ak8, ak4, ak2).' };
+    c.updatedAt = Date.now(); FAMILY.apply(c); load(); const pushed = await FAMILY.push();
+    return { ok: true, msg: pushed ? `${FAMILY.cfg.kids.length} barn inlästa och sparade i molnet.` : `${FAMILY.cfg.kids.length} barn inlästa (sparas i molnet när synken är igång).` };
+  },
+  exportJson() { return JSON.stringify(FAMILY.cfg, null, 2); },
+  update(mut) { if (!FAMILY.cfg) return; mut(FAMILY.cfg); FAMILY.cfg.updatedAt = Date.now(); FAMILY.apply(FAMILY.cfg); load(); FAMILY.push(); },
+};
+// Bygger KIDS (det appen jobbar med) av mall + familjekonfiguration. Idempotent.
+function buildKids() {
+  KIDS.length = 0;
+  if (!FAMILY.cfg) return;
+  for (const c of FAMILY.cfg.kids) {
+    const tpl = TEMPLATES[c.template];
+    const skills = [...tpl.skills, ...(MORE_SKILLS[c.template] || []), ...(SO_SKILLS[c.template] || []), ...(typeof SV_SKILLS !== 'undefined' ? SV_SKILLS[c.template] || [] : []), ...(typeof NASO_SKILLS !== 'undefined' ? NASO_SKILLS[c.template] || [] : [])];
+    skills.forEach(s => { if (!s.group) s.group = 'math'; });
+    KIDS.push({ id: c.id, name: c.name, grade: tpl.grade, emoji: c.emoji, hue: c.hue, theme: c.theme, teen: c.theme === 'teen', template: c.template, note: c.note, paper: c.paper, cfgDecks: c.decks.map(deckFromConfig), cfgExams: c.exams, skills });
+  }
+}
+// Standardvärden per barn: mallens inställningar + familjens prov och glosor.
+const kidDefaults = (kidId) => { const k = KIDS.find(x => x.id === kidId); if (!k) return null; const tpl = TEMPLATES[k.template]; return { settings: { ...tpl.defaults }, decks: [...tpl.decks, ...k.cfgDecks.map(d => d.id)], exams: k.cfgExams.map(e => ({ ...e, skillIds: [...e.skillIds], deckIds: [...e.deckIds] })), paper: k.paper || 'rutat' }; };
 /* ========= Push reminders (self-hosted build only; needs service worker + VAPID public key + sync) ========= */
 const PUSH = {
   key: typeof window !== 'undefined' ? window.PLUGG_PUSH_KEY || null : null,
@@ -2561,22 +2629,19 @@ const DAYMS = 86400000;
 const todayKey = (d = new Date()) => { const z = new Date(d.getTime() - d.getTimezoneOffset() * 60000); return z.toISOString().slice(0, 10); };
 const addDays = (key, n) => { const d = new Date(key + 'T00:00:00'); d.setDate(d.getDate() + n); return todayKey(d); };
 const weekKey = () => { const d = new Date(); const day = (d.getDay() + 6) % 7; d.setDate(d.getDate() - day); return todayKey(d); };
-const KID_DEFAULTS = {
-  adam: { settings: { focus: true, sprint: 5, timer: false, tts: true, goal: 10, dark: false }, decks: ['en8_verb', 'en8_ord', 'es_halsa', 'es_siffror', 'es_farger', 'es_djur', 'es_familj', 'es_mat', 'es_kropp', 'es_skola', 'es_klader', 'es_kanslor', 'es_fraser', 'en_djur', 'en_mat', 'en_hem'], exams: [{ id: 'alg12', title: 'Prov 12 Algebra', date: '2026-11-18', skillIds: ['multin', 'forenkla', 'blandat', 'talfoljd', 'ekvation', 'problemekv', 'andragrad'], deckIds: [] }, { id: 'kemi4', title: 'Kemiprov: Syror och baser', date: '2026-11-26', skillIds: ['kemi_syror', 'kemi_baser', 'kemi_ph', 'kemi_starka', 'kemi_neutral', 'kemi_vardag', 'kemi_kropp_natur', 'kemi_saker'], deckIds: [] }] },
-  filip: { settings: { focus: false, sprint: 10, timer: false, tts: true, goal: 10 }, paper: 'lulea', decks: ['en_kates_day', 'en_djur', 'en_mat', 'en_hem', 'en_skola', 'en_vader', 'en_verb', 'en_tid', 'en_fraser', 'es_halsa', 'es_siffror', 'es_farger', 'es_djur', 'es_familj', 'es_mat', 'es_kropp', 'es_skola', 'es_klader', 'es_kanslor', 'es_fraser'], exams: [{ id: 'kates_day', title: "Glosförhör: Kate's Day", date: '2026-11-02', skillIds: [], deckIds: ['en_kates_day'] }] },
-  clara: { settings: { focus: false, sprint: 8, timer: false, tts: true, goal: 8 }, decks: ['es_halsa', 'es_siffror', 'es_farger', 'es_djur', 'es_familj', 'es_mat', 'es_kropp', 'es_skola', 'es_klader', 'es_kanslor', 'es_fraser'], exams: [] },
-};
-const defaultProfile = (kidId) => ({ xp: 0, gems: 0, skills: {}, days: {}, streak: 0, lastDay: null, freezes: 1, freezeWeek: weekKey(), tests: [], cards: [], words: {}, decks: [], enabledDecks: [...(KID_DEFAULTS[kidId]?.decks || [])], exams: (KID_DEFAULTS[kidId]?.exams || []).map(e => ({ ...e })), quests: null, pet: null, settings: { ...(KID_DEFAULTS[kidId]?.settings || { focus: false, sprint: 8, timer: false, tts: true, goal: 10 }) }, badges: [], sessions: 0, perfect: 0, unlocked: [], paper: KID_DEFAULTS[kidId]?.paper || 'rutat', accent: null, blitz: {}, week: weekKey(), weekCorrect: 0, sprintsSinceBreak: 0, claimedAll: null });
+// Barnens standardvärden (prov, glosor, inställningar, tema) kommer från familjekonfigurationen – se 04a_family.js (kidDefaults).
+const defaultProfile = (kidId) => { const kd = kidDefaults(kidId) || { settings: { focus: false, sprint: 8, timer: false, tts: true, goal: 10 }, decks: [], exams: [], paper: 'rutat' }; return { xp: 0, gems: 0, skills: {}, days: {}, streak: 0, lastDay: null, freezes: 1, freezeWeek: weekKey(), tests: [], cards: [], words: {}, decks: [], enabledDecks: [...kd.decks], exams: kd.exams.map(e => ({ ...e })), quests: null, pet: null, settings: { ...kd.settings }, badges: [], sessions: 0, perfect: 0, unlocked: [], paper: kd.paper, accent: null, blitz: {}, week: weekKey(), weekCorrect: 0, sprintsSinceBreak: 0, claimedAll: null }; };
 let DB = { profiles: {}, settings: { pin: '1234', goals: {}, sound: true } };
 function load() {
   try { const raw = localStorage.getItem(STORE_KEY); if (raw) { const parsed = JSON.parse(raw); DB = { ...DB, ...parsed, settings: { ...DB.settings, ...(parsed.settings || {}) } }; } } catch (e) { /* storage unavailable: run in memory */ }
   for (const k of KIDS) {
     const d = defaultProfile(k.id); const old = DB.profiles[k.id] || {};
     const p = { ...d, ...old, settings: { ...d.settings, ...(old.settings || {}) } };
-    if (!old.exams && KID_DEFAULTS[k.id]) p.exams = d.exams; // v1 → v2
+    if (!old.exams) p.exams = d.exams; // v1 → v2
     if (!old.enabledDecks) p.enabledDecks = d.enabledDecks;
     if (!p.v5light) { p.v5light = true; if (p.settings.dark === true) p.settings.dark = false; }
-    if (k.id === 'filip' && !p.v4lulea) { p.v4lulea = true; if (!old.paper || old.paper === 'rutat' || old.paper === 'barca') p.paper = 'lulea'; }
+    if (k.paper && !p.v4lulea) { p.v4lulea = true; if (!old.paper || old.paper === 'rutat' || old.paper === 'barca') p.paper = k.paper; }
+    for (const cd of k.cfgDecks) { const i = p.decks.findIndex(x => x.id === cd.id); if (i >= 0) p.decks[i] = cd; else p.decks.push(cd); } // skolans glosor från familjekonfigurationen
     if (!p.v2es) { p.v2es = true; for (const id of d.enabledDecks) if (!p.enabledDecks.includes(id)) p.enabledDecks.push(id); }
     for (const id of d.enabledDecks) if (!p.enabledDecks.includes(id) && !(p.removedDefaults || []).includes(id)) p.enabledDecks.push(id);
     for (const e of d.exams) { const ex = p.exams.find(x => x.id === e.id); if (ex) { for (const id of e.skillIds) if (!ex.skillIds.includes(id)) ex.skillIds.push(id); } else if (!(p.removedDefaults || []).includes(e.id)) p.exams.push({ ...e, skillIds: [...e.skillIds], deckIds: [...e.deckIds] }); }
@@ -2900,6 +2965,9 @@ function applyLook(kid) {
 }
 function render(html) { app.innerHTML = html; window.scrollTo({ top: 0 }); }
 function kidById(id) { return KIDS.find(k => k.id === id); }
+// Appens namn kommer från familjekonfigurationen (t.ex. "Familjen Xs Pluggapp"); utan konfiguration heter den bara Pluggapp.
+function appName() { return (FAMILY.cfg && FAMILY.cfg.appName) || 'Pluggapp'; }
+function logoHtml() { const n = appName(); const i = n.lastIndexOf(' '); return i > 0 ? `${esc(n.slice(0, i))} <span>${esc(n.slice(i + 1))}</span>` : `<span>${esc(n)}</span>`; }
 function go(screen, extra = {}) { if (S && S.timer) clearInterval(S.timer); state = { ...state, screen, ...extra }; if (screen === 'start' || screen === 'parent') { state.kid = null; applyLook(null); } else applyLook(kidById(state.kid)); VIEWS[screen](); }
 function topbar(title, back, right = '') { return `<div class="topbar"><button class="icon-btn" data-go="${back}" aria-label="Tillbaka">${ICON.back}</button><div class="title grow">${title}</div>${right}</div>`; }
 function daysUntil(dateStr) { const d = new Date(dateStr + 'T00:00:00'); const now = new Date(); now.setHours(0, 0, 0, 0); return Math.round((d - now) / DAYMS); }
@@ -2919,9 +2987,19 @@ const levelNameFor = (kid, l) => { const arr = isTeen(kid) ? TEEN_LEVELS : isSpo
 const VIEWS = {};
 
 VIEWS.start = () => {
+  if (!KIDS.length) {
+    return render(`
+  <div class="start-hero stack" style="gap:6px"><div class="logo">${logoHtml()}</div><p class="muted">Appen är inte kopplad till någon familj ännu.</p></div>
+  <div class="stack" style="margin-top:14px">
+    ${SYNC.cfg ? `<div class="card stack" style="gap:10px"><div class="eyebrow">Koppla till familjen</div><p class="muted" style="font-size:.95rem">${SYNC.family ? 'Enheten har en familjekod men inga familjeinställningar har hämtats ännu. Kontrollera nätet och försök igen, eller läs in inställningarna i föräldraläget.' : 'Skriv in familjekoden du fått av en förälder, eller öppna länken som skickats till dig.'}</p>
+      ${SYNC.family ? '' : `<div class="field"><label for="pairCode">Familjekod</label><input id="pairCode" autocapitalize="off" autocomplete="off" placeholder="kod"></div>`}
+      <div class="row"><button class="btn grow" data-act="${SYNC.family ? 'retryFamily' : 'pairFamily'}">${SYNC.family ? 'Försök igen' : 'Koppla'}</button></div><div id="syncState">${SYNC.badge()}</div></div>` : `<div class="card"><p class="muted">Den här versionen saknar molnkoppling. Läs in familjeinställningar i föräldraläget.</p></div>`}
+    <button class="link" data-go="parent" style="align-self:center;margin-top:8px">Förälder</button>
+  </div>`);
+  }
   render(`
   <div class="start-hero stack" style="gap:6px">
-    <div class="logo">Öhgrens <span>Pluggapp</span></div>
+    <div class="logo">${logoHtml()}</div>
     <p class="muted">Vem ska plugga?</p>
   </div>
   <div class="stack" style="margin-top:14px">
@@ -2968,7 +3046,7 @@ VIEWS.home = () => {
   const today = p.days[todayKey()] || { c: 0, n: 0 }; const goal = goalFor(kid.id);
   const quests = dailyQuests(kid); const rec = recommendSprint(kid);
   const decks = enabledDecks(p);
-  const weekTarget = kid.id === 'clara' ? 40 : 60;
+  const weekTarget = kid.template === 'ak2' ? 40 : 60;
   const examCards = p.exams.filter(e => daysUntil(e.date) >= -1).sort((a, b) => a.date.localeCompare(b.date)).map(e => {
     const days = daysUntil(e.date);
     const ms = e.skillIds.map(id => skillState(p, id).m); const dps = e.deckIds.map(id => deckById(p, id)).filter(Boolean).map(d => deckProgress(p, d).pct);
@@ -3025,7 +3103,7 @@ VIEWS.home = () => {
         </div>`; }).join('')}
       </div></div>`;
     })()}
-    ${kid.id === 'adam' ? `<div class="card teacher"><div class="eyebrow">Lärarens kommentar · 23/10</div><p style="margin-top:4px">Inför provet behöver du träna mer på metoder och uträkningar på att:</p><ul><li>multiplicera in tal i parenteser</li><li>förenkla uttryck med parenteser</li><li>räkna blandade uppgifter med algebraiska uttryck</li><li>skriva uttryck och formel för talföljd</li></ul></div>` : ''}
+    ${kid.note && kid.note.lines.length ? `<div class="card teacher"><div class="eyebrow">${esc(kid.note.title || 'Kommentar från skolan')}</div><ul style="margin-top:6px">${kid.note.lines.map(l => `<li>${esc(l)}</li>`).join('')}</ul></div>` : ''}
     <div>
       <div class="eyebrow" style="margin-bottom:8px">Märken · ${p.badges.length}/${BADGES.length}</div>
       <div class="badge-row">${BADGES.map(b => `<span class="badge ${p.badges.includes(b.id) ? '' : 'off'}"><span class="e">${b.e}</span>${b.name}</span>`).join('')}</div>
@@ -3242,7 +3320,7 @@ VIEWS.practice = () => {
   </div>`);
   initSketch();
   const input = document.getElementById('ans');
-  if (input && kid.id !== 'clara' && !(item.cat === 'math' && item.type === 'num' && kid.id === 'filip' && focus)) setTimeout(() => input.focus({ preventScroll: true }), 50);
+  if (input && kid.template !== 'ak2' && !(item.cat === 'math' && item.type === 'num' && kid.template === 'ak4' && focus)) setTimeout(() => input.focus({ preventScroll: true }), 50);
   if (input && input.tagName !== 'TEXTAREA') input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); document.getElementById('submit')?.click(); } });
   if (item.cat === 'word' && (item.kind === 'intro' || item.kind === 'listen' || (item.kind === 'pick' && item.speak)) && p.settings.tts) setTimeout(() => TTS.speak(item.word.w, item.deck.lang), 250);
 };
@@ -3266,7 +3344,7 @@ function mathBody(q, kid, isTest) {
          </div>`
       : q.type === 'num'
         ? `<input class="answer-input" id="ans" inputmode="${q.answer < 0 ? 'text' : Number.isInteger(q.answer) ? 'numeric' : 'decimal'}" autocomplete="off" placeholder="${Number.isInteger(q.answer) ? '?' : 't.ex. 2,5'}" aria-label="Ditt svar">
-           ${kid.id === 'clara' || q.answer < 0 ? `<div class="keys" style="margin-top:8px;grid-template-columns:repeat(6,1fr)">${['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'].map(k => `<button class="key" data-key="${k}">${k}</button>`).join('')}<button class="key" data-key="−">−</button><button class="key" data-key="⌫">⌫</button></div>` : ''}`
+           ${kid.template === 'ak2' || q.answer < 0 ? `<div class="keys" style="margin-top:8px;grid-template-columns:repeat(6,1fr)">${['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'].map(k => `<button class="key" data-key="${k}">${k}</button>`).join('')}<button class="key" data-key="−">−</button><button class="key" data-key="⌫">⌫</button></div>` : ''}`
         : `<input class="answer-input" id="ans" autocomplete="off" autocapitalize="off" placeholder="Skriv svaret" aria-label="Ditt svar">`;
   const p = prof(kid.id);
   return `<div class="row" style="justify-content:space-between"><span class="eyebrow">Uppgift ${S.i + 1} av ${S.queue.length}${isTest && q.part ? ` · ${q.part}-nivå` : ''}${!isTest && !p.settings.focus ? ` · ${esc(q.skill.short || '')}` : ''}</span><span class="row" style="gap:8px">${TTS.ok && p.settings.tts ? `<button class="icon-btn" data-speak="${esc(q.text.replace(/<[^>]+>/g, ''))}" data-lang="sv" data-highlight="1" style="width:36px;height:36px" aria-label="Läs upp">${ICON.speaker}</button>` : ''}<span class="lvl-dots" aria-label="Svårighet ${q.level}">${[1, 2, 3].map(i => `<i class="${i <= q.level ? 'on' : ''}"></i>`).join('')}</span></span></div>
@@ -3396,7 +3474,7 @@ function onMath(e, q) {
   const key = e.target.closest('[data-key]'); const input = document.getElementById('ans');
   if (key && input) { const k = key.dataset.key; if (k === '⌫') input.value = input.value.trimEnd().slice(0, -1).trimEnd(); else input.value = (input.value + k).replace(/\s{2,}/g, ' '); input.focus({ preventScroll: true }); return; }
   const ch = e.target.closest('[data-choice]');
-  if (ch) { document.querySelectorAll('.choice, .wchoice').forEach(c => c.classList.remove('sel')); ch.classList.add('sel'); S.selected = Number(ch.dataset.choice); document.getElementById('submit').disabled = false; if (S.kid.id === 'clara' || prof(S.kid.id).settings.focus || q.type === 'choicetext') document.getElementById('submit').click(); return; }
+  if (ch) { document.querySelectorAll('.choice, .wchoice').forEach(c => c.classList.remove('sel')); ch.classList.add('sel'); S.selected = Number(ch.dataset.choice); document.getElementById('submit').disabled = false; if (S.kid.template === 'ak2' || prof(S.kid.id).settings.focus || q.type === 'choicetext') document.getElementById('submit').click(); return; }
   if (e.target.closest('#hintBtn')) { S.usedHelp = true; document.getElementById('fb').innerHTML = `<div class="hint">💡 ${q.hint}</div>`; e.target.closest('#hintBtn').disabled = true; return; }
   if (e.target.closest('#explainBtn')) { S.usedHelp = true; showSteps(q, true); return; }
   if (e.target.closest('#submit')) { submitMath(); }
@@ -3576,11 +3654,11 @@ VIEWS.parent = () => {
     <div class="stack" style="margin-top:20px"><div class="card pad-lg stack" style="text-align:center;gap:14px"><h2>Ange kod</h2><p class="muted">Fyra siffror. Standardkoden är 1234 – byt den under ⚙.</p>
       <div class="pin">${[0, 1, 2, 3].map(i => `<input inputmode="numeric" maxlength="1" data-pin="${i}" aria-label="Siffra ${i + 1}">`).join('')}</div><p class="muted" id="pinMsg" style="min-height:1.4em"></p></div></div>`);
     const inputs = [...document.querySelectorAll('[data-pin]')]; inputs[0].focus();
-    inputs.forEach((inp, i) => inp.addEventListener('input', () => { inp.value = inp.value.replace(/\D/g, '').slice(-1); if (inp.value && i < 3) inputs[i + 1].focus(); const code = inputs.map(x => x.value).join(''); if (code.length === 4) { if (code === DB.settings.pin) { parentUnlocked = true; state.tab = state.tab || 'adam'; VIEWS.parent(); } else { document.getElementById('pinMsg').textContent = 'Fel kod'; inputs.forEach(x => x.value = ''); inputs[0].focus(); } } }));
+    inputs.forEach((inp, i) => inp.addEventListener('input', () => { inp.value = inp.value.replace(/\D/g, '').slice(-1); if (inp.value && i < 3) inputs[i + 1].focus(); const code = inputs.map(x => x.value).join(''); if (code.length === 4) { if (code === DB.settings.pin) { parentUnlocked = true; state.tab = state.tab || (KIDS[0] ? KIDS[0].id : 'settings'); VIEWS.parent(); } else { document.getElementById('pinMsg').textContent = 'Fel kod'; inputs.forEach(x => x.value = ''); inputs[0].focus(); } } }));
     inputs.forEach((inp, i) => inp.addEventListener('keydown', (e) => { if (e.key === 'Backspace' && !inp.value && i > 0) inputs[i - 1].focus(); }));
     return;
   }
-  const tab = state.tab || 'adam'; const kid = kidById(tab);
+  const tab = state.tab || (KIDS[0] ? KIDS[0].id : 'settings'); const kid = kidById(tab);
   const sub = state.sub || 'overview';
   if (tab === 'settings' && SYNC.active && !PUSH.lastStatus) PUSH.loadStatus().then(() => { if (state.screen === 'parent' && state.tab === 'settings') VIEWS.parent(); });
   let body = '';
@@ -3598,6 +3676,7 @@ VIEWS.parent = () => {
       <div class="toggle"><div><div class="tl">Ljud</div><div class="td">Pling vid rätt/fel</div></div><button class="switch ${DB.settings.sound ? 'on' : ''}" data-act="toggleSound" aria-label="Ljud"></button></div>
       <div class="row" style="gap:8px;align-items:center;flex-wrap:wrap"><button class="btn ghost" data-act="testSound">Testa ljud</button><span class="muted" style="font-size:.85rem" id="soundState">${typeof window !== 'undefined' && window.PLUGG_BUILD ? 'Version ' + window.PLUGG_BUILD : ''}</span></div>
       <button class="btn secondary" data-act="savePin">Spara kod</button></div>
+      ${familyCard()}
       ${SYNC.cfg ? `<div class="card stack" style="gap:10px"><div class="eyebrow">Synk mellan enheter</div><p class="muted" style="font-size:.95rem">Alla enheter med samma familjekod delar framsteg automatiskt. Välj en lång, egen kod (bokstäver, siffror, bindestreck) och skriv in samma på varje enhet – eller öppna appen på den andra enheten via länken nedan.</p>
       <div class="field"><label for="famCode">Familjekod</label><input id="famCode" value="${esc(DB.settings.family || '')}" placeholder="t.ex. familjen-xk93-plugg" autocapitalize="off"></div>
       <div class="row"><button class="btn secondary" data-act="saveFamily">Spara och synka</button>${SYNC.family ? `<button class="btn ghost" data-act="copyFamLink">Kopiera länk med kod</button>` : ''}</div>
@@ -3605,7 +3684,7 @@ VIEWS.parent = () => {
       <div class="card stack" style="gap:8px"><div class="eyebrow">Så fungerar appen</div>
       <p style="font-size:.95rem"><b>Matte:</b> alla uppgifter slumpas – obegränsat med övning. Svårigheten höjs efter fyra rätt i rad och sänks efter tre fel. "Kör!" väljer det barnet behöver mest: prov inom 30 dagar, annars dagens uppdrag. Fel svar återkommer senare i sprinten.</p>
       <p style="font-size:.95rem"><b>Språk:</b> ord repeteras med spaced repetition (boxar 0–5, intervall 1–30 dagar). En lektion blandar nya ord, välj rätt, lyssna, para ihop, bygg ordet och skriv. Uppläsningen använder telefonens egen röst.</p>
-      <p style="font-size:.95rem"><b>Fokusläge</b> (för ADHD): korta sprintar, en sak i taget på skärmen, "N kvar" i stället för poäng, pauspåminnelse efter två sprintar, svar med ett tryck när det går. Slås på per barn under Inställningar.</p>
+      <p style="font-size:.95rem"><b>Fokusläge</b> (för den som lätt tappar fokus): korta sprintar, en sak i taget på skärmen, "N kvar" i stället för poäng, pauspåminnelse efter två sprintar, svar med ett tryck när det går. Slås på per barn under Inställningar.</p>
       <p style="font-size:.95rem"><b>Motivation:</b> följeslagare som växer med XP, tre dagliga uppdrag, ädelstenar och butik, streak med frys, veckoutmaning, märken och blixtläge.</p>
       <p style="font-size:.95rem" class="muted">Framsteg sparas på barnets enhet. Flytta med kod under Översikt.</p></div>`;
   }
@@ -3671,7 +3750,7 @@ function parentDecks(kid, p) {
     ${p.decks.length ? `<div class="card"><div class="eyebrow" style="margin-bottom:8px">Egna glosläxor</div>${p.decks.map(d => `<div class="row" style="justify-content:space-between;padding:6px 0;border-top:1px solid var(--line)"><div><b>${d.emoji} ${esc(d.name)}</b><div class="muted" style="font-size:.85rem">${d.words.length} ord · ${LANGS[d.lang]?.name || 'Egna'}</div></div><div class="row"><button class="btn ghost" style="min-height:36px;padding:0 10px" data-edit-deck="${d.id}">Ändra</button><button class="btn ghost danger" style="min-height:36px;padding:0 10px" data-del-deck="${d.id}">Ta bort</button></div></div>`).join('')}</div>` : ''}
     <div class="card stack" style="gap:12px"><div class="eyebrow">${state.editDeck ? 'Ändra glosläxa' : 'Ny glosläxa'}</div>
       <div class="field"><label for="dkName">Namn</label><input id="dkName" placeholder="t.ex. Engelska v.44" value="${esc(state.editDeck?.name || '')}"></div>
-      <div class="field"><label for="dkLang">Språk (styr uppläsning och övningstyper)</label><select id="dkLang">${[['en', 'Engelska'], ['es', 'Spanska'], ['sv', 'Svenska / fakta (ingen stavning)']].map(([v, l]) => `<option value="${v}" ${(state.editDeck?.lang || (kid.id === 'clara' ? 'es' : 'en')) === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+      <div class="field"><label for="dkLang">Språk (styr uppläsning och övningstyper)</label><select id="dkLang">${[['en', 'Engelska'], ['es', 'Spanska'], ['sv', 'Svenska / fakta (ingen stavning)']].map(([v, l]) => `<option value="${v}" ${(state.editDeck?.lang || (kid.template === 'ak2' ? 'es' : 'en')) === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
       <div class="field"><label for="dkWords">Ord – en rad per ord: <code>främmande ord = svenska</code>. Valfri emoji sist: <code>dog = hund = 🐶</code></label><textarea class="cards" id="dkWords" placeholder="dog = hund = 🐶
 cat = katt
 Vilket år startade andra världskriget? = 1939">${esc((state.editDeck?.words || []).map(w => `${w.w} = ${w.t}${w.e ? ' = ' + w.e : ''}`).join('\n'))}</textarea></div>
@@ -3682,7 +3761,7 @@ function parentSettings(kid, p) {
   const s = p.settings;
   const tg = (key, label, desc) => `<div class="toggle"><div><div class="tl">${label}</div><div class="td">${desc}</div></div><button class="switch ${s[key] ? 'on' : ''}" data-setting="${key}" aria-label="${label}"></button></div>`;
   return `<div class="card">
-    ${tg('focus', 'Fokusläge', 'Korta sprintar, en sak i taget, "N kvar" i stället för poäng, pauspåminnelse, svar med ett tryck. Rekommenderas vid ADHD.')}
+    ${tg('focus', 'Fokusläge', 'Korta sprintar, en sak i taget, "N kvar" i stället för poäng, pauspåminnelse, svar med ett tryck. Bra för den som har svårt att hålla fokus länge.')}
     ${tg('tts', 'Uppläsning', 'Läs upp ord och uppgifter med telefonens röst (bra för yngre barn och språk).')}
     ${tg('timer', 'Visa tid', 'Visar en klocka under sprintar. Av = mindre stress.')}
     ${tg('dark', 'Mörkt tema', 'Mörk bakgrund i appen (barnet kan också byta i butiken).')}
@@ -3691,7 +3770,33 @@ function parentSettings(kid, p) {
     <div class="toggle"><div><div class="tl">Sprintlängd</div><div class="td">Antal uppgifter per sprint</div></div><div class="seg">${[5, 8, 10, 15].map(n => `<button class="${s.sprint === n ? 'on' : ''}" data-sprint="${n}">${n}</button>`).join('')}</div></div>
     <div class="toggle"><div><div class="tl">Dagligt mål</div><div class="td">Rätt svar per dag</div></div><div class="seg">${[5, 8, 10, 15, 20].map(n => `<button class="${s.goal === n ? 'on' : ''}" data-goal="${n}">${n}</button>`).join('')}</div></div>
   </div>
-  <div class="card stack" style="gap:8px"><div class="eyebrow">Tips för ADHD</div><p style="font-size:.95rem">Håll sprintarna korta (5) och fira att sprinten är klar, inte poängen. Samma tid varje dag (direkt efter mellanmålet) bygger vanan. Låt barnet välja uppdrag själv – autonomi ökar motivationen. Pausen efter två sprintar är inte slöseri, den gör att hjärnan hinner lagra.</p></div>`;
+  <div class="card stack" style="gap:8px"><div class="eyebrow">Tips för fokus</div><p style="font-size:.95rem">Håll sprintarna korta (5) och fira att sprinten är klar, inte poängen. Samma tid varje dag (direkt efter mellanmålet) bygger vanan. Låt barnet välja uppdrag själv – autonomi ökar motivationen. Pausen efter två sprintar är inte slöseri, den gör att hjärnan hinner lagra.</p></div>`;
+}
+
+
+/* ========= Parent: family configuration (names, templates, themes – private, synced as _config) ========= */
+const HUES = [['teal', 'Turkos'], ['orange', 'Orange'], ['pink', 'Rosa'], ['slate', 'Grå'], ['rod', 'Röd']];
+function familyCard() {
+  const kids = FAMILY.cfg ? FAMILY.cfg.kids : [];
+  const row = (k) => `<div class="card stack" style="gap:8px;padding:12px" data-kidrow="${esc(k.id)}">
+      <div class="row" style="gap:8px"><input class="answer-input grow" data-f="name" value="${esc(k.name)}" maxlength="30" placeholder="Namn" style="min-height:44px;font-size:1rem;text-align:left"><input class="answer-input" data-f="emoji" value="${esc(k.emoji || '')}" maxlength="4" style="width:64px;min-height:44px;font-size:1.2rem" aria-label="Emoji"></div>
+      <div class="row" style="gap:8px;flex-wrap:wrap">
+        <select data-f="template" class="answer-input" style="min-height:44px;font-size:.95rem">${Object.entries(TEMPLATES).map(([id, t]) => `<option value="${id}" ${k.template === id ? 'selected' : ''}>Kurs ${t.label}</option>`).join('')}</select>
+        <select data-f="theme" class="answer-input" style="min-height:44px;font-size:.95rem">${Object.entries(FAMILY.THEMES).map(([id, t]) => `<option value="${id}" ${k.theme === id ? 'selected' : ''}>${t}</option>`).join('')}</select>
+        <select data-f="hue" class="answer-input" style="min-height:44px;font-size:.95rem">${HUES.map(([id, t]) => `<option value="${id}" ${k.hue === id ? 'selected' : ''}>${t}</option>`).join('')}</select>
+      </div>
+      <div class="row" style="justify-content:space-between"><span class="muted" style="font-size:.85rem">id: ${esc(k.id)}${k.decks.length ? ` · ${k.decks.length} egna glosor` : ''}${k.exams.length ? ` · ${k.exams.length} prov` : ''}</span><button class="link" data-act="removeKid" data-id="${esc(k.id)}" style="color:var(--bad)">Ta bort ur familjen</button></div>
+    </div>`;
+  return `<div class="card stack" style="gap:10px"><div class="eyebrow">Familj</div>
+    <p class="muted" style="font-size:.95rem">Barnens namn, kurs och tema sparas i familjens privata inställningar – inte i appens kod. Alla enheter hämtar dem automatiskt.</p>
+    ${kids.map(row).join('') || '<p class="muted">Inga barn ännu. Lägg till ett barn eller läs in en konfiguration.</p>'}
+    <div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn secondary" data-act="saveFamilyCfg">Spara familj</button><button class="btn ghost" data-act="addKid">Lägg till barn</button><button class="btn ghost" data-act="toggleCfgJson">Läs in / exportera</button></div>
+    <div id="cfgJsonWrap" class="stack hidden" style="gap:8px"><textarea id="cfgJson" rows="6" class="answer-input" style="font-size:.8rem;text-align:left;font-family:ui-monospace,monospace" placeholder='{"kids":[{"id":"…","name":"…","template":"ak4"}]}'>${FAMILY.cfg ? esc(FAMILY.exportJson()) : ''}</textarea><div class="row" style="gap:8px"><button class="btn secondary" data-act="importCfg">Läs in</button><button class="btn ghost" data-act="copyCfg">Kopiera</button></div></div>
+  </div>`;
+}
+function readFamilyRows() {
+  const rows = [...document.querySelectorAll('[data-kidrow]')];
+  return rows.map(r => { const old = FAMILY.cfg.kids.find(k => k.id === r.dataset.kidrow) || {}; const g = (f) => r.querySelector(`[data-f="${f}"]`)?.value; return { ...old, id: r.dataset.kidrow, name: (g('name') || '').trim(), emoji: g('emoji') || '🙂', template: g('template'), theme: g('theme'), hue: g('hue') }; });
 }
 
 /* ========= Event delegation ========= */
@@ -3736,6 +3841,14 @@ app.addEventListener('click', (e) => {
     if (a === 'testSound') { const on = DB.settings.sound; DB.settings.sound = true; beep('perfect'); DB.settings.sound = on; const el = document.getElementById('soundState'); if (el) el.textContent = `Ljud ${on ? 'på' : 'AV'} · ctx ${audioCtx ? audioCtx.state : 'saknas'} · ${window.navigator.standalone ? 'hemskärm' : 'webbläsare'} · ${window.PLUGG_BUILD || ''}`; return; }
     if (a === 'sound' || a === 'toggleSound') { DB.settings.sound = !DB.settings.sound; save(); return a === 'sound' ? VIEWS.home() : VIEWS.parent(); }
     if (a === 'saveFamily') { const v = document.getElementById('famCode').value.trim().replace(/[^a-zA-Z0-9\-]/g, ''); if (v.length < 6) return toast('Minst 6 tecken, bara bokstäver, siffror och bindestreck'); DB.settings.family = v; save(); toast('Synkar…'); SYNC.refreshAll().then(() => { toast(SYNC.status === 'ok' ? 'Synk aktiv' : 'Synkfel – kontrollera uppkopplingen'); VIEWS.parent(); }); return; }
+    if (a === 'saveFamilyCfg') { if (!FAMILY.cfg) FAMILY.cfg = { v: 1, updatedAt: Date.now(), kids: [] }; const kids = readFamilyRows(); if (kids.some(k => !k.name)) return toast('Alla barn behöver ett namn'); FAMILY.update(c => { c.kids = kids; }); toast('Familjen sparad'); return VIEWS.parent(); }
+    if (a === 'addKid') { if (!FAMILY.cfg) { FAMILY.cfg = { v: 1, updatedAt: Date.now(), kids: [] }; } const kids = readFamilyRows(); let id = 'barn' + (kids.length + 1); while (kids.some(k => k.id === id)) id += 'x'; FAMILY.update(c => { c.kids = [...kids, { id, name: '', template: 'ak4', theme: 'pet', hue: 'teal', emoji: '🙂', exams: [], decks: [] }]; }); return VIEWS.parent(); }
+    if (a === 'removeKid') { const id = t.dataset.id; const k = FAMILY.cfg?.kids.find(x => x.id === id); if (!k) return; if (!confirm(`Ta bort ${k.name} ur familjen?\n\nBarnet försvinner från startsidan på alla enheter. Framstegen raderas INTE – de ligger kvar i molnet tills du raderar dem under "Radera data".`)) return; FAMILY.update(c => { c.kids = c.kids.filter(x => x.id !== id); }); toast(`${k.name} borttagen`); return VIEWS.parent(); }
+    if (a === 'toggleCfgJson') { document.getElementById('cfgJsonWrap')?.classList.toggle('hidden'); return; }
+    if (a === 'importCfg') { const txt = document.getElementById('cfgJson')?.value || ''; FAMILY.importJson(txt).then(r => { toast(r.msg); if (r.ok) VIEWS.parent(); }); return; }
+    if (a === 'copyCfg') { const txt = FAMILY.cfg ? FAMILY.exportJson() : ''; navigator.clipboard?.writeText(txt).then(() => toast('Kopierat')).catch(() => toast('Kunde inte kopiera')); return; }
+    if (a === 'pairFamily') { const v = (document.getElementById('pairCode')?.value || '').trim().replace(/[^a-zA-Z0-9\-.]/g, ''); if (v.length < 6) return toast('Koden är för kort'); DB.settings.family = v; save(); toast('Hämtar familjen…'); FAMILY.pull().then(ok => { load(); if (!ok) toast('Hittade inga familjeinställningar för den koden'); VIEWS.start(); SYNC.refreshAll(); }); return; }
+    if (a === 'retryFamily') { toast('Hämtar…'); FAMILY.pull().then(ok => { load(); if (!ok) toast('Inga familjeinställningar hittades'); VIEWS.start(); SYNC.refreshAll(); }); return; }
     if (a === 'copyFamLink') { const link = location.origin + location.pathname + '#fam-' + SYNC.family; navigator.clipboard?.writeText(link).then(() => toast('Länk kopierad – skicka den till barnets andra enhet')).catch(() => toast(link)); return; }
     if (a === 'savePin') { const v = document.getElementById('newPin').value.replace(/\D/g, ''); if (v.length !== 4) return toast('Koden ska vara 4 siffror'); DB.settings.pin = v; save(); toast('Sparat'); return VIEWS.parent(); }
     if (a === 'addExam') { const p = prof(state.tab); const title = document.getElementById('exTitle').value.trim(); const date = document.getElementById('exDate').value; if (!title || !date) return toast('Fyll i vad och datum'); const skillIds = [...document.querySelectorAll('input[name=ex_skill]:checked')].map(x => x.value); const deckIds = [...document.querySelectorAll('input[name=ex_deck]:checked')].map(x => x.value); p.exams.push({ id: 'ex' + Date.now(), title, date, skillIds, deckIds }); save(); toast('Provet är inlagt'); return VIEWS.parent(); }
@@ -3752,13 +3865,13 @@ app.addEventListener('click', (e) => {
 
 /* ========= Boot ========= */
 function boot(snap) {
-  for (const k of KIDS) { if (MORE_SKILLS[k.id]) k.skills.push(...MORE_SKILLS[k.id]); k.skills.forEach(s => { if (!s.group) s.group = 'math'; }); if (SO_SKILLS[k.id]) k.skills.push(...SO_SKILLS[k.id]); if (typeof SV_SKILLS !== 'undefined' && SV_SKILLS[k.id]) k.skills.push(...SV_SKILLS[k.id]); if (typeof NASO_SKILLS !== 'undefined' && NASO_SKILLS[k.id]) k.skills.push(...NASO_SKILLS[k.id]); if (k.id === 'adam') { k.skills.push(...SO_SKILLS_ADAM); k.teen = true; } if (k.id === 'filip') { k.theme = 'sport'; k.hue = 'rod'; k.emoji = '🏒'; } }
+  FAMILY.loadLocal(); buildKids();
   load(); TTS.init();
   try { window.claude?.hot?.snapshot?.(() => ({ screen: state.screen, kid: state.kid })); } catch (e) { /* no hot */ }
   let h = (location.hash || '').replace('#', '');
   if (h.startsWith('fam-') && SYNC.cfg) { DB.settings.family = h.slice(4); try { localStorage.setItem(STORE_KEY, JSON.stringify(DB)); } catch (e) { /* ignore */ } h = ''; } // hash is kept so a home-screen shortcut carries the code (iOS gives it separate storage)
   if (!h && SYNC.cfg && SYNC.family && !location.hash) { try { history.replaceState(null, '', location.pathname + '#fam-' + SYNC.family); } catch (e) { /* ignore */ } }
-  if (SYNC.active) { SYNC.refreshAll().then((changed) => { if (state.screen === 'start' || (changed && state.screen === 'home')) VIEWS[state.screen](); }); document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && SYNC.active && state.screen !== 'practice' && state.screen !== 'blitzplay') SYNC.refreshAll().then((changed) => { if (changed && VIEWS[state.screen]) VIEWS[state.screen](); }); }); }
+  if (SYNC.active) { FAMILY.pull().then((cfgChanged) => { if (cfgChanged) { load(); if (state.screen === 'start') VIEWS.start(); } return SYNC.refreshAll(); }).then((changed) => { if (state.screen === 'start' || (changed && state.screen === 'home')) VIEWS[state.screen](); }); document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && SYNC.active && state.screen !== 'practice' && state.screen !== 'blitzplay') SYNC.refreshAll().then((changed) => { if (changed && VIEWS[state.screen]) VIEWS[state.screen](); }); }); }
   const [hk, hact] = h.split('-');
   if (snap && snap.kid && kidById(snap.kid)) { state.kid = snap.kid; go('home'); }
   else if (kidById(hk) && hact === 'kor') { state.kid = hk; applyLook(kidById(hk)); const kid = kidById(hk); const p = prof(hk); if (!p.pet) { p.pet = isTeen(kid) || isSport(kid) ? 'none' : PETS[0].id; save(); } startSession(kid, recommendSprint(kid).opts); }
@@ -3768,5 +3881,5 @@ function boot(snap) {
   else go('start');
 }
 window.claude?.hot?.ready ? window.claude.hot.ready(boot) : boot(window.claude?.hot?.data ?? null);
-window.PA = { get S() { return S; }, get DB() { return DB; }, get B() { return B; }, Poly, KIDS, BUILTIN_DECKS, SYNC, save, setKid: (id) => { state.kid = id; }, version: '3.0' };
+window.PA = { get S() { return S; }, get DB() { return DB; }, get B() { return B; }, Poly, KIDS, TEMPLATES, FAMILY, buildKids, load, rerender: () => VIEWS[state.screen] && VIEWS[state.screen](), BUILTIN_DECKS, SYNC, save, setKid: (id) => { state.kid = id; }, version: '3.0' };
 </script></body></html>
