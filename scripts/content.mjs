@@ -26,7 +26,29 @@ else if (cmd === 'bundle') {
   if (!a1 || !a2) { console.error('användning: bundle <mapp> <ut.json>'); process.exit(2); }
   const packs = fs.existsSync(path.join(a1, 'packs')) ? readPacks(path.join(a1, 'packs')) : []; const work = fs.existsSync(path.join(a1, 'work.json')) ? JSON.parse(fs.readFileSync(path.join(a1, 'work.json'), 'utf8')) : [];
   const errs = packs.flatMap(p => PACKS.validate(p, { private: true })); if (errs.length) { console.error(errs.join('\n')); process.exit(1); }
-  const r = spawnSync(process.execPath, [path.join(ROOT, 'tests/test_packs.js'), '--dir', path.join(a1, 'packs')], { stdio: 'inherit' }); if (r.status) process.exit(r.status);
+  if (packs.length) { const r = spawnSync(process.execPath, [path.join(ROOT, 'tests/test_packs.js'), '--dir', path.join(a1, 'packs')], { stdio: 'inherit' }); if (r.status) process.exit(r.status); }
+  // Skoluppgifterna: samma regler som appen (FAMILY.cleanContent) + att varje kunskapspunkt finns i ett inbyggt eller ett av familjens paket
+  // Privat termlista (namn m.m., gitignorerad / secret PRIVACY_TERMS) – samma som integritetstestet. Finns den inte: ingen namnkontroll.
+  let PRIV = []; try { PRIV = JSON.parse(process.env.PRIVACY_TERMS || fs.readFileSync(path.join(ROOT, 'tests/privacy_terms.local.json'), 'utf8')).map(x => String(x).toLowerCase()).filter(x => x.length >= 3); } catch (e) { /* ingen lista */ }
+  const known = new Set([...readPacks(PUB), ...packs].flatMap(p => p.kps.map(k => PACKS.cidOf(p.id, k.id)))); const werr = [];
+  const TYPES = ['exam', 'homework', 'vocab', 'practice']; const ids = new Set();
+  for (const w of Array.isArray(work) ? work : [null]) {
+    if (!w || typeof w !== 'object') { werr.push('work.json måste vara en lista med skoluppgifter'); continue; }
+    const at = `skoluppgift ${w.id}`; if (!/^[A-Za-z0-9_-]{2,40}$/.test(w.id || '') || ids.has(w.id)) werr.push(`${at}: id saknas, har fel form eller är dubblerat`); ids.add(w.id);
+    if (!w.kid || !w.title) werr.push(`${at}: kid och title krävs`); if (!TYPES.includes(w.type)) werr.push(`${at}: type måste vara ${TYPES.join('/')}`);
+    if (w.date && !/^\d{4}-\d{2}-\d{2}$/.test(w.date)) werr.push(`${at}: date måste vara ÅÅÅÅ-MM-DD`); if (w.type !== 'practice' && !w.date) werr.push(`${at}: ${w.type} behöver ett datum`);
+    for (const k of w.kps || []) if (!known.has(k)) werr.push(`${at}: okänd kunskapspunkt ${k}`);
+    for (const t of w.teacherQs || []) {
+      if (!t.n || !t.q) werr.push(`${at}: lärarfråga behöver n och q`); if (!(t.kps || []).length) werr.push(`${at} fråga ${t.n}: kps saknas (vilka kunskapspunkter prövar frågan?)`);
+      for (const k of t.kps || []) if (!known.has(k)) werr.push(`${at} fråga ${t.n}: okänd kunskapspunkt ${k}`);
+      if (t.a && !t.typed && (t.not || []).length < 2) werr.push(`${at} fråga ${t.n}: flerval behöver minst två felaktiga alternativ i not (eller typed: true för kort eget svar)`);
+      if (t.typed && String(t.a || '').trim().split(/\s+/).length > 3) werr.push(`${at} fråga ${t.n}: eget svar får vara högst tre ord`);
+    }
+    const txt = JSON.stringify({ ...w, kid: '' }).toLowerCase(); for (const term of PRIV) if (txt.includes(term)) werr.push(`${at}: innehåller ett namn från den privata termlistan – ta bort det (källhänvisningar utan personnamn)`);
+  }
+  if (werr.length) { console.error(werr.join('\n')); process.exit(1); }
+  const gradeable = work.flatMap(w => w.teacherQs || []).filter(t => t.a && (t.typed || (t.not || []).length >= 2)).length;
+  console.log(`skoluppgifter OK: ${work.length} st, ${work.flatMap(w => w.teacherQs || []).length} lärarfrågor (${gradeable} används i Testa mig)`);
   const out = { v: 1, updatedAt: Date.now(), packs, work }; fs.writeFileSync(a2, JSON.stringify(out)); console.log(`skrev ${a2}: ${packs.length} paket, ${work.length} skoluppgifter, ${JSON.stringify(out).length} byte`);
 }
 else if (cmd === 'deploy') {

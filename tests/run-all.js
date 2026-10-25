@@ -31,6 +31,7 @@ const suites = [
   ['2.1 Paket i appen: Kör!, Testa mig, migrering, v1, rollback till 2.0.0', 'test_le_packs_app.js'],
   ['2.1 Läs upp: behörighet per fråga, Yngre-knapp, ingen extern tjänst', 'test_readaloud.js'],
   ['2.1 Små mattebanker åk 2 (former, bråk) – bara v2', 'test_gen2.js'],
+  ['2.2 Study Mission: skoluppgifter, lärarfrågor, uppdrag, innehållshälsa', 'test_study_mission.js'],
 ];
 let failed = 0; const rows = [];
 for (const [name, file, opts = {}] of suites) {

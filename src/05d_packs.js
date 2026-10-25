@@ -335,6 +335,21 @@ const PACKS = (() => {
     return { explain: ent.kp.explain, name: ent.kp.name, q, mistakes: (ent.kp.mistakes || []).slice(0, 2) };
   }
   const info = (cid) => REG.kp[cid] || null;
+  /* 2.1 Innehållshälsa (bara förälder/felsökning): uppgifts-id → vilken fråga det är (text, form, källa) så att en flaggad fråga kan
+     granskas av Claude. Söker paketens varianter (samma id som i passet) och gamla frågebankens rader. Cache per policy och paketversion. */
+  const ITEMS = {};
+  function findItem(item, pol, itemId) {
+    const k = (pol || 'middle') + '#' + regKey(); let ix = ITEMS[k];
+    if (!ix) {
+      ix = ITEMS[k] = new Map();
+      for (const [cid, ent] of Object.entries(REG.kp)) {
+        for (const v of variants(cid, pol || 'middle')) { try { const q = v.build(seeded(7)); ix.set(itemId(q), { cid, pack: ent.pack.id, kp: ent.kp.id, text: String(q.text || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160), form: v.form, src: ent.kp.src || null }); } catch (e) { /* hoppa över */ } }
+      }
+      for (const pack of Object.values(REG.packs)) for (const [kpId, type, text, ans] of pack.legacy || []) { const cid = cidOf(pack.id, kpId); if (!ix.has(legacyId(type, text, ans))) ix.set(legacyId(type, text, ans), { cid, pack: pack.id, kp: kpId, text: String(text).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160), form: 'legacy', src: null }); }
+      for (const old of Object.keys(ITEMS)) if (old !== k) delete ITEMS[old];
+    }
+    return ix.get(item) || null;
+  }
   // Familjens privata paket: tvätta all HTML (bara enkla taggar, inga attribut) och begränsa storleken innan validering
   const cleanHtml = (v) => String(v).replace(/<\/?([a-z0-9]+)[^>]*>/gi, (m, t) => (ALLOWED_TAGS.test(t) ? (m[1] === '/' ? `</${t.toLowerCase()}>` : `<${t.toLowerCase()}>`) : '')).slice(0, 4000);
   function cleanPack(pk) {
@@ -344,7 +359,7 @@ const PACKS = (() => {
   }
   // Hashar för cachning: ändras när paketen ändras (ny rev eller nya privata paket)
   const regKey = () => Object.values(REG.packs).map(p => p.id + '@' + p.rev).sort().join(',');
-  return { TYPES, typeOf, RECIPE, bandOf, key, buildVariant, cleanPack, cleanHtml, VERSION, FORMS, FCODE, DEPTH, BASE_LVL, POLICY_FORMS, TEXT, KINDS, validate, register, clearPrivate, REG, newSkillsFor, kpsFor, skillFor, variants, question, check, teach, info, catalogEntries, legacyId, cidOf, regKey, v1Question, seeded, norm, normT, strip, words, toks, shuffle, lev, ALLOWED_TAGS };
+  return { TYPES, typeOf, RECIPE, bandOf, key, buildVariant, cleanPack, cleanHtml, VERSION, FORMS, FCODE, DEPTH, BASE_LVL, POLICY_FORMS, TEXT, KINDS, validate, register, clearPrivate, REG, newSkillsFor, kpsFor, skillFor, variants, question, check, teach, info, findItem, mc, typed, catalogEntries, legacyId, cidOf, regKey, v1Question, seeded, norm, normT, strip, words, toks, shuffle, lev, ALLOWED_TAGS };
 })();
 // Inbyggda paket (PACK_DATA byggs in av scripts/build.sh från content/packs/*.json)
 if (typeof PACK_DATA !== 'undefined') for (const p of PACK_DATA) PACKS.register(p);

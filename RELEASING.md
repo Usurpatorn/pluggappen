@@ -47,3 +47,24 @@ Settings → Pages → Source: **GitHub Actions**; Settings → Secrets and vari
 - **Nödrollback för alla:** Run workflow med `deploy_ref = release-1.2.0-8d06e53`. 1.2.0 kör v2-data utan fel och lämnar den orörd (`tests/test_le_downgrade.js`); publiceras 2.0.x igen fortsätter v2 där det slutade.
 - Källor: `05b_engine2.js` (motor), `05e_runner.js` (passkörare), `05f_content2.js` (eget svar + Utmaningar), `05g_v2app.js` (barnupplevelse), `05c_shadow.js` (koppling, diagnostik). Rapport: "Learning Engine v2 Build and Release Report".
 - Tester som skyddar övergången: `test_v1_regression` (reserven v1 = 1.2.0), `test_le_v2ui`, `test_le_content`, `test_le_migration`, `test_le_downgrade` (1.2.0 → 2.0.0 → 1.2.0 → 2.0.0), `test_le_deeplink`.
+
+## 2.1.0 – Kunskap i många former + grunden för Study Mission
+- **Concept Packs** (`content/packs/*.json`, spec `docs/CONCEPT_PACKS.md`) byggs in som `PACK_DATA` och ingår i bygg-hashen. Ett
+  moment med paket blir *kunskapspunkter* `k:<paket>/<punkt>`; det gamla momentkonceptet vilar och leder gamla frågor vidare
+  vid omspelning (loggen ändras aldrig). Kvalitetsgrind: `tests/test_packs.js` (`node scripts/content.mjs check`). Id-lås:
+  `content/ids.lock.json` (`node scripts/content.mjs lock` när nya punkter släpps).
+- **Regler 3I.1** (formmedvetna bevis): formkod i bevisets index 19; djupgrind vid stadium 4 (två djupframgångar, frågor från
+  stadium 3); "Säker" kräver djup. 2.0.0 ignorerar fälten. Simulering: `tests/le/forms.js` (via `test_le_forms.js`).
+- **Familjens innehåll** (`profiles/_content`): skoluppgifter och privata paket, skrivs av Claude med
+  `scripts/content.mjs bundle/deploy` (kräver `FAMILY_CODE` + `FIREBASE_SERVICE_ACCOUNT`, aldrig i repot). Appen läser, tvättar och
+  validerar (`FAMILY.cleanContent`) och sparar en lokal kopia. Flöde: `docs/CONTENT_WORKFLOW.md`.
+- **Study Mission-grunden:** uppdragsrubrik på Kör!-knappen (närmaste prov inom 28 dygn), lärarens frågor i Testa mig, lugn
+  återkomst ("Välkommen tillbaka." / "Det här är viktigast idag"). Presentation ovanpå Smart Kör! – ingen ny schemaläggare.
+- **Innehållshälsa:** "Den här frågan är konstig" sparar `dygn|uppgift|punkt` i `p.le.qr` (union vid synk, gallras). Flaggor
+  bara i Motor v2. Innehållet ändras aldrig automatiskt.
+- **Läs upp** (Yngre, enhetens talsyntes, behörighet per fråga) och rikare `former`/`brak2` för åk 2 (bara v2, `src/02k`).
+- Tester: `test_packs`, `test_le_forms`, `test_le_packs_app` (inkl. rollback mot `tests/golden/pluggappen-2.0.0.html.gz`),
+  `test_readaloud`, `test_gen2`, `test_study_mission`.
+- **Rollback:** Run workflow med `deploy_ref = release-2.0.0-6ca2933`. 2.0.0 kör 2.1-data utan fel: kunskapspunkternas bevis
+  ligger kvar orörda (2.0.0 ser dem som vilande okända koncept), `qr` och formkoder bärs vidare. Publiceras 2.1.x igen fortsätter
+  allt där det slutade. Per barn finns fortfarande v1-reserven.

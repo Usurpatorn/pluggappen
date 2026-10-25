@@ -136,6 +136,44 @@ const LE = {
   },
 
   /* ---------- Föräldradiagnostik ---------- */
+  /* 2.1 Innehållshälsa – bara för föräldern (Motor v2). Härleds ur bevisloggen (som redan finns) och barnets markeringar (le.qr).
+     Inget nytt sparas, ingenting ändras automatiskt: flaggorna är underlag för en granskning (av Claude) – innehållet ändras bara via en ny
+     paketversion. Signaler per uppgift: rätt direkt varje gång (flerval), fel nästan varje gång, avviker från resten av kunskapspunkten,
+     flervalet lurar fast eget svar går bra (vi sparar inte vilket alternativ som valdes – därför bara en indirekt signal), rapporterad. */
+  HEALTH_TXT: { reported: 'Rapporterad av barnet', reported2: 'Rapporterad flera gånger', easy: 'Rätt direkt varje gång (flerval) – avslöjar alternativen svaret?', hard: 'Fel nästan varje gång', odd: 'Avviker – resten av kunskapspunkten går bra', distractor: 'Flervalet lurar fast eget svar går bra – kontrollera alternativen' },
+  health(kid) {
+    const p = prof(kid.id); if (!p.le) return { items: [], reports: 0 };
+    const C = LE.state(kid); const cat = C.cat; const items = new Map(); const per = new Map();
+    const route = (e) => { const d = cat[e.cid]; return (d && d.route && d.route[e.item]) || e.cid; };
+    for (const raw of p.le.log || []) {
+      const e = Array.isArray(raw) ? LE2.decodeEv(raw) : raw; if (!e || !e.item || e.mode === 'challenge') continue;
+      const cid = route(e); const it = items.get(e.item) || { item: e.item, cid, n: 0, ok: 0, first: 0, firstOk: 0, mc: 0, mcBad: 0, rep: 0 }; items.set(e.item, it);
+      it.n++; if (e.ok) it.ok++; if (e.help === 'none' && e.ctx === 'first') { it.first++; if (e.ok) it.firstOk++; } if (e.kind === 'mc') { it.mc++; if (!e.ok) it.mcBad++; }
+      const c = per.get(cid) || { n: 0, ok: 0, rn: 0, rok: 0 }; per.set(cid, c); c.n++; if (e.ok) c.ok++; if (e.kind !== 'mc') { c.rn++; if (e.ok) c.rok++; }
+    }
+    const repDays = new Map(); for (const k of p.le.qr || []) { const [d, item, cid] = k.split('|'); const r = repDays.get(item) || { days: new Set(), cid }; r.days.add(d); repDays.set(item, r); }
+    for (const [item, r] of repDays) { const it = items.get(item) || { item, cid: r.cid, n: 0, ok: 0, first: 0, firstOk: 0, mc: 0, mcBad: 0 }; it.rep = r.days.size; items.set(item, it); }
+    const out = [];
+    for (const it of items.values()) {
+      const c = per.get(it.cid) || { n: 0, ok: 0, rn: 0, rok: 0 }; const on = c.n - it.n, ook = c.ok - it.ok; const flags = [];
+      if (it.rep >= 2) flags.push('reported2'); else if (it.rep) flags.push('reported');
+      if (it.mc >= 6 && it.first >= 6 && it.firstOk === it.first && it.ok === it.n) flags.push('easy');
+      if (it.n >= 4 && it.ok / it.n <= 0.25) flags.push('hard');
+      if (it.n - it.ok >= 3 && it.ok / it.n <= 0.34 && on >= 5 && ook / on >= 0.8) flags.push('odd');
+      if (it.mcBad >= 3 && c.rn >= 3 && c.rok / c.rn >= 0.75) flags.push('distractor');
+      if (!flags.length) continue;
+      const d = cat[it.cid] || {}; const f = typeof PACKS !== 'undefined' ? PACKS.findItem(it.item, C.pol.name, LECAT.itemId) : null;
+      out.push({ item: it.item, cid: it.cid, name: d.name || it.cid, flags, n: it.n, ok: it.ok, rep: it.rep || 0, text: f ? f.text : '', form: f ? f.form : '', pack: f ? f.pack : (d.pack || ''), kp: f ? f.kp : (d.kp || '') });
+    }
+    const w = (x) => (x.flags.includes('reported2') ? 0 : x.flags.includes('reported') ? 1 : x.flags.includes('odd') ? 2 : x.flags.includes('distractor') ? 3 : x.flags.includes('hard') ? 4 : 5);
+    out.sort((a, b) => w(a) - w(b) || b.n - a.n || (a.item < b.item ? -1 : 1));
+    return { items: out.slice(0, 40), reports: (p.le.qr || []).length };
+  },
+  // Text att klistra in hos Claude: inga namn, bara innehållets id, form och signal
+  healthText(kid) {
+    const h = LE.health(kid); const pol = LE.policyName(kid, prof(kid.id));
+    return [`Innehållshälsa (${pol}) – ${h.items.length} flaggade frågor`, ...h.items.map(x => `- ${x.pack ? x.pack + '/' + x.kp : x.cid} · ${x.item}${x.form ? ' · ' + x.form : ''} · ${x.flags.map(f => LE.HEALTH_TXT[f]).join('; ')} · ${x.ok}/${x.n} rätt${x.text ? ` · "${x.text}"` : ''}`)].join('\n');
+  },
   report(kid) {
     if (!LE.canStart(kid, prof(kid.id))) throw new Error('väntar på första synken med molnet');
     const p = prof(kid.id); const C = LE.state(kid); const L = C.L; const now = Date.now(); const pol = C.pol; const D = L.d || {};

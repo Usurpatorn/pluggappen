@@ -942,7 +942,7 @@ function submitMath() {
   else if (S.revealed) { fb.innerHTML = `<div class="feedback warn"><span style="font-size:1.4rem">👀</span><div><div class="big">Nu vet du hur man gör</div><div class="sub">Du får en liknande uppgift igen om en stund.</div></div></div>`; }
   else { beep('no'); fb.innerHTML = `<div class="feedback no"><span style="font-size:1.4rem">❌</span><div><div class="big">Inte riktigt</div><div class="sub">Rätt svar: <b>${esc(answerDisplay(q))}</b>${q.choices || q.type === 'choicetext' || !raw ? '' : ` · Du svarade: ${esc(raw)}`}</div></div></div>`; if (!isTest) showSteps(q, false); }
   document.getElementById('hintBtn')?.remove(); document.getElementById('explainBtn')?.remove();
-  if (S.v2) V2.feedbackExtra(v2evs, v2rw);
+  if (S.v2) V2.feedbackExtra(v2evs, v2rw, q);
   document.getElementById('actions').innerHTML = `<button class="btn grow" id="next">${(S.v2 ? V2.hasNext() : S.i + 1 < S.queue.length) ? 'Nästa →' : 'Visa resultat'}</button>${!correct && !isTest ? `<button class="btn ghost" id="stepsBtn2">Visa lösning</button>` : ''}`;
   document.getElementById('stepsBtn2')?.addEventListener('click', () => showSteps(q, false));
   document.getElementById('next').focus({ preventScroll: true });
@@ -1082,7 +1082,7 @@ VIEWS.parent = () => {
     if (sub === 'overview') body += parentOverview(kid, p);
     else if (sub === 'exams') body += parentExams(kid, p);
     else if (sub === 'decks') body += parentDecks(kid, p);
-    else if (sub === 'v2') body += V2.engineCard(kid) + (V2.engineOf(p) === 'v2' ? V2.insightsCard(kid) + V2.explainCard(kid) : '') + LE.view(kid);
+    else if (sub === 'v2') body += V2.engineCard(kid) + (V2.engineOf(p) === 'v2' ? V2.insightsCard(kid) + V2.explainCard(kid) + V2.healthCard(kid) : '') + LE.view(kid);
     else body += parentSettings(kid, p);
   } else {
     body = `<div class="card stack" style="gap:12px"><div class="eyebrow">Inställningar</div>

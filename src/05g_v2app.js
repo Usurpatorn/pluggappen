@@ -36,10 +36,27 @@ const V2 = {
       const p = prof(kid.id); if (!LE.canStart(kid, p)) return `<button class="go-btn" data-v2="kor"><div><div class="t">${LBL(kid).go}</div><div class="s">Hämtar det senaste …</div></div><div class="arrow">${ICON.arrow}</div></button>`;
       const { plan } = V2.peekPlan(kid);
       if (plan.light && V2.doneToday(p)) return `<div class="card pad-lg stack" style="gap:6px;text-align:center"><div style="font-size:1.6rem">✅</div><div style="font-weight:800;font-family:var(--display);font-size:1.15rem">Bra jobbat. Du är klar för idag.</div><button class="link" data-v2="extra" style="align-self:center">Öva extra</button></div>`;
-      const n = plan.length; return `<button class="go-btn" data-v2="kor"><div><div class="t">${LBL(kid).go}</div><div class="s">${n} uppgifter · cirka ${V2.mins(n)} minuter</div></div><div class="arrow">${ICON.arrow}</div></button>`;
+      const n = plan.length; const m = V2.mission(kid);
+      // 2.2 Study Mission: samma Smart Kör!-pass – bara rubriken visar uppdraget (provet närmast) och dagens tid. Ingen egen schemaläggning.
+      if (m) return `<button class="go-btn mission" data-v2="kor"><div><div class="s" style="font-weight:800;letter-spacing:.06em">${esc(m.e.title.toUpperCase())} · ${esc(fmtDate(m.e.date).toUpperCase())}</div><div class="t">IDAG ${V2.mins(n)} minuter</div><div class="s" style="font-weight:800;letter-spacing:.04em">${esc(LBL(kid).go.toUpperCase())}</div></div><div class="arrow">${ICON.arrow}</div></button>`;
+      return `<button class="go-btn" data-v2="kor"><div><div class="t">${LBL(kid).go}</div><div class="s">${n} uppgifter · cirka ${V2.mins(n)} minuter</div></div><div class="arrow">${ICON.arrow}</div></button>`;
     }, 'korBtn', `<button class="go-btn" data-v2="kor"><div><div class="t">${LBL(kid).go}</div></div><div class="arrow">${ICON.arrow}</div></button>`);
   },
-  welcome(kid) { return V2.safe(() => { const p = prof(kid.id); const last = V2.lastAt(p); if (!last || (LE.now() - last) / LE2.DAY < LE2.CFG.session.absentWarmDays || V2.doneToday(p)) return ''; return `<div class="card row" style="gap:12px;border:2px solid var(--acc)"><div style="font-size:1.6rem">👋</div><div class="grow"><div style="font-weight:800;font-family:var(--display)">Välkommen tillbaka!</div><div class="muted" style="font-size:.9rem">Vi börjar lugnt med sådant du redan kan.</div></div></div>`; }, 'welcome', ''); },
+  /* 2.2: uppdraget = närmaste prov/läxa/glosförhör med datum inom MISSION_DAYS (familjens skoluppgifter eller förälderns prov) */
+  MISSION_DAYS: 28,
+  mission(kid) {
+    const p = prof(kid.id); const list = LE.exams(kid, p).map(e => ({ e, d: daysUntil(e.date) })).filter(x => x.d >= 0 && x.d <= V2.MISSION_DAYS);
+    list.sort((a, b) => a.d - b.d || (b.e.priority === 'high') - (a.e.priority === 'high') || (a.e.id < b.e.id ? -1 : 1)); return list[0] || null;
+  },
+  // Återkomst efter uppehåll: ingen skuld, inga missade dagar – bara en lugn start och (med ett uppdrag) det viktigaste idag
+  welcome(kid) {
+    return V2.safe(() => {
+      const p = prof(kid.id); const last = V2.lastAt(p); if (!last || (LE.now() - last) / LE2.DAY < LE2.CFG.session.absentWarmDays || V2.doneToday(p)) return '';
+      const m = V2.mission(kid); let top = '';
+      if (m) { const C = LE.state(kid); const inExam = new Set(LE.examCids(C, m.e)); const { plan } = V2.peekPlan(kid); const names = [...new Set(plan.filter(x => inExam.has(x.cid)).map(x => { const d = C.cat[x.cid] || {}; return d.kind === 'kp' ? V2.skillName(kid, d.ref) : d.kind === 'deck' ? d.name : (V2.skillOf(kid, x.cid) || {}).short || d.name; }).filter(Boolean))].slice(0, 2); if (names.length) top = `<div style="font-size:.9rem;margin-top:4px"><b>Det här är viktigast idag:</b> ${names.map(esc).join(' och ')}.</div>`; }
+      return `<div class="card row" style="gap:12px;border:2px solid var(--acc)"><div style="font-size:1.6rem">👋</div><div class="grow"><div style="font-weight:800;font-family:var(--display)">Välkommen tillbaka.</div><div class="muted" style="font-size:.9rem">Vi börjar lugnt med sådant du redan kan.</div>${top}</div></div>`;
+    }, 'welcome', '');
+  },
   weekPill(p) { const n = V2.weekDays(p); if (!n) return ''; return `<span class="pill ${n >= 3 ? 'good' : ''}">Pluggat ${n} ${n === 1 ? 'dag' : 'dagar'} den här veckan</span>`; },
   felbokCard(kid) {
     return V2.safe(() => {
@@ -157,6 +174,7 @@ const V2 = {
     const avoid = new Set([...((c && c.items) || []).slice(-4), ...((c && c.fb && c.fb.items) || []), ...V.seen]);
     // 2.1: kunskapspunkt ur ett Concept Pack – generatorn väljer form efter motorns behov (eget svar, djup, utmaning) och nivå
     if ((V.C.cat[spec.cid] || {}).kind === 'kp') {
+      if (V.exam) { const tq = V2.teacherQ(kid, spec.cid); if (tq) { V.seen.add(V2.iid(tq)); return [{ ...tq, skill, cat: 'math', level: tq.level, spec, _slotEnd: true }]; } }
       const fmt = V.exam ? 'any' : spec.role === 'readclose' ? 'recall' : spec.format === 'recall' || spec.format === 'depth' ? spec.format : 'any';
       const stage = V.exam ? null : { n: c ? c.n : 0, st: c ? c.st : 0 };   // Learning Recipe: stadiet styr aktiviteten (inte i Testa mig)
       let q = PACKS.question(spec.cid, { lvl: spec.lvl, format: fmt, pol: pol.name, avoid, rnd: Math.random, challenge: spec.mode === 'challenge', itemId: LECAT.itemId, stage });
@@ -185,6 +203,20 @@ const V2 = {
     return [{ ...q, spec, _slotEnd: true }];
   },
   iid(q) { return q.baseId || LECAT.itemId(q); },
+  /* 2.2 Study Mission: lärarens egna frågor (ur skoluppgiften, källtrogna) används i Testa mig för provet de hör till. Bara frågor som kan
+     rättas säkert: flerval (rätt svar + minst två felaktiga alternativ) eller kort eget svar (typed, högst tre ord). Varje fråga en gång per
+     pass och bara på en av sina kunskapspunkter. Rättningen är deterministisk; ingen AI-rättning. */
+  teacherQs(kid, examId) {
+    const e = LE.exams(kid, prof(kid.id)).find(x => x.id === examId); const w = e && e.work && typeof FAMILY !== 'undefined' ? FAMILY.workById(e.work) : null;
+    return ((w && w.teacherQs) || []).filter(t => t.a && t.kps.length && (t.not.length >= 2 || (t.typed && t.a.trim().split(/\s+/).length <= 3)));
+  },
+  teacherQ(kid, cid) {
+    const V = S.v2; V.tqUsed = V.tqUsed || new Set();
+    const t = V2.teacherQs(kid, V.extra.examId).find(x => x.kps.includes(cid) && !V.tqUsed.has(x.n + '|' + x.q)); if (!t) return null; V.tqUsed.add(t.n + '|' + t.q);
+    const why = `Lärarens fråga${t.n ? ' ' + esc(t.n) : ''}: rätt svar är <b>${esc(t.a)}</b>.`;
+    const q = t.not.length >= 2 ? PACKS.mc(esc(t.q), t.a, t.not.slice(0, 3), [], why, Math.random, { alias: t.alias }) : PACKS.typed(esc(t.q), [t.a, ...t.alias], why, { pool: t.not });   // alternativen escapas när de ritas
+    return { ...q, level: 2, teacher: { n: t.n }, kp: cid };
+  },
   teachExample(skill, spec) {
     if (spec.cid && spec.cid.startsWith('k:')) {   // 2.1: kunskapspunktens förklaring + senaste felet (eller ett löst exempel)
       const t = PACKS.teach(spec.cid, S.v2.C.pol.name); if (t && spec.role === 'intro') return { intro: { name: t.name, explain: t.explain }, text: '', steps: [], answer: '' }; const last = [...S.queue].reverse().find(x => x.cat === 'math' && x.kp === spec.cid);
@@ -215,6 +247,7 @@ const V2 = {
   topRight() { const pr = LER.progress(S.v2.R); return S.v2.exam ? `<span class="pill">Inga ledtrådar · svar efteråt</span>` : `<span class="left-count">${Math.max(0, pr.left)} kvar</span>`; },
   progressBar() { const tot = V2.total(); return `<div class="progress">${Array.from({ length: tot }, (_, i) => `<i class="${i < S.i ? (S.v2.exam ? 'ok' : S.results[i] === false ? 'no' : 'ok') : i === S.i ? 'cur' : ''}"></i>`).join('')}</div>`; },
   chip(item) {
+    if (item && item.teacher && S.v2.exam) return `<div class="row" style="justify-content:center"><span class="pill acc" style="font-weight:800;letter-spacing:.04em"><span aria-hidden="true">📝</span> LÄRARENS FRÅGA${item.teacher.n ? ' ' + esc(item.teacher.n) : ''}</span></div>`;
     if (!item || !item.spec || S.v2.exam) return '';
     const s = item.spec; const key = item.cat === 'learn' ? (s.role === 'rescue' ? 'rescue' : s.role === 'intro' ? 'intro' : 'teach') : s.mode === 'challenge' ? 'challenge' : s.role;
     const formChip = item.cat === 'math' && item.form && ['focus', 'practice', 'remember', 'warmup', 'easy'].includes(s.role) ? V2.FORM_CHIP[item.form] : null;
@@ -277,11 +310,20 @@ const V2 = {
     return out;
   },
   // Kort rad i svarsrutan: belöning eller Rescue. Inga felräknare.
-  feedbackExtra(evs, before) {
+  feedbackExtra(evs, before, q) {
     const add = S.v2.rewards.slice(before); const parts = add.map(r => `${V2.REWARD_TXT[r.k]} ${r.xp ? `+${r.xp} XP` : ''}${r.gems ? `+${r.gems} 💎` : ''}`);
     if ((evs || []).some(e => e.type === 'rescue')) parts.push('🤝 Vi tar det tillsammans – nästa kort hjälper dig.');
     if ((evs || []).some(e => e.type === 'defer')) parts.push('Vi sparar den här till ett annat pass. Bra kämpat!');
-    if (!parts.length) return; const fb = document.getElementById('fb'); if (fb) fb.insertAdjacentHTML('beforeend', `<div class="hint" style="margin-top:8px">${parts.join('<br>')}</div>`);
+    const fb = document.getElementById('fb'); if (!fb) return;
+    if (parts.length) fb.insertAdjacentHTML('beforeend', `<div class="hint" style="margin-top:8px">${parts.join('<br>')}</div>`);
+    if (q && q.spec && !S.v2.exam) fb.insertAdjacentHTML('beforeend', `<div style="text-align:right;margin-top:6px"><button class="link" data-v2="qr" style="font-size:.8rem;opacity:.75">Den här frågan är konstig</button></div>`);
+  },
+  /* 2.1 Innehållshälsa: barnet kan markera en fråga som konstig. Sparar bara dygn + uppgifts-id + kunskapspunkt (ingen fritext, ingen tid).
+     Påverkar varken bevis, stadier eller vad som visas – föräldern ser markeringen i Motor v2 och innehållet ändras bara i en ny paketversion. */
+  reportQ(el) {
+    const q = S.queue[S.i]; if (!q || !q.spec) return; const p = prof(S.kid.id);
+    LE2.reportItem(p.le, LE2.dayIdx(S.v2.start), V2.iid(q), q.spec.cid); save();
+    el.outerHTML = `<span class="muted" style="font-size:.8rem">Tack! En vuxen tittar på frågan.</span>`;
   },
   examAnswered(q, correct, raw) {
     const V = S.v2; const your = q.cat === 'word' ? raw : q.type === 'choicetext' ? (q.choices || [])[S.selected] : q.choices ? T.n(Number(S.selected)) : q.type === 'order' ? 'din ordning' : raw;
@@ -353,6 +395,7 @@ const V2 = {
   click(el, kid) {
     const a = el.dataset.v2;
     if (a === 'teachok') return V2.teachDone();
+    if (a === 'qr') return V2.safe(() => V2.reportQ(el), 'report');
     if (a === 'endPreview') return V2.endPreview();
     if (a === 'engine' || a === 'engineAsk' || a === 'preview') return V2.parentClick(a, el);
     if (!kid) return;
@@ -395,6 +438,18 @@ const V2 = {
     }, 'insights', '');
   },
   // §6: för varje vald uppgift – vad, varför, varför nu, roll, vad ett svar ändrar, när den kan komma tillbaka, varför nivån är som den är
+  // 2.1 Innehållshälsa (bara föräldern): flaggade frågor + text att ge Claude. Ingenting ändras automatiskt.
+  healthCard(kid) {
+    return V2.safe(() => {
+      const h = LE.health(kid); if (!h.items.length) return `<div class="card"><h3 style="margin:0 0 4px">Innehållshälsa</h3><div class="muted" style="font-size:.9rem">Inga frågor flaggade. Barnet kan trycka på "Den här frågan är konstig" efter ett svar.</div></div>`;
+      return `<div class="card stack" style="gap:8px"><h3 style="margin:0">Innehållshälsa</h3>
+        <div class="muted" style="font-size:.85rem">Signaler – inte domar. Ingenting ändras automatiskt: ge texten nedan till Claude, som granskar frågan och släpper en rättad version.</div>
+        ${h.items.slice(0, 12).map(x => `<div style="font-size:.9rem;border-top:1px solid var(--line);padding-top:6px"><b>${esc(x.name)}</b>${x.text ? ` · <span class="muted">${esc(x.text)}</span>` : ''}<div style="font-size:.8rem">${x.flags.map(f => `<span class="pill" style="font-size:.72rem;margin:2px 4px 0 0">${esc(LE.HEALTH_TXT[f])}</span>`).join('')} <span class="muted">${x.ok}/${x.n} rätt</span></div></div>`).join('')}
+        ${h.items.length > 12 ? `<div class="muted" style="font-size:.85rem">+ ${h.items.length - 12} till</div>` : ''}
+        <details><summary style="cursor:pointer;font-weight:700">Text till Claude</summary><textarea readonly rows="6" style="width:100%;font-size:.75rem;margin-top:6px">${esc(LE.healthText(kid))}</textarea></details>
+      </div>`;
+    }, 'healthCard', '');
+  },
   explainCard(kid) {
     return V2.safe(() => {
       const p = prof(kid.id); if (!p.le) return ''; const C = LE.state(kid); const now = LE.now(); const { plan } = LE.plan(kid, V2.n(kid, C), now); const pol = C.pol; const L = C.L;

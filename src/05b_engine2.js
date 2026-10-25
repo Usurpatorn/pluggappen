@@ -521,6 +521,17 @@ const LE2 = (() => {
     keep.sort((a, b) => ((rwDay(a) == null ? -1 : rwDay(a)) - (rwDay(b) == null ? -1 : rwDay(b))) || (a < b ? -1 : a > b ? 1 : 0));
     return keep.length > RW_MAX ? [...keep.filter(k => rwDay(k) == null), ...keep.filter(k => rwDay(k) != null)].slice(-RW_MAX) : keep;
   }
+  /* 2.1 Innehållshälsa: barnets "Den här frågan är konstig" sparas som "dygn|uppgifts-id|koncept-id" i le.qr (inget annat – ingen fritext,
+     ingen svarstid). Förenas som union mellan enheter, högst en markering per uppgift och dygn, gallras deterministiskt på ålder (räknat från
+     den nyaste markeringen, inte klockan) och antal. Ändrar aldrig bevis, stadier eller innehåll. 2.0 bär fältet orört vidare (rollback). */
+  const QR_MAX = 150, QR_DAYS = 120;
+  const qrOk = (k) => typeof k === 'string' && /^\d{1,6}\|[A-Za-z0-9:_\/-]{1,90}\|[A-Za-z0-9:_\/-]{1,110}$/.test(k);
+  function pruneQr(list) {
+    const u = [...new Set((list || []).filter(qrOk))]; if (!u.length) return u;
+    const day = (k) => Number(k.split('|')[0]); const top = Math.max(...u.map(day));
+    return u.filter(k => day(k) >= top - QR_DAYS).sort((a, b) => day(a) - day(b) || (a < b ? -1 : a > b ? 1 : 0)).slice(-QR_MAX);
+  }
+  function reportItem(le, day, item, cid) { const k = `${day}|${item}|${cid}`; if (!qrOk(k)) return false; le.qr = le.qr || []; if (le.qr.includes(k)) return false; le.qr = pruneQr([...le.qr, k]); return le.qr.includes(k); }
   function mergeLE(a, b) {
     if (!a || !a.v) return b && b.v ? b : (a || b || null); if (!b || !b.v) return a;
     if (a.v !== b.v) return a.v > b.v ? a : b;   // granskning M9: blanda aldrig versioner – den senare versionen lämnas orörd
@@ -537,6 +548,7 @@ const LE2 = (() => {
     const rw = pruneRw([...(a.rw || []), ...(b.rw || [])]);
     const out = { ...other, ...pick, log, seqs, shadow, srv: Math.max(a.srv || 0, b.srv || 0) || undefined };
     if (rw.length) out.rw = rw; else delete out.rw;
+    const qr = pruneQr([...(a.qr || []), ...(b.qr || [])]); if (qr.length) out.qr = qr; else delete out.qr;
     return out;
   }
   function compact(le, cat, pol, now) {
@@ -572,6 +584,6 @@ const LE2 = (() => {
   return { DAY, RULES, CFG, dayIdx, dayStart, DECISIONS, POLICIES, STAGE_DAYS, intervalDays, calibrate, evidenceWeight, newConcept, cstate, newLE, engineNow, recordEvidence, apply,
     PHASES, phase, felbokVisible, felbokDisplay, felbokRecentWins, felbokChild, childLabel, readiness, parentInsights, delayedOks, rescueCount, W, WHY_TEXT, examUrgency, examReady, examStatus, insights, priority, rankAll, withCtx,
     learningLoad, lastNewAt, dueBacklog, fbOpenCount, challengeEligible, planSession, pickBoss, rescueTrigger, formatFor, isRecallCapable, isDepthForm, depthOk,
-    encodeEv, decodeEv, mergeLog, replay, mergeLE, compact, rewardOnce, pruneRw, rwDay, migrateV1, stable, hash, SHADOW_MAX, LOG_SOFT, LOG_HARD, RW_MAX, RW_DAYS };
+    encodeEv, decodeEv, mergeLog, replay, mergeLE, compact, rewardOnce, pruneRw, pruneQr, reportItem, QR_MAX, QR_DAYS, rwDay, migrateV1, stable, hash, SHADOW_MAX, LOG_SOFT, LOG_HARD, RW_MAX, RW_DAYS };
 })();
 if (typeof module !== 'undefined') module.exports = LE2;
