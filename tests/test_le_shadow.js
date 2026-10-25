@@ -85,16 +85,31 @@ setTimeout(() => {
         ok(!/"(ms|elapsed|rt|time)"/.test(leJson), 'no response-time telemetry stored (only a fast flag on wrong answers)');
         ok(les.every(le => JSON.stringify(le).length < 60000), 'le stays small (' + les.map(le => Math.round(JSON.stringify(le).length / 1024) + ' kB').join(', ') + ')');
         const k2 = PA.DB.profiles.k2.le; const first = k2.shadow[0]; ok(first.v1.every(c => /^[sd]:/.test(c)), 'v1 actual recorded as concept ids');
+        // tider: passets start på hel minut, svar = start + löpnummer → svarstid går inte att utläsa
+        const allLe = ['k2', 'k4', 'k8'].map(id => PA.DB.profiles[id].le); let timeOk = true, sidOk = true;
+        for (const le of allLe) { const bySess = {}; for (const e of le.log) (bySess[e[11]] = bySess[e[11]] || []).push(e[0]); for (const ts of Object.values(bySess)) ts.forEach((t, i) => { if (i && t - ts[i - 1] !== 1) timeOk = false; }); const ids = le.shadow.map(r => r.id); if (new Set(ids).size !== ids.length) sidOk = false; }
+        ok(timeOk, 'evidence times = session start + ordinal (no per-answer timing)'); ok(sidOk, 'session ids unique');
+        const k2recs = PA.DB.profiles.k2.le.shadow; ok(k2recs[0].src === 'kor' && k2recs[1].src !== 'kor', '"en till" after Kör! is not counted as Kör!');
         /* ---------- 3. bara i föräldraläget ---------- */
         const childText = On.snaps.map(s => s[1]).join('\n'); ok(!/skugg|Learning Engine|Motor v2|v2 skulle/i.test(childText), 'child screens never mention v2/shadow');
         const { $, click } = On; click($('[data-go="start"]')); click($('[data-kid="k2"]')); const homeBefore = $('#app').innerHTML;
         click($('[data-go="start"]')); click($('[data-go="parent"]'));
         const pins = [...wOn.document.querySelectorAll('[data-pin]')]; ['1', '2', '3', '4'].forEach((d, i) => { pins[i].value = d; pins[i].dispatchEvent(new wOn.Event('input', { bubbles: true })); });
+        // föräldravyn får inte skapa barnets dagliga uppdrag eller ändra profilen (k4 har inte öppnat startsidan idag i den här kontrollen)
+        const p4 = PA.DB.profiles.k4; const q4 = JSON.stringify(p4.quests); p4.quests = null; const u4 = p4.updatedAt; click($('[data-tab="k4"]')); click($('[data-sub="v2"]'));
+        ok(p4.quests === null && p4.updatedAt === u4 && /öppnar sin startsida/.test($('#app').textContent), 'parent v2 tab has no side effects on v1 (quests not created, profile not saved)'); p4.quests = JSON.parse(q4);
+        // synkade skuggposter med skadligt innehåll visas aldrig som HTML
+        PA.DB.profiles.k4.le.shadow.push({ id: 'x:1', t: 1, done: 1, src: '<img src=x onerror=alert(1)>', v1: ['<b>x</b>'], v2: [['s:mult', '<svg onload=alert(1)>', '<i>']], a: [['s:mult', 1, '<u>']], n: '<script>1</script>' });
+        click($('[data-sub="overview"]')); click($('[data-sub="v2"]'));
+        ok(!wOn.document.querySelector('#app img, #app svg[onload], #app script, #app b:not([class])') || ![...wOn.document.querySelectorAll('#app img, #app svg, #app script')].some(e => e.getAttribute('onerror') || e.getAttribute('onload') || e.tagName === 'SCRIPT'), 'injected shadow record rendered as text, not HTML');
+        ok(!/onerror|onload/.test([...wOn.document.querySelectorAll('#app *')].map(e => [...e.attributes].map(a => a.name).join(' ')).join(' ')), 'no event-handler attributes in parent diagnostics');
+        PA.DB.profiles.k4.le.shadow.pop();
         click($('[data-tab="k2"]')); click($('[data-sub="v2"]')); const pt = $('#app').textContent;
         ok(/skuggläge/.test(pt) && /v1 faktiskt/.test(pt) && /Nästa Kör!/.test(pt) && /Det som ska bedömas före 3C/.test(pt), 'parent v2 diagnostics render');
         for (const label of ['Kalibrering', 'Träffsäkerhet vid hämtning', 'Förfallna nu / imorgon', 'Felboken v2', 'Snabba fel (K-12)', 'Planernas överlapp', 'Ämnesbalans v1', 'Ny inlärning', 'Prov inom 21 dagar']) ok(pt.includes(label), 'diagnostic present: ' + label);
         ok(/jämförelseband, inte ett mål/.test(pt), 'accuracy shown as comparison band, not a target');
         click($('[data-le-pol="older"]')); ok(PA.DB.profiles.k2.settings.lePolicy === 'older' && /överstyrd/.test($('#app').textContent), 'parent policy override (O-9)');
+        click($('[data-le-pol="auto"]')); ok(PA.DB.profiles.k2.settings.lePolicy === 'auto' && /från kursmallen/.test($('#app').textContent), 'reset to template default is an explicit value (syncs)'); click($('[data-le-pol="older"]'));
         click($('[data-tab="settings"]')); ok(/Learning Engine v2 · skuggläge/.test($('#app').textContent), 'settings: shadow summary for all children');
         click($('[data-go="start"]')); click($('[data-kid="k2"]')); ok($('#app').innerHTML === homeBefore, 'child home unchanged by policy override');
         ok(PA.LE.errors.length === 0, 'still no shadow errors');

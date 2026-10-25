@@ -26,10 +26,11 @@ const SYNC = {
     const p = prof(kidId); const updatedAt = p.updatedAt || Date.now();
     try {
       const body = { fields: { json: { stringValue: JSON.stringify(p) }, updatedAt: { integerValue: String(updatedAt) }, kid: { stringValue: kidId } } };
-      const r = await SYNC.fetch(SYNC.url(kidId), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      const r = await SYNC.fetch(SYNC.url(kidId) + '&mask.fieldPaths=updatedAt', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       if (!r.ok) throw new Error('HTTP ' + r.status);
-      try { const doc = await r.json(); if (doc && doc.updateTime && typeof LE !== 'undefined') LE.anchor(kidId, Date.parse(doc.updateTime)); } catch (e) { /* ingen serverklocka – ok */ }
-      SYNC.status = 'ok'; SYNC.lastError = null; p.syncedAt = updatedAt; p.since = { xp: 0, gems: 0, days: {} }; p._lx = p.xp; p._lg = p.gems; return true;
+      SYNC.status = 'ok'; SYNC.lastError = null; p.syncedAt = updatedAt; p.since = { xp: 0, gems: 0, days: {} }; p._lx = p.xp; p._lg = p.gems;
+      try { const doc = await r.json(); if (doc && doc.updateTime && typeof LE !== 'undefined') LE.anchor(kidId, Date.parse(doc.updateTime), true); } catch (e) { /* ingen serverklocka – ok */ }
+      return true;
     } catch (e) { SYNC.status = 'error'; SYNC.lastError = e.message; return false; }
   },
   schedulePush(kidId) { if (!SYNC.active || !kidId) return; SYNC.pending.add(kidId); clearTimeout(SYNC.pushTimer); SYNC.pushTimer = setTimeout(async () => { const ids = [...SYNC.pending]; SYNC.pending.clear(); for (const id of ids) await SYNC.push(id); SYNC.render(); }, 1500); },
@@ -46,11 +47,12 @@ const SYNC = {
     // Fas 3B: v2-bevisloggen slås alltid ihop (union), även när lokalt inte ändrats – skyddar mot att en äldre app skrivit över den.
     let leRestored = false;
     if (!localChanged && (local.le || remote.profile.le) && typeof LE !== 'undefined') { merged.le = LE.mergeLE(local.le, remote.profile.le); leRestored = !!(merged.le && (merged.le.log || []).length > ((remote.profile.le || {}).log || []).length); }
-    merged.syncedAt = remote.updatedAt; merged.updatedAt = localChanged || leRestored ? Date.now() : remote.updatedAt; merged._lx = merged.xp; merged._lg = merged.gems;
+    // leRestored: markera bara som lokalt ändrad – laddas upp vid nästa vanliga sparning (ingen extra uppladdning som kan krocka med en annan enhet)
+    merged.syncedAt = remote.updatedAt; merged.updatedAt = localChanged ? Date.now() : leRestored ? Math.max(Date.now(), remote.updatedAt + 1) : remote.updatedAt; merged._lx = merged.xp; merged._lg = merged.gems;
     DB.profiles[kidId] = merged; rollover(merged);
     try { localStorage.setItem(STORE_KEY, JSON.stringify(DB)); } catch (e) { /* ignore */ }
     if (typeof LE !== 'undefined') { LE.invalidate(kidId); if (remote.serverTime) LE.anchor(kidId, remote.serverTime); }
-    if (localChanged || leRestored) SYNC.schedulePush(kidId);
+    if (localChanged) SYNC.schedulePush(kidId);
     return true;
   },
   async refreshAll() { let changed = false; for (const k of KIDS) if (await SYNC.refresh(k.id)) changed = true; SYNC.render(); return changed; },

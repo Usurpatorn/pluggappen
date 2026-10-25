@@ -69,12 +69,14 @@ function serializeQ(q) { const { type, text, answer, choices, steps, hint, level
 function noteMistake(p, item) {
   p.mistakes = p.mistakes || [];
   const entry = item.cat === 'word' ? { id: 'w_' + item.word.id, at: Date.now(), cat: 'word', deckId: item.deck.id, wordId: item.word.id } : { id: 'm_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6), at: Date.now(), cat: 'math', skillId: item.skill.id, q: serializeQ(item) };
-  if (!p.mistakes.some(x => x.id === entry.id)) { p.mistakes.push(entry); if (p.mistakes.length > 60) p.mistakes.shift(); }
+  const old = p.mistakes.find(x => x.id === entry.id);
+  if (!old) { p.mistakes.push(entry); if (p.mistakes.length > 60) p.mistakes.shift(); } else old.at = Math.max(old.at || 0, entry.at); // ny miss på samma glosa: färskare tid så att synken inte tappar den
 }
 // Felboken: borttagning lämnar en gravsten (id → tid) så att synk mellan enheter inte återuppväcker lösta uppgifter.
 function clearMistake(p, id) {
   p.mistakes = (p.mistakes || []).filter(x => x.id !== id);
-  const c = { ...(p.mistakesCleared || {}), [id]: Date.now() }; const ids = Object.keys(c).sort((a, b) => c[b] - c[a]).slice(0, 300); p.mistakesCleared = Object.fromEntries(ids.map(k => [k, c[k]]));
+  const at = Math.max(0, ...(p.mistakes || []).filter(x => x.id === id).map(x => x.at || 0));
+  const c = { ...(p.mistakesCleared || {}), [id]: Math.max(Date.now(), at) }; const ids = Object.keys(c).sort((a, b) => c[b] - c[a]).slice(0, 300); p.mistakesCleared = Object.fromEntries(ids.map(k => [k, c[k]]));
 }
 function recordAnswer(kidId, skillId, correct, level, usedHelp) {
   const p = prof(kidId); const s = skillState(p, skillId); const maxLvl = (KIDS.find(k => k.id === kidId)?.skills.find(x => x.id === skillId) || {}).maxLvl || 3;
@@ -1248,7 +1250,7 @@ app.addEventListener('click', (e) => {
   const deckBtn = t.closest('[data-deck]'); if (deckBtn && kid) return startSession(kid, { deckIds: [deckBtn.dataset.deck], wordsOnly: true, n: 12 });
   const chainBtn = t.closest('[data-chain-next]'); if (chainBtn && kid && S) { const id = chainBtn.dataset.chainNext; const deck = id.startsWith('mix_') ? virtualMixDeck(prof(kid.id), id.slice(4)) : deckById(prof(kid.id), id); return startSession(kid, { deckIds: [deck.id], deck, wordsOnly: true, n: 12, chainStats: S.chain }); }
   const langPass = t.closest('[data-langpass]'); if (langPass && kid) { const nx = nextDeckAfter(kid, null) || { deck: enabledDecks(prof(kid.id))[0] }; return startSession(kid, { deckIds: [nx.deck.id], deck: nx.deck, wordsOnly: true, n: 12 }); }
-  const recBtn = t.closest('[data-rec]'); if (recBtn && kid) return startSession(kid, { ...recommendSprint(kid).opts, src: 'kor' });
+  const recBtn = t.closest('[data-rec]'); if (recBtn && kid) { LE.nextSrc = 'kor'; return startSession(kid, recommendSprint(kid).opts); }
   const testBtn = t.closest('[data-test]'); if (testBtn && kid) return startSession(kid, { mode: 'test', examId: testBtn.dataset.test });
   const planBtn = t.closest('[data-plan]'); if (planBtn && kid) return go('plan', { examId: planBtn.dataset.plan });
   const methodBtn = t.closest('[data-method]'); if (methodBtn && kid) return go('method', { skillId: methodBtn.dataset.method });
@@ -1261,7 +1263,7 @@ app.addEventListener('click', (e) => {
   const togDeck = t.closest('[data-toggle-deck]'); if (togDeck) { const pid = state.screen === 'parent' ? state.tab : state.kid; const p = prof(pid); const id = togDeck.dataset.toggleDeck; if (p.enabledDecks.includes(id)) { p.enabledDecks = p.enabledDecks.filter(x => x !== id); p.removedDefaults = [...(p.removedDefaults || []), id]; } else { p.enabledDecks = [...p.enabledDecks, id]; p.removedDefaults = (p.removedDefaults || []).filter(x => x !== id); } save(); return state.screen === 'parent' ? VIEWS.parent() : VIEWS.courses(); }
   const tabBtn = t.closest('[data-tab]'); if (tabBtn) { state.tab = tabBtn.dataset.tab; state.sub = 'overview'; state.editDeck = null; return VIEWS.parent(); }
   const subBtn = t.closest('[data-sub]'); if (subBtn) { state.sub = subBtn.dataset.sub; return VIEWS.parent(); }
-  const lePol = t.closest('[data-le-pol]'); if (lePol && state.screen === 'parent' && kidById(state.tab)) { const p = prof(state.tab); if (lePol.dataset.lePol) p.settings.lePolicy = lePol.dataset.lePol; else delete p.settings.lePolicy; LE.invalidate(state.tab); save(); return VIEWS.parent(); }
+  const lePol = t.closest('[data-le-pol]'); if (lePol && state.screen === 'parent' && kidById(state.tab)) { const p = prof(state.tab); p.settings.lePolicy = lePol.dataset.lePol || 'auto'; LE.invalidate(state.tab); save(); return VIEWS.parent(); }
   const pushBtn = t.closest('[data-push]'); if (pushBtn) { const kidId = pushBtn.dataset.push; const cur = PUSH.current(); if (cur && cur.kid === kidId) { PUSH.disable().then(() => { toast('Påminnelser av'); state.screen === 'parent' ? VIEWS.parent() : VIEWS.home(); }); } else { toast('Slår på…'); PUSH.enable(kidId).then(r => { toast(r.ok ? 'Påminnelser på' : r.msg); state.screen === 'parent' ? VIEWS.parent() : VIEWS.home(); }); } return; }
   const setVal = t.closest('[data-setting-val]'); if (setVal) { const [k, v] = setVal.dataset.settingVal.split(':'); const p = prof(state.tab); p.settings[k] = v; save(); return VIEWS.parent(); }
   const setBtn = t.closest('[data-setting]'); if (setBtn) { const p = prof(state.tab); p.settings[setBtn.dataset.setting] = !p.settings[setBtn.dataset.setting]; save(); return VIEWS.parent(); }
@@ -1328,7 +1330,7 @@ function boot(snap) {
   if (SYNC.active) { ensureMembership().then(() => FAMILY.pull()).then((cfgChanged) => { if (cfgChanged) { load(); if (state.screen === 'start') VIEWS.start(); } return SYNC.refreshAll(); }).then((changed) => { if (state.screen === 'start' || (changed && state.screen === 'home')) VIEWS[state.screen](); }); document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && SYNC.active && state.screen !== 'practice' && state.screen !== 'blitzplay') SYNC.refreshAll().then((changed) => { if (changed && VIEWS[state.screen]) VIEWS[state.screen](); }); }); }
   const [hk, hact] = h.split('-');
   if (snap && snap.kid && kidById(snap.kid)) { state.kid = snap.kid; go('home'); }
-  else if (kidById(hk) && hact === 'kor') { state.kid = hk; applyLook(kidById(hk)); const kid = kidById(hk); const p = prof(hk); if (!p.pet) { p.pet = isTeen(kid) || isSport(kid) ? 'none' : PETS[0].id; save(); } startSession(kid, { ...recommendSprint(kid).opts, src: 'kor' }); }
+  else if (kidById(hk) && hact === 'kor') { state.kid = hk; applyLook(kidById(hk)); const kid = kidById(hk); const p = prof(hk); if (!p.pet) { p.pet = isTeen(kid) || isSport(kid) ? 'none' : PETS[0].id; save(); } LE.nextSrc = 'kor'; startSession(kid, recommendSprint(kid).opts); }
   else if (kidById(hk) && hact === 'sprak') { state.kid = hk; applyLook(kidById(hk)); const kid = kidById(hk); const nx = nextDeckAfter(kid, null); if (nx) startSession(kid, { deckIds: [nx.deck.id], deck: nx.deck, wordsOnly: true, n: 12 }); else go('home'); }
   else if (kidById(h)) { state.kid = h; go('home'); }
   else if (h === 'foralder') go('parent');

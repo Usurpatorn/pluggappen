@@ -79,13 +79,16 @@ const keys = (le) => new Set(le.log.map(e => e[1] + ':' + e[2]));
     const merged = B.eval('mergeProfiles')(B.PA.DB.profiles.k2, A.PA.DB.profiles.k2); ok(merged.mistakes.some(m => m.id === 'w_testord'), 'a word missed again after being cleared comes back (newer than its tombstone)');
     ok(merged.mistakes.length <= 60 && Object.keys(merged.mistakesCleared || {}).length <= 300, 'Felboken and tombstones stay bounded');
     // äldre app skriver över molnet med inaktuell logg → loggen kan inte krympa
+    await sleep(1800); B.PA.SYNC.pending.clear(); clearTimeout(B.PA.SYNC.pushTimer); // låt väntande uppladdningar bli klara först
     const full = A.PA.DB.profiles.k2.le.log.length; const doc = cloud['families/le-fam-1/profiles/k2']; const prof = JSON.parse(doc.fields.json.stringValue);
     prof.le = { ...prof.le, log: prof.le.log.slice(0, 5) }; doc.fields.json.stringValue = JSON.stringify(prof); doc.fields.updatedAt.integerValue = String(Date.now() + 100000);
     A.PA.SYNC.pending.clear(); clearTimeout(A.PA.SYNC.pushTimer); A.PA.DB.profiles.k2.updatedAt = A.PA.DB.profiles.k2.syncedAt; // A har inga lokala ändringar
     await A.PA.SYNC.refresh('k2'); await sleep(1800);
     ok(A.PA.DB.profiles.k2.le.log.length === full, 'stale overwrite by an older app cannot shrink the local log');
-    const after = JSON.parse(cloud['families/le-fam-1/profiles/k2'].fields.json.stringValue); ok(after.le.log.length === full, 'and the full log is pushed back to the cloud');
-    ok(typeof A.PA.DB.profiles.k2.le.skew === 'number', 'server clock anchor recorded (diagnostic only)');
+    const mid = JSON.parse(cloud['families/le-fam-1/profiles/k2'].fields.json.stringValue); ok(mid.le.log.length === 5 && A.PA.DB.profiles.k2.updatedAt > A.PA.DB.profiles.k2.syncedAt, 'no extra immediate upload (no race with another device); marked for the next normal save');
+    A.PA.setKid('k2'); A.PA.save(); await sleep(1800);
+    const after = JSON.parse(cloud['families/le-fam-1/profiles/k2'].fields.json.stringValue); ok(after.le.log.length === full, 'the next normal save pushes the full log back to the cloud');
+    ok(typeof A.PA.LE.skewMs === 'number' && !('skew' in A.PA.DB.profiles.k2.le) && A.PA.DB.profiles.k2.le.srv > 0, 'device clock offset kept on the device (not synced into the profile); server time anchor recorded');
     console.log(`\n${checks} kontroller, ${fails} fel`); console.log(fails ? 'LE SYNC TEST FAILED' : 'LE SYNC TEST OK'); process.exit(fails ? 1 : 0);
   } catch (e) { console.log('EXC', e.stack); process.exit(1); }
 })();
