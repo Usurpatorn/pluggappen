@@ -1,5 +1,5 @@
 <!doctype html><html lang="sv"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="theme-color" content="#fbfaf6"><meta name="apple-mobile-web-app-title" content="Pluggapp"><link rel="apple-touch-icon" href="icon-v2.png"><link rel="icon" href="icon-v2.png"><style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
-<script>window.PLUGG_BUILD = '2026-10-25 09:09';</script>
+<script>window.PLUGG_BUILD = '2026-10-25 09:21';</script>
 <script>window.PLUGG_SYNC = window.PLUGG_SYNC || { projectId: "pluggappen", apiKey: "AIzaSyBexTJ4xs1dL0EytcH2N74pY84PuJQZVYQ" }; if (window.PLUGG_SYNC.projectId.startsWith("__")) window.PLUGG_SYNC = null; window.PLUGG_PUSH_KEY = "BPB-A8j28EB8I1cdEMseKa05bLaVDXnDpe9PBbTjekO6ReD_I2hKjJfQnuS1HkoBr8RafRaqWf2sWuQdghiXQX0"; if ("serviceWorker" in navigator) { window.addEventListener("load", function () { navigator.serviceWorker.register("./sw.js").catch(function () {}); }); }</script>
 <title>Pluggapp</title>
 <meta name="claude:viewport-fit-sides" content="cover">
@@ -2537,7 +2537,7 @@ const FAMILY = {
   },
   // Normalise + fill defaults; strips unknown keys so the config can never carry executable content.
   clean(c) {
-    const str = (v, max) => (typeof v === 'string' ? v.slice(0, max) : '');
+    const str = (v, max) => (typeof v === 'string' ? v.replace(/[<>]/g, '').slice(0, max) : '');
     return { v: 1, updatedAt: Number(c.updatedAt) || Date.now(), appName: str(c.appName, 40) || undefined, kids: c.kids.map(k => ({
       id: k.id, name: str(k.name, 30).trim(), template: k.template, theme: ['teen', 'sport', 'pet'].includes(k.theme) ? k.theme : 'pet',
       hue: ['teal', 'orange', 'pink', 'slate', 'blaugrana', 'rod'].includes(k.hue) ? k.hue : 'teal', emoji: str(k.emoji, 4) || '🙂', paper: str(k.paper, 20) || null,
@@ -2585,6 +2585,85 @@ function buildKids() {
 }
 // Standardvärden per barn: mallens inställningar + familjens prov och glosor.
 const kidDefaults = (kidId) => { const k = KIDS.find(x => x.id === kidId); if (!k) return null; const tpl = TEMPLATES[k.template]; return { settings: { ...tpl.defaults }, decks: [...tpl.decks, ...k.cfgDecks.map(d => d.id)], exams: k.cfgExams.map(e => ({ ...e, skillIds: [...e.skillIds], deckIds: [...e.deckIds] })), paper: k.paper || 'rutat' }; };
+/* ========= Enhetsidentitet och familjemedlemskap =========
+   Varje enhet loggar in anonymt i Firebase (ingen e-post, inget lösenord) och får ett stabilt uid.
+   En familj har   meta/info      { joinCode, createdAt, rotatedAt }
+                   members/{uid}  { role: 'kid'|'parent', device, joinedAt, lastSeen, code }
+   Parkoppling = enheten visar upp familjens aktuella parkopplingskod EN gång och blir medlem.
+   Därefter styr Firestore-reglerna: bara medlemmar läser/skriver familjens profiler. Koden sparas inte på enheten.
+   Föräldern kan byta kod (gamla länkar slutar fungera för NYA enheter) och ta bort enheter.
+   Övergång: en enhet med gammal familjekod startar familjen med joinCode = den gamla koden och går med automatiskt. */
+const AUTH = {
+  KEY: 'pluggappen.auth.v1',
+  st: null, // { uid, idToken, refreshToken, exp }
+  denied: false,
+  get ready() { return !!(SYNC.cfg && AUTH.st && AUTH.st.idToken); },
+  get uid() { return AUTH.st ? AUTH.st.uid : null; },
+  load() { try { const raw = localStorage.getItem(AUTH.KEY); if (raw) AUTH.st = JSON.parse(raw); } catch (e) { /* ignore */ } },
+  save() { try { if (AUTH.st) localStorage.setItem(AUTH.KEY, JSON.stringify(AUTH.st)); else localStorage.removeItem(AUTH.KEY); } catch (e) { /* ignore */ } },
+  async signIn() {
+    if (!SYNC.cfg) return false;
+    if (AUTH.st && AUTH.st.refreshToken) return AUTH.ensureToken();
+    try {
+      const r = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${SYNC.cfg.apiKey}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ returnSecureToken: true }) });
+      if (!r.ok) throw new Error('signUp HTTP ' + r.status);
+      const j = await r.json(); AUTH.st = { uid: j.localId, idToken: j.idToken, refreshToken: j.refreshToken, exp: Date.now() + (Number(j.expiresIn) - 60) * 1000 }; AUTH.save(); return true;
+    } catch (e) { AUTH.lastError = e.message; return false; }
+  },
+  async ensureToken() {
+    if (!AUTH.st || !AUTH.st.refreshToken) return false;
+    if (AUTH.st.idToken && Date.now() < AUTH.st.exp) return true;
+    try {
+      const r = await fetch(`https://securetoken.googleapis.com/v1/token?key=${SYNC.cfg.apiKey}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ grant_type: 'refresh_token', refresh_token: AUTH.st.refreshToken }) });
+      if (!r.ok) { if (r.status === 400) { AUTH.st = null; AUTH.save(); return AUTH.signIn(); } throw new Error('token HTTP ' + r.status); }
+      const j = await r.json(); AUTH.st = { uid: j.user_id, idToken: j.id_token, refreshToken: j.refresh_token, exp: Date.now() + (Number(j.expires_in) - 60) * 1000 }; AUTH.save(); return true;
+    } catch (e) { AUTH.lastError = e.message; return !!AUTH.st.idToken; }
+  },
+  async fetch(url, opts = {}) {
+    await AUTH.ensureToken();
+    const headers = { ...(opts.headers || {}) }; if (AUTH.st && AUTH.st.idToken) headers.Authorization = 'Bearer ' + AUTH.st.idToken;
+    const r = await fetch(url, { ...opts, headers });
+    if (r.status === 403 || r.status === 401) AUTH.denied = true; else if (r.ok) AUTH.denied = false;
+    return r;
+  },
+  // ---- familj / medlemskap ----
+  base() { return `https://firestore.googleapis.com/v1/projects/${SYNC.cfg.projectId}/databases/(default)/documents/families/${encodeURIComponent(SYNC.family)}`; },
+  doc(path) { return `${AUTH.base()}/${path}?key=${SYNC.cfg.apiKey}`; },
+  deviceLabel() { const ua = navigator.userAgent; const dev = /iPad/.test(ua) || (/Macintosh/.test(ua) && 'ontouchend' in document) ? 'iPad' : /iPhone/.test(ua) ? 'iPhone' : /Android/.test(ua) ? 'Android' : 'Dator'; return `${dev}${window.navigator.standalone || matchMedia('(display-mode: standalone)').matches ? ' · hemskärm' : ' · webbläsare'}`; },
+  get member() { return DB.settings.member && DB.settings.member.fam === SYNC.family ? DB.settings.member : null; },
+  newCode() { const a = 'abcdefghjkmnpqrstuvwxyz23456789'; let s = ''; const buf = new Uint32Array(16); crypto.getRandomValues(buf); for (const n of buf) s += a[n % a.length]; return s.slice(0, 4) + '-' + s.slice(4, 8) + '-' + s.slice(8, 12) + '-' + s.slice(12, 16); },
+  // Gå med i familjen med en parkopplingskod. role: 'kid' | 'parent'. Returnerar { ok, msg }.
+  async join(code, role) {
+    if (!SYNC.active) return { ok: false, msg: 'Ingen familj vald.' };
+    if (!(await AUTH.signIn())) return { ok: false, msg: 'Kunde inte skapa enhetsidentitet (nät?).' };
+    const uid = AUTH.uid; const fields = (o) => ({ fields: Object.fromEntries(Object.entries(o).map(([k, v]) => [k, typeof v === 'number' ? { integerValue: String(v) } : { stringValue: String(v) }])) });
+    // redan medlem?
+    try { const r = await AUTH.fetch(AUTH.doc('members/' + uid)); if (r.ok) { DB.settings.member = { fam: SYNC.family, uid, role: (await r.json()).fields?.role?.stringValue || role, joinedAt: Date.now() }; save(); return { ok: true, msg: 'Enheten är redan parkopplad.' }; } } catch (e) { /* fortsätt */ }
+    code = (code || '').trim();
+    if (!code) return { ok: false, msg: 'Parkopplingskod saknas.' };
+    // Finns familjen? En icke-medlem får 403 oavsett om dokumentet finns, så vi försöker alltid starta familjen:
+    // create tillåts bara om meta/info saknas (reglerna), annars 403 → familjen finns redan och koden prövas nedan.
+    try { await AUTH.fetch(AUTH.doc('meta/info'), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(fields({ joinCode: code, createdAt: Date.now() })) }); } catch (e) { return { ok: false, msg: 'Nätverksfel.' }; }
+    const r2 = await AUTH.fetch(AUTH.doc('members/' + uid), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(fields({ role, device: AUTH.deviceLabel().slice(0, 60), joinedAt: Date.now(), lastSeen: Date.now(), code })) });
+    if (!r2.ok) return { ok: false, msg: r2.status === 403 ? 'Fel parkopplingskod – eller så har föräldern bytt kod.' : 'Kunde inte parkoppla (' + r2.status + ').' };
+    DB.settings.member = { fam: SYNC.family, uid, role, joinedAt: Date.now() }; DB.settings.joinCode = null; save();
+    return { ok: true, msg: 'Enheten är parkopplad.' };
+  },
+  async touch() { // lastSeen högst en gång per dygn
+    const m = AUTH.member; if (!m || !AUTH.ready) return; const today = todayKey(); if (m.seen === today) return;
+    try { await AUTH.fetch(AUTH.doc('members/' + m.uid) + '&updateMask.fieldPaths=lastSeen&updateMask.fieldPaths=device', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fields: { lastSeen: { integerValue: String(Date.now()) }, device: { stringValue: AUTH.deviceLabel().slice(0, 60) } } }) }); m.seen = today; save(); } catch (e) { /* ignore */ }
+  },
+  async listMembers() {
+    try { const r = await AUTH.fetch(`${AUTH.base()}/members?key=${SYNC.cfg.apiKey}&pageSize=50`); if (!r.ok) return null; const j = await r.json(); return (j.documents || []).map(d => ({ uid: d.name.split('/').pop(), role: d.fields?.role?.stringValue || 'kid', device: d.fields?.device?.stringValue || '', joinedAt: Number(d.fields?.joinedAt?.integerValue || 0), lastSeen: Number(d.fields?.lastSeen?.integerValue || 0) })); } catch (e) { return null; }
+  },
+  async removeMember(uid) { try { const r = await AUTH.fetch(AUTH.doc('members/' + uid), { method: 'DELETE' }); return r.ok; } catch (e) { return false; } },
+  async setRole(uid, role) { try { const r = await AUTH.fetch(AUTH.doc('members/' + uid) + '&updateMask.fieldPaths=role', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fields: { role: { stringValue: role } } }) }); if (r.ok && uid === AUTH.uid && DB.settings.member) { DB.settings.member.role = role; save(); } return r.ok; } catch (e) { return false; } },
+  async getJoinCode() { try { const r = await AUTH.fetch(AUTH.doc('meta/info')); if (!r.ok) return null; return (await r.json()).fields?.joinCode?.stringValue || null; } catch (e) { return null; } },
+  async rotateCode() { const code = AUTH.newCode(); try { const r = await AUTH.fetch(AUTH.doc('meta/info') + '&updateMask.fieldPaths=joinCode&updateMask.fieldPaths=rotatedAt', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fields: { joinCode: { stringValue: code }, rotatedAt: { integerValue: String(Date.now()) } } }) }); return r.ok ? code : null; } catch (e) { return null; } },
+  pairLink(code) { return location.origin + location.pathname + '#fam-' + SYNC.family + (code ? '.' + code : ''); },
+  // Tolka en parkopplingssträng: "familj.kod" eller gammal "familjekod" (då är koden = familjen).
+  parsePair(str) { const s = (str || '').trim().replace(/[^a-zA-Z0-9\-.]/g, ''); if (!s) return null; const i = s.indexOf('.'); return i > 0 ? { fam: s.slice(0, i), code: s.slice(i + 1) } : { fam: s, code: s }; },
+};
 /* ========= Push reminders (self-hosted build only; needs service worker + VAPID public key + sync) ========= */
 const PUSH = {
   key: typeof window !== 'undefined' ? window.PLUGG_PUSH_KEY || null : null,
@@ -2592,7 +2671,7 @@ const PUSH = {
   needsInstall() { return typeof navigator !== 'undefined' && /iPhone|iPad/.test(navigator.userAgent) && !(window.navigator.standalone || matchMedia('(display-mode: standalone)').matches); },
   current() { return DB.settings.push || null; },
   lastStatus: null,
-  async loadStatus() { if (!SYNC.active) return; try { const r = await fetch(SYNC.url('push_log'), { cache: 'no-store' }); if (!r.ok) return; const doc = await r.json(); PUSH.lastStatus = JSON.parse(doc.fields?.json?.stringValue || 'null'); } catch (e) { /* ignore */ } },
+  async loadStatus() { if (!SYNC.active) return; try { const r = await SYNC.fetch(SYNC.url('push_log'), { cache: 'no-store' }); if (!r.ok) return; const doc = await r.json(); PUSH.lastStatus = JSON.parse(doc.fields?.json?.stringValue || 'null'); } catch (e) { /* ignore */ } },
   urlB64(b64) { const pad = '='.repeat((4 - b64.length % 4) % 4); const raw = atob((b64 + pad).replace(/-/g, '+').replace(/_/g, '/')); return Uint8Array.from([...raw].map(c => c.charCodeAt(0))); },
   async enable(kidId) {
     if (!PUSH.supported() || !SYNC.active) return { ok: false, msg: 'Påminnelser kräver att synk är på och att appen ligger på hemskärmen.' };
@@ -2602,7 +2681,7 @@ const PUSH = {
       const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: PUSH.urlB64(PUSH.key) });
       const id = 'push_' + btoa(sub.endpoint).replace(/[^a-zA-Z0-9]/g, '').slice(-24);
       const body = { fields: { json: { stringValue: JSON.stringify({ sub: sub.toJSON(), kid: kidId, device: navigator.userAgent.slice(0, 80), createdAt: Date.now() }) }, updatedAt: { integerValue: String(Date.now()) }, kid: { stringValue: kidId } } };
-      const r = await fetch(SYNC.url(id), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      const r = await SYNC.fetch(SYNC.url(id), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       if (!r.ok) throw new Error('HTTP ' + r.status);
       DB.settings.push = { id, kid: kidId }; try { localStorage.setItem(STORE_KEY, JSON.stringify(DB)); } catch (e) { /* ignore */ }
       return { ok: true };
@@ -2611,7 +2690,7 @@ const PUSH = {
   async disable() {
     const cur = PUSH.current(); if (!cur) return;
     try { const reg = await navigator.serviceWorker.ready; const sub = await reg.pushManager.getSubscription(); if (sub) await sub.unsubscribe(); } catch (e) { /* ignore */ }
-    try { await fetch(SYNC.url(cur.id), { method: 'DELETE' }); } catch (e) { /* ignore */ }
+    try { await SYNC.fetch(SYNC.url(cur.id), { method: 'DELETE' }); } catch (e) { /* ignore */ }
     DB.settings.push = null; try { localStorage.setItem(STORE_KEY, JSON.stringify(DB)); } catch (e) { /* ignore */ }
   },
   card(kidId, who) {
@@ -2949,6 +3028,17 @@ const ICON = {
 
 /* ========= Rendering helpers ========= */
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+// HTML-sanering för genererat/lagrat innehåll (frågetext, lösningssteg, figurer, Felboken). Tillåter bara ofarliga taggar,
+// tar bort on*-attribut och javascript:/data:-länkar. Används som skyddslager även om innehållet kommer från appens egna generatorer.
+const SAFE_TAGS = new Set(['B', 'I', 'U', 'EM', 'STRONG', 'BR', 'P', 'OL', 'UL', 'LI', 'SPAN', 'SUP', 'SUB', 'SMALL', 'DIV', 'BUTTON', 'SVG', 'G', 'PATH', 'CIRCLE', 'RECT', 'LINE', 'TEXT', 'TSPAN', 'POLYGON', 'POLYLINE', 'ELLIPSE', 'DEFS', 'CLIPPATH', 'USE', 'TITLE']);
+function safeHtml(html) {
+  if (html == null) return ''; html = String(html); if (!/[<&]/.test(html)) return html;
+  try {
+    const doc = new DOMParser().parseFromString(`<body>${html}</body>`, 'text/html');
+    const walk = (node) => { for (const el of [...node.children]) { if (!SAFE_TAGS.has(el.tagName.toUpperCase())) { el.replaceWith(doc.createTextNode(el.textContent)); continue; } for (const a of [...el.attributes]) { const n = a.name.toLowerCase(); if (n.startsWith('on') || (['href', 'src', 'xlink:href', 'formaction', 'action'].includes(n) && !/^\s*(#|\.|\/|https?:)/i.test(a.value)) || (n === 'style' && /url\(|expression|javascript/i.test(a.value))) el.removeAttribute(a.name); } walk(el); } };
+    walk(doc.body); return doc.body.innerHTML;
+  } catch (e) { return esc(html); }
+}
 const app = document.getElementById('app');
 let state = { screen: 'start', kid: null };
 function applyLook(kid) {
@@ -3007,7 +3097,7 @@ VIEWS.start = () => {
     <button class="card tap kid-card" data-kid="${k.id}" data-hue="${k.hue}">
       <div class="avatar">${isTeen(k) ? k.name[0] : isSport(k) ? '🏒' : (p.pet ? petEmoji(p) : k.emoji)}</div>
       <div class="grow">
-        <div class="name">${k.name}</div>
+        <div class="name">${esc(k.name)}</div>
         <div class="meta">${k.grade} · Nivå ${lvl} ${levelNameFor(k, lvl)}</div>
         <div class="row" style="margin-top:6px;gap:6px">${p.streak > 0 ? `<span class="pill">🔥 ${p.streak} dag${p.streak > 1 ? 'ar' : ''}</span>` : ''}<span class="pill ${today.c >= goalFor(k.id) ? 'good' : ''}">${today.c}/${goalFor(k.id)} idag</span></div>
       </div>
@@ -3022,7 +3112,7 @@ VIEWS.petpick = () => {
   const kid = kidById(state.kid);
   render(`${topbar('Välj din följeslagare', 'start')}
   <div class="stack" style="margin-top:6px">
-    <div class="card pad-lg" style="text-align:center"><h2>Hej ${kid.name}! 👋</h2><p class="muted" style="margin-top:6px">Välj ett ägg. Det kläcks och växer när du samlar XP genom att plugga.</p></div>
+    <div class="card pad-lg" style="text-align:center"><h2>Hej ${esc(kid.name)}! 👋</h2><p class="muted" style="margin-top:6px">Välj ett ägg. Det kläcks och växer när du samlar XP genom att plugga.</p></div>
     <div class="pet-grid">${PETS.filter(x => !x.shop).map(x => `<button class="card tap pet-opt" data-pet="${x.id}"><div class="pe">${x.stages[3]}</div><div class="pn">${x.name}</div></button>`).join('')}</div>
     <p class="muted" style="text-align:center;font-size:.9rem">Fler finns i butiken när du har samlat ädelstenar 💎</p>
   </div>`);
@@ -3059,9 +3149,9 @@ VIEWS.home = () => {
       <div class="row"><button class="btn grow" data-test="${e.id}">${LBL(kid).test} · E/C/A</button><button class="btn ghost" data-plan="${e.id}">Plan</button></div>
     </div>`; }).join('');
   render(`
-  ${topbar(kid.name, 'start', `<span class="pill ${p.streak ? 'warn' : ''}" title="Dagar i rad">${ICON.flame} ${p.streak}</span><button class="pill" data-go="shop" style="min-height:36px"><span class="gem">${ICON.gem} ${p.gems}</span></button><button class="icon-btn" data-go="sync" aria-label="Synka enheter" title="Synka telefon och iPad">${ICON.sync}</button><button class="icon-btn" data-act="sound" aria-label="Ljud">${DB.settings.sound ? ICON.speaker : ICON.mute}</button>`)}
+  ${topbar(esc(kid.name), 'start', `<span class="pill ${p.streak ? 'warn' : ''}" title="Dagar i rad">${ICON.flame} ${p.streak}</span><button class="pill" data-go="shop" style="min-height:36px"><span class="gem">${ICON.gem} ${p.gems}</span></button><button class="icon-btn" data-go="sync" aria-label="Synka enheter" title="Synka telefon och iPad">${ICON.sync}</button><button class="icon-btn" data-act="sound" aria-label="Ljud">${DB.settings.sound ? ICON.speaker : ICON.mute}</button>`)}
   <div class="stack" style="margin-top:6px">
-    ${isSport(kid) ? `<div class="player-card lulea"><div><div class="rating">${lvl}</div><div class="pos">${['C', 'LW', 'RW', 'D', 'G'][lvl % 5]}</div></div><div class="grow" style="position:relative"><div class="pname">${kid.name}</div><div class="ptitle">${levelNameFor(kid, lvl)} · ${p.xp} poäng</div><div class="pstats"><div><b>${p.streak}</b>${LBL(kid).streakWord}</div><div><b>${today.c}/${goal}</b>mål idag</div><div><b>${p.weekCorrect || 0}</b>rätt i veckan</div></div><div class="xpbar"><i style="width:${pct}%"></i></div><div style="font-size:.75rem;opacity:.8;margin-top:4px">${next - p.xp} poäng till ${levelNameFor(kid, lvl + 1)}</div></div></div>` : `<div class="card stack" style="gap:12px">
+    ${isSport(kid) ? `<div class="player-card lulea"><div><div class="rating">${lvl}</div><div class="pos">${['C', 'LW', 'RW', 'D', 'G'][lvl % 5]}</div></div><div class="grow" style="position:relative"><div class="pname">${esc(kid.name)}</div><div class="ptitle">${levelNameFor(kid, lvl)} · ${p.xp} poäng</div><div class="pstats"><div><b>${p.streak}</b>${LBL(kid).streakWord}</div><div><b>${today.c}/${goal}</b>mål idag</div><div><b>${p.weekCorrect || 0}</b>rätt i veckan</div></div><div class="xpbar"><i style="width:${pct}%"></i></div><div style="font-size:.75rem;opacity:.8;margin-top:4px">${next - p.xp} poäng till ${levelNameFor(kid, lvl + 1)}</div></div></div>` : `<div class="card stack" style="gap:12px">
       <div class="hero">${isTeen(kid) ? `<div class="rank">${lvl}<small>nivå</small></div>` : `<div class="pet">${petEmoji(p)}<span class="lvl">${lvl}</span></div>`}
         <div class="grow"><div class="eyebrow">${levelNameFor(kid, lvl)} · ${p.xp} XP</div><div class="mood" style="margin:4px 0 8px">${isTeen(kid) ? (today.c >= goal ? 'Dagens mål klart. Allt över det är bonus.' : today.c ? `${goal - today.c} rätt kvar till dagens mål.` : `${p.streak ? `Håll streaken vid liv – ` : ''}en sprint på fem räcker idag.`) : petMood(p)}</div><div class="xpbar"><i style="width:${pct}%"></i></div><div class="muted" style="font-size:.8rem;margin-top:4px">${next - p.xp} XP till nivå ${lvl + 1}</div></div></div>
       <div class="row" style="gap:8px"><span class="pill">${p.streak} dag${p.streak === 1 ? '' : 'ar'} i rad</span><span class="pill" title="Streakfrys räddar din streak om du missar en dag">${p.freezes} frys</span><span class="pill ${today.c >= goal ? 'good' : ''}">${today.c}/${goal} idag</span></div>
@@ -3348,8 +3438,8 @@ function mathBody(q, kid, isTest) {
         : `<input class="answer-input" id="ans" autocomplete="off" autocapitalize="off" placeholder="Skriv svaret" aria-label="Ditt svar">`;
   const p = prof(kid.id);
   return `<div class="row" style="justify-content:space-between"><span class="eyebrow">Uppgift ${S.i + 1} av ${S.queue.length}${isTest && q.part ? ` · ${q.part}-nivå` : ''}${!isTest && !p.settings.focus ? ` · ${esc(q.skill.short || '')}` : ''}</span><span class="row" style="gap:8px">${TTS.ok && p.settings.tts ? `<button class="icon-btn" data-speak="${esc(q.text.replace(/<[^>]+>/g, ''))}" data-lang="sv" data-highlight="1" style="width:36px;height:36px" aria-label="Läs upp">${ICON.speaker}</button>` : ''}<span class="lvl-dots" aria-label="Svårighet ${q.level}">${[1, 2, 3].map(i => `<i class="${i <= q.level ? 'on' : ''}"></i>`).join('')}</span></span></div>
-      ${q.fig ? `<div class="figwrap">${q.fig}</div>` : ''}
-      <div class="question" id="qtext">${q.text}</div>
+      ${q.fig ? `<div class="figwrap">${safeHtml(q.fig)}</div>` : ''}
+      <div class="question" id="qtext">${safeHtml(q.text)}</div>
       <div id="inputArea">${inputHtml}</div>
       <div id="fb"></div>
       <div class="row" id="actions">
@@ -3373,7 +3463,7 @@ function initSketch() {
 function wordBody(ex) {
   const lang = ex.deck.lang; const head = `<div class="row" style="justify-content:space-between"><span class="eyebrow">${S.i + 1} av ${S.queue.length} · ${esc(ex.title || 'Nytt ord')}</span><span>${LANGS[lang]?.flag || ''}</span></div>`;
   if (ex.kind === 'intro') { const sv = lang === 'sv'; return `${head}<div class="word-card"><div class="eyebrow">${sv ? 'Nytt kort' : 'Nytt ord'}</div><div class="we">${ex.word.e || '✨'}</div><div class="ww">${esc(sv ? ex.word.t : ex.word.w)}</div><div class="wt">${esc(sv ? ex.word.w : ex.word.t)}</div>${sv ? '' : speakBtn(ex.word.w, lang)}</div><div class="row" id="actions"><button class="btn grow big" id="next">Jag har sett det → </button></div>`; }
-  if (ex.kind === 'pick') return `${head}<div class="word-card"><div class="we" style="font-size:${ex.promptEmoji ? '3.6rem' : '0'}">${ex.promptEmoji}</div><div class="ww">${esc(ex.prompt)}</div>${ex.speak ? speakBtn(ex.word.w, lang) : ''}</div><div class="wchoices">${ex.choices.map(c => `<button class="wchoice" data-wchoice="${c.id}">${c.e ? `<span class="ce">${c.e}</span>` : ''}<span>${esc(c.label)}</span></button>`).join('')}</div><div id="fb"></div><div class="row" id="actions"></div>`;
+  if (ex.kind === 'pick') return `${head}<div class="word-card"><div class="we" style="font-size:${ex.promptEmoji ? '3.6rem' : '0'}">${ex.promptEmoji}</div><div class="ww">${esc(ex.prompt)}</div>${ex.speak ? speakBtn(ex.word.w, lang) : ''}</div><div class="wchoices">${ex.choices.map(c => `<button class="wchoice" data-wchoice="${c.id}">${c.e ? `<span class="ce">${esc(c.e)}</span>` : ''}<span>${esc(c.label)}</span></button>`).join('')}</div><div id="fb"></div><div class="row" id="actions"></div>`;
   if (ex.kind === 'listen') return `${head}<div class="word-card"><div class="eyebrow">Tryck och lyssna</div>${speakBtn(ex.word.w, lang, 'big')}<button class="pill" data-speak="${esc(ex.word.w)}" data-lang="${lang}" data-rate="0.6">🐢 Långsamt</button></div><div class="wchoices">${ex.choices.map(c => `<button class="wchoice" data-wchoice="${c.id}"><span>${esc(c.label)}</span></button>`).join('')}</div><div id="fb"></div><div class="row" id="actions"></div>`;
   if (ex.kind === 'match') {
     S.match = { left: R.shuffle(ex.pairs.map(w => ({ id: w.id, label: w.w }))), right: R.shuffle(ex.pairs.map(w => ({ id: w.id, label: w.t }))), done: new Set(), sel: null, mistakes: 0, firstTry: new Set(ex.pairs.map(w => w.id)) };
@@ -3475,13 +3565,13 @@ function onMath(e, q) {
   if (key && input) { const k = key.dataset.key; if (k === '⌫') input.value = input.value.trimEnd().slice(0, -1).trimEnd(); else input.value = (input.value + k).replace(/\s{2,}/g, ' '); input.focus({ preventScroll: true }); return; }
   const ch = e.target.closest('[data-choice]');
   if (ch) { document.querySelectorAll('.choice, .wchoice').forEach(c => c.classList.remove('sel')); ch.classList.add('sel'); S.selected = Number(ch.dataset.choice); document.getElementById('submit').disabled = false; if (S.kid.template === 'ak2' || prof(S.kid.id).settings.focus || q.type === 'choicetext') document.getElementById('submit').click(); return; }
-  if (e.target.closest('#hintBtn')) { S.usedHelp = true; document.getElementById('fb').innerHTML = `<div class="hint">💡 ${q.hint}</div>`; e.target.closest('#hintBtn').disabled = true; return; }
+  if (e.target.closest('#hintBtn')) { S.usedHelp = true; document.getElementById('fb').innerHTML = `<div class="hint">💡 ${safeHtml(q.hint)}</div>`; e.target.closest('#hintBtn').disabled = true; return; }
   if (e.target.closest('#explainBtn')) { S.usedHelp = true; showSteps(q, true); return; }
   if (e.target.closest('#submit')) { submitMath(); }
 }
 function showSteps(q, reveal) {
   const el = document.getElementById('fb');
-  const stepsHtml = `<div class="steps"><div class="eyebrow">Så här löser du den</div><ol>${q.steps.map(s => `<li>${s}</li>`).join('')}</ol>${reveal && !S.answered ? `<p style="margin-top:10px" class="muted">Svaret är <b>${esc(answerDisplay(q))}</b>. Skriv in det så går vi vidare – nästa gång klarar du det själv!</p>` : ''}</div>`;
+  const stepsHtml = `<div class="steps"><div class="eyebrow">Så här löser du den</div><ol>${q.steps.map(s => `<li>${safeHtml(s)}</li>`).join('')}</ol>${reveal && !S.answered ? `<p style="margin-top:10px" class="muted">Svaret är <b>${esc(answerDisplay(q))}</b>. Skriv in det så går vi vidare – nästa gång klarar du det själv!</p>` : ''}</div>`;
   const existing = el.querySelector('.steps'); if (existing) existing.remove();
   el.insertAdjacentHTML('beforeend', stepsHtml);
   if (reveal) { S.revealed = true; const b = document.getElementById('explainBtn'); if (b) b.disabled = true; }
@@ -3677,10 +3767,7 @@ VIEWS.parent = () => {
       <div class="row" style="gap:8px;align-items:center;flex-wrap:wrap"><button class="btn ghost" data-act="testSound">Testa ljud</button><span class="muted" style="font-size:.85rem" id="soundState">${typeof window !== 'undefined' && window.PLUGG_BUILD ? 'Version ' + window.PLUGG_BUILD : ''}</span></div>
       <button class="btn secondary" data-act="savePin">Spara kod</button></div>
       ${familyCard()}
-      ${SYNC.cfg ? `<div class="card stack" style="gap:10px"><div class="eyebrow">Synk mellan enheter</div><p class="muted" style="font-size:.95rem">Alla enheter med samma familjekod delar framsteg automatiskt. Välj en lång, egen kod (bokstäver, siffror, bindestreck) och skriv in samma på varje enhet – eller öppna appen på den andra enheten via länken nedan.</p>
-      <div class="field"><label for="famCode">Familjekod</label><input id="famCode" value="${esc(DB.settings.family || '')}" placeholder="t.ex. familjen-xk93-plugg" autocapitalize="off"></div>
-      <div class="row"><button class="btn secondary" data-act="saveFamily">Spara och synka</button>${SYNC.family ? `<button class="btn ghost" data-act="copyFamLink">Kopiera länk med kod</button>` : ''}</div>
-      <div id="syncState">${SYNC.badge()}</div></div>${PUSH.card('parent', 'parent')}` : ''}
+      ${SYNC.cfg ? `${syncCard()}${PUSH.card('parent', 'parent')}${deleteCard()}` : ''}
       <div class="card stack" style="gap:8px"><div class="eyebrow">Så fungerar appen</div>
       <p style="font-size:.95rem"><b>Matte:</b> alla uppgifter slumpas – obegränsat med övning. Svårigheten höjs efter fyra rätt i rad och sänks efter tre fel. "Kör!" väljer det barnet behöver mest: prov inom 30 dagar, annars dagens uppdrag. Fel svar återkommer senare i sprinten.</p>
       <p style="font-size:.95rem"><b>Språk:</b> ord repeteras med spaced repetition (boxar 0–5, intervall 1–30 dagar). En lektion blandar nya ord, välj rätt, lyssna, para ihop, bygg ordet och skriv. Uppläsningen använder telefonens egen röst.</p>
@@ -3690,7 +3777,7 @@ VIEWS.parent = () => {
   }
   render(`${topbar('Föräldraläge', 'start')}
   <div class="stack" style="margin-top:6px">
-    <div class="tabs">${KIDS.map(k => `<button class="${tab === k.id ? 'on' : ''}" data-tab="${k.id}">${k.name}</button>`).join('')}<button class="${tab === 'settings' ? 'on' : ''}" data-tab="settings">⚙</button></div>
+    <div class="tabs">${KIDS.map(k => `<button class="${tab === k.id ? 'on' : ''}" data-tab="${k.id}">${esc(k.name)}</button>`).join('')}<button class="${tab === 'settings' ? 'on' : ''}" data-tab="settings">⚙</button></div>
     ${body}
   </div>`);
 };
@@ -3710,7 +3797,7 @@ function parentOverview(kid, p) {
   const lastActiveDays = p.lastDay ? Math.round((new Date(todayKey()) - new Date(p.lastDay)) / DAYMS) : null;
   const learnedNow = Object.values(p.words).filter(w => w.box >= 3).length;
   const weekly = `<div class="card stack" style="gap:8px;border-left:3px solid var(--acc)"><div class="eyebrow">Veckan hittills · ${new Date(wk + 'T00:00:00').toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })} →</div>
-      ${lastActiveDays !== null && lastActiveDays >= 3 ? `<div class="feedback warn" style="padding:10px 12px"><span>⚠️</span><div class="sub">${kid.name} har inte övat på ${lastActiveDays} dagar.</div></div>` : ''}
+      ${lastActiveDays !== null && lastActiveDays >= 3 ? `<div class="feedback warn" style="padding:10px 12px"><span>⚠️</span><div class="sub">${esc(kid.name)} har inte övat på ${lastActiveDays} dagar.</div></div>` : ''}
       <div class="kv"><span>Aktiva dagar</span><b>${activeDays} av ${Math.min(7, Math.round((new Date(todayKey()) - new Date(wk)) / DAYMS) + 1)}</b><span>Uppgifter / rätt</span><b>${weekN} / ${weekC}${weekN ? ` (${Math.round(weekC / weekN * 100)} %)` : ''}</b><span>XP den här veckan</span><b>+${p.xp - (snap.xp || 0)}</b>${learnedNow - (snap.learned || 0) ? `<span>Nya ord som sitter</span><b>+${learnedNow - (snap.learned || 0)}</b>` : ''}</div>
       ${ups.length ? `<div style="font-size:.95rem">📈 Starkast framåt: ${ups.map(x => `<b>${esc(x.s.short)}</b> ${x.from} → ${x.to} %`).join(', ')}</div>` : ''}
       ${downs.length ? `<div style="font-size:.95rem">📉 Backat: ${downs.map(x => `<b>${esc(x.s.short)}</b> ${x.from} → ${x.to} %`).join(', ')}</div>` : ''}
@@ -3720,7 +3807,7 @@ function parentOverview(kid, p) {
   return `
     ${weekly}
     <div class="card stack" style="gap:10px">
-      <div class="row"><div class="avatar" style="width:48px;height:48px;font-size:1.5rem;border-radius:14px">${p.pet ? petEmoji(p) : kid.emoji}</div><div class="grow"><h2>${kid.name}</h2><div class="muted">${kid.grade} · Nivå ${lvl} ${levelName(lvl)} · ${p.xp} XP · 💎 ${p.gems}</div></div></div>
+      <div class="row"><div class="avatar" style="width:48px;height:48px;font-size:1.5rem;border-radius:14px">${p.pet ? petEmoji(p) : kid.emoji}</div><div class="grow"><h2>${esc(kid.name)}</h2><div class="muted">${kid.grade} · Nivå ${lvl} ${levelName(lvl)} · ${p.xp} XP · 💎 ${p.gems}</div></div></div>
       <div class="kv"><span>Matteuppgifter</span><b>${totalAtt} (${totalAtt ? Math.round(totalCor / totalAtt * 100) : 0}% rätt)</b><span>Ord lärda</span><b>${learned} av ${words.length} övade</b><span>Dagar i rad</span><b>${p.streak} (${p.freezes} frys)</b><span>Sprintar</span><b>${p.sessions}</b><span>Denna vecka</span><b>${p.weekCorrect || 0} rätt</b></div>
       ${weak.length ? `<div class="hint" style="font-size:.95rem">🎯 Behöver mest träning: <b>${weak.map(w => esc(w.s.name)).join('</b> och <b>')}</b></div>` : `<div class="muted">Inga mattepass ännu.</div>`}
     </div>
@@ -3728,7 +3815,7 @@ function parentOverview(kid, p) {
     <div class="card"><div class="eyebrow" style="margin-bottom:10px">Matteområden</div><div class="skill-list">${kid.skills.map(s => { const st = skillState(p, s.id); const mv = Math.round(st.m); return `<div><div class="row" style="justify-content:space-between"><b>${esc(s.name)}</b><span class="pill ${mv < 40 ? (st.att ? 'bad' : '') : mv < 75 ? 'warn' : 'good'}">${masteryLabel(st)} · nivå ${st.lvl}</span></div><div class="mastery ${masteryClass(mv)}"><i style="width:${Math.max(2, mv)}%"></i></div><div class="muted" style="font-size:.85rem;margin-top:3px">${st.att ? `${st.cor}/${st.att} rätt · senast ${new Date(st.last).toLocaleDateString('sv-SE')}` : 'Inte övat än'}</div></div>`; }).join('')}</div></div>
     ${enabledDecks(p).length ? `<div class="card"><div class="eyebrow" style="margin-bottom:10px">Språk</div><div class="wordlist">${enabledDecks(p).map(d => { const pr = deckProgress(p, d); return `<div><span>${d.emoji} ${esc(d.name)}</span><b>${pr.learned}/${d.words.length} lärda${pr.due ? ` · ${pr.due} att repetera` : ''}</b></div>`; }).join('')}</div>${weakWords.length ? `<div class="eyebrow" style="margin:12px 0 6px">Ord som är svåra</div><div class="wordlist">${weakWords.map(x => `<div><span>${esc(x.word.w)} = ${esc(x.word.t)}</span><span class="boxes">${[0, 1, 2, 3, 4].map(i => `<i class="${i < x.w.box ? 'on' : ''}"></i>`).join('')}</span></div>`).join('')}</div>` : ''}</div>` : ''}
     ${p.tests.length ? `<div class="card"><div class="eyebrow" style="margin-bottom:8px">Provträningar</div>${p.tests.slice(-6).reverse().map(t => `<div class="row" style="justify-content:space-between;padding:4px 0"><span>${t.date} · ${esc(p.exams.find(e => e.id === t.examId)?.title || '')} · ${fmtTime(t.ms)}</span><b>${t.score}/${t.total}${t.grade ? ` · ${t.grade}` : ''}</b></div>`).join('')}</div>` : ''}
-    <div class="card stack" style="gap:10px"><div class="eyebrow">Flytta framsteg</div><p class="muted" style="font-size:.95rem">Framstegen sparas på den här enheten. Kopiera koden och klistra in på en annan enhet för att flytta ${kid.name}s framsteg.</p>
+    <div class="card stack" style="gap:10px"><div class="eyebrow">Flytta framsteg</div><p class="muted" style="font-size:.95rem">Framstegen sparas på den här enheten. Kopiera koden och klistra in på en annan enhet för att flytta ${esc(kid.name)}s framsteg.</p>
       <div class="row"><button class="btn ghost" data-act="export">Kopiera kod</button><button class="btn ghost" data-act="import">Klistra in kod</button><button class="btn ghost danger" data-act="reset">Nollställ</button></div><div id="ioArea"></div></div>`;
 }
 function parentExams(kid, p) {
@@ -3742,11 +3829,11 @@ function parentExams(kid, p) {
       <div class="field"><label>Områden som ingår</label><div class="checks" id="exSkills">${skillChecks}</div></div>
       ${deckChecks ? `<div class="field"><label>Glosor som ingår</label><div class="checks" id="exDecks">${deckChecks}</div></div>` : ''}
       <button class="btn secondary" data-act="addExam">Lägg till</button>
-      <p class="muted" style="font-size:.9rem">Provet får nedräkning, provberedskap, provplan och provläge på ${kid.name}s startsida. Behöver provet ett nytt matteområde som inte finns i appen (t.ex. geometri eller procent)? Be Claude lägga till det.</p></div>`;
+      <p class="muted" style="font-size:.9rem">Provet får nedräkning, provberedskap, provplan och provläge på ${esc(kid.name)}s startsida. Behöver provet ett nytt matteområde som inte finns i appen (t.ex. geometri eller procent)? Be Claude lägga till det.</p></div>`;
 }
 function parentDecks(kid, p) {
   return `
-    <div class="card stack" style="gap:10px"><div class="eyebrow">Kurser på ${kid.name}s startsida</div><div class="checks">${allDecks(p).map(d => `<button class="check ${p.enabledDecks.includes(d.id) ? 'on' : ''}" data-toggle-deck="${d.id}">${LANGS[d.lang]?.flag || '🗂️'} ${esc(d.name)}</button>`).join('')}</div></div>
+    <div class="card stack" style="gap:10px"><div class="eyebrow">Kurser på ${esc(kid.name)}s startsida</div><div class="checks">${allDecks(p).map(d => `<button class="check ${p.enabledDecks.includes(d.id) ? 'on' : ''}" data-toggle-deck="${d.id}">${LANGS[d.lang]?.flag || '🗂️'} ${esc(d.name)}</button>`).join('')}</div></div>
     ${p.decks.length ? `<div class="card"><div class="eyebrow" style="margin-bottom:8px">Egna glosläxor</div>${p.decks.map(d => `<div class="row" style="justify-content:space-between;padding:6px 0;border-top:1px solid var(--line)"><div><b>${d.emoji} ${esc(d.name)}</b><div class="muted" style="font-size:.85rem">${d.words.length} ord · ${LANGS[d.lang]?.name || 'Egna'}</div></div><div class="row"><button class="btn ghost" style="min-height:36px;padding:0 10px" data-edit-deck="${d.id}">Ändra</button><button class="btn ghost danger" style="min-height:36px;padding:0 10px" data-del-deck="${d.id}">Ta bort</button></div></div>`).join('')}</div>` : ''}
     <div class="card stack" style="gap:12px"><div class="eyebrow">${state.editDeck ? 'Ändra glosläxa' : 'Ny glosläxa'}</div>
       <div class="field"><label for="dkName">Namn</label><input id="dkName" placeholder="t.ex. Engelska v.44" value="${esc(state.editDeck?.name || '')}"></div>
@@ -3799,6 +3886,48 @@ function readFamilyRows() {
   return rows.map(r => { const old = FAMILY.cfg.kids.find(k => k.id === r.dataset.kidrow) || {}; const g = (f) => r.querySelector(`[data-f="${f}"]`)?.value; return { ...old, id: r.dataset.kidrow, name: (g('name') || '').trim(), emoji: g('emoji') || '🙂', template: g('template'), theme: g('theme'), hue: g('hue') }; });
 }
 
+
+/* ========= Parent: sync / devices / deletion ========= */
+function syncCard() {
+  const m = AUTH.member;
+  if (!m) return `<div class="card stack" style="gap:10px"><div class="eyebrow">Synk mellan enheter</div>
+    <p class="muted" style="font-size:.95rem">Den här enheten är inte kopplad till familjen. Skriv in parkopplingskoden (från en kopplad förälderenhet) – eller en ny kod för att starta en familj.</p>
+    <div class="field"><label for="famCode">Parkopplingskod</label><input id="famCode" value="${esc(DB.settings.family ? DB.settings.family + (DB.settings.joinCode && DB.settings.joinCode !== DB.settings.family ? '.' + DB.settings.joinCode : '') : '')}" placeholder="familj.kod" autocapitalize="off" autocomplete="off"></div>
+    <div class="row"><button class="btn secondary" data-act="saveFamily">Koppla som förälder</button></div>
+    ${AUTH.lastJoin ? `<p class="muted" style="font-size:.85rem;color:var(--bad)">${esc(AUTH.lastJoin)}</p>` : ''}<div id="syncState">${SYNC.badge()}</div></div>`;
+  setTimeout(() => AUTH.listMembers().then(list => { const el = document.getElementById('memberList'); if (!el) return; if (!list) { el.innerHTML = '<p class="muted">Kunde inte hämta enheter.</p>'; return; } el.innerHTML = list.length ? list.sort((x, y) => y.lastSeen - x.lastSeen).map(d => `<div class="row" style="justify-content:space-between;gap:8px;padding:6px 0;border-top:1px solid var(--line)"><div class="grow" style="min-width:0"><div style="font-weight:700">${esc(d.device || 'Enhet')}${d.uid === AUTH.uid ? ' <span class="pill good" style="font-size:.75rem">den här</span>' : ''}</div><div class="muted" style="font-size:.8rem">${d.role === 'parent' ? 'Förälder' : 'Barn'} · senast ${d.lastSeen ? fmtDate(new Date(d.lastSeen).toISOString().slice(0, 10)) : '–'}</div></div><div class="row" style="gap:6px"><button class="link" data-act="setRole" data-uid="${esc(d.uid)}" data-role="${d.role === 'parent' ? 'kid' : 'parent'}">${d.role === 'parent' ? 'Gör till barn' : 'Gör till förälder'}</button><button class="link" data-act="removeMember" data-uid="${esc(d.uid)}" style="color:var(--bad)">Ta bort</button></div></div>`).join('') : '<p class="muted">Inga enheter.</p>'; }), 0);
+  return `<div class="card stack" style="gap:10px"><div class="eyebrow">Synk mellan enheter</div>
+    <p class="muted" style="font-size:.95rem">Bara parkopplade enheter kan läsa familjens data. Koppla en ny enhet genom att öppna parkopplingslänken på den – eller skriv in koden där. Byt kod om länken hamnat fel; redan kopplade enheter påverkas inte.</p>
+    <div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn secondary" data-act="copyFamLink">Kopiera parkopplingslänk</button><button class="btn ghost" data-act="rotateCode">Byt parkopplingskod</button></div>
+    <div><div class="eyebrow" style="margin-bottom:4px">Kopplade enheter</div><div id="memberList"><p class="muted">Hämtar…</p></div></div>
+    <div id="syncState">${SYNC.badge()}${AUTH.denied ? ' <span class="pill bad">Åtkomst nekad – enheten kan ha tagits bort</span>' : ''}</div></div>`;
+}
+function deleteCard() {
+  if (!AUTH.member) return '';
+  return `<div class="card stack" style="gap:8px"><div class="eyebrow">Radera data</div>
+    <p class="muted" style="font-size:.95rem">Raderar framsteg i molnet och på den här enheten. Andra kopplade enheter nollställs när de synkar nästa gång.</p>
+    <div class="row" style="gap:8px;flex-wrap:wrap">${KIDS.map(k => `<button class="btn ghost" data-act="deleteKidData" data-id="${esc(k.id)}">Radera ${esc(k.name)}s framsteg</button>`).join('')}</div>
+    <button class="btn ghost" data-act="deleteFamilyData" style="color:var(--bad);border-color:var(--bad)">Radera all familjedata i molnet</button></div>`;
+}
+// Tombstone: skriver en tom profil med resetAt så att alla enheter nollställer i stället för att ladda upp sin kopia.
+async function deleteKidData(kidId) {
+  const now = Date.now(); const fresh = { ...defaultProfile(kidId), resetAt: now, updatedAt: now, syncedAt: now }; fresh._lx = 0; fresh._lg = 0;
+  DB.profiles[kidId] = fresh; try { localStorage.setItem(STORE_KEY, JSON.stringify(DB)); } catch (e) { /* ignore */ }
+  if (!SYNC.active) return false;
+  try { const body = { fields: { json: { stringValue: JSON.stringify(fresh) }, updatedAt: { integerValue: String(now) }, kid: { stringValue: kidId } } }; const r = await SYNC.fetch(SYNC.url(kidId), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); return r.ok; } catch (e) { return false; }
+}
+async function deleteFamilyData() {
+  let n = 0; const del = async (url) => { try { const r = await SYNC.fetch(url, { method: 'DELETE' }); if (r.ok) n++; } catch (e) { /* ignore */ } };
+  try { const r = await SYNC.fetch(`${AUTH.base()}/profiles?key=${SYNC.cfg.apiKey}&pageSize=100`); if (r.ok) { const j = await r.json(); for (const d of j.documents || []) await del(`https://firestore.googleapis.com/v1/${d.name}?key=${SYNC.cfg.apiKey}`); } } catch (e) { /* ignore */ }
+  const members = await AUTH.listMembers() || []; for (const m of members) if (m.uid !== AUTH.uid) await del(AUTH.doc('members/' + m.uid));
+  await del(AUTH.doc('meta/info')); await del(AUTH.doc('members/' + AUTH.uid));
+  // lokalt: koppla bort och glöm familjen
+  for (const k of KIDS) DB.profiles[k.id] = defaultProfile(k.id);
+  DB.settings.family = ''; DB.settings.member = null; DB.settings.joinCode = null; DB.settings.push = null; FAMILY.cfg = null; FAMILY.saveLocal(); buildKids();
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(DB)); } catch (e) { /* ignore */ }
+  return n;
+}
+
 /* ========= Event delegation ========= */
 app.addEventListener('click', (e) => {
   const t = e.target;
@@ -3840,16 +3969,21 @@ app.addEventListener('click', (e) => {
     if (a === 'again') { if (!S) return go('home'); if (S.mode === 'test') return startSession(S.kid, { mode: 'test', examId: S.examId }); if (S.mode === 'felbok') return (prof(S.kid.id).mistakes || []).length ? startSession(S.kid, { mode: 'felbok', n: 10 }) : go('home'); return startSession(S.kid, S.opts); }
     if (a === 'testSound') { const on = DB.settings.sound; DB.settings.sound = true; beep('perfect'); DB.settings.sound = on; const el = document.getElementById('soundState'); if (el) el.textContent = `Ljud ${on ? 'på' : 'AV'} · ctx ${audioCtx ? audioCtx.state : 'saknas'} · ${window.navigator.standalone ? 'hemskärm' : 'webbläsare'} · ${window.PLUGG_BUILD || ''}`; return; }
     if (a === 'sound' || a === 'toggleSound') { DB.settings.sound = !DB.settings.sound; save(); return a === 'sound' ? VIEWS.home() : VIEWS.parent(); }
-    if (a === 'saveFamily') { const v = document.getElementById('famCode').value.trim().replace(/[^a-zA-Z0-9\-]/g, ''); if (v.length < 6) return toast('Minst 6 tecken, bara bokstäver, siffror och bindestreck'); DB.settings.family = v; save(); toast('Synkar…'); SYNC.refreshAll().then(() => { toast(SYNC.status === 'ok' ? 'Synk aktiv' : 'Synkfel – kontrollera uppkopplingen'); VIEWS.parent(); }); return; }
+    if (a === 'saveFamily') { const pr = AUTH.parsePair(document.getElementById('famCode').value); if (!pr || pr.fam.length < 6) return toast('Minst 6 tecken, bara bokstäver, siffror, bindestreck och punkt'); DB.settings.family = pr.fam; DB.settings.joinCode = pr.code; DB.settings.member = null; save(); toast('Kopplar…'); ensureMembership().then(ok => { if (!ok) return toast(AUTH.lastJoin || 'Kunde inte koppla'); return FAMILY.pull().then(() => { load(); return SYNC.refreshAll(); }).then(() => toast('Enheten är parkopplad som förälder')); }).then(() => VIEWS.parent()); return; }
     if (a === 'saveFamilyCfg') { if (!FAMILY.cfg) FAMILY.cfg = { v: 1, updatedAt: Date.now(), kids: [] }; const kids = readFamilyRows(); if (kids.some(k => !k.name)) return toast('Alla barn behöver ett namn'); FAMILY.update(c => { c.kids = kids; }); toast('Familjen sparad'); return VIEWS.parent(); }
     if (a === 'addKid') { if (!FAMILY.cfg) { FAMILY.cfg = { v: 1, updatedAt: Date.now(), kids: [] }; } const kids = readFamilyRows(); let id = 'barn' + (kids.length + 1); while (kids.some(k => k.id === id)) id += 'x'; FAMILY.update(c => { c.kids = [...kids, { id, name: '', template: 'ak4', theme: 'pet', hue: 'teal', emoji: '🙂', exams: [], decks: [] }]; }); return VIEWS.parent(); }
     if (a === 'removeKid') { const id = t.dataset.id; const k = FAMILY.cfg?.kids.find(x => x.id === id); if (!k) return; if (!confirm(`Ta bort ${k.name} ur familjen?\n\nBarnet försvinner från startsidan på alla enheter. Framstegen raderas INTE – de ligger kvar i molnet tills du raderar dem under "Radera data".`)) return; FAMILY.update(c => { c.kids = c.kids.filter(x => x.id !== id); }); toast(`${k.name} borttagen`); return VIEWS.parent(); }
     if (a === 'toggleCfgJson') { document.getElementById('cfgJsonWrap')?.classList.toggle('hidden'); return; }
     if (a === 'importCfg') { const txt = document.getElementById('cfgJson')?.value || ''; FAMILY.importJson(txt).then(r => { toast(r.msg); if (r.ok) VIEWS.parent(); }); return; }
     if (a === 'copyCfg') { const txt = FAMILY.cfg ? FAMILY.exportJson() : ''; navigator.clipboard?.writeText(txt).then(() => toast('Kopierat')).catch(() => toast('Kunde inte kopiera')); return; }
-    if (a === 'pairFamily') { const v = (document.getElementById('pairCode')?.value || '').trim().replace(/[^a-zA-Z0-9\-.]/g, ''); if (v.length < 6) return toast('Koden är för kort'); DB.settings.family = v; save(); toast('Hämtar familjen…'); FAMILY.pull().then(ok => { load(); if (!ok) toast('Hittade inga familjeinställningar för den koden'); VIEWS.start(); SYNC.refreshAll(); }); return; }
-    if (a === 'retryFamily') { toast('Hämtar…'); FAMILY.pull().then(ok => { load(); if (!ok) toast('Inga familjeinställningar hittades'); VIEWS.start(); SYNC.refreshAll(); }); return; }
-    if (a === 'copyFamLink') { const link = location.origin + location.pathname + '#fam-' + SYNC.family; navigator.clipboard?.writeText(link).then(() => toast('Länk kopierad – skicka den till barnets andra enhet')).catch(() => toast(link)); return; }
+    if (a === 'pairFamily') { const pr = AUTH.parsePair(document.getElementById('pairCode')?.value || ''); if (!pr || pr.fam.length < 6) return toast('Koden är för kort'); DB.settings.family = pr.fam; DB.settings.joinCode = pr.code; save(); toast('Kopplar…'); ensureMembership().then(ok => { if (!ok) { toast(AUTH.lastJoin || 'Kunde inte koppla'); DB.settings.family = ''; save(); return VIEWS.start(); } return FAMILY.pull().then(got => { load(); if (!got) toast('Kopplad – men familjen saknar inställningar. Läs in dem i föräldraläget.'); VIEWS.start(); SYNC.refreshAll(); }); }); return; }
+    if (a === 'retryFamily') { toast('Hämtar…'); ensureMembership().then(() => FAMILY.pull()).then(ok => { load(); if (!ok) toast(AUTH.lastJoin || 'Inga familjeinställningar hittades'); VIEWS.start(); SYNC.refreshAll(); }); return; }
+    if (a === 'copyFamLink') { AUTH.getJoinCode().then(code => { if (!code) return toast('Kunde inte hämta parkopplingskoden'); const link = AUTH.pairLink(code); navigator.clipboard?.writeText(link).then(() => toast('Parkopplingslänk kopierad – öppna den på barnets enhet')).catch(() => prompt('Parkopplingslänk:', link)); }); return; }
+    if (a === 'rotateCode') { if (!confirm('Byta parkopplingskod?\n\nEnheter som redan är kopplade fortsätter fungera. Gamla länkar slutar fungera för nya enheter.')) return; AUTH.rotateCode().then(code => { if (!code) return toast('Kunde inte byta kod'); toast('Ny kod skapad'); const link = AUTH.pairLink(code); navigator.clipboard?.writeText(link).then(() => toast('Ny parkopplingslänk kopierad')).catch(() => prompt('Ny parkopplingslänk:', link)); VIEWS.parent(); }); return; }
+    if (a === 'removeMember') { const uid = t.dataset.uid; const own = uid === AUTH.uid; if (!confirm(own ? 'Koppla bort DEN HÄR enheten från familjen? Du måste parkoppla igen för att synka.' : 'Ta bort enheten från familjen? Den slutar synka och kan inte längre läsa familjens data.')) return; AUTH.removeMember(uid).then(ok => { if (!ok) return toast('Kunde inte ta bort'); if (own) { DB.settings.member = null; save(); } toast('Enheten borttagen'); VIEWS.parent(); }); return; }
+    if (a === 'setRole') { AUTH.setRole(t.dataset.uid, t.dataset.role).then(ok => { toast(ok ? 'Roll ändrad' : 'Kunde inte ändra roll'); VIEWS.parent(); }); return; }
+    if (a === 'deleteKidData') { const kid = kidById(t.dataset.id); if (!kid) return; const typed = prompt(`Radera ALLA framsteg för ${kid.name} (XP, nivåer, ord, prov, Felboken) på alla enheter?\n\nSkriv barnets namn för att bekräfta:`); if (typed === null) return; if (typed.trim().toLowerCase() !== kid.name.trim().toLowerCase()) return toast('Namnet stämde inte – inget raderades'); deleteKidData(kid.id).then(ok => { toast(ok ? `${kid.name}s data raderad` : 'Raderat lokalt – molnet kunde inte nås'); VIEWS.parent(); }); return; }
+    if (a === 'deleteFamilyData') { const typed = prompt('Radera HELA familjens molndata (alla barns framsteg, inställningar, enheter, påminnelser)? Detta går inte att ångra.\n\nSkriv RADERA för att bekräfta:'); if (typed === null) return; if (typed.trim() !== 'RADERA') return toast('Inget raderades'); deleteFamilyData().then(n => { toast(`Familjens molndata raderad (${n} dokument). Appen är nu frånkopplad.`); go('start'); }); return; }
     if (a === 'savePin') { const v = document.getElementById('newPin').value.replace(/\D/g, ''); if (v.length !== 4) return toast('Koden ska vara 4 siffror'); DB.settings.pin = v; save(); toast('Sparat'); return VIEWS.parent(); }
     if (a === 'addExam') { const p = prof(state.tab); const title = document.getElementById('exTitle').value.trim(); const date = document.getElementById('exDate').value; if (!title || !date) return toast('Fyll i vad och datum'); const skillIds = [...document.querySelectorAll('input[name=ex_skill]:checked')].map(x => x.value); const deckIds = [...document.querySelectorAll('input[name=ex_deck]:checked')].map(x => x.value); p.exams.push({ id: 'ex' + Date.now(), title, date, skillIds, deckIds }); save(); toast('Provet är inlagt'); return VIEWS.parent(); }
     if (a === 'saveDeck') { const p = prof(state.tab); const name = document.getElementById('dkName').value.trim(); const lang = document.getElementById('dkLang').value; const lines = document.getElementById('dkWords').value.split('\n').map(l => l.trim()).filter(Boolean); const words = []; for (const l of lines) { const parts = l.split('=').map(x => x.trim()); if (parts.length >= 2 && parts[0] && parts[1]) words.push({ id: 'w' + Date.now() + '_' + words.length, w: parts[0], t: parts[1], e: parts[2] || '' }); } if (!name || !words.length) return toast('Ge läxan ett namn och minst ett ord'); if (state.editDeck) { const d = p.decks.find(x => x.id === state.editDeck.id); const keep = new Map(d.words.map(w => [w.w.toLowerCase(), w.id])); words.forEach(w => { if (keep.has(w.w.toLowerCase())) w.id = keep.get(w.w.toLowerCase()); }); Object.assign(d, { name, lang, words, noSpell: lang === 'sv' }); state.editDeck = null; } else { const deck = { id: 'custom_' + Date.now(), lang, name, emoji: lang === 'es' ? '🇪🇸' : lang === 'en' ? '🇬🇧' : '🗂️', level: 1, builtin: false, noSpell: lang === 'sv', words }; p.decks.push(deck); p.enabledDecks.push(deck.id); } save(); toast(`${words.length} ord sparade`); return VIEWS.parent(); }
@@ -3864,14 +3998,25 @@ app.addEventListener('click', (e) => {
 });
 
 /* ========= Boot ========= */
+// Ser till att enheten är inloggad och medlem i familjen. Gamla enheter (bara familjekod) går med automatiskt med koden = familjekoden.
+async function ensureMembership() {
+  if (!SYNC.active) return false;
+  if (AUTH.member) { await AUTH.signIn(); AUTH.touch(); return true; }
+  const role = DB.settings.push && DB.settings.push.kid === 'parent' ? 'parent' : 'kid';
+  const code = DB.settings.joinCode || SYNC.family; // legacy: koden är familjekoden
+  const r = await AUTH.join(code, role);
+  if (!r.ok) { AUTH.lastJoin = r.msg; }
+  return r.ok;
+}
 function boot(snap) {
   FAMILY.loadLocal(); buildKids();
   load(); TTS.init();
   try { window.claude?.hot?.snapshot?.(() => ({ screen: state.screen, kid: state.kid })); } catch (e) { /* no hot */ }
   let h = (location.hash || '').replace('#', '');
-  if (h.startsWith('fam-') && SYNC.cfg) { DB.settings.family = h.slice(4); try { localStorage.setItem(STORE_KEY, JSON.stringify(DB)); } catch (e) { /* ignore */ } h = ''; } // hash is kept so a home-screen shortcut carries the code (iOS gives it separate storage)
-  if (!h && SYNC.cfg && SYNC.family && !location.hash) { try { history.replaceState(null, '', location.pathname + '#fam-' + SYNC.family); } catch (e) { /* ignore */ } }
-  if (SYNC.active) { FAMILY.pull().then((cfgChanged) => { if (cfgChanged) { load(); if (state.screen === 'start') VIEWS.start(); } return SYNC.refreshAll(); }).then((changed) => { if (state.screen === 'start' || (changed && state.screen === 'home')) VIEWS[state.screen](); }); document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && SYNC.active && state.screen !== 'practice' && state.screen !== 'blitzplay') SYNC.refreshAll().then((changed) => { if (changed && VIEWS[state.screen]) VIEWS[state.screen](); }); }); }
+  if (h.startsWith('fam-') && SYNC.cfg) { const pr = AUTH.parsePair(h.slice(4)); if (pr) { DB.settings.family = pr.fam; DB.settings.joinCode = pr.code; try { localStorage.setItem(STORE_KEY, JSON.stringify(DB)); } catch (e) { /* ignore */ } } h = ''; }
+  if (SYNC.cfg && SYNC.family) { try { history.replaceState(null, '', location.pathname + '#fam-' + SYNC.family); } catch (e) { /* ignore */ } } // bara familje-id i adressfältet – aldrig parkopplingskoden
+  AUTH.load();
+  if (SYNC.active) { ensureMembership().then(() => FAMILY.pull()).then((cfgChanged) => { if (cfgChanged) { load(); if (state.screen === 'start') VIEWS.start(); } return SYNC.refreshAll(); }).then((changed) => { if (state.screen === 'start' || (changed && state.screen === 'home')) VIEWS[state.screen](); }); document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && SYNC.active && state.screen !== 'practice' && state.screen !== 'blitzplay') SYNC.refreshAll().then((changed) => { if (changed && VIEWS[state.screen]) VIEWS[state.screen](); }); }); }
   const [hk, hact] = h.split('-');
   if (snap && snap.kid && kidById(snap.kid)) { state.kid = snap.kid; go('home'); }
   else if (kidById(hk) && hact === 'kor') { state.kid = hk; applyLook(kidById(hk)); const kid = kidById(hk); const p = prof(hk); if (!p.pet) { p.pet = isTeen(kid) || isSport(kid) ? 'none' : PETS[0].id; save(); } startSession(kid, recommendSprint(kid).opts); }
@@ -3881,5 +4026,5 @@ function boot(snap) {
   else go('start');
 }
 window.claude?.hot?.ready ? window.claude.hot.ready(boot) : boot(window.claude?.hot?.data ?? null);
-window.PA = { get S() { return S; }, get DB() { return DB; }, get B() { return B; }, Poly, KIDS, TEMPLATES, FAMILY, buildKids, load, rerender: () => VIEWS[state.screen] && VIEWS[state.screen](), BUILTIN_DECKS, SYNC, save, setKid: (id) => { state.kid = id; }, version: '3.0' };
+window.PA = { get S() { return S; }, get DB() { return DB; }, get B() { return B; }, Poly, KIDS, TEMPLATES, FAMILY, AUTH, deleteKidData, deleteFamilyData, buildKids, load, rerender: () => VIEWS[state.screen] && VIEWS[state.screen](), BUILTIN_DECKS, SYNC, save, setKid: (id) => { state.kid = id; }, version: '3.0' };
 </script></body></html>

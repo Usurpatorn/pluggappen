@@ -1,13 +1,56 @@
 rules_version = '2';
+// Pluggapp – åtkomstregler
+// Modell: varje enhet är anonymt inloggad (Firebase Auth) och blir MEDLEM i en familj genom att visa upp familjens
+// aktuella parkopplingskod en gång (members/{uid}). Bara medlemmar läser/skriver familjens profiler och konfiguration.
+// Föräldrar (role == 'parent') får dessutom radera data och ta bort andra enheter.
+// Övergång: fram till 2026-11-09 får oautentiserade klienter med gammal familjekod fortfarande läsa/skriva profiler
+// så att alla enheter hinner uppdatera appen och parkoppla sig automatiskt. Därefter stängs den vägen av sig själv.
 service cloud.firestore {
-  match /databases/{database}/documents {
-    // Pluggappen: en profil per barn under en hemlig familjekod. Ingen inloggning – koden är nyckeln.
-    match /families/{family}/profiles/{kid} {
-      allow read: if family.size() >= 6;
-      allow write: if family.size() >= 6
-        && request.resource.data.keys().hasOnly(['json', 'updatedAt', 'kid'])
-        && request.resource.data.json is string
-        && request.resource.data.json.size() < 900000;
+  match /databases/{db}/documents {
+    match /families/{fam} {
+      function signedIn() { return request.auth != null; }
+      function memberPath() { return /databases/$(db)/documents/families/$(fam)/members/$(request.auth.uid); }
+      function infoPath() { return /databases/$(db)/documents/families/$(fam)/meta/info; }
+      function isMember() { return signedIn() && exists(memberPath()); }
+      function isParent() { return isMember() && get(memberPath()).data.role == 'parent'; }
+      function legacyGrace() { return request.time < timestamp.date(2026, 11, 9) && fam.size() >= 6; }
+      function validInfo() {
+        return request.resource.data.keys().hasOnly(['joinCode', 'createdAt', 'rotatedAt'])
+          && request.resource.data.joinCode is string
+          && request.resource.data.joinCode.size() >= 6 && request.resource.data.joinCode.size() <= 64;
+      }
+      function validMember() {
+        return request.resource.data.keys().hasOnly(['role', 'device', 'joinedAt', 'lastSeen', 'code'])
+          && request.resource.data.role in ['kid', 'parent']
+          && request.resource.data.device is string && request.resource.data.device.size() <= 80;
+      }
+
+      // Familjens parkopplingskod. Skapas av första enheten (bootstrap), ändras av medlemmar (byt kod).
+      match /meta/info {
+        allow read: if isMember();
+        allow create: if signedIn() && !exists(infoPath()) && validInfo();
+        allow update: if isMember() && validInfo();
+        allow delete: if isParent();
+      }
+
+      // Enheter. Gå med = skapa sitt eget dokument med rätt kod. Bara den egna enheten eller en förälder får ändra/ta bort.
+      match /members/{uid} {
+        allow read: if isMember();
+        allow create: if signedIn() && uid == request.auth.uid && exists(infoPath())
+          && request.resource.data.code == get(infoPath()).data.joinCode && validMember();
+        allow update: if isMember() && (uid == request.auth.uid || isParent()) && validMember();
+        allow delete: if isMember() && (uid == request.auth.uid || isParent());
+      }
+
+      // Barnens profiler, familjekonfigurationen (_config), push-prenumerationer (push_*) och körlogg (push_log).
+      match /profiles/{doc} {
+        allow read: if isMember() || legacyGrace();
+        allow create, update: if (isMember() || legacyGrace())
+          && request.resource.data.keys().hasOnly(['json', 'updatedAt', 'kid'])
+          && request.resource.data.json is string
+          && request.resource.data.json.size() < 900000;
+        allow delete: if isParent();
+      }
     }
   }
 }

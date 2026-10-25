@@ -21,6 +21,7 @@ jobs:
         env:
           FAMILY_CODE: ${{ secrets.FAMILY_CODE }}
           VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           VAPID_PUBLIC_KEY: ${{ vars.VAPID_PUBLIC_KEY || 'BPB-A8j28EB8I1cdEMseKa05bLaVDXnDpe9PBbTjekO6ReD_I2hKjJfQnuS1HkoBr8RafRaqWf2sWuQdghiXQX0' }}
           FIREBASE_PROJECT: pluggappen
           FIREBASE_KEY: AIzaSyBexTJ4xs1dL0EytcH2N74pY84PuJQZVYQ
