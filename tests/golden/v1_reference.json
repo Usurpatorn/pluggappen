@@ -1,0 +1,127 @@
+{
+ "label": "release-1.2.0",
+ "made": "release-1.2.0-8d06e53",
+ "screens": [
+  [
+   "start",
+   "3465aed9def8a600"
+  ],
+  [
+   "k2 home",
+   "ceb983ca7e76d5e0"
+  ],
+  [
+   "k2 kör start",
+   "a811bd219a6c3d09"
+  ],
+  [
+   "k2 kör summary",
+   "868d8c5628aedc17"
+  ],
+  [
+   "k2 again summary",
+   "35e597db7de097a6"
+  ],
+  [
+   "k2 home 2",
+   "5cc1367c55e8e7cd"
+  ],
+  [
+   "k2 felbok summary",
+   "fc2606484cc3fa87"
+  ],
+  [
+   "k2 svenska",
+   "0b6419eb6b1bf730"
+  ],
+  [
+   "k2 lesson",
+   "7f4b57bb16535c08"
+  ],
+  [
+   "k8 home",
+   "a802c133b2da99ea"
+  ],
+  [
+   "k8 kör",
+   "ca1acc16782cb0f6"
+  ],
+  [
+   "k8 test",
+   "ae068b0d1eea4463"
+  ],
+  [
+   "k8 ekvation",
+   "41703e53cd076076"
+  ],
+  [
+   "k8 blitz",
+   "11c0820c21db8f36"
+  ],
+  [
+   "k4 kör",
+   "53118f266b3379e0"
+  ],
+  [
+   "k4 home",
+   "df460c88e4a8be7e"
+  ],
+  [
+   "parent k2 overview",
+   "b90774ceb26d9a53"
+  ],
+  [
+   "parent k2 exams",
+   "e5c67c4c05e26b34"
+  ],
+  [
+   "parent k2 decks",
+   "ca59f8de06b0d6a1"
+  ],
+  [
+   "parent k2 settings",
+   "4c1581bc503b98ff"
+  ],
+  [
+   "parent k4 overview",
+   "fde7c8bb19f14853"
+  ],
+  [
+   "parent k4 exams",
+   "c374692ca4d369a0"
+  ],
+  [
+   "parent k4 decks",
+   "7848b3fab7a85a13"
+  ],
+  [
+   "parent k4 settings",
+   "0fce455bee79d514"
+  ],
+  [
+   "parent k8 overview",
+   "80fde3d2dc326009"
+  ],
+  [
+   "parent k8 exams",
+   "1f3610d92550b9de"
+  ],
+  [
+   "parent k8 decks",
+   "2625ceace2f6074e"
+  ],
+  [
+   "parent k8 settings",
+   "08a49e6003aa263d"
+  ],
+  [
+   "start after parent",
+   "b4f28dffdcc6fb86"
+  ]
+ ],
+ "data": {
+  "k2": "07aa09d1d4b77c69",
+  "k4": "704d5f053b6d138b",
+  "k8": "c6db3b7510c6a41c"
+ }
+}

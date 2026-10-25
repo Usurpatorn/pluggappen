@@ -19,7 +19,7 @@ const st = (o) => E.stable(o);
     if (!(c.lvl >= 1 && c.lvl <= (CAT[cid].maxLvl || 3))) ok(false, 'lvl out of range');
     if (!Number.isFinite(c.due) || c.due <= t - DAY) ok(false, 'due invalid/past ' + c.due);
     if (c.ev.length > 12 || c.items.length > 6) ok(false, 'unbounded storage');
-    if (c.fb && !['open', 'corrected', 'verified', 'resolved'].includes(c.fb.s)) ok(false, 'bad fb state');
+    if (c.fb && !['open', 'corrected', 'awaiting', 'verified', 'resolved'].includes(c.fb.s)) ok(false, 'bad fb state');
     if (/NaN|Infinity/.test(JSON.stringify(c))) ok(false, 'NaN/Infinity in state'); }
   ok(true, 'invariants'); console.log('A1. invarianter: 20 000 händelser inom gränser'); }
 { const fresh = () => { const L = E.newLE(); const c = E.cstate(L, 'm1'); c.st = 2; c.lastOk = T0 - 3 * DAY; c.n = 5; c.due = T0; return L; };
@@ -152,5 +152,66 @@ const mcat = { ...CAT, 's:plus20': { id: 's:plus20', subject: 'matte', maxLvl: 3
 { const { execFileSync } = require('child_process'); const out = execFileSync(process.execPath, ['-e', `const E=require(${JSON.stringify(path.join(__dirname, '../src/05b_engine2.js'))}); const t=Date.UTC(2026,9,24,22,30); const d=new Date(E.dayStart(t)); console.log(d.getHours()+':'+d.getMinutes()+' '+d.getDate())`], { env: { ...process.env, TZ: 'Europe/Stockholm' } }).toString().trim();
   ok(out === '0:0 25', 'local-midnight day boundary in Europe/Stockholm (got ' + out + ')'); }
 
-console.log(`Del 2: ${checks - n3A} kontroller (Fas 3B)`);
+const n3B = checks; console.log(`Del 2: ${checks - n3A} kontroller (Fas 3B)`);
+
+/* ================= Del 3: Fas 3C–3H (regler) ================= */
+const LER = require('../src/05e_runner.js');
+const fresh2 = (cid, st, extra = {}) => { const L = E.newLE(); const c = E.cstate(L, cid); Object.assign(c, { st, n: 5, lastOk: T0 - 10 * DAY, due: T0 - DAY, lvl: 2 }, extra); return L; };
+// C1. Felboken 2.0: Testa mig-fel → "väntar" (syns först nästa dygn), mjuk sänkning; utgång efter 30 dygn
+{ const L = fresh2('m1', 4); E.recordEvidence(L, CAT, 'm1', { ok: false, kind: 'free', help: 'none', ctx: 'exam', item: 'q' }, T0, pol, { id: 't' });
+  ok(L.c.m1.fb.s === 'awaiting' && L.c.m1.st === 3, 'Testa mig failure → awaiting + one-stage drop (does not overwrite long-term evidence)');
+  ok(E.felbokVisible(L, T0).length === 0 && E.felbokVisible(L, T0 + DAY).length === 1, 'awaiting entry hidden the same day, visible next day');
+  ok(E.felbokVisible(L, T0 + 32 * DAY).length === 0, 'untouched Felboken entry expires from the list after 30 days');
+  ok(E.priority(L, CAT, 'm1', T0 + 32 * DAY, {}, pol).parts.fb == null && L.c.m1.st === 3, 'expired entry: no Felboken priority, concept stays in normal scheduling'); }
+// C2. Faser
+{ const L = E.newLE(); ok(E.phase(L.c.x, T0, pol, L) === 'new', 'phase new'); const c = E.cstate(L, 'm1'); c.n = 3; c.st = 4; c.due = T0 + DAY; ok(E.phase(c, T0, pol, L) === 'stable', 'phase stable'); c.due = T0 - 30 * DAY; ok(E.phase(c, T0, pol, L) === 'weakening', 'phase weakening');
+  c.fb = { s: 'open', wd: E.dayIdx(T0), reopened: 1 }; ok(E.phase(c, T0, pol, L) === 'reopened', 'phase reopened'); c.fb = { s: 'corrected', wd: E.dayIdx(T0) - 1 }; ok(E.phase(c, T0, pol, L) === 'awaiting', 'phase awaiting delayed verification'); ok(E.PHASES.length >= 9, 'phase list'); }
+// C3. LÄR förbrukas av det stöttade försöket (rollkod L) och visas högst var 3:e dygn
+{ const L = E.newLE(); const c = E.cstate(L, 'm3'); c.n = 3; c.failDays = [E.dayIdx(T0) - 1]; E.recordEvidence(L, CAT, 'm3', { ok: false, kind: 'free', help: 'none', ctx: 'first', item: 'a' }, T0, pol, { id: 's1' }); ok(c.teach === 1, 'LÄR flag after failures on two days');
+  E.recordEvidence(L, CAT, 'm3', { ok: true, kind: 'free', help: 'hint', ctx: 'first', item: 'b', role: 'L' }, T0 + 60000, pol, { id: 's1' }); ok(c.teach === 0 && c.taughtDay === E.dayIdx(T0), 'LÄR consumed by the supported follow-up');
+  E.recordEvidence(L, CAT, 'm3', { ok: false, kind: 'free', help: 'none', ctx: 'first', item: 'c' }, T0 + DAY, pol, { id: 's2' }); ok(c.teach === 0, 'not re-flagged within 3 days'); }
+// C4. Adaptiv svårighet: variation krävs; ett fel sänker inte; ingen pendling samma dygn
+{ const L = fresh2('m1', 2); for (let i = 0; i < 3; i++) E.recordEvidence(L, CAT, 'm1', { ok: true, kind: 'free', help: 'none', ctx: i ? 'repeat' : 'first', item: 'same' }, T0 + i * 60000, pol, { id: 'a' + i }); ok(L.c.m1.lvl === 2, 'same item three times → no level up (variety required)');
+  const L2 = fresh2('m1', 2); for (let i = 0; i < 3; i++) E.recordEvidence(L2, CAT, 'm1', { ok: true, kind: 'free', help: 'none', ctx: i ? 'repeat' : 'first', item: 'v' + i }, T0 + i * 60000, pol, { id: 'b' + i }); ok(L2.c.m1.lvl === 3, 'three varied independent successes → level up');
+  E.recordEvidence(L2, CAT, 'm1', { ok: false, kind: 'free', help: 'none', ctx: 'first', item: 'w' }, T0 + 4 * 60000, pol, { id: 'c1' }); E.recordEvidence(L2, CAT, 'm1', { ok: false, kind: 'free', help: 'none', ctx: 'repeat', item: 'x' }, T0 + 5 * 60000, pol, { id: 'c2' }); ok(L2.c.m1.lvl === 3, 'no level down on the same day as a level up (anti-oscillation)');
+  const L3 = fresh2('m1', 2, { lvl: 2 }); E.recordEvidence(L3, CAT, 'm1', { ok: false, kind: 'free', help: 'none', ctx: 'first', item: 'a' }, T0, pol, { id: 'd1' }); ok(L3.c.m1.lvl === 2, 'single failure never drops difficulty');
+  E.recordEvidence(L3, CAT, 'm1', { ok: false, kind: 'free', help: 'none', ctx: 'retry', item: 'b' }, T0 + 60000, pol, { id: 'd1' }); ok(L3.c.m1.lvl === 2, 'retry failures do not count toward a level drop');
+  const L4 = fresh2('s1', 2, { kf: 1 }); for (let i = 0; i < 4; i++) E.recordEvidence(L4, CAT, 's1', { ok: true, kind: 'mc', k: 4, help: 'none', ctx: i ? 'repeat' : 'first', item: 'm' + i }, T0 + i * 60000, pol, { id: 'e' + i }); ok(L4.c.s1.lvl === 2, 'recognition (MC) success does not raise difficulty once recall is required'); }
+// C5. Utmaning: skild från grundkunskap; fel sänker aldrig; bakåtkompatibel lagring
+{ const L = fresh2('m1', 4); const before = E.stable({ st: L.c.m1.st, due: L.c.m1.due, lvl: L.c.m1.lvl, fb: L.c.m1.fb });
+  for (let i = 0; i < 5; i++) E.recordEvidence(L, CAT, 'm1', { ok: false, kind: 'free', help: 'none', ctx: 'first', item: 'ch' + i, mode: 'challenge' }, T0 + i * 60000, pol, { id: 'x' });
+  ok(E.stable({ st: L.c.m1.st, due: L.c.m1.due, lvl: L.c.m1.lvl, fb: L.c.m1.fb }) === before && L.c.m1.ch.n === 5, 'Challenge failures never touch stage, due, level or Felboken');
+  const R = E.recordEvidence(L, CAT, 'm1', { ok: true, kind: 'free', help: 'none', ctx: 'first', item: 'ch9', mode: 'challenge' }, T0 + DAY, pol, { id: 'y' }); ok(R.rewards.includes('CHALLENGE') && L.c.m1.ch.ok === 1, 'Challenge success → CHALLENGE + depth evidence');
+  const enc = E.encodeEv({ t: T0, dev: 'd', seq: 1, cid: 'm1', ok: false, kind: 'free', help: 'none', ctx: 'first', item: 'q', mode: 'challenge', role: 'C', sess: 's', lvl: 3 });
+  ok(enc[7] === 'r' && enc[8] === 'r', 'legacy fields of a Challenge event = supported retry (harmless for older versions)');
+  const old = fresh2('m1', 4); const oldBefore = old.c.m1.st; E.apply(old, CAT, E.decodeEv(enc.slice(0, 14)), pol); ok(old.c.m1.st === oldBefore && !old.c.m1.fb, 'a 3B-format reader treats it as supported retry: no drop, no Felboken');
+  const back = E.decodeEv(enc); ok(back.mode === 'challenge' && back.help === 'none' && back.role === 'C', 'new reader restores Challenge semantics'); }
+// C6. Belöningar en gång (omstart, två enheter efter synk)
+{ const le = { v: 2, log: [], rw: [] }; ok(E.rewardOnce(le, 'FOCUS:100') && !E.rewardOnce(le, 'FOCUS:100'), 'same reward key only once');
+  const a = { v: 2, base: {}, t0: 0, log: [], rw: ['FOCUS:100'] }, b = { v: 2, base: {}, t0: 0, log: [], rw: ['COMEBACK:m1:100'] }; const m = E.mergeLE(a, b); ok(m.rw.length === 2 && E.stable(E.mergeLE(b, a).rw) === E.stable(m.rw), 'reward markers merge as a union (commutative)'); }
+// C7. Planering: nytt får plats först, väntat-länge garanteras, provets sista dygn, ämnesrättvisa, ingen utfyllnad med lågt värde
+{ const cat = {}; for (let i = 1; i <= 12; i++) cat['a' + i] = { id: 'a' + i, subject: 'math', recall: true, maxLvl: 3 }; for (let i = 1; i <= 4; i++) cat['b' + i] = { id: 'b' + i, subject: 'sv', recall: true, maxLvl: 2 };
+  const L = E.newLE(); for (let i = 1; i <= 12; i++) { const c = E.cstate(L, 'a' + i); Object.assign(c, { n: 4, st: 1, due: T0 - (i * 2) * DAY, lastSeen: T0 - DAY, lastOk: T0 - 3 * DAY, ev: [[0, 1, 'f', 'n', 'f']] }); } L.clock.last = T0; L.sessN = 20; L.newSess = 0;
+  const plan = E.planSession(L, cat, T0, { subjectCount: 2 }, E.POLICIES.middle, { n: 8 });
+  ok(plan.some(s => s.cid.startsWith('b') && s.parts.new > 0), 'starved new learning gets a slot even with a heavy backlog');
+  ok(plan.some(s => s.parts.stale > 0) && plan.filter(s => s.parts.stale > 0).map(s => s.cid).includes('a12'), 'the longest-waiting weak concept is in the session');
+  ok(plan.length <= 8 && plan.every(s => s.role !== 'practice' || s.parts.due || s.parts.weak), 'no low-value padding');
+  const roles = plan.map(s => s.role); const order = ['warmup', 'remember', 'revansch', 'focus', 'practice', 'challenge', 'boss']; ok(roles.every((r, i) => i === 0 || order.indexOf(r) >= order.indexOf(roles[i - 1])), 'session follows the arc warm-up → remember → revansch → focus → boss');
+  const ex = [{ at: T0 + 2 * DAY, concepts: ['a1', 'a2', 'a3'] }]; const pe = E.planSession(L, cat, T0, { subjectCount: 2, exams: ex }, E.POLICIES.middle, { n: 8 });
+  ok(pe.filter(s => ex[0].concepts.includes(s.cid)).length >= Math.ceil(7 * 0.5), 'last three exam days: at least half the session on exam concepts');
+  ok(new Set(pe.filter(s => s.parts.new > 0).map(s => s.cid)).size <= 1, 'two days before an exam: at most one new concept, and only because learning was starved');
+  const L1 = JSON.parse(JSON.stringify(L)); L1.newSess = L1.sessN; ok(!E.planSession(L1, cat, T0, { subjectCount: 2, exams: ex }, E.POLICIES.middle, { n: 8 }).some(s => s.parts.new > 0), 'two days before an exam and not starved: no new concepts');
+  const L2 = JSON.parse(JSON.stringify(L)); for (const id of ['b1', 'b2']) Object.assign(E.cstate(L2, id), { n: 4, st: 2, due: T0 - 2 * DAY, lastSeen: T0 - 9 * DAY, lastOk: T0 - 9 * DAY, ev: [[0, 1, 'f', 'n', 'f']] });
+  const pf = E.planSession(L2, cat, T0, { subjectCount: 2 }, E.POLICIES.younger, { n: 6 }); ok(pf.some(s => s.cid.startsWith('b')), 'subject fairness: a subject with due work unpractised for a week gets into the session');
+  ok(E.stable(E.planSession(L2, cat, T0, { subjectCount: 2 }, E.POLICIES.younger, { n: 6 })) === E.stable(pf), 'planning stays deterministic'); }
+// C8. Passkörare: Rescue-sekvens per policy, max två per pass, uppskjutning, Testa mig utan Rescue
+{ const cat = { m1: { id: 'm1', subject: 'math', recall: true, maxLvl: 3 }, m2: { id: 'm2', subject: 'math', recall: true, maxLvl: 3 } }; const L = E.newLE(); Object.assign(E.cstate(L, 'm1'), { n: 3, st: 1, lvl: 2 }); Object.assign(E.cstate(L, 'm2'), { n: 3, st: 2, lvl: 2 });
+  for (const [pn, len] of [['younger', 4], ['middle', 3], ['older', 2]]) { const R = LER.create(L, cat, [{ cid: 'm1', role: 'focus' }, { cid: 'm1', role: 'focus' }, { cid: 'm2', role: 'remember' }], E.POLICIES[pn]);
+    let s = LER.peek(R, L); LER.answered(R, L, s, false); s = LER.peek(R, L); const ev = LER.answered(R, L, s, false); ok(ev.some(e => e.type === 'rescue'), pn + ': Rescue after two failures on the same concept');
+    const seq = R.queue.slice(R.i).filter(x => x.role === 'rescue'); ok(seq.length === len && seq[0].mode === 'teach', `${pn}: Rescue sequence of ${len} starting with an explanation`);
+    ok(seq.filter(x => x.mode !== 'teach').every(x => x.ctx === 'retry'), pn + ': Rescue attempts are retry evidence (never durable mastery)'); }
+  const R2 = LER.create(L, cat, [{ cid: 'm1', role: 'focus' }, { cid: 'm1', role: 'focus' }], E.POLICIES.older); let s = LER.peek(R2, L); LER.answered(R2, L, s, false); s = LER.peek(R2, L); LER.answered(R2, L, s, false);
+  for (let g = 0; g < 6; g++) { s = LER.peek(R2, L); if (!s) break; const evs = LER.answered(R2, L, s, false); if (evs.some(e => e.type === 'defer')) { ok(!R2.queue.slice(R2.i).some(x => x.cid === 'm1'), 'failure after Rescue defers the concept (no endless loop)'); break; } }
+  const R3 = LER.create(L, cat, [{ cid: 'm1', role: 'focus' }, { cid: 'm1', role: 'focus' }, { cid: 'm1', role: 'focus' }], E.POLICIES.middle, { mode: 'exam' }); let n3 = 0; for (let g = 0; g < 10; g++) { const x = LER.peek(R3, L); if (!x) break; ok(x.help === 'none' && x.ctx === 'exam', 'Testa mig: no hints, exam context'); LER.answered(R3, L, x, false); n3++; } ok(n3 === 3, 'Testa mig: no retries or Rescue inserted'); }
+console.log(`Del 3: ${checks - n3B} kontroller (Fas 3C–3H)`);
 console.log(`\n${checks} kontroller, ${fails} fel`); console.log(fails ? 'LE ENGINE TEST FAILED' : 'LE ENGINE TEST OK'); process.exit(fails ? 1 : 0);

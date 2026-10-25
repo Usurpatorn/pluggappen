@@ -15,8 +15,10 @@ const suites = [
   ['Indatasäkerhet (XSS)', 'test_xss.js'],
   ['Integritet: inga familjeuppgifter i bundlen', 'test_privacy.js'],
   ['Smoke: hela användarflödet (jsdom)', 'smoke.js'],
+  ['v1-regression: skärmar och data = release 1.2.0 (v2 av)', 'test_v1_regression.js'],
   ['Motor v2: regler, logg, synk, migrering (3A+3B)', 'test_le_engine.js'],
   ['Motor v2: simuleringsregression', 'test_le_sim.js'],
+  ['Motor v2: K-14-stresstest + säsonger A–M (syntetiska)', 'test_le_season.js'],
   ['Skuggläge: barnen får v1, fångst, föräldravy, täckning', 'test_le_shadow.js'],
   ['Skuggläge: flera enheter, Felboken-synk', 'test_le_sync.js'],
 ];
