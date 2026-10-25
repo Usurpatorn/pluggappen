@@ -82,7 +82,7 @@ function clearMistake(p, id) {
   const c = { ...(p.mistakesCleared || {}), [id]: Math.max(Date.now(), at) }; const ids = Object.keys(c).sort((a, b) => c[b] - c[a]).slice(0, 300); p.mistakesCleared = Object.fromEntries(ids.map(k => [k, c[k]]));
 }
 function recordAnswer(kidId, skillId, correct, level, usedHelp) {
-  const p = prof(kidId); const s = skillState(p, skillId); const maxLvl = (KIDS.find(k => k.id === kidId)?.skills.find(x => x.id === skillId) || {}).maxLvl || 3;
+  const p = prof(kidId); const s = skillState(p, skillId); const kk = KIDS.find(k => k.id === kidId); const maxLvl = ((kk && [...kk.skills, ...(kk.v2skills || [])].find(x => x.id === skillId)) || {}).maxLvl || 3;
   s.att++; s.last = Date.now();
   let xp;
   if (correct) {
@@ -473,9 +473,10 @@ VIEWS.home = () => {
     ${PUSH.card(kid.id, 'kid')}
     ${v2 ? V2.felbokCard(kid) : (p.mistakes || []).length ? `<button class="card tap row" data-act="felbok" style="gap:12px"><div class="ic" style="width:44px;height:44px;border-radius:12px;background:var(--bad-soft);color:var(--bad);display:grid;place-items:center;font-size:1.3rem">📕</div><div class="grow"><div style="font-weight:800;font-family:var(--display)">Felboken · ${p.mistakes.length} ${p.mistakes.length === 1 ? 'uppgift' : 'uppgifter'}</div><div class="muted" style="font-size:.9rem">Allt du svarat fel på. Klara dem för att tömma boken.</div></div><span class="chev">›</span></button>` : ''}
     ${(() => {
-      const subjects = [['math', 'Matte', '🔢'], ['sv', 'Svenska', '📖'], ['en', 'Engelska', '🇬🇧'], ['no', 'NO', '🔬'], ['so', 'SO', '🌍'], ['lang', 'Språk', '🗣️']].filter(([g]) => g === 'lang' || kid.skills.some(s => (s.group || 'math') === g));
+      const shown = v2 ? [...kid.skills, ...(kid.v2skills || [])] : kid.skills;   // 2.1: nya moment ur Concept Packs bara i v2 (v1 är frusen reserv)
+      const subjects = [['math', 'Matte', '🔢'], ['sv', 'Svenska', '📖'], ['en', 'Engelska', '🇬🇧'], ['no', 'NO', '🔬'], ['so', 'SO', '🌍'], ['lang', 'Språk', '🗣️']].filter(([g]) => g === 'lang' || shown.some(s => (s.group || 'math') === g));
       const cur = subjects.some(([g]) => g === state.subj) ? state.subj : subjects[0][0];
-      const avg = (g) => { const list = kid.skills.filter(s => (s.group || 'math') === g); return list.length ? Math.round(list.reduce((a, s) => a + skillState(p, s.id).m, 0) / list.length) : 0; };
+      const avg = (g) => { const list = shown.filter(s => (s.group || 'math') === g); return list.length ? Math.round(list.reduce((a, s) => a + skillState(p, s.id).m, 0) / list.length) : 0; };
       const tabs = `<div class="subj-tabs" role="tablist">${subjects.map(([g, label, icon]) => `<button class="subj ${g === cur ? 'on' : ''}" role="tab" data-subj="${g}"><span class="si">${icon}</span><span class="sl">${label}</span>${g !== 'lang' ? `<span class="sp"><i style="width:${avg(g)}%"></i></span>` : ''}</button>`).join('')}</div>`;
       if (cur === 'lang') return `<div class="subject-wrap">${tabs}${decks.length ? `<div style="margin-top:12px">
       <div class="section-h"><h3>Språk & glosor</h3><button class="link" data-go="courses">Alla kurser</button></div>
@@ -484,9 +485,9 @@ VIEWS.home = () => {
     </div>` : `<div class="card row"><div class="grow"><b>Språk & glosor</b><div class="muted" style="font-size:.9rem">Spanska, engelska eller egna glosor.</div></div><button class="btn secondary" data-go="courses">Välj kurser</button></div>`}}</div>`;
       const g = cur; const label = subjects.find(x => x[0] === g)[1];
       return `<div class="subject-wrap">${tabs}
-      <div class="section-h"><h3>${label}</h3>${g === 'math' ? `<button class="link" data-go="blitz">Blixtläge</button>` : `<span class="muted" style="font-size:.85rem">${kid.skills.filter(s => (s.group || 'math') === g).length} moment</span>`}</div>
+      <div class="section-h"><h3>${label}</h3>${g === 'math' ? `<button class="link" data-go="blitz">Blixtläge</button>` : `<span class="muted" style="font-size:.85rem">${shown.filter(s => (s.group || 'math') === g).length} moment</span>`}</div>
       <div class="skill-list">
-        ${kid.skills.filter(s => (s.group || 'math') === g).map(s => { const st = skillState(p, s.id); const mv = Math.round(st.m); return `
+        ${shown.filter(s => (s.group || 'math') === g).map(s => { const st = skillState(p, s.id); const mv = Math.round(st.m); return `
         <div class="card" style="padding:12px 14px">
           <div class="skill">
             <div class="ic">${s.icon}</div>
@@ -530,7 +531,7 @@ VIEWS.courses = () => {
 };
 
 VIEWS.method = () => {
-  const kid = kidById(state.kid); const s = kid.skills.find(x => x.id === state.skillId);
+  const kid = kidById(state.kid); const s = skillById(kid, state.skillId);
   render(`${topbar(esc(s.name), 'home')}
   <div class="stack" style="margin-top:6px">
     <div class="card pad-lg method"><div class="eyebrow" style="margin-bottom:8px">${(s.group || 'math') === 'math' ? 'Så gör man' : 'Läs på'}</div>${s.lgr ? `<p class="muted" style="font-size:.85rem;margin:0 0 10px"><b>Lgr22 · åk 1–3:</b> <i>${s.lgr}</i></p>` : ''}${s.method}</div>
@@ -624,7 +625,7 @@ const d_new = (p, d) => d.words.filter(w => !p.words[w.id]).length;
 let S = null;
 function pickSkills(kid, ids, n) {
   const p = prof(kid.id); const out = [];
-  const pool = ids.map(id => kid.skills.find(s => s.id === id)).filter(Boolean);
+  const pool = ids.map(id => skillById(kid, id)).filter(Boolean);
   if (!pool.length) return out;
   if (pool.length === 1) return Array(n).fill(pool[0]);
   const weights = pool.map(s => { const st = skillState(p, s.id); const stale = Math.min(3, (Date.now() - st.last) / DAYMS); return 20 + (100 - st.m) + stale * 10 + (s.focus ? 10 : 0); });
@@ -637,6 +638,7 @@ function pickSkills(kid, ids, n) {
   }
   return out;
 }
+const skillById = (kid, id) => kid.skills.find(s => s.id === id) || (kid.v2skills || []).find(s => s.id === id);
 function makeQuestion(kid, skill, levelOverride, genOpts) {
   const st = skillState(prof(kid.id), skill.id); const lvl = levelOverride || st.lvl;
   let q = skill.gen(lvl, genOpts || {});
@@ -653,12 +655,12 @@ function startSession(kid, opts) {
     const list = R.shuffle((p.mistakes || []).slice()).slice(0, opts.n || 10);
     for (const mi of list) {
       if (mi.cat === 'word') { const d = deckById(p, mi.deckId); const w = d && d.words.find(x => x.id === mi.wordId); if (d && w) queue.push({ ...makeWordExercise(d, w, R.pick(['pick', 'type'])), cat: 'word' }); }
-      else { const sk = kid.skills.find(x => x.id === mi.skillId); if (sk) queue.push({ ...mi.q, skill: sk, cat: 'math', mistakeId: mi.id }); }
+      else { const sk = skillById(kid, mi.skillId); if (sk) queue.push({ ...mi.q, skill: sk, cat: 'math', mistakeId: mi.id }); }
     }
     if (!queue.length) { toast('Felboken är tom!'); return go('home'); }
   } else if (opts.mode === 'test') {
     const exam = p.exams.find(e => e.id === opts.examId);
-    const skills = exam.skillIds.map(id => kid.skills.find(s => s.id === id)).filter(Boolean);
+    const skills = exam.skillIds.map(id => skillById(kid, id)).filter(Boolean);
     const mathSkills = skills.filter(s => (s.group || 'math') === 'math'), quizSkills = skills.filter(s => (s.group || 'math') !== 'math');
     const decks = exam.deckIds.map(id => deckById(p, id)).filter(Boolean);
     const parts = (mathSkills.length ? 1 : 0) + (quizSkills.length ? 1 : 0) + (decks.length ? 1 : 0);
@@ -1339,14 +1341,14 @@ async function ensureMembership() {
   return r.ok;
 }
 function boot(snap) {
-  FAMILY.loadLocal(); buildKids();
+  FAMILY.loadLocal(); buildKids(); FAMILY.loadContentLocal();   // 2.1: familjens privata innehåll (paket + skoluppgifter) från förra synken
   load(); TTS.init();
   try { window.claude?.hot?.snapshot?.(() => ({ screen: state.screen, kid: state.kid })); } catch (e) { /* no hot */ }
   let h = (location.hash || '').replace('#', '');
   if (h.startsWith('fam-') && SYNC.cfg) { const pr = AUTH.parsePair(h.slice(4)); if (pr) { DB.settings.family = pr.fam; DB.settings.joinCode = pr.code; try { localStorage.setItem(STORE_KEY, JSON.stringify(DB)); } catch (e) { /* ignore */ } } h = ''; }
   if (SYNC.cfg && SYNC.family) { try { history.replaceState(null, '', location.pathname + '#fam-' + SYNC.family); } catch (e) { /* ignore */ } } // bara familje-id i adressfältet – aldrig parkopplingskoden
   AUTH.load();
-  if (SYNC.active) { ensureMembership().then(() => FAMILY.pull()).then((cfgChanged) => { if (cfgChanged) { load(); if (state.screen === 'start') VIEWS.start(); } return SYNC.refreshAll(); }).then((changed) => { if (state.screen === 'start' || (changed && state.screen === 'home')) VIEWS[state.screen](); }); document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && SYNC.active && state.screen !== 'practice' && state.screen !== 'blitzplay') SYNC.refreshAll().then((changed) => { if (changed && VIEWS[state.screen]) VIEWS[state.screen](); }); }); }
+  if (SYNC.active) { ensureMembership().then(() => FAMILY.pull()).then((cfgChanged) => FAMILY.pullContent().then(cc => cfgChanged || cc, () => cfgChanged)).then((cfgChanged) => { if (cfgChanged) { load(); if (state.screen === 'start') VIEWS.start(); } return SYNC.refreshAll(); }).then((changed) => { if (state.screen === 'start' || (changed && state.screen === 'home')) VIEWS[state.screen](); }); document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && SYNC.active && state.screen !== 'practice' && state.screen !== 'blitzplay') SYNC.refreshAll().then((changed) => { if (changed && VIEWS[state.screen]) VIEWS[state.screen](); }); }); }
   const [hk, hact] = h.split('-');
   if (snap && snap.kid && kidById(snap.kid)) { state.kid = snap.kid; go('home'); }
   else if (kidById(hk) && hact === 'kor') { state.kid = hk; applyLook(kidById(hk)); const kid = kidById(hk); const p = prof(hk); if (!p.pet) { p.pet = isTeen(kid) || isSport(kid) ? 'none' : PETS[0].id; save(); } if (V2.on(kid)) { go('home'); V2.click({ dataset: { v2: 'kor' } }, kid); } else { LE.nextSrc = 'kor'; startSession(kid, recommendSprint(kid).opts); } }

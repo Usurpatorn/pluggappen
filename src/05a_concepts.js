@@ -15,15 +15,22 @@ const LECAT = (() => {
   // Vilka moment har garanterat egen-svar-format (inte bara flerval)? Matte: ja. Övriga: om öppna frågor finns; annars avgör observerade svar.
   const recallOf = (s, openBank) => (s.group || 'math') === 'math' ? true : (openBank && openBank[s.id] && openBank[s.id].length ? true : null);
   /* Bygg katalogen för ett barn: moment från kursmallen (+ tilläggsmoment) och de glosdeck barnet har. Ren funktion. */
-  function build(kid, decks, openBank) {
-    const cat = {}; const map = {};
-    for (const s of kid.skills || []) {
+  /* 2.1: ett moment med Concept Pack får kunskapspunkter ("k:<paket>/<punkt>") som motorn följer. Själva momentkonceptet ligger kvar
+     men vilar (active: false): gamla bevis på det leds vidare till rätt kunskapspunkt via route (frågans id → punkt), resten ligger kvar
+     läsbart. Nya moment som bara finns i paket (kid.v2skills) får samma behandling. polName styr vilka frågeformer som finns. */
+  function build(kid, decks, openBank, polName) {
+    const cat = {}; const map = {}; const kpsOf = {};
+    const P = typeof PACKS !== 'undefined' ? PACKS : null;
+    for (const s of [...(kid.skills || []), ...(kid.v2skills || [])]) {
       const id = skillCid(s.id); if (cat[id]) continue;
       cat[id] = { id, kind: 'skill', ref: s.id, name: s.short || s.name, full: s.name, subject: s.group || 'math', maxLvl: s.maxLvl || 3, recall: recallOf(s, openBank), focus: !!s.focus, prereq: [] };
       map[s.id] = id;
+      const pk = P ? P.catalogEntries(kid, s, polName, itemId) : null;
+      if (pk) { Object.assign(cat, pk.kps); cat[id].active = false; cat[id].route = pk.route; cat[id].packed = 1; kpsOf[s.id] = Object.keys(pk.kps); }
+      else if (s.v2only) cat[id].active = false;
     }
     for (const d of decks || []) { const id = deckCid(d.id); if (cat[id]) continue; cat[id] = { id, kind: 'deck', ref: d.id, name: d.name, subject: 'lang', maxLvl: 1, recall: null, focus: false, prereq: [] }; }
-    return { cat, map };
+    return { cat, map, kpsOf };
   }
   // Vilket koncept prövar en v1-uppgift i ett pass?
   function cidOfItem(item) {

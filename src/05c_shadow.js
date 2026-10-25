@@ -30,18 +30,24 @@ const LE = {
   // Migrera inte från en kanske inaktuell profil innan första synken mot molnet är gjord (när synk är på).
   canStart(kid, p) { return !!(p.le || !(typeof SYNC !== 'undefined' && SYNC.active) || SYNC.lastPull[kid.id]); },
   catFor(kid, p) {
-    const decks = allDecks(p); const key = kid.skills.map(s => s.id).join(',') + '|' + decks.map(d => d.id).join(',');
-    const C = LE.C[kid.id]; if (C && C.catKey === key) return { cat: C.cat, map: C.map, key };
-    const b = LECAT.build(kid, decks, typeof OPEN !== 'undefined' ? OPEN : null); return { cat: b.cat, map: b.map, key };
+    const decks = allDecks(p); const pn = LE.policyName(kid, p);
+    const key = [...kid.skills, ...(kid.v2skills || [])].map(s => s.id).join(',') + '|' + decks.map(d => d.id).join(',') + '|' + pn + '|' + (typeof PACKS !== 'undefined' ? PACKS.regKey() : '');
+    const C = LE.C[kid.id]; if (C && C.catKey === key) return { cat: C.cat, map: C.map, kpsOf: C.kpsOf, key };
+    const b = LECAT.build(kid, decks, typeof OPEN !== 'undefined' ? OPEN : null, pn); return { cat: b.cat, map: b.map, kpsOf: b.kpsOf || {}, key };
   },
+  // 2.1: ett moments koncept i motorn – kunskapspunkterna om momentet har ett Concept Pack, annars momentet självt
+  cidsOfSkill(C, skillId) { const k = (C.kpsOf || {})[skillId]; return k && k.length ? k.filter(cid => C.cat[cid]) : (C.cat[LECAT.skillCid(skillId)] ? [LECAT.skillCid(skillId)] : []); },
+  // 2.1: prov = familjens/förälderns prov i profilen + skoluppgifter med datum från familjens privata innehåll (ändras aldrig i profilen)
+  exams(kid, p) { const rm = p.removedDefaults || []; return [...(p.exams || []), ...((kid && kid.workExams) || []).filter(w => !rm.includes(w.id) && !(p.exams || []).some(x => x.id === w.id))]; },
+  examCids(C, e) { return [...new Set([...(e.skillIds || []).flatMap(id => LE.cidsOfSkill(C, id)), ...(e.kps || []).filter(cid => C.cat[cid])])]; },
   // Härlett tillstånd (bas + logg → L), cachat per barn. Migrerar v1 → le första gången (deterministiskt, v1 orört).
   state(kid) {
-    const p = prof(kid.id); const { cat, map, key } = LE.catFor(kid, p); const pn = LE.policyName(kid, p); const pol = LE2.POLICIES[pn];
+    const p = prof(kid.id); const { cat, map, kpsOf, key } = LE.catFor(kid, p); const pn = LE.policyName(kid, p); const pol = LE2.POLICIES[pn];
     if (p.le && p.le.v !== 2) throw new Error('okänd le-version ' + p.le.v); // skriv aldrig över en senare fas data (rollback)
     if (!p.le) p.le = LE2.migrateV1(p, cat, map, LE.now(), pol);   // granskning H3d: serverkorrigerad tid
     let C = LE.C[kid.id];
     if (!C || C.ref !== p.le || C.n !== p.le.log.length || C.pn !== pn || C.catKey !== key) {
-      C = LE.C[kid.id] = { ref: p.le, n: p.le.log.length, pn, pol, cat, map, catKey: key, L: LE2.replay(p.le.log, cat, pol, p.le.base) };
+      C = LE.C[kid.id] = { ref: p.le, n: p.le.log.length, pn, pol, cat, map, kpsOf, catKey: key, L: LE2.replay(p.le.log, cat, pol, p.le.base) };
     }
     return C;
   },
@@ -64,7 +70,7 @@ const LE = {
   srcOf(S, hint) { const o = S.opts || {}; if (o.bonus) return 'bonus'; if (hint === 'kor') return 'kor'; if (S.mode === 'test') return 'test'; if (S.mode === 'felbok') return 'felbok'; if (o.wordsOnly || (o.deckIds && o.deckIds.length && !(o.skillIds || []).length)) return 'lang'; if ((o.skillIds || []).length === 1) return 'skill'; return 'mix'; },
   // Planeringskontext från verkliga data (prov, senaste passens ämnen, glosor att repetera)
   ctx(kid, p, C, now, exclId) {
-    const exams = (p.exams || []).filter(e => e.date && daysUntil(e.date) >= 0).map(e => ({ at: new Date(e.date + 'T08:00:00').getTime(), concepts: [...(e.skillIds || []).map(LECAT.skillCid), ...(e.deckIds || []).map(LECAT.deckCid)] }));
+    const exams = LE.exams(kid, p).filter(e => e.date && daysUntil(e.date) >= 0).map(e => ({ at: new Date(e.date + 'T08:00:00').getTime(), concepts: [...LE.examCids(C, e), ...(e.deckIds || []).map(LECAT.deckCid)] }));
     const recs = (p.le.shadow || []).filter(r => r.id !== exclId);
     const flat = recs.slice(-2).flatMap(r => [...new Set((r.v1 || []).map(cid => (C.cat[cid] || {}).subject || 'lang'))]);
     const share = {}; for (const s of flat) share[s] = (share[s] || 0) + 1 / flat.length;
@@ -74,7 +80,7 @@ const LE = {
       if (nw > 0) { const cur = nextNew[d.lang]; const better = !cur || (seen > 0) - (cur.seen > 0) > 0 || ((seen > 0) === (cur.seen > 0) && ((d.level || 1) < cur.level || ((d.level || 1) === cur.level && id < cur.id))); if (better) nextNew[d.lang] = { id, seen, level: d.level || 1 }; } }
     const keepNew = new Set(Object.values(nextNew).map(x => x.id)); for (const [id, ds] of Object.entries(decks)) if (!keepNew.has(id)) ds.nw = 0;
     const today = LE2.dayIdx(now); const last = recs.length ? recs[recs.length - 1].t * 1000 : null;
-    return { exams, recentSubjectShare: share, subjectCount: new Set(Object.values(C.cat).filter(c => c.kind === 'skill' || (decks[c.id] && (decks[c.id].due || decks[c.id].nw))).map(c => c.subject)).size, dueDoneToday: C.L.dd && C.L.dd.d === today ? C.L.dd.n : 0, lastSessionAt: last, decks };
+    return { exams, recentSubjectShare: share, subjectCount: new Set(Object.values(C.cat).filter(c => ((c.kind === 'skill' || c.kind === 'kp') && c.active !== false) || (decks[c.id] && (decks[c.id].due || decks[c.id].nw))).map(c => c.subject)).size, dueDoneToday: C.L.dd && C.L.dd.d === today ? C.L.dd.n : 0, lastSessionAt: last, decks };
   },
   // Avaktiverade glosdeck ska inte planeras (v1 visar dem inte heller)
   activeCat(C, p) { const on = new Set((p.enabledDecks || []).map(LECAT.deckCid)); const out = {}; for (const [id, d] of Object.entries(C.cat)) if (d.kind !== 'deck' || on.has(id)) out[id] = d; return out; },
@@ -135,7 +141,7 @@ const LE = {
     const p = prof(kid.id); const C = LE.state(kid); const L = C.L; const now = Date.now(); const pol = C.pol; const D = L.d || {};
     const cat = LE.activeCat(C, p); const all = (Array.isArray(p.le.shadow) ? p.le.shadow : []).map(LE.cleanRec); const v2done = all.filter(r => r.e === 2 && r.done).length; const recs = all.filter(r => r.e !== 2); const done = recs.filter(r => r.done);
     const pct = (a) => a && a[0] ? Math.round(a[1] / a[0] * 100) : null;
-    const concepts = Object.entries(cat).filter(([, d]) => d.kind === 'skill').map(([cid, d]) => { const c = L.c[cid]; return { cid, name: d.name, subject: d.subject, st: c ? c.st : null, n: c ? c.n : 0, lvl: c ? c.lvl : null, due: c && c.n ? c.due : null, fb: c && c.fb ? c.fb.s : null, label: LE2.childLabel(c, now, pol, L), ready: LE2.readiness(c, now) }; });
+    const concepts = Object.entries(cat).filter(([, d]) => (d.kind === 'skill' || d.kind === 'kp') && d.active !== false).map(([cid, d]) => { const c = L.c[cid]; return { cid, name: d.name, subject: d.subject, st: c ? c.st : null, n: c ? c.n : 0, lvl: c ? c.lvl : null, due: c && c.n ? c.due : null, fb: c && c.fb ? c.fb.s : null, label: LE2.childLabel(c, now, pol, L), ready: LE2.readiness(c, now) }; });
     const overdue = concepts.filter(c => c.due && c.due <= now).length; const tomorrow = concepts.filter(c => c.due && c.due > now && c.due <= LE2.dayStart(now) + 2 * LE2.DAY).length;
     const fbd = LE2.felbokDisplay(L, pol, now); const wins = LE2.felbokRecentWins(L, now);
     const fbStates = {}; for (const c of Object.values(L.c)) if (c.fb) fbStates[c.fb.s] = (fbStates[c.fb.s] || 0) + 1;

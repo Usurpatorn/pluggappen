@@ -7,7 +7,7 @@
 const LE2 = (() => {
   'use strict';
   const DAY = 86400000;
-  const RULES = '3H.2';
+  const RULES = '3I.1';   // 3I (2.1): formmedvetna bevis – djupgrind för kunskapspunkter, form i bevisloggen, vilande moment leds vidare
   // Lokala dygn: förfallodagar ligger på lokala dygnsgränser.
   const tzOff = (t) => new Date(t).getTimezoneOffset() * 60000;
   const dayIdx = (t) => Math.floor((t - tzOff(t)) / DAY);
@@ -51,6 +51,10 @@ const LE2 = (() => {
     session: { restartDays: 10, absentWarmDays: 7, klarMax: 4, klarValuable: 1, bossMinItems: 5, warmMinItems: 6, revansch: 2, revanschExamEve: 1, range: { younger: [5, 8], middle: [6, 12], older: [5, 15] } },
     rescue: { maxPerSession: 2, seq: { younger: ['teach', 'supported', 'easier', 'normal'], middle: ['teach', 'supported', 'normal'], older: ['teach', 'normal'] }, insightCount: 2, insightDays: 7 },
     challenge: { minStage: 3, ceilingStage: 4, every: 2 },
+    // 3I: djupgrind för kunskapspunkter med fördjupande former (samband, hitta felet, orsak, tillämpning, förklaring, flerstegs).
+    // Från stadium 3 krävs djupbevis ≥ need: +1 per dygn för en flervalsfråga i djupform, +2 för eget svar/ordning i djupform.
+    // Tur på flerval skyddas: två olika dygn krävs. Den andra djupträffen räknas då som giltig hämtning (inte flervalsspärrad).
+    depth: { gateStage: 3, need: 2, forms: 'lmxaes' },
     reward: { REMEMBERED: { xp: 5 }, COMEBACK: { gems: 3 }, CHALLENGE: { gems: 2 }, MASTERY: { gems: 5 }, FOCUS: { gems: 2 }, CONSISTENCY: { gems: 5, days: 3 } },
   };
 
@@ -80,6 +84,7 @@ const LE2 = (() => {
   // Granskning H3: motorn räknar med HÄNDELSENS egen tid (samma live som vid omspelning). Förut max(enhet, senaste, server) –
   // ett pass med klockan framställd förgiftade då alla senare beräkningar (live ≠ omspelning, belöningar varje dag). clock.last = högvattenmärke.
   function engineNow(L, deviceNow) { L.clock.last = Math.max(deviceNow, L.clock.last || 0); return deviceNow; }
+  const isDepthForm = (f) => !!f && CFG.depth.forms.includes(f);
   const isRecallCapable = (def, c) => def.recall === true || (def.recall == null && !!c.kf) || (def.kinds || []).some(k => k !== 'mc');
 
   /* Registrera ett svar. Deterministisk. Returnerar { diff, reasons, rewards, weight }. */
@@ -112,8 +117,12 @@ const LE2 = (() => {
     if (ev.role === 'X' && sess && c.rsSess !== sess.id) { c.rsSess = sess.id; D.rescues++; c.rescueDays = [...(c.rescueDays || []).filter(d => today - d <= 14), today].slice(-4); }
     const I = intervalDays(c.st, pol, L); const elapsedD = c.lastOk ? (now - c.lastOk) / DAY : Infinity;
     const recallCapable = isRecallCapable(def, c);
+    // 3I: djupbevis (fördjupande form, rätt utan hjälp, första försöket i passet) – högst en gång per dygn
+    const depthEv = !!def.depth && isDepthForm(ev.form) && independent && firstInSess;
+    if (depthEv && c.dpd !== today) { c.dp = Math.min(4, (c.dp || 0) + (ev.kind === 'mc' ? 1 : 2)); c.dpd = today; }
+    const gateOpen = !def.depth || c.st !== CFG.depth.gateStage || (c.dp || 0) >= CFG.depth.need;
     if (ev.ok) {
-      const mcBlocked = ev.kind === 'mc' && c.st >= pol.mcMaxStage && recallCapable;
+      const mcBlocked = ev.kind === 'mc' && c.st >= pol.mcMaxStage && recallCapable && !(depthEv && c.st === CFG.depth.gateStage && gateOpen);
       c.ok++; if (independent) { c.okInd++; if (countsForLevel && !mcBlocked) { c.okRun++; c.runItems = [...(c.runItems || []).filter(x => x !== ev.item), ev.item].slice(-4); } }
       if (countsForLevel) c.failRun = 0;
       const mcOnlyNeedsTwo = ev.kind === 'mc' && !recallCapable && c.st >= pol.mcMaxStage;
@@ -123,6 +132,7 @@ const LE2 = (() => {
       else if (qualifying && mcOnlyNeedsTwo && !c.mcOk) { c.mcOk = 1; reasons.push('flervalskoncept: första fördröjda träffen noterad, nästa avgör'); }
       else if (qualifying) {
         if (c.st === 0) { c.st = 1; reasons.push('lärt idag → kommer tillbaka imorgon'); }
+        else if (elapsedD >= CFG.early * I && !gateOpen) { reasons.push(`hämtat efter ${elapsedD.toFixed(1)} d men stadium ${c.st} kräver djupare förståelse först (djupbevis ${c.dp || 0}/${CFG.depth.need})`); }
         else if (elapsedD >= CFG.early * I) { c.st = Math.min(6, c.st + 1); reasons.push(`hämtat efter ${elapsedD.toFixed(1)} d (intervall ${I} d) → stadium ${c.st}`); rewards.push('REMEMBERED'); if (ev.kind === 'mc') D.mcAdv++; else D.freeAdv++; if (mcOnlyNeedsTwo) c.mcOk = 0; }
         else reasons.push(`för tidig hämtning (${elapsedD.toFixed(1)} d < ${(CFG.early * I).toFixed(1)} d) → räknas som övning`);
         c.lastOk = now;
@@ -189,6 +199,8 @@ const LE2 = (() => {
 
   function apply(L, cat, e, pol) {
     if (e.sess && L.lastSess !== e.sess) { if (L.lastSess) calibrate(L); L.lastSess = e.sess; L.sessN = (L.sessN || 0) + 1; }
+    // 3I: ett vilande moment (Concept Pack) leder beviset till kunskapspunkten frågan prövar. Loggen ändras aldrig (rollback läser originalet).
+    const d = cat[e.cid]; const to = d && d.route && e.item ? d.route[e.item] : null; if (to && cat[to] && to !== e.cid) e = { ...e, cid: to };
     return recordEvidence(L, cat, e.cid, e, e.t, pol, { id: e.sess });
   }
 
@@ -303,7 +315,7 @@ const LE2 = (() => {
   }
   // K-14: hur mycket "pågående inlärning" (stadium ≤1) barnet bär just nu, och när kom senast något nytt?
   // Pågående, ännu inte säker inlärning: stadium ≤1, eller stadium 2 som är förfallen, eller öppen Felbok.
-  function learningLoad(L, cat, now) { return Object.entries(L.c).filter(([id, c]) => c.n > 0 && (!cat[id] || cat[id].kind !== 'deck') && (c.st <= 1 || (c.st === 2 && now != null && c.due <= now) || ['open', 'awaiting'].includes(fbS(c, now)))).length; }
+  function learningLoad(L, cat, now) { return Object.entries(L.c).filter(([id, c]) => c.n > 0 && (!cat[id] || (cat[id].kind !== 'deck' && cat[id].active !== false)) && (c.st <= 1 || (c.st === 2 && now != null && c.due <= now) || ['open', 'awaiting'].includes(fbS(c, now)))).length; }
   function lastNewAt(L) { return Math.max(0, ...Object.values(L.c).map(c => (c.fs || 0) * 1000)); }
   function dueBacklog(L, cat, now) { return Object.entries(L.c).filter(([id, c]) => cat[id] && cat[id].kind !== 'deck' && cat[id].active !== false && c.n > 0 && c.due && c.due <= now).length; }
   function challengeEligible(L, cat, cid) { const c = L.c[cid]; const d = cat[cid]; if (!c || !d || d.challenge === false || d.kind === 'deck') return false; return c.st >= CFG.challenge.ceilingStage || (c.st >= CFG.challenge.minStage && c.lvl >= (d.maxLvl || 3)); }
@@ -387,7 +399,7 @@ const LE2 = (() => {
     // 5) 3H Utmaning: fördjupning på redan säkra koncept – inte varje pass, och den gör aldrig passet längre (ersätter en övningsplats)
     let challenge = null;
     if (opts.challenge !== false && (light || ((opts.sessionNo || 0) % CFG.challenge.every === 0))) {
-      const elig = Object.keys(cat).filter(id => challengeEligible(L, cat, id) && (subjects.has(subjOf(id)) || subjects.size < pol.maxSubjects))
+      const elig = Object.keys(cat).filter(id => cat[id].active !== false && challengeEligible(L, cat, id) && (subjects.has(subjOf(id)) || subjects.size < pol.maxSubjects))
         .sort((a, b) => ((L.c[a].ch || {}).n || 0) - ((L.c[b].ch || {}).n || 0) || ((L.c[a].ch || {}).d || 0) - ((L.c[b].ch || {}).d || 0) || (a < b ? -1 : 1));
       if (elig.length) {
         challenge = { cid: elig[0], role: 'challenge', why: WHY_TEXT.challenge, P: 0, parts: {}, mode: 'challenge' };
@@ -411,7 +423,7 @@ const LE2 = (() => {
   function pickBoss(L, sessState, slots, pol, cat) {
     const ex = sessState.examC || []; const okC = Object.entries(sessState.byC).filter(([cid, s]) => s.fails === 0 && s.n > 0 && L.c[cid] && !(cat && cat[cid] && cat[cid].kind === 'deck')).map(([cid]) => cid).sort((a, b) => (ex.includes(b) - ex.includes(a)) || (L.c[b].okRun - L.c[a].okRun) || (L.c[b].st - L.c[a].st) || (a < b ? -1 : 1));
     if (okC.length) { const cid = okC[0]; const stretch = L.c[cid].okRun >= pol.bossStretchRun; return { cid, stretch, why: stretch ? 'utmaning (nivå upp)' : 'utmaning' }; }
-    const strong = Object.entries(L.c).filter(([id, c]) => c.st >= 2 && !(cat && cat[id] && cat[id].kind === 'deck') && !(cat && !cat[id])).sort((a, b) => b[1].st - a[1].st || (a[0] < b[0] ? -1 : 1))[0];
+    const strong = Object.entries(L.c).filter(([id, c]) => c.st >= 2 && !(cat && cat[id] && (cat[id].kind === 'deck' || cat[id].active === false)) && !(cat && !cat[id])).sort((a, b) => b[1].st - a[1].st || (a[0] < b[0] ? -1 : 1))[0];
     return strong ? { cid: strong[0], stretch: false, why: 'gulduppgift' } : null;
   }
   function rescueTrigger(sessState, cid, pol) {
@@ -423,7 +435,9 @@ const LE2 = (() => {
     return null;
   }
   // 3E: vilken svarsform behövs som bevis? Flerval räcker i början; därefter eget svar när ämnet har det.
-  function formatFor(L, cat, cid, pol, role) { const c = L.c[cid]; const d = cat[cid] || {}; if (!c || role === 'warmup' || role === 'rescue') return 'any'; return c.st >= pol.mcMaxStage && isRecallCapable(d, c) ? 'recall' : 'any'; }
+  function formatFor(L, cat, cid, pol, role) { const c = L.c[cid]; const d = cat[cid] || {}; if (!c || role === 'warmup' || role === 'rescue') return 'any';
+    if (d.depth && c.st >= CFG.depth.gateStage && (c.dp || 0) < CFG.depth.need) return 'depth';   // 3I: djupgrinden behöver en fördjupande fråga
+    return c.st >= pol.mcMaxStage && isRecallCapable(d, c) ? 'recall' : 'any'; }
 
   /* ---------- 3G: provstatus och föräldrainsikter ---------- */
   function examStatus(L, cat, exam, now, pol) {
@@ -463,13 +477,14 @@ const LE2 = (() => {
   function encodeEv(e) {
     const base = [Math.round(e.t / 1000), e.dev, e.seq, e.cid, e.ok ? 1 : 0, KCODE[e.kind] || 'f', e.k || 0, HCODE[e.help || 'none'] || 'n', XCODE[e.ctx || 'first'] || 'f', e.item || '', e.fast ? 1 : 0, e.sess || '', e.lvl || 1, e.restart ? 1 : 0];
     if (e.mode === 'challenge') { base[7] = 'r'; base[8] = 'r'; }
-    if (e.mode || e.role || e.stretch || e.onlyVariant) base.push(MCODE[e.mode] || '', e.role || '', e.stretch ? 1 : 0, e.mode === 'challenge' ? (HCODE[e.help || 'none'] || 'n') : '');
-    if (e.onlyVariant) base.push(1);   // 18: frågebanken saknade en annan uppgift (Felboken får verifiera med samma fråga efter några dygn)
+    if (e.mode || e.role || e.stretch || e.onlyVariant || e.form) base.push(MCODE[e.mode] || '', e.role || '', e.stretch ? 1 : 0, e.mode === 'challenge' ? (HCODE[e.help || 'none'] || 'n') : '');
+    if (e.onlyVariant || e.form) base.push(e.onlyVariant ? 1 : 0);   // 18: frågebanken saknade en annan uppgift (Felboken får verifiera med samma fråga efter några dygn)
+    if (e.form) base.push(e.form);   // 19 (3I): frågeform r/c/v/l/m/x/a/e/s (äldre versioner läser inte fältet)
     return base;
   }
   function decodeEv(a) {
     const e = { t: a[0] * 1000, dev: a[1], seq: a[2], cid: a[3], ok: !!a[4], kind: KDEC[a[5]] || 'free', k: a[6], help: HDEC[a[7]] || 'none', ctx: XDEC[a[8]] || 'first', item: a[9], fast: !!a[10], sess: a[11], lvl: a[12], restart: !!a[13] };
-    if (a.length > 14) { if (a[14]) e.mode = MDEC[a[14]]; if (a[15]) e.role = a[15]; if (a[16]) e.stretch = true; if (e.mode === 'challenge') { e.help = HDEC[a[17]] || 'none'; e.ctx = 'first'; } if (a[18]) e.onlyVariant = true; }
+    if (a.length > 14) { if (a[14]) e.mode = MDEC[a[14]]; if (a[15]) e.role = a[15]; if (a[16]) e.stretch = true; if (e.mode === 'challenge') { e.help = HDEC[a[17]] || 'none'; e.ctx = 'first'; } if (a[18]) e.onlyVariant = true; if (a[19] && typeof a[19] === 'string') e.form = a[19].slice(0, 1); }
     return e;
   }
   const evKey = (e) => Array.isArray(e) ? e[1] + ':' + e[2] : e.dev + ':' + e.seq;
@@ -546,7 +561,7 @@ const LE2 = (() => {
 
   return { DAY, RULES, CFG, dayIdx, dayStart, DECISIONS, POLICIES, STAGE_DAYS, intervalDays, calibrate, evidenceWeight, newConcept, cstate, newLE, engineNow, recordEvidence, apply,
     PHASES, phase, felbokVisible, felbokDisplay, felbokRecentWins, felbokChild, childLabel, readiness, parentInsights, delayedOks, rescueCount, W, WHY_TEXT, examUrgency, examReady, examStatus, insights, priority, rankAll, withCtx,
-    learningLoad, lastNewAt, dueBacklog, fbOpenCount, challengeEligible, planSession, pickBoss, rescueTrigger, formatFor, isRecallCapable,
+    learningLoad, lastNewAt, dueBacklog, fbOpenCount, challengeEligible, planSession, pickBoss, rescueTrigger, formatFor, isRecallCapable, isDepthForm,
     encodeEv, decodeEv, mergeLog, replay, mergeLE, compact, rewardOnce, pruneRw, rwDay, migrateV1, stable, hash, SHADOW_MAX, LOG_SOFT, LOG_HARD, RW_MAX, RW_DAYS };
 })();
 if (typeof module !== 'undefined') module.exports = LE2;
