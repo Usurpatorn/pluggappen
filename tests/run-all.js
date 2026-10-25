@@ -26,6 +26,9 @@ const suites = [
   ['Motor v2: djuplänk från påminnelse (även trasig data)', 'test_le_deeplink.js'],
   ['Skuggläge: barnen får v1, fångst, föräldravy, täckning', 'test_le_shadow.js'],
   ['Skuggläge: flera enheter, Felboken-synk', 'test_le_sync.js'],
+  ['2.1 Concept Packs: kvalitetsgrind (varje variant, migrering, id:n)', 'test_packs.js'],
+  ['2.1 Formmedvetna bevis: regler + simulering mot 2.0', 'test_le_forms.js'],
+  ['2.1 Paket i appen: Kör!, Testa mig, migrering, v1, rollback till 2.0.0', 'test_le_packs_app.js'],
 ];
 let failed = 0; const rows = [];
 for (const [name, file, opts = {}] of suites) {

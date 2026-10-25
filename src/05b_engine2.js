@@ -52,9 +52,12 @@ const LE2 = (() => {
     rescue: { maxPerSession: 2, seq: { younger: ['teach', 'supported', 'easier', 'normal'], middle: ['teach', 'supported', 'normal'], older: ['teach', 'normal'] }, insightCount: 2, insightDays: 7 },
     challenge: { minStage: 3, ceilingStage: 4, every: 2 },
     // 3I: djupgrind för kunskapspunkter med fördjupande former (samband, hitta felet, orsak, tillämpning, förklaring, flerstegs).
-    // Från stadium 3 krävs djupbevis ≥ need: +1 per dygn för en flervalsfråga i djupform, +2 för eget svar/ordning i djupform.
-    // Tur på flerval skyddas: två olika dygn krävs. Den andra djupträffen räknas då som giltig hämtning (inte flervalsspärrad).
-    depth: { gateStage: 3, need: 2, forms: 'lmxaes' },
+    // Djupbevis dp: +1 per dygn för en flervalsfråga i djupform, +2 för eget svar/ordning i djupform (rätt, utan hjälp, första försöket).
+    // askStage: från stadium 3 ber motorn om en fördjupande fråga tills dp ≥ need. gateStage: stadium 4 → 5 (30 och 60 dygns intervall)
+    // kräver dp ≥ need, och "Säker" (etikett, belöning, STYRKOR) kräver detsamma. Tur på flerval skyddas: två olika dygn krävs.
+    // Valt i simulering (tests/le/forms.js, 20 frön): grind på 4 med frågor från 3 gav samma hållbarhet som 2.0 (±2 p) men nästan
+    // ingen "falsk säkerhet" och 6–23 p bättre förståelse. Grind på 3 kostade mer hållbarhet.
+    depth: { gateStage: 4, askStage: 3, need: 2, forms: 'lmxaes' },
     reward: { REMEMBERED: { xp: 5 }, COMEBACK: { gems: 3 }, CHALLENGE: { gems: 2 }, MASTERY: { gems: 5 }, FOCUS: { gems: 2 }, CONSISTENCY: { gems: 5, days: 3 } },
   };
 
@@ -85,6 +88,7 @@ const LE2 = (() => {
   // ett pass med klockan framställd förgiftade då alla senare beräkningar (live ≠ omspelning, belöningar varje dag). clock.last = högvattenmärke.
   function engineNow(L, deviceNow) { L.clock.last = Math.max(deviceNow, L.clock.last || 0); return deviceNow; }
   const isDepthForm = (f) => !!f && CFG.depth.forms.includes(f);
+  const depthOk = (c) => !c.dz || (c.dp || 0) >= CFG.depth.need;   // 3I: säker = stadium ≥ 4 och (vid djupformer) visad förståelse
   const isRecallCapable = (def, c) => def.recall === true || (def.recall == null && !!c.kf) || (def.kinds || []).some(k => k !== 'mc');
 
   /* Registrera ett svar. Deterministisk. Returnerar { diff, reasons, rewards, weight }. */
@@ -120,6 +124,7 @@ const LE2 = (() => {
     // 3I: djupbevis (fördjupande form, rätt utan hjälp, första försöket i passet) – högst en gång per dygn
     const depthEv = !!def.depth && isDepthForm(ev.form) && independent && firstInSess;
     if (depthEv && c.dpd !== today) { c.dp = Math.min(4, (c.dp || 0) + (ev.kind === 'mc' ? 1 : 2)); c.dpd = today; }
+    if (def.depth) c.dz = 1; else if (c.dz) delete c.dz;   // konceptet har djupformer → "Säker" kräver djupbevis
     const gateOpen = !def.depth || c.st !== CFG.depth.gateStage || (c.dp || 0) >= CFG.depth.need;
     if (ev.ok) {
       const mcBlocked = ev.kind === 'mc' && c.st >= pol.mcMaxStage && recallCapable && !(depthEv && c.st === CFG.depth.gateStage && gateOpen);
@@ -140,7 +145,11 @@ const LE2 = (() => {
     } else {
       c.okRun = 0; c.runItems = [];
       if (countsForLevel) c.failRun++;
-      if (ev.ctx !== 'retry' && ev.help !== 'rescue') {
+      // 3I: fel på en fördjupande fråga (tillämpning, hitta felet, orsak …) på ett koncept som redan minns är en FÖRSTÅELSElucka, inte glömska:
+      // stadiet sänks inte, men konceptet kommer tillbaka om två dygn (och Felboken öppnas som vanligt). Simuleringen visade att en sänkning
+      // här kostade hållbarhet utan att ge något (tests/le/forms.js).
+      if (def.depth && isDepthForm(ev.form) && c.st >= 2 && ev.ctx !== 'retry' && ev.help !== 'rescue' && ev.ctx !== 'exam') { reasons.push('fel på en fördjupande fråga → förståelsen tränas mer (räknas inte som glömt)'); c.dpMiss = today; }
+      else if (ev.ctx !== 'retry' && ev.help !== 'rescue') {
         const old = c.st; const early = c.lastOk && elapsedD < CFG.early * I;
         if (ev.ctx === 'exam' && c.exDay === today) reasons.push('fel i Testa mig igen samma dygn → ingen ytterligare sänkning');   // granskning M4
         else if (ev.ctx === 'exam' && old >= 3) { c.st = old - CFG.lapse.examDrop; c.lap++; D.lapses++; c.exDay = today; reasons.push(`fel i Testa mig → stadium ${old} → ${c.st} (ett provfel skriver inte över långtidsbevis)`); }
@@ -153,6 +162,7 @@ const LE2 = (() => {
       } else reasons.push('fel vid omförsök → ingen extra sänkning');
     }
     c.due = dayStart(now) + Math.max(1, intervalDays(c.st, pol, L)) * DAY;
+    if (c.dpMiss === today && !ev.ok) c.due = Math.min(c.due, dayStart(now) + 2 * DAY);   // 3I: förståelselucka → tillbaka snart
     if (ev.ok && !independent && c.st > 0) c.due = Math.min(c.due, dayStart(now) + Math.max(1, Math.ceil(intervalDays(c.st, pol, L) / 2)) * DAY);
     // 3D: adaptiv svårighet per koncept – variation krävs, en ändring per pass, ingen pendling samma dygn
     const maxLvl = def.maxLvl || 3;
@@ -185,7 +195,7 @@ const LE2 = (() => {
     if (ev.role === 'L') { c.teach = 0; c.taughtDay = today; }
     else if (!ev.ok && !ev.restart && c.st <= 1 && recentFailDays >= F.failDaysToOpen && ev.ctx !== 'exam' && today - (c.taughtDay == null ? -99 : c.taughtDay) >= CFG.fb.teachEveryDays) c.teach = 1;
     else if (independent && c.st >= 2) c.teach = 0;
-    if (independent && c.st >= 4 && !c.mastered) { c.mastered = 1; rewards.push('MASTERY'); }
+    if (independent && c.st >= 4 && !c.mastered && depthOk(c)) { c.mastered = 1; rewards.push('MASTERY'); }
     if (independent && ev.role === 'B' && ev.stretch) rewards.push('CHALLENGE');
     if (ev.item) c.items = [...c.items.filter(x => x !== ev.item), ev.item].slice(-6);
     c.ev = [...c.ev, [Math.round(now / 1000), ev.ok ? 1 : 0, KCODE[ev.kind] || 'f', HCODE[ev.help || 'none'] || 'n', XCODE[ev.ctx || 'first'] || 'f']].slice(-12);
@@ -216,7 +226,7 @@ const LE2 = (() => {
     if (fb && fb.s === 'verified') return 'verified';
     const I = intervalDays(c.st, pol, L);
     if (c.st >= 2 && c.due && now > c.due + I * DAY) return 'weakening';
-    if (c.st >= 4) return 'stable';
+    if (c.st >= 4 && depthOk(c)) return 'stable';
     if (c.st >= 2) return 'consolidating';
     return c.fs && today - dayIdx(c.fs * 1000) <= 1 ? 'introduced' : 'learning';
   }
@@ -233,7 +243,7 @@ const LE2 = (() => {
     const overdue = c.due && now > c.due + intervalDays(c.st, pol, L) * DAY;
     if (fbS(c, now) === 'open') return 'Tränar';
     if (overdue && c.st >= 2) return 'Behöver repetition';
-    if (c.st >= 4) return 'Säker'; if (c.st >= 2) return 'På väg'; return 'Tränar';
+    if (c.st >= 4 && depthOk(c)) return 'Säker'; if (c.st >= 2) return 'På väg'; return 'Tränar';
   }
   function delayedOks(c, sinceMs) { return c.ev.filter((e, i) => e[1] === 1 && e[3] === 'n' && (e[4] === 'f' || e[4] === 'e') && e[0] * 1000 >= sinceMs && i > 0 && (e[0] - c.ev[i - 1][0]) >= 86400 * 0.9).length; }
   function readiness(c, now) {
@@ -248,7 +258,7 @@ const LE2 = (() => {
       const name = (cat[id] || {}).name || id;
       if (c.n < 4) { if (c.n > 0) thin.push(name); continue; }
       const d30 = delayedOks(c, now - 30 * DAY);
-      if (c.st >= 4 || (c.st >= 3 && d30 >= 2)) strong.push(name);
+      if ((c.st >= 4 || (c.st >= 3 && d30 >= 2)) && depthOk(c)) strong.push(name);
       else if ((fbS(c, now) === 'open' && c.fb.wrong >= 2 && dayIdx(now) - dayIdx(c.fb.at) >= 1) || c.lap >= 1 && c.st <= 2 || rescueCount(c, now) >= CFG.rescue.insightCount) weak.push(name);
     }
     return { strong, weak, thin };
@@ -436,7 +446,7 @@ const LE2 = (() => {
   }
   // 3E: vilken svarsform behövs som bevis? Flerval räcker i början; därefter eget svar när ämnet har det.
   function formatFor(L, cat, cid, pol, role) { const c = L.c[cid]; const d = cat[cid] || {}; if (!c || role === 'warmup' || role === 'rescue') return 'any';
-    if (d.depth && c.st >= CFG.depth.gateStage && (c.dp || 0) < CFG.depth.need) return 'depth';   // 3I: djupgrinden behöver en fördjupande fråga
+    if (d.depth && c.st >= (CFG.depth.askStage || CFG.depth.gateStage) && (c.dp || 0) < CFG.depth.need) return 'depth';   // 3I: djupgrinden behöver en fördjupande fråga
     return c.st >= pol.mcMaxStage && isRecallCapable(d, c) ? 'recall' : 'any'; }
 
   /* ---------- 3G: provstatus och föräldrainsikter ---------- */
@@ -451,7 +461,7 @@ const LE2 = (() => {
       const d = cat[id]; if (!d || d.kind === 'deck' || d.active === false) continue;
       if (c.n < 4) { if (c.n > 0) out.thin.push(id); continue; }
       const failedToday = c.failDays && c.failDays.includes(today);
-      if (c.st >= 4 || (c.st >= 3 && delayedOks(c, now - 30 * DAY) >= 2)) { (failedToday ? out.temporary : out.strengths).push(id); }
+      if ((c.st >= 4 || (c.st >= 3 && delayedOks(c, now - 30 * DAY) >= 2)) && depthOk(c)) { (failedToday ? out.temporary : out.strengths).push(id); }
       else if (['open', 'awaiting'].includes(fbS(c, now)) || (c.lap >= 1 && c.st <= 2) || phase(c, now, pol, L) === 'weakening') out.practise.push(id);
       if (c.due && c.due <= now && c.st >= 1) out.due.push(id);
       if (rescueCount(c, now) >= CFG.rescue.insightCount) out.rescue.push(id);
@@ -561,7 +571,7 @@ const LE2 = (() => {
 
   return { DAY, RULES, CFG, dayIdx, dayStart, DECISIONS, POLICIES, STAGE_DAYS, intervalDays, calibrate, evidenceWeight, newConcept, cstate, newLE, engineNow, recordEvidence, apply,
     PHASES, phase, felbokVisible, felbokDisplay, felbokRecentWins, felbokChild, childLabel, readiness, parentInsights, delayedOks, rescueCount, W, WHY_TEXT, examUrgency, examReady, examStatus, insights, priority, rankAll, withCtx,
-    learningLoad, lastNewAt, dueBacklog, fbOpenCount, challengeEligible, planSession, pickBoss, rescueTrigger, formatFor, isRecallCapable, isDepthForm,
+    learningLoad, lastNewAt, dueBacklog, fbOpenCount, challengeEligible, planSession, pickBoss, rescueTrigger, formatFor, isRecallCapable, isDepthForm, depthOk,
     encodeEv, decodeEv, mergeLog, replay, mergeLE, compact, rewardOnce, pruneRw, rwDay, migrateV1, stable, hash, SHADOW_MAX, LOG_SOFT, LOG_HARD, RW_MAX, RW_DAYS };
 })();
 if (typeof module !== 'undefined') module.exports = LE2;

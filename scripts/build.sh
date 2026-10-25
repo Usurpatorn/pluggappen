@@ -14,7 +14,7 @@ BUILD_ID="v${VERSION} (${SHA})"
 JS="01_math.js 02_content.js 02b_lang.js 02c_so.js 02d_kemi.js 02e_open.js 02g_visual.js 02f_math_more.js 02h_svenska.js 02i_naso.js 02j_math_ak2.js 04_sync.js 04a_family.js 04b_auth.js 05_push.js 05a_concepts.js 05d_packs.js 05b_engine2.js 05e_runner.js 05c_shadow.js 05f_content2.js 05g_v2app.js 03_app.js"
 cd "$SRC"
 for f in $JS 00_head.html 00b_style.html 99_body.html; do [ -f "$f" ] || { echo "saknar $f" >&2; exit 1; }; done
-pack_data() { echo "const PACK_DATA = ["; for f in $PACK_FILES; do cat "$PACKS_DIR/$f"; echo ","; done; echo "];"; }
+pack_data() { local pf; echo "const PACK_DATA = ["; for pf in $PACK_FILES; do cat "$PACKS_DIR/$pf"; echo ","; done; echo "];"; }
 js_bundle() { for f in $JS; do [ "$f" = "05d_packs.js" ] && pack_data; grep -v "module.exports" "$f"; echo; done; }
 
 # Fristående variant (ingen molnkoppling) – används av testerna

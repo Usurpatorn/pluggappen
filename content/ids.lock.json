@@ -1,0 +1,24 @@
+{
+ "note": "Alla koncept-id:n som någon gång har släppts. Tas aldrig bort – barnens bevis hänger på dem. Pensionera i paketets \"retired\" i stället.",
+ "concepts": [
+  "k:kemi8-syror-baser/bas-exempel",
+  "k:kemi8-syror-baser/bas-formler",
+  "k:kemi8-syror-baser/bas-kanne",
+  "k:kemi8-syror-baser/forsurning",
+  "k:kemi8-syror-baser/indikatorer",
+  "k:kemi8-syror-baser/jonnamn",
+  "k:kemi8-syror-baser/kallkritik",
+  "k:kemi8-syror-baser/koncentration",
+  "k:kemi8-syror-baser/labbsakerhet",
+  "k:kemi8-syror-baser/neutralisation",
+  "k:kemi8-syror-baser/ph-kroppen",
+  "k:kemi8-syror-baser/ph-skalan",
+  "k:kemi8-syror-baser/salter",
+  "k:kemi8-syror-baser/salter-vardag",
+  "k:kemi8-syror-baser/stark-svag",
+  "k:kemi8-syror-baser/syra-exempel",
+  "k:kemi8-syror-baser/syra-formler",
+  "k:kemi8-syror-baser/syra-kanne",
+  "k:kemi8-syror-baser/syra-metall"
+ ]
+}

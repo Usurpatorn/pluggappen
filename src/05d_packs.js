@@ -150,9 +150,11 @@ const PACKS = (() => {
     // Distraktorpooler inom paketet
     const termPool = (f) => pack.kps.flatMap(k => k.facts.filter(x => x.k === 'term' && x !== f && (x.cls || '') === (f.cls || '')).map(x => x.term));
     const defPool = (f) => pack.kps.flatMap(k => k.facts.filter(x => x.k === 'term' && x !== f && x.def && (x.cls || '') === (f.cls || '')).map(x => x.def));
-    const falsePool = () => [...kp.facts, ...sameSkill.filter(k => k !== kp).flatMap(k => k.facts)].filter(x => x.k === 'stmt').flatMap(x => x.f);
-    const truePool = (f) => [...kp.facts, ...sameSkill.filter(k => k !== kp).flatMap(k => k.facts)].filter(x => x.k === 'stmt' && x !== f).map(x => x.s).concat((kp.mistakes || []).map(m => m.right));
-    const badPool = (f) => [...kp.facts, ...sameSkill.flatMap(k => k.facts)].filter(x => x.k === 'fix' && x !== f).map(x => x.bad);
+    // Påståendepooler i nivåer: samma kunskapspunkt → samma moment → hela paketet (närmast först, så felalternativen hör till ämnet)
+    const tiers = (pick) => [kp.facts, sameSkill.filter(k => k !== kp).flatMap(k => k.facts), pack.kps.filter(k => k.skill !== kp.skill).flatMap(k => k.facts)].map(pick);
+    const falsePool = (f) => tiers(fs => fs.filter(x => x.k === 'stmt' && x !== f).flatMap(x => x.f));
+    const truePool = (f) => tiers(fs => fs.filter(x => x.k === 'stmt' && x !== f).map(x => x.s));
+    const badPool = (f) => tiers(fs => fs.filter(x => x.k === 'fix' && x !== f).map(x => x.bad));
     for (const f of kp.facts) {
       const why = f.why || kp.explain;
       if (f.k === 'term') {
@@ -167,15 +169,17 @@ const PACKS = (() => {
       } else if (f.k === 'pairs') {
         const As = f.items.map(p => p[0]), Bs = f.items.map(p => p[1]);
         const aOf = (b) => f.items.filter(p => norm(p[1]) === norm(b)).map(p => p[0]); const bOf = (a) => f.items.filter(p => norm(p[0]) === norm(a)).map(p => p[1]);
+        const fill = (t, a, b) => t.replace(/\{a\}/g, a).replace(/\{b\}/g, b).replace(/\{a_lower\}/g, a[0].toLowerCase() + a.slice(1)).replace(/\{b_lower\}/g, b[0].toLowerCase() + b.slice(1));
         f.items.forEach(([a, b], i) => {
           const sub = { ...f, id: (f.id || fnv(f.q)) + '.' + i };
-          add(sub, f.form || 'recognition', 'ab', (r) => mc(f.q.replace('{a}', a).replace('{b}', b), b, [], Bs.filter(x => !bOf(a).some(y => norm(y) === norm(x))), why, r));
-          if (f.rq) add(sub, 'reverse', 'ba', (r) => mc(f.rq.replace('{a}', a).replace('{b}', b), a, [], As.filter(x => !aOf(b).some(y => norm(y) === norm(x))), why, r));
-          if (f.rq && f.recall && shortTerm(a, pol)) add(sub, 'recall', 'bA', () => typed(f.rq.replace('{a}', a).replace('{b}', b), [a, ...((f.alias || {})[a] || [])], why, { pool: As.filter(x => x !== a) }));
+          add(sub, f.form || 'recognition', 'ab', (r) => mc(fill(f.q, a, b), b, [], Bs.filter(x => !bOf(a).some(y => norm(y) === norm(x))), why, r));
+          if (f.rq) add(sub, 'reverse', 'ba', (r) => mc(fill(f.rq, a, b), a, [], As.filter(x => !aOf(b).some(y => norm(y) === norm(x))), why, r));
+          if (f.rq && f.recall && shortTerm(a, pol)) add(sub, 'recall', 'bA', () => typed(fill(f.rq, a, b), [a, ...((f.alias || {})[a] || [])], why, { pool: As.filter(x => x !== a) }));
         });
         if (f.items.length >= 4) add({ ...f, id: (f.id || fnv(f.q)) + '.par', lvl: Math.max(2, f.lvl || 1) }, 'relationship', 'pair', (r) => {
           const pick = Math.floor(r() * f.items.length); const [a, b] = f.items[pick]; const wrong = [];
-          for (const [a2] of shuffle(f.items.filter((_, j) => j !== pick), r)) { const b2 = shuffle(Bs.filter(x => !bOf(a2).some(y => norm(y) === norm(x))), r)[0]; if (b2) wrong.push(`${a2} – ${b2}`); if (wrong.length >= 3) break; }
+          const usedB = new Set([norm(b)]);   // felparen använder andra högerled än det rätta paret – och olika sinsemellan
+          for (const [a2] of shuffle(f.items.filter((_, j) => j !== pick), r)) { const b2 = shuffle(Bs.filter(x => !usedB.has(norm(x)) && !bOf(a2).some(y => norm(y) === norm(x))), r)[0]; if (b2) { usedB.add(norm(b2)); wrong.push(`${a2} – ${b2}`); } if (wrong.length >= 3) break; }
           return mc(f.pq || 'Vilket par hör ihop?', `${a} – ${b}`, wrong, [], why, r);
         }, { many: f.items.length });
       } else if (f.k === 'group') {
@@ -187,7 +191,7 @@ const PACKS = (() => {
       } else if (f.k === 'order') {
         add(f, 'relationship', 'ord', () => ({ type: 'order', text: f.q, items: f.items.slice(), answer: f.items.slice(), steps: [`<b>Rätt ordning:</b> ${f.items.map(esc).join(' → ')}`, why].filter(Boolean), hint: f.hint || HINT.relationship }));
       } else if (f.k === 'stmt') {
-        add(f, f.form || 'recognition', 'true', (r) => mc(f.q || 'Vilket påstående stämmer?', f.s, f.f, falsePool(), why, r));
+        add(f, f.form || 'recognition', 'true', (r) => mc(f.q || 'Vilket påstående stämmer?', f.s, f.f, falsePool(f), why, r));
         f.f.forEach((ff, i) => add({ ...f, id: (f.id || fnv(f.s)) + '.f' + i }, 'mistake', 'false', (r) => mc(f.mq || 'Vilket påstående är <b>fel</b>?', ff, [], truePool(f), `Det stämmer inte. Rätt är: ${f.s}${f.why ? ' ' + f.why : ''}`, r)));
       } else if (f.k === 'num') {
         add(f, f.form || 'multistep', 'n', () => ({ type: 'num', text: f.q, answer: f.a, steps: [why].filter(Boolean), hint: f.hint || HINT[f.form || 'multistep'], unit: f.unit }));
@@ -207,7 +211,8 @@ const PACKS = (() => {
   // Flerval: rätt svar + 3 unika felalternativ – författade (not) först, sedan paketets pool. Alias räknas aldrig som felalternativ.
   function mc(text, correct, authored, pool, why, rnd, o = {}) {
     const bad = new Set([norm(correct), ...(o.alias || []).map(norm)]); const d = []; const want = o.exactD || 3;
-    for (const x of [...shuffle(authored || [], rnd), ...shuffle(pool || [], rnd)]) { const n = norm(x); if (!n || bad.has(n)) continue; bad.add(n); d.push(x); if (d.length >= want) break; }
+    const tierList = Array.isArray(pool) && pool.length && Array.isArray(pool[0]) ? pool : [pool || []];   // pool kan vara nivåer (närmast först)
+    for (const x of [...shuffle(authored || [], rnd), ...tierList.flatMap(t => shuffle(t, rnd))]) { const n = norm(x); if (!n || bad.has(n)) continue; bad.add(n); d.push(x); if (d.length >= want) break; }
     const choices = shuffle([correct, ...d], rnd);
     return { type: 'choicetext', text, choices, answer: choices.indexOf(correct), steps: [why].filter(Boolean), hint: HINT.recognition };
   }
@@ -252,6 +257,8 @@ const PACKS = (() => {
     const skill = ent.kp.skill;
     return { ...q, level: v.lvl, form: v.form, fcode: FCODE[v.form], kp: ent.cid, packId: ent.pack.id, packRev: ent.pack.rev, kpSkill: skill, speak: v.speak && q.speak !== false && (ent.pack.skills.find(s => s.id === skill) || {}).readAloud !== false, challenge: v.ch || undefined, hint: q.hint || HINT[v.form] };
   }
+  // För CI: bygg en bestämd variant färdig (samma väg som i ett pass)
+  function buildVariant(cid, v, rnd, pol) { const ent = REG.kp[cid]; return ent ? finish(ent, v, v.build(rnd), pol) : null; }
   // v1-reserven och "Öva" på ett nytt moment: blandade former från momentets kunskapspunkter (bara flerval/ordning, ingen fritext)
   function v1Question(skill, lvl, o = {}) {
     const cids = REG.bySkill[skill.id] || []; const rnd = o.rnd || Math.random; if (!cids.length) return null;
@@ -271,8 +278,10 @@ const PACKS = (() => {
       // Nya frågors id → kunskapspunkt (v1-"Öva" på samma moment loggas på momentet och leds hit)
       for (const v of vs) { const q = v.build(seeded(7)); route[itemId(q)] = cid; }
     }
-    // Gamla frågebankens id → kunskapspunkt (migrering av befintliga bevis, se docs/CONCEPT_PACKS.md §Migrering)
-    for (const cid of cids) { const { pack } = REG.kp[cid]; for (const [kpId, type, text, ans] of pack.legacy || []) { const to = cidOf(pack.id, kpId); if (out[to]) route[legacyId(type, text, ans)] = to; } }
+    // Gamla frågebankens id → kunskapspunkt (migrering av befintliga bevis, se docs/CONCEPT_PACKS.md §Migrering). En gammal fråga kan
+    // leda till en punkt i ett annat moment i samma paket (t.ex. SIV-frågan under Syror → Säkerhet i labbet).
+    const packsHere = new Set(cids.map(cid => REG.kp[cid].pack));
+    for (const pack of packsHere) for (const [kpId, type, text, ans] of pack.legacy || []) { const to = cidOf(pack.id, kpId); if (REG.kp[to] && variants(to, pol).length) route[legacyId(type, text, ans)] = to; }
     return Object.keys(out).length ? { kps: out, route } : null;
   }
   const legacyId = (type, text, ans) => 'i' + fnv(String(type) + '|' + String(text).replace(/\s+/g, ' ').trim() + '|' + String(ans == null ? '' : ans).slice(0, 60));
@@ -293,7 +302,7 @@ const PACKS = (() => {
   }
   // Hashar för cachning: ändras när paketen ändras (ny rev eller nya privata paket)
   const regKey = () => Object.values(REG.packs).map(p => p.id + '@' + p.rev).sort().join(',');
-  return { cleanPack, cleanHtml, VERSION, FORMS, FCODE, DEPTH, BASE_LVL, POLICY_FORMS, TEXT, KINDS, validate, register, clearPrivate, REG, newSkillsFor, kpsFor, skillFor, variants, question, check, teach, info, catalogEntries, legacyId, cidOf, regKey, v1Question, seeded, norm, normT, strip, words, toks, shuffle, lev, ALLOWED_TAGS };
+  return { buildVariant, cleanPack, cleanHtml, VERSION, FORMS, FCODE, DEPTH, BASE_LVL, POLICY_FORMS, TEXT, KINDS, validate, register, clearPrivate, REG, newSkillsFor, kpsFor, skillFor, variants, question, check, teach, info, catalogEntries, legacyId, cidOf, regKey, v1Question, seeded, norm, normT, strip, words, toks, shuffle, lev, ALLOWED_TAGS };
 })();
 // Inbyggda paket (PACK_DATA byggs in av scripts/build.sh från content/packs/*.json)
 if (typeof PACK_DATA !== 'undefined') for (const p of PACK_DATA) PACKS.register(p);
