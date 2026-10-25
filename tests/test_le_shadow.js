@@ -75,7 +75,7 @@ setTimeout(() => {
             setTimeout(() => {
               try {
                 const P3 = w3.PA, P4 = w4.PA; const k8a = P3.KIDS.find(k => k.id === 'k8'), k8b = P4.KIDS.find(k => k.id === 'k8');
-                const before = JSON.stringify(P3.DB.profiles.k8); P3.LE.ensure(k8a); P4.LE.ensure(k8b);
+                const before = JSON.stringify(strip(P3.DB.profiles.k8)); P3.LE.ensure(k8a); P4.LE.ensure(k8b);
                 ok(JSON.stringify(strip(P3.DB.profiles.k8)) === before, 'migration leaves every v1 field byte-identical');
                 ok(P3.LE2.stable(P3.DB.profiles.k8.le) === P4.LE2.stable(P4.DB.profiles.k8.le), 'migration deterministic across devices (same profile, same time)');
                 const c = P3.DB.profiles.k8.le.base.c; ok(Object.keys(c).length > 0 && Object.values(c).every(x => x.st <= 2), 'migrated: concepts from v1 skills, none above stage 2');

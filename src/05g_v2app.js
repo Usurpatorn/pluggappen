@@ -1,6 +1,6 @@
 /* ========= Learning Engine v2 – barnets upplevelse (Fas 3C–3H, AV som standard) =========
-   Aktiveras per barn av föräldern (p.settings.engine === 'v2', fliken "Motor v2") eller tillfälligt i förälderns förhandsvisning.
-   Med v2 av (standard) körs ingenting här – barnet får v1 exakt som i 1.2.0 (tests/test_v1_regression.js).
+   Från 2.0.0 är v2 PRODUKTEN: på för alla barn som standard. v1 är reserven: föräldern väljer v1 per barn i fliken "Motor v2"
+   (p.settings.engine === 'v1'). Med v1 vald körs ingenting här – barnet får v1 exakt som i 1.2.0 (tests/test_v1_regression.js).
    - Smart Kör!: motorn (LE2.planSession) väljer, passköraren (LER) styr ordning, omförsök, Rescue Loop, LÄR och Bossen.
    - v1:s egna data (mastery, nivå, glosboxar, v1-Felboken, XP, uppdrag) uppdateras som förut → v2 kan stängas av när som helst (rollback).
    - Belöningar använder bara befintlig XP och ädelstenar. En markör per belöning (LE2.rewardOnce) → ingen dubbelbelöning efter synk.
@@ -12,7 +12,9 @@ const V2 = {
   READY_TXT: { 'Bra koll': 'BRA KOLL', 'Öva lite mer': 'ÖVA LITE MER', 'För lite underlag': 'FÖR LITE UNDERLAG' },
   READY_CLS: { 'Bra koll': 'good', 'Öva lite mer': 'warn', 'För lite underlag': '' },
   // v2 bara om föräldern slagit på den – och aldrig på data från en okänd (senare) version: då körs v1 och le lämnas orört (rollback-skydd)
-  on(kid) { if (!kid) return false; const p = prof(kid.id); if (!p || (p.le && p.le.v !== 2)) return false; if (V2.sandbox) return V2.sandbox.kidId === kid.id; return !!(p.settings && p.settings.engine === 'v2'); },
+  // v2 om inte föräldern valt v1 – och aldrig på data från en okänd (senare) version: då körs v1 och le lämnas orört (rollback-skydd)
+  engineOf(p) { return p && p.settings && p.settings.engine === 'v1' ? 'v1' : 'v2'; },
+  on(kid) { if (!kid) return false; const p = prof(kid.id); if (!p || (p.le && p.le.v !== 2)) return false; if (V2.sandbox) return V2.sandbox.kidId === kid.id; return V2.engineOf(p) === 'v2'; },
   fail(where, e) { LE.errors.push({ where: 'v2:' + where, msg: String(e && e.message || e).slice(0, 120), t: Date.now() }); if (LE.errors.length > 20) LE.errors.shift(); },
   safe(fn, where, fb) { try { return fn(); } catch (e) { V2.fail(where, e); return fb; } },
   mins(n) { return Math.max(2, Math.round(n * 0.6)); },
@@ -97,7 +99,7 @@ const V2 = {
   },
   start(kid, mode = 'kor', extra = {}) {
     const p = prof(kid.id);
-    if (!LE.canStart(kid, p)) { toast('Hämtar det senaste från molnet – försök igen om en stund'); return; }
+    if (!LE.canStart(kid, p)) { if (mode === 'kor') { S = null; return startSession(kid, recommendSprint(kid).opts); } toast('Hämtar det senaste från molnet – försök igen om en stund'); return; }   // barnet blockeras aldrig: v1-pass tills första synken är klar
     const C = LE.state(kid); const now = LE.sessClock(C); const { id } = LE.newSessId(p);
     const plan = V2.plan(kid, mode, C, now, id, extra);
     if (!plan.length) { toast(mode === 'revansch' ? 'Inget att ta revansch på just nu' : 'Inget att öva just nu'); return go('home'); }
@@ -372,11 +374,11 @@ const V2 = {
     }, 'explain', '');
   },
   engineCard(kid) {
-    const p = prof(kid.id); const on = p.settings.engine === 'v2'; const ask = state.v2ask === kid.id;
+    const p = prof(kid.id); const on = V2.engineOf(p) === 'v2'; const ask = state.v2ask === kid.id;
     return `<div class="card stack" style="gap:8px;border:2px solid ${on ? 'var(--good)' : 'var(--line)'}"><div class="eyebrow">Motor för ${esc(kid.name)}</div>
-      <div class="toggle"><div><div class="tl">${on ? 'Learning Engine v2 (test)' : 'v1 (standard)'}</div><div class="td">${on ? 'Smart Kör!, Felboken 2.0, Testa mig och Rescue. v1:s data uppdateras samtidigt – du kan byta tillbaka när som helst.' : 'Barnet får v1 som förut. v2 räknar i skuggläge.'}</div></div><div class="seg" role="group" aria-label="Motor"><button class="${on ? '' : 'on'}" aria-pressed="${!on}" data-v2="engine" data-val="v1">v1</button><button class="${on ? 'on' : ''}" aria-pressed="${on}" data-v2="engineAsk" data-val="v2">v2</button></div></div>
-      ${ask && !on ? `<div class="feedback warn"><span>⚠️</span><div><div class="big">Slå på v2 för ${esc(kid.name)}?</div><div class="sub">Gäller bara ${esc(kid.name)}, på alla enheter efter synk. v1 finns kvar och kan väljas igen direkt.</div><div class="row" style="margin-top:8px;gap:8px"><button class="btn" data-v2="engine" data-val="v2">Ja, slå på v2</button><button class="btn ghost" data-v2="engine" data-val="cancel">Avbryt</button></div></div></div>` : ''}
-      <button class="btn ghost" data-v2="preview">👀 Förhandsvisa v2 som ${esc(kid.name)} (ändrar ingenting)</button>
+      <div class="toggle"><div><div class="tl">${on ? 'Learning Engine v2 (standard)' : 'v1 (reserv)'}</div><div class="td">${on ? 'Smart Kör!, Felboken 2.0, Testa mig och Rescue. v1:s data uppdateras samtidigt – välj v1 om något inte fungerar, och byt tillbaka när som helst.' : `${esc(kid.name)} kör reservmotorn v1. v2 räknar i skuggläge och kan slås på igen direkt.`}</div></div><div class="seg" role="group" aria-label="Motor"><button class="${on ? '' : 'on'}" aria-pressed="${!on}" data-v2="engine" data-val="v1">v1</button><button class="${on ? 'on' : ''}" aria-pressed="${on}" data-v2="engineAsk" data-val="v2">v2</button></div></div>
+      ${ask && !on ? `<div class="feedback warn"><span>⚠️</span><div><div class="big">Slå på v2 igen för ${esc(kid.name)}?</div><div class="sub">Gäller bara ${esc(kid.name)}, på alla enheter efter synk. v1 finns kvar och kan väljas igen direkt.</div><div class="row" style="margin-top:8px;gap:8px"><button class="btn" data-v2="engine" data-val="v2">Ja, slå på v2</button><button class="btn ghost" data-v2="engine" data-val="cancel">Avbryt</button></div></div></div>` : ''}
+      ${on ? '' : `<button class="btn ghost" data-v2="preview">👀 Förhandsvisa v2 som ${esc(kid.name)} (ändrar ingenting)</button>`}
     </div>`;
   },
   parentClick(a, el) {

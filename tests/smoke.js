@@ -34,7 +34,8 @@ const runSession = (max = 40) => { let n = 0; while (PA().S && PA().S.i < PA().S
 setTimeout(() => {
   try {
     assert(txt().includes('inte kopplad'), 'unpaired start screen');
-    PA().FAMILY.apply(require('./test_fixture_family.json')); PA().load(); PA().rerender();
+    // Smoke för reservmotorn v1 (v2 är standard från 2.0.0 och testas i test_le_v2ui.js)
+    PA().FAMILY.apply(require('./test_fixture_family.json')); PA().load(); for (const p of Object.values(PA().DB.profiles)) p.settings.engine = 'v1'; PA().rerender();
     assert(txt().includes('Vem ska plugga'), 'start');
     click($('[data-kid="k8"]'));
     assert(txt().includes('Dagens uppdrag') && txt().includes('Prov 3 Algebra') && txt().includes('Kemiprov') && txt().includes('Kemi') && txt().includes('Lärarens kommentar'), 'k8 home: ' );

@@ -37,10 +37,13 @@ const tools = (w) => {
   const run = (max = 40) => { let n = 0; while (PA().S && PA().S.i < PA().S.queue.length && $('#qcard') && n++ < max) { answer(); if (w.__advance) w.__advance(4000); } };
   return { $, click, PA, snap, snaps, run, get mathAnswers() { return mathAnswers; } };
 };
-const strip = (p) => { const o = JSON.parse(JSON.stringify(p)); delete o.le; return o; };
+// v1-flöden: från 2.0.0 är v2 standard, så v1-referensflödet väljer reservmotorn v1 uttryckligen. Valet (settings.engine/engineAt)
+// räknas inte till v1-datan som jämförs med 1.2.0.
+const strip = (p) => { const o = JSON.parse(JSON.stringify(p)); delete o.le; if (o.settings) { delete o.settings.engine; delete o.settings.engineAt; } return o; };
+const useV1 = (PA) => { for (const id of Object.keys(PA.DB.profiles)) PA.DB.profiles[id].settings.engine = 'v1'; };
 const childFlow = (w, T) => {
   const { $, click, PA, snap, run } = T;
-  PA().FAMILY.apply(FIX); PA().load(); PA().rerender(); snap('start');
+  PA().FAMILY.apply(FIX); PA().load(); useV1(PA()); PA().rerender(); snap('start');
   click($('[data-kid="k2"]')); click($('[data-pet="uggla"]')); snap('k2 home');
   click($('[data-rec]')); snap('k2 kör start'); run(); snap('k2 kör summary');
   click($('[data-act="again"]')); run(); snap('k2 again summary');
@@ -65,4 +68,4 @@ const parentFlow = (w, T) => {
   for (const kid of ['k2', 'k4', 'k8']) { click($(`[data-tab="${kid}"]`)); snap('parent ' + kid + ' overview'); for (const sub of ['exams', 'decks', 'settings']) { click($(`[data-sub="${sub}"]`)); snap(`parent ${kid} ${sub}`); } }
   click($('[data-go="start"]')); snap('start after parent');
 };
-module.exports = { rng, T_FIXED, mkWin, tools, strip, childFlow, parentFlow, FIX };
+module.exports = { rng, T_FIXED, mkWin, tools, strip, useV1, childFlow, parentFlow, FIX };

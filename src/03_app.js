@@ -1080,7 +1080,7 @@ VIEWS.parent = () => {
     if (sub === 'overview') body += parentOverview(kid, p);
     else if (sub === 'exams') body += parentExams(kid, p);
     else if (sub === 'decks') body += parentDecks(kid, p);
-    else if (sub === 'v2') body += V2.engineCard(kid) + (p.settings.engine === 'v2' ? V2.insightsCard(kid) + V2.explainCard(kid) : '') + LE.view(kid);
+    else if (sub === 'v2') body += V2.engineCard(kid) + (V2.engineOf(p) === 'v2' ? V2.insightsCard(kid) + V2.explainCard(kid) : '') + LE.view(kid);
     else body += parentSettings(kid, p);
   } else {
     body = `<div class="card stack" style="gap:12px"><div class="eyebrow">Inställningar</div>
@@ -1092,7 +1092,8 @@ VIEWS.parent = () => {
       ${LE.summaryCard()}
       ${SYNC.cfg ? `${syncCard()}${PUSH.card('parent', 'parent')}${deleteCard()}` : ''}
       <div class="card stack" style="gap:8px"><div class="eyebrow">Så fungerar appen</div>
-      <p style="font-size:.95rem"><b>Matte:</b> alla uppgifter slumpas – obegränsat med övning. Svårigheten höjs efter fyra rätt i rad och sänks efter tre fel. "Kör!" väljer det barnet behöver mest: prov inom 30 dagar, annars dagens uppdrag. Fel svar återkommer senare i sprinten.</p>
+      <p style="font-size:.95rem"><b>Kör! (Learning Engine v2):</b> appen håller koll på vad varje barn kan och när det behöver repeteras. Kör! sätter ihop ett kort pass: något att minnas, dagens fokus, revansch på det som gick fel och ibland en utmaning. Fel blir Felboken – en ny fråga om samma sak ett annat pass. När inget mer är värdefullt säger appen "Du är klar för idag". Om något inte fungerar: välj v1 per barn under barnet → Motor v2.</p>
+      <p style="font-size:.95rem"><b>Matte (v1):</b> alla uppgifter slumpas – obegränsat med övning. Svårigheten höjs efter fyra rätt i rad och sänks efter tre fel. "Kör!" väljer det barnet behöver mest: prov inom 30 dagar, annars dagens uppdrag. Fel svar återkommer senare i sprinten.</p>
       <p style="font-size:.95rem"><b>Språk:</b> ord repeteras med spaced repetition (boxar 0–5, intervall 1–30 dagar). En lektion blandar nya ord, välj rätt, lyssna, para ihop, bygg ordet och skriv. Uppläsningen använder telefonens egen röst.</p>
       <p style="font-size:.95rem"><b>Fokusläge</b> (för den som lätt tappar fokus): korta sprintar, en sak i taget på skärmen, "N kvar" i stället för poäng, pauspåminnelse efter två sprintar, svar med ett tryck när det går. Slås på per barn under Inställningar.</p>
       <p style="font-size:.95rem"><b>Motivation:</b> följeslagare som växer med XP, tre dagliga uppdrag, ädelstenar och butik, streak med frys, veckoutmaning, märken och blixtläge.</p>
@@ -1105,7 +1106,7 @@ VIEWS.parent = () => {
   </div>`);
 };
 function parentOverview(kid, p) {
-  if (p.settings.engine === 'v2') return V2.insightsCard(kid) + parentOverviewV1(kid, p);
+  if (V2.on(kid)) return V2.insightsCard(kid) + parentOverviewV1(kid, p);
   return parentOverviewV1(kid, p);
 }
 function parentOverviewV1(kid, p) {

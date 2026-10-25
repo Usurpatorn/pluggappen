@@ -13,8 +13,27 @@ fs.writeFileSync(OLD, zlib.gunzipSync(fs.readFileSync(path.join(__dirname, 'gold
 const dump = (w) => { const o = {}; for (let i = 0; i < w.localStorage.length; i++) { const k = w.localStorage.key(i); o[k] = w.localStorage.getItem(k); } return o; };
 const openKid = (T, id) => { toStart(T); T.click(T.$(`[data-kid="${id}"]`)); if (T.$('[data-pet]')) T.click(T.$('[data-pet]')); };
 const finish = () => { try { fs.unlinkSync(OLD); } catch (e) { /* ignore */ } console.log(`\n${checks} kontroller, ${fails} fel`); console.log(fails ? 'LE DOWNGRADE TEST FAILED' : 'LE DOWNGRADE TEST OK'); process.exit(fails ? 1 : 0); };
+// 0. Uppgradering 1.2.0 → 2.0.0 (så som barnens riktiga profiler ser ut idag): v1-pass + skuggdata i 1.2.0, sedan 2.0.0 där v2 är standard.
+function upgrade(next) {
+  const w0 = mkWin({ seed: 21, fixedClock: true, file: OLD }); const T0 = tools(w0);
+  setTimeout(() => { try {
+    T0.PA().FAMILY.apply(FIX); T0.PA().load(); T0.PA().rerender();
+    for (const id of ['k2', 'k4', 'k8']) { openKid(T0, id); T0.click(T0.$('[data-rec]')); T0.run(); }
+    T0.PA().flushSave(); const before = JSON.parse(JSON.stringify(T0.PA().DB.profiles));
+    const w1 = mkWin({ seed: 22, fixedClock: true, storage: dump(w0) }); const T1 = tools(w1);
+    setTimeout(() => { try {
+      T1.PA().FAMILY.apply(FIX); T1.PA().load(); const D1 = v2tools(w1, T1);
+      for (const id of ['k2', 'k4', 'k8']) {
+        openKid(T1, id); ok(T1.$('[data-v2="kor"]') && !T1.$('[data-rec]'), `uppgradering: ${id} får v2 direkt (ingen aktivering behövs)`);
+        T1.click(T1.$('[data-v2="kor"]')); D1.run(false); ok(/Bra jobbat/.test(T1.$('#app').textContent), `uppgradering: ${id} kör ett v2-pass på 1.2.0-data`);
+        const b = before[id], a = T1.PA().DB.profiles[id]; ok(Object.entries(b.skills).every(([sid, sk]) => a.skills[sid] && a.skills[sid].att >= sk.att) && a.xp >= b.xp && a.le.log.length >= b.le.log.length, `uppgradering: ${id} behåller v1-data, XP och skuggbevisen`);
+      }
+      ok(T1.PA().LE.errors.length === 0, 'uppgradering: inga fel i v2-lagret: ' + JSON.stringify(T1.PA().LE.errors));
+    } catch (e) { fails++; console.log('EXC', e.stack); } next(); }, 50);
+  } catch (e) { fails++; console.log('EXC', e.stack); next(); } }, 50);
+}
 const wN = mkWin({ seed: 4711, fixedClock: true }); const TN = tools(wN);
-setTimeout(() => { try {
+upgrade(() => setTimeout(() => { try {
   TN.PA().FAMILY.apply(FIX); TN.PA().load(); TN.PA().rerender(); const D = v2tools(wN, TN);
   enableV2(wN, TN, 'k8'); openKid(TN, 'k8');
   for (let i = 0; i < 3; i++) { TN.click(TN.$('[data-v2="kor"]') || TN.$('[data-v2="extra"]')); D.run((it) => trnd() < 0.35); toStart(TN); openKid(TN, 'k8'); wN.__advance(86400000); TN.click(TN.$('[data-go="start"]')); openKid(TN, 'k8'); }
@@ -32,7 +51,7 @@ setTimeout(() => { try {
     const pO = TO.PA().DB.profiles.k8; ok(TO.PA().LE.errors.length === 0, '1.2.0: inga fel i skugglagret med v2-data: ' + JSON.stringify(TO.PA().LE.errors));
     ok(pO.le && pO.le.v === 2 && pO.le.log.length >= logN, `1.2.0: le behålls och växer (${logN} → ${pO.le.log.length})`);
     ok(Object.values(pO.skills).reduce((a, s) => a + s.att, 0) > skillsAtt, '1.2.0: v1-mastery fortsätter från v2-passens övning');
-    ok(pO.settings.engine === 'v2', '1.2.0: motorflaggan ligger kvar orörd (ignoreras av 1.2.0)');
+    ok(pO.settings.engine === pN.settings.engine && pO.settings.engineAt === pN.settings.engineAt, '1.2.0: motorvalet ligger kvar orört (ignoreras av 1.2.0)');
     TO.PA().flushSave();
     const wB = mkWin({ seed: 7, fixedClock: true, storage: dump(wO) }); const TB = tools(wB);
     setTimeout(() => { try {
@@ -43,4 +62,4 @@ setTimeout(() => { try {
       ok(TB.PA().LE.errors.length === 0, 'inga fel efter återgång: ' + JSON.stringify(TB.PA().LE.errors));
     } catch (e) { fails++; console.log('EXC', e.stack); } finish(); }, 50);
   } catch (e) { fails++; console.log('EXC', e.stack); finish(); } }, 50);
-} catch (e) { fails++; console.log('EXC', e.stack); finish(); } }, 50);
+} catch (e) { fails++; console.log('EXC', e.stack); finish(); } }, 50));

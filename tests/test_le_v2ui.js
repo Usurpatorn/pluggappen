@@ -7,7 +7,7 @@
 process.env.TZ = 'Europe/Stockholm';
 const { mkWin, tools, FIX, rng } = require('./le/childflow.js');
 const trnd = rng((Number(process.env.SEED) || 777) + 1);   // testets egna val (rätt/fel) är också deterministiska
-const { v2tools, unlockParent, enableV2, toStart } = require('./le/v2driver.js');
+const { v2tools, unlockParent, enableV2, setEngine, toStart } = require('./le/v2driver.js');
 let fails = 0, checks = 0; const ok = (c, m) => { checks++; if (!c) { fails++; console.log('FAIL', m); } };
 const txt = (T) => T.$('#app').textContent.replace(/\s+/g, ' ');
 const FORBIDDEN_CHILD = /försenade|repetitioner försenade|\bv2\b|skugg|E\/C\/A|Indikation|betyg|syskon|\d+\s*fel\b|förlorat|streak(en)? (bryts|försvinner)|missat/i;
@@ -22,11 +22,11 @@ setTimeout(async () => {
   try {
     const { w, T } = boot(Number(process.env.SEED) || 777); const { $, click, PA } = T; family(T);
     const D = v2tools(w, T);
-    /* ---------- 1. Standard = v1; slå på v2 per barn ---------- */
-    openKid(T, 'k4'); ok($('[data-rec]') && !$('[data-v2="kor"]'), 'standard: v1-startsida (v2 av)');
-    ok(!PA().DB.profiles.k4.settings.engine, 'engine-flaggan saknas som standard');
-    enableV2(w, T, 'k4'); ok(PA().DB.profiles.k4.settings.engine === 'v2', 'föräldern slog på v2 för k4 (två steg)');
-    ok(!PA().DB.profiles.k2.settings.engine && !PA().DB.profiles.k8.settings.engine, 'bara det valda barnet påverkas');
+    /* ---------- 1. Från 2.0.0: v2 är standard för alla barn; v1 är reserven per barn ---------- */
+    openKid(T, 'k4'); ok($('[data-v2="kor"]') && !$('[data-rec]'), 'standard 2.0.0: v2-startsida utan att något slås på');
+    ok(!PA().DB.profiles.k4.settings.engine, 'ingen flagga behövs – v2 är standard');
+    ok(['k2', 'k4', 'k8'].every(id => PA().V2.on(PA().KIDS.find(k => k.id === id))), 'v2 på för alla tre barnen');
+    ok(PA().LE.policyName(PA().KIDS.find(k => k.id === 'k2'), PA().DB.profiles.k2) === 'younger' && PA().LE.policyName(PA().KIDS.find(k => k.id === 'k4'), PA().DB.profiles.k4) === 'middle' && PA().LE.policyName(PA().KIDS.find(k => k.id === 'k8'), PA().DB.profiles.k8) === 'older', 'policyer från kursmallen: åk 2 → Yngre, åk 4 → Mellan, åk 8 → Äldre');
     /* ---------- 2. Smart Kör! ---------- */
     openKid(T, 'k4'); const home = txt(T);
     const korTxt = T.$('.go-btn[data-v2="kor"]') ? T.$('.go-btn[data-v2="kor"]').textContent.replace(/\s+/g, ' ').trim() : ''; ok(/^(Kör!|Spela match|\S.*) ?\d+ uppgifter · cirka \d+ minuter$/.test(korTxt), 'startsidan: "Kör! N uppgifter · cirka M minuter" – ' + korTxt);
@@ -122,7 +122,8 @@ setTimeout(async () => {
     ok(JSON.stringify(PA().DB.profiles.k8.skills) === k8v1skills && Object.values(PA().DB.profiles.k8.skills).some(s => s.att > 0), 'rollback: v1-data finns kvar och innehåller v2-passens övning');
     ok(PA().DB.profiles.k8.le.log.length === k8.le.log.length, 'rollback: v2-bevisen finns kvar (kan slås på igen)');
     click($('[data-rec]')); T.run(); ok(PA().LE.errors.length === 0, 'rollback: v1-pass fungerar med v2-data kvar');
-    /* ---------- 11. Förhandsvisning (k2, v1) – ändrar ingenting ---------- */
+    /* ---------- 11. Förhandsvisning (k2 på reservmotorn v1) – ändrar ingenting ---------- */
+    setEngine(w, T, 'k2', 'v1'); ok(PA().DB.profiles.k2.settings.engine === 'v1', 'k2 satt på reservmotorn v1');
     unlockParent(w, T); click($('[data-tab="k2"]')); click($('[data-sub="v2"]'));
     PA().flushSave(); const snapK2 = JSON.stringify(PA().DB.profiles.k2); const lsBefore = w.localStorage.getItem('pluggappen.v1');
     click($('[data-v2="preview"]')); if ($('[data-pet]')) click($('[data-pet]')); ok(/Förhandsvisning av v2/.test(txt(T)) && $('[data-v2="kor"]'), 'förhandsvisning: v2-startsida med tydlig banner');
@@ -135,7 +136,7 @@ setTimeout(async () => {
     ok(PA().LE.dev().endsWith('~p'), 'förhandsvisningen använder ett eget enhets-id (inga löpnummerkrockar)');
     click($('[data-v2="endPreview"]')); ok(JSON.stringify(PA().DB.profiles.k2) === snapK2, 'förhandsvisning: barnets data exakt som före');
     ok(JSON.stringify(JSON.parse(w.localStorage.getItem('pluggappen.v1')).profiles.k2) === JSON.stringify(JSON.parse(lsBefore).profiles.k2), 'förhandsvisning: inget av förhandsvisningen sparat i lagringen');
-    ok(!PA().DB.profiles.k2.settings.engine && !PA().V2.sandbox, 'förhandsvisning: avslutad, k2 kör fortfarande v1');
+    ok(PA().DB.profiles.k2.settings.engine === 'v1' && !PA().V2.sandbox, 'förhandsvisning: avslutad, k2 kör fortfarande v1');
     /* ---------- 11b. Säkerhetsnät ---------- */
     { const p4 = PA().DB.profiles.k4; const errs0 = PA().LE.errors.length;
       // XSS: ett eget glosdeck med HTML i namnet, kopplat till ett prov, visas escapat i v2:s provkort

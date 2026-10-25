@@ -44,5 +44,8 @@ function v2tools(w, T) {
 }
 function toStart(T) { const { $, click } = T; for (let i = 0; i < 4 && !$('[data-go="parent"]'); i++) { const b = $('[data-v2="endPreview"]') || $('[data-go="start"]') || $('[data-go="home"]'); if (!b) break; click(b); } }
 function unlockParent(w, T) { const { $, click } = T; toStart(T); click($('[data-go="parent"]')); const pins = [...w.document.querySelectorAll('[data-pin]')]; if (pins.length) ['1', '2', '3', '4'].forEach((d, i) => { pins[i].value = d; pins[i].dispatchEvent(new w.Event('input', { bubbles: true })); }); }
-function enableV2(w, T, kidId) { const { $, click } = T; unlockParent(w, T); click($(`[data-tab="${kidId}"]`)); click($('[data-sub="v2"]')); click($('[data-v2="engineAsk"]')); click($('[data-v2="engine"][data-val="v2"]')); toStart(T); }
-module.exports = { v2tools, unlockParent, enableV2, toStart };
+function setEngine(w, T, kidId, v) { const { $, click } = T; unlockParent(w, T); click($(`[data-tab="${kidId}"]`)); click($('[data-sub="v2"]'));
+  if (v === 'v1') click($('[data-v2="engine"][data-val="v1"]')); else if ($('[data-v2="engineAsk"][aria-pressed="false"]')) { click($('[data-v2="engineAsk"]')); click($('[data-v2="engine"][data-val="v2"]')); } toStart(T); }
+// v2 är standard från 2.0.0 – enableV2 ser bara till att barnet inte står på v1
+function enableV2(w, T, kidId) { setEngine(w, T, kidId, 'v2'); }
+module.exports = { v2tools, unlockParent, enableV2, setEngine, toStart };

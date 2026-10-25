@@ -188,7 +188,7 @@ const LE = {
     const lastCmp = R.cmp.slice(-8).reverse();
     return `
     <div class="card stack" style="gap:8px;border-left:3px solid var(--acc)"><div class="eyebrow">Learning Engine v2 · skuggläge</div>
-      <p style="font-size:.95rem">${p.settings.engine === 'v2' ? `${esc(kid.name)} har <b>v2</b> påslagen (${R.v2done} v2-pass hittills). Jämförelsen nedan gäller pass som körts med v1-urval (t.ex. "Öva" på ett enskilt moment).` : `${esc(kid.name)} får <b>v1</b> precis som förut. v2 räknar i bakgrunden på samma svar och visar här vad den <i>skulle</i> ha valt.`} Inget här syns för barnet, och inget skickas utanför familjens lagring.</p>
+      <p style="font-size:.95rem">${V2.engineOf(p) === 'v2' ? `${esc(kid.name)} har <b>v2</b> påslagen (${R.v2done} v2-pass hittills). Jämförelsen nedan gäller pass som körts med v1-urval (t.ex. "Öva" på ett enskilt moment).` : `${esc(kid.name)} får <b>v1</b> precis som förut. v2 räknar i bakgrunden på samma svar och visar här vad den <i>skulle</i> ha valt.`} Inget här syns för barnet, och inget skickas utanför familjens lagring.</p>
       ${kv([['Skugga sedan', p.le.migratedAt ? new Date(p.le.migratedAt).toLocaleDateString('sv-SE') + ` (${R.days} d)` : '–'], ['Pass jämförda', `${R.done.length} avslutade · ${R.recs.length - R.done.length} avbrutna`], ['Bevis i loggen', `${R.logN}${R.folded ? ` (+${R.folded} inbakade)` : ''}`], ['Lagring', `${Math.round(R.size / 1024)} kB`], ['Fel i skuggan', LE.errors.length ? `${LE.errors.length} (${esc(LE.errors.slice(-1)[0].where)})` : '0']])}
     </div>
     <div class="card stack" style="gap:8px"><div class="eyebrow">Upplevelsepolicy (O-9)</div>
