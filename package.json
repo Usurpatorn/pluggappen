@@ -1,6 +1,6 @@
 {
   "name": "pluggapp",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "description": "Lokal-först pluggapp för grundskolan – generisk kod, privat familjekonfiguration",
   "scripts": {

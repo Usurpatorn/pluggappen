@@ -3,7 +3,7 @@
 const fs = require('fs');
 const root = __dirname + '/..';
 // Alla publika filer: bygget, källorna, dokumentation, service worker, påminnelseskript, arbetsflöden.
-const files = ['dist/index.html', 'dist/pluggappen.html', 'README.md', 'sw.js', 'scripts/remind.mjs', 'scripts/build.sh', '.github/workflows/ci.yml', '.github/workflows/reminders.yml', ...fs.readdirSync(root + '/src').map(f => 'src/' + f), ...fs.readdirSync(root + '/tests').map(f => 'tests/' + f)].map(f => root + '/' + f).filter(f => fs.existsSync(f) && !f.endsWith('.local.json') && !f.endsWith('test_privacy.js'));
+const files = ['dist/index.html', 'dist/pluggappen.html', 'README.md', 'sw.js', 'scripts/remind.mjs', 'scripts/build.sh', '.github/workflows/ci.yml', '.github/workflows/reminders.yml', ...fs.readdirSync(root + '/src').map(f => 'src/' + f), ...fs.readdirSync(root + '/tests').flatMap(f => fs.statSync(root + '/tests/' + f).isDirectory() ? fs.readdirSync(root + '/tests/' + f).map(g => 'tests/' + f + '/' + g) : ['tests/' + f])].map(f => root + '/' + f).filter(f => fs.existsSync(f) && !f.endsWith('.local.json') && !f.endsWith('test_privacy.js'));
 const generic = ['ADHD', 'Lärarens kommentar · 23/10', 'Kate\'s Day', 'Magic! 4', '2026-11-18', '2026-11-26', '2026-11-02', 'born:', 'Prov 12 Algebra', 'Syror och baser\', date'];
 // Privat termlista (barnens namn m.m.) finns ALDRIG i repot: lokalt i tests/privacy_terms.local.json (gitignorerad), i CI via secret PRIVACY_TERMS.
 let priv = []; try { priv = JSON.parse(process.env.PRIVACY_TERMS || fs.readFileSync(__dirname + '/privacy_terms.local.json', 'utf8')); } catch (e) { /* no private list available */ }

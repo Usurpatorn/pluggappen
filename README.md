@@ -8,4 +8,6 @@ Vanilla JavaScript, en enda HTML-fil, installeras som webbapp på telefon/surfpl
 - Framsteg synkas mellan en familjs enheter via Firestore. Åtkomst styrs av `firestore.rules`.
 - Påminnelser skickas av `.github/workflows/reminders.yml` (web-push).
 
+Lärmotor v2 körs i skuggläge (Fas 3B): den räknar parallellt på v1-svaren och syns bara i föräldraläget – barnen får v1.
+
 Publiceras via GitHub Pages. Källkod i `src/`, tester i `tests/`, bygge med `npm run build` (→ `dist/`). Se `RELEASING.md` för bygg-, test- och releaseprocessen.

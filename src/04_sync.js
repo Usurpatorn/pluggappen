@@ -18,7 +18,7 @@ const SYNC = {
       const doc = await r.json(); const json = doc.fields?.json?.stringValue; const updatedAt = Number(doc.fields?.updatedAt?.integerValue || 0);
       if (!json) return null;
       SYNC.status = 'ok'; SYNC.lastError = null;
-      return { profile: JSON.parse(json), updatedAt };
+      return { profile: JSON.parse(json), updatedAt, serverTime: doc.updateTime ? Date.parse(doc.updateTime) : 0 };
     } catch (e) { SYNC.status = 'error'; SYNC.lastError = e.message; return null; }
   },
   async push(kidId) {
@@ -28,6 +28,7 @@ const SYNC = {
       const body = { fields: { json: { stringValue: JSON.stringify(p) }, updatedAt: { integerValue: String(updatedAt) }, kid: { stringValue: kidId } } };
       const r = await SYNC.fetch(SYNC.url(kidId), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       if (!r.ok) throw new Error('HTTP ' + r.status);
+      try { const doc = await r.json(); if (doc && doc.updateTime && typeof LE !== 'undefined') LE.anchor(kidId, Date.parse(doc.updateTime)); } catch (e) { /* ingen serverklocka – ok */ }
       SYNC.status = 'ok'; SYNC.lastError = null; p.syncedAt = updatedAt; p.since = { xp: 0, gems: 0, days: {} }; p._lx = p.xp; p._lg = p.gems; return true;
     } catch (e) { SYNC.status = 'error'; SYNC.lastError = e.message; return false; }
   },
@@ -42,10 +43,14 @@ const SYNC = {
     if ((local.syncedAt || 0) >= remote.updatedAt) return false; // we already have this version
     const localChanged = (local.updatedAt || 0) > (local.syncedAt || 0);
     const merged = localChanged ? mergeProfiles(local, remote.profile) : { ...defaultProfile(kidId), ...remote.profile, since: { xp: 0, gems: 0, days: {} } };
-    merged.syncedAt = remote.updatedAt; merged.updatedAt = localChanged ? Date.now() : remote.updatedAt; merged._lx = merged.xp; merged._lg = merged.gems;
+    // Fas 3B: v2-bevisloggen slås alltid ihop (union), även när lokalt inte ändrats – skyddar mot att en äldre app skrivit över den.
+    let leRestored = false;
+    if (!localChanged && (local.le || remote.profile.le) && typeof LE !== 'undefined') { merged.le = LE.mergeLE(local.le, remote.profile.le); leRestored = !!(merged.le && (merged.le.log || []).length > ((remote.profile.le || {}).log || []).length); }
+    merged.syncedAt = remote.updatedAt; merged.updatedAt = localChanged || leRestored ? Date.now() : remote.updatedAt; merged._lx = merged.xp; merged._lg = merged.gems;
     DB.profiles[kidId] = merged; rollover(merged);
     try { localStorage.setItem(STORE_KEY, JSON.stringify(DB)); } catch (e) { /* ignore */ }
-    if (localChanged) SYNC.schedulePush(kidId);
+    if (typeof LE !== 'undefined') { LE.invalidate(kidId); if (remote.serverTime) LE.anchor(kidId, remote.serverTime); }
+    if (localChanged || leRestored) SYNC.schedulePush(kidId);
     return true;
   },
   async refreshAll() { let changed = false; for (const k of KIDS) if (await SYNC.refresh(k.id)) changed = true; SYNC.render(); return changed; },
@@ -77,5 +82,13 @@ function mergeProfiles(a, b) {
   const q = [a.quests, b.quests].filter(Boolean).sort((x, y) => (x.date || '').localeCompare(y.date || '')).pop(); out.quests = q || null;
   if (a.quests && b.quests && a.quests.date === b.quests.date) out.quests = { date: a.quests.date, items: a.quests.items.map((it, i) => { const o = b.quests.items[i]; return !o ? it : { ...it, progress: Math.max(it.progress, o.progress), done: it.done || o.done, claimed: it.claimed || o.claimed }; }) };
   out.pet = a.pet || b.pet; out.settings = { ...(b.settings || {}), ...(a.settings || {}) };
+  // Felboken (v1): union av båda enheternas poster minus det som klarats (gravstenar). Tidigare skrev den lokala listan över den andra.
+  const cleared = { ...(b.mistakesCleared || {}) }; for (const [id, t] of Object.entries(a.mistakesCleared || {})) cleared[id] = Math.max(cleared[id] || 0, t);
+  const keep = Object.keys(cleared).sort((x, y) => cleared[y] - cleared[x]).slice(0, 300); const cl = Object.fromEntries(keep.map(k => [k, cleared[k]]));
+  const mm = new Map(); for (const x of [...(b.mistakes || []), ...(a.mistakes || [])]) { const o = mm.get(x.id); if (!o || (x.at || 0) > (o.at || 0)) mm.set(x.id, x); }
+  out.mistakes = [...mm.values()].filter(x => !((cl[x.id] || 0) >= (x.at || 0))).sort((x, y) => (x.at || 0) - (y.at || 0) || (x.id < y.id ? -1 : 1)).slice(-60);
+  if (Object.keys(cl).length) out.mistakesCleared = cl; else delete out.mistakesCleared;
+  // Fas 3B: v2-bevislogg (union på enhet:löpnummer, deterministisk bas)
+  if (a.le || b.le) out.le = typeof LE !== 'undefined' ? LE.mergeLE(a.le, b.le) : (a.le || b.le);
   return out;
 }

@@ -1,0 +1,156 @@
+/* Learning Engine v2 (Fas 3B) – enhets- och egenskapstester mot PRODUKTIONSMOTORN (src/05b_engine2.js).
+   Del 1: de 36 godkända Fas 3A-kontrollerna, portade. Del 2: 3B-specifikt (logglagring, omspelning, sammanslagning,
+   kompaktering, migrering, beslut O-1…O-9, K-12). Syntetisk data – ingen riktig barndata. */
+'use strict';
+process.env.TZ = 'UTC';
+const fs = require('fs'); const path = require('path');
+const E = require('../src/05b_engine2.js'); const LECAT = require('../src/05a_concepts.js'); const S = require('./le/sim.js'); const { DAY } = E; const CAT = S.CAT;
+let fails = 0, checks = 0; const ok = (c, m) => { checks++; if (!c) { fails++; console.log('FAIL', m); } };
+const pol = E.POLICIES.middle; const T0 = 100 * DAY + 17 * 3600000;
+const rnd = S.rng(12345); const pick = (a) => a[Math.floor(rnd() * a.length)];
+const KINDS = ['free', 'mc', 'order', 'open'], HELPS = ['none', 'none', 'none', 'hint', 'solution', 'rescue'], CTX = ['first', 'first', 'repeat', 'retry', 'exam'];
+const randEv = (cid, t, dev, seq) => ({ cid, ok: rnd() < 0.6, kind: pick(CAT[cid].kinds.concat(KINDS.slice(0, 1))), k: 4, help: pick(HELPS), ctx: pick(CTX), item: cid + '#' + Math.floor(rnd() * 5), dev, seq, t, sess: dev + Math.floor(t / DAY), lvl: 1 + Math.floor(rnd() * 3), fast: rnd() < 0.1 });
+const st = (o) => E.stable(o);
+
+/* ================= Del 1: Fas 3A-kontrollerna (oförändrade regler) ================= */
+{ const L = E.newLE(); let t = T0; const ids = Object.keys(CAT);
+  for (let i = 0; i < 20000; i++) { t += Math.floor(rnd() * 3 * DAY / 10); const cid = pick(ids); E.recordEvidence(L, CAT, cid, randEv(cid, t, 'A', i), t, pol, { id: 's' + Math.floor(t / DAY) }); const c = L.c[cid];
+    if (!(c.st >= 0 && c.st <= 6 && Number.isInteger(c.st))) ok(false, 'stage out of range ' + c.st);
+    if (!(c.lvl >= 1 && c.lvl <= (CAT[cid].maxLvl || 3))) ok(false, 'lvl out of range');
+    if (!Number.isFinite(c.due) || c.due <= t - DAY) ok(false, 'due invalid/past ' + c.due);
+    if (c.ev.length > 12 || c.items.length > 6) ok(false, 'unbounded storage');
+    if (c.fb && !['open', 'corrected', 'verified', 'resolved'].includes(c.fb.s)) ok(false, 'bad fb state');
+    if (/NaN|Infinity/.test(JSON.stringify(c))) ok(false, 'NaN/Infinity in state'); }
+  ok(true, 'invariants'); console.log('A1. invarianter: 20 000 händelser inom gränser'); }
+{ const fresh = () => { const L = E.newLE(); const c = E.cstate(L, 'm1'); c.st = 2; c.lastOk = T0 - 3 * DAY; c.n = 5; c.due = T0; return L; };
+  const L1 = fresh(); E.recordEvidence(L1, CAT, 'm1', { ok: true, kind: 'free', help: 'none', ctx: 'first', item: 'x' }, T0, pol, { id: 'a' });
+  const L2 = fresh(); E.recordEvidence(L2, CAT, 'm1', { ok: false, kind: 'free', help: 'none', ctx: 'first', item: 'x' }, T0, pol, { id: 'a' }); E.recordEvidence(L2, CAT, 'm1', { ok: true, kind: 'free', help: 'none', ctx: 'retry', item: 'y' }, T0 + 60000, pol, { id: 'a' });
+  ok(L1.c.m1.st === 3, 'delayed independent success advances (2→3)'); ok(L2.c.m1.st === 1, 'fail then immediate correction does not restore stage');
+  const L3 = fresh(); for (let i = 0; i < 6; i++) E.recordEvidence(L3, CAT, 'm1', { ok: false, kind: 'free', help: 'none', ctx: i ? 'retry' : 'first', item: 'z' + i }, T0 + i * 60000, pol, { id: 'a' }); ok(L3.c.m1.st <= 2, 'repeated failure never increases stage');
+  const L4 = fresh(); E.recordEvidence(L4, CAT, 'm1', { ok: true, kind: 'free', help: 'hint', ctx: 'first', item: 'x' }, T0, pol, { id: 'a' }); ok(L4.c.m1.st === 2, 'hint success on learned concept does not advance');
+  const L5 = fresh(); E.recordEvidence(L5, CAT, 'm1', { ok: true, kind: 'free', help: 'solution', ctx: 'first', item: 'x' }, T0, pol, { id: 'a' }); ok(L5.c.m1.st === 2, 'after solution shown: no advance');
+  const L6 = fresh(); L6.c.m1.lastOk = T0 - 0.5 * DAY; E.recordEvidence(L6, CAT, 'm1', { ok: true, kind: 'free', help: 'none', ctx: 'first', item: 'x' }, T0, pol, { id: 'a' }); ok(L6.c.m1.st === 2, 'too-early retrieval does not advance');
+  const L7 = E.newLE(); const c7 = E.cstate(L7, 's1'); c7.st = 2; c7.lastOk = T0 - 5 * DAY; c7.n = 4; E.recordEvidence(L7, CAT, 's1', { ok: true, kind: 'mc', k: 4, help: 'none', ctx: 'first', item: 'x' }, T0, pol, { id: 'a' }); ok(L7.c.s1.st === 2, 'MC cannot lift a recall-capable concept past mcMaxStage');
+  console.log('A2. bevisvärde'); }
+{ const L = E.newLE(); const c = E.cstate(L, 'm2'); c.st = 2; c.n = 4; c.lastOk = T0 - 3 * DAY;
+  E.recordEvidence(L, CAT, 'm2', { ok: false, kind: 'free', help: 'none', ctx: 'first', item: 'q1' }, T0, pol, { id: 'a' }); ok(c.fb && c.fb.s === 'open', 'lapse opens Felboken');
+  E.recordEvidence(L, CAT, 'm2', { ok: true, kind: 'free', help: 'none', ctx: 'retry', item: 'q2' }, T0 + 60000, pol, { id: 'a' }); ok(c.fb.s === 'corrected', 'same-session correction → corrected');
+  let R = E.recordEvidence(L, CAT, 'm2', { ok: true, kind: 'free', help: 'none', ctx: 'first', item: 'q1' }, T0 + DAY, pol, { id: 'b' }); ok(c.fb.s === 'corrected', 'same question next day does not verify');
+  R = E.recordEvidence(L, CAT, 'm2', { ok: true, kind: 'free', help: 'none', ctx: 'first', item: 'q3' }, T0 + 2 * DAY, pol, { id: 'c' }); ok(c.fb.s === 'verified' && R.rewards.includes('COMEBACK'), 'different question on later day → verified + COMEBACK');
+  E.recordEvidence(L, CAT, 'm2', { ok: true, kind: 'free', help: 'none', ctx: 'first', item: 'q4' }, T0 + 5 * DAY, pol, { id: 'd' }); ok(c.fb.s === 'resolved', 'second delayed success → resolved');
+  E.recordEvidence(L, CAT, 'm2', { ok: false, kind: 'free', help: 'none', ctx: 'first', item: 'q5' }, T0 + 9 * DAY, pol, { id: 'e' }); ok(c.fb.s === 'open' && c.fb.reopened === 1, 'later failure reopens');
+  const L2 = E.newLE(); E.recordEvidence(L2, CAT, 'm3', { ok: false, kind: 'free', help: 'none', ctx: 'first', item: 'a' }, T0, pol, { id: 'a' }); ok(!L2.c.m3.fb, 'first-day error on new concept is learning, not Felboken');
+  E.recordEvidence(L2, CAT, 'm3', { ok: false, kind: 'free', help: 'none', ctx: 'first', item: 'b' }, T0 + DAY, pol, { id: 'b' }); ok(L2.c.m3.fb && L2.c.m3.fb.s === 'open', 'new concept failing on second day → Felboken');
+  const L3 = E.newLE(); const c3 = E.cstate(L3, 'm4'); c3.st = 3; c3.n = 5; c3.lastOk = T0 - 7 * DAY; let cb = 0;
+  for (let d = 0; d < 10; d++) { E.recordEvidence(L3, CAT, 'm4', { ok: false, kind: 'free', help: 'none', ctx: 'first', item: 'f' + d, fast: true }, T0 + d * DAY, pol, { id: 'x' + d }); const r2 = E.recordEvidence(L3, CAT, 'm4', { ok: true, kind: 'free', help: 'none', ctx: 'first', item: 'g' + d }, T0 + d * DAY + DAY / 2, pol, { id: 'y' + d }); cb += r2.rewards.filter(x => x === 'COMEBACK').length; }
+  ok(cb <= 2, 'deliberate-fail farming yields ≤2 COMEBACK in 10 days (got ' + cb + ')');
+  console.log('A3. Felboken 2.0-regler'); }
+{ const r = S.runProfile('B', { days: 12, seed: 3 }); const L = r.L; const ctx = { exams: [], lastSessionAt: 11 * DAY, recentSubjectShare: {}, subjectCount: 3 };
+  const a = JSON.stringify(E.planSession(L, CAT, 12 * DAY + 17 * 3600000, ctx, E.POLICIES.younger)); const b = JSON.stringify(E.planSession(JSON.parse(JSON.stringify(L)), CAT, 12 * DAY + 17 * 3600000, ctx, E.POLICIES.younger));
+  ok(a === b, 'identical input → identical plan'); const plan = JSON.parse(a); ok(plan.every(s => s.why), 'every slot has a reason');
+  const subj = new Set(plan.map(s => CAT[s.cid].subject)); ok(subj.size <= E.POLICIES.younger.maxSubjects, 'younger ≤2 subjects');
+  console.log('A4. Kör!-planering deterministisk och förklarbar'); }
+{ const r = S.runProfile('H', { days: 10, seed: 5 }); const base = r.log.slice(); const tA = 10 * DAY;
+  const extraA = [], extraB = []; let seq = 9000;
+  for (let i = 0; i < 40; i++) { const cid = pick(['m1', 'm2', 'g1', 's1']); (i % 2 ? extraB : extraA).push(randEv(cid, tA + i * 3600000, i % 2 ? 'B' : 'A', ++seq)); }
+  extraA.push({ cid: 'g1', ok: true, kind: 'free', help: 'none', ctx: 'first', item: 'g1#4', dev: 'A', seq: ++seq, t: tA + 2 * DAY, sess: 'A12', lvl: 1 });
+  extraB.push({ cid: 'g1', ok: false, kind: 'free', help: 'none', ctx: 'first', item: 'g1#2', dev: 'B', seq: ++seq, t: tA + 2 * DAY + 3600000, sess: 'B12', lvl: 1 });
+  const logA = [...base, ...extraA], logB = [...base, ...extraB];
+  const mAB = E.mergeLog(logA, logB), mBA = E.mergeLog(logB, logA), mAA = E.mergeLog(mAB, logA);
+  const sAB = st(E.replay(mAB, CAT, pol).c), sBA = st(E.replay(mBA, CAT, pol).c), sAA = st(E.replay(mAA, CAT, pol).c);
+  ok(sAB === sBA, 'merge commutative'); ok(sAB === sAA, 'merge idempotent');
+  const seqAll = [...base, ...extraA, ...extraB].sort((x, y) => x.t - y.t || (x.dev < y.dev ? -1 : 1) || x.seq - y.seq); ok(sAB === st(E.replay(seqAll, CAT, pol).c), 'merged == sequential history');
+  ok(E.replay(mAB, CAT, pol).c.g1.fb.s === 'open', 'later failure on B wins over earlier resolution on A');
+  const L = E.newLE(); E.recordEvidence(L, CAT, 'm1', { ok: true, kind: 'free', help: 'none', ctx: 'first', item: 'a' }, T0, pol, { id: 'x' }); const d1 = L.c.m1.due; E.recordEvidence(L, CAT, 'm1', { ok: true, kind: 'free', help: 'none', ctx: 'first', item: 'b' }, T0 - 30 * DAY, pol, { id: 'y' });
+  ok(L.clock.last === T0 && L.c.m1.due >= d1, 'clock moved back: engine time does not go backwards'); ok(L.c.m1.st === 1, 'clock rollback cannot farm advancement');
+  console.log('A5. synk: kommutativ, idempotent, = sekventiell historik, klockskydd'); }
+{ // A6 (anpassad till produktionens migrering: ett koncept per moment)
+  const p = { xp: 1200, gems: 40, streak: 5, skills: { plus20: { att: 40, cor: 36, m: 92, lvl: 3, last: T0 - 2 * DAY }, minus20: { att: 6, cor: 4, m: 55, lvl: 2, last: T0 - DAY }, tal100: { att: 2, cor: 0, m: 0, lvl: 1, last: T0 } }, words: { w1: { box: 4, due: T0 + DAY } }, mistakes: [{ id: 'm_1', cat: 'math', skillId: 'minus20', at: T0 - DAY, q: { text: '13 − 7' } }], badges: ['first'] };
+  const cat = { 's:plus20': { id: 's:plus20', subject: 'math', maxLvl: 3, recall: true }, 's:minus20': { id: 's:minus20', subject: 'math', maxLvl: 3, recall: true }, 's:tal100': { id: 's:tal100', subject: 'math', maxLvl: 3, recall: true } };
+  const map = { plus20: 's:plus20', minus20: 's:minus20', tal100: 's:tal100' };
+  const snap = JSON.stringify(p); const le1 = E.migrateV1(p, cat, map, T0, E.POLICIES.younger); const le2 = E.migrateV1({ ...p, le: le1 }, cat, map, T0 + DAY, E.POLICIES.younger);
+  ok(JSON.stringify(p) === snap, 'v1 profile untouched'); ok(le2 === le1, 'migration idempotent (existing le kept)');
+  const B = le1.base.c; ok(Object.values(B).every(c => c.st <= 2), 'no migrated concept above stage 2'); ok(B['s:plus20'].st === 2 && B['s:minus20'].st === 1 && B['s:tal100'].st === 0, 'strength buckets');
+  ok(B['s:minus20'].fb && B['s:minus20'].fb.s === 'open', 'v1 mistake → open Felboken entry'); ok(p.xp === 1200 && p.gems === 40 && JSON.stringify(p.words) === JSON.stringify({ w1: { box: 4, due: T0 + DAY } }), 'XP, gems, Leitner unchanged');
+  ok(E.childLabel(B['s:plus20'], T0, E.POLICIES.younger, le1.base) !== 'Säker', 'migrated strong skill not shown as Säker');
+  console.log('A6. migrering: idempotent, v1 orört, max stadium 2, v1-fel → Felboken'); }
+{ const r = S.runProfile('E', { seed: 2 }); const back = r.trace.find(t => t.d === 42); ok(back && back.n <= E.POLICIES.middle.maxItems, 'return-after-absence session bounded (' + (back && back.n) + ')');
+  const firstRoles = back.lines.slice(0, 2).map(l => l.split(' ')[0]); ok(firstRoles[0] === 'warmup' || firstRoles[0] === 'remember', 'return session starts with warm-up/retrieval');
+  const shares = [1, 2, 3, 4, 5].map(seed => { const f = S.runProfile('F', { seed }); const sh = (d) => { const t = f.trace.find(x => x.d === d); const ids = t.lines.map(l => (l.match(/ ([a-z]\d)@/) || [])[1]).filter(Boolean); return ids.filter(id => S.PROFILES.F.examC.includes(id)).length / Math.max(1, ids.length); }; return [sh(3), sh(12)]; });
+  const s3 = shares.reduce((a, x) => a + x[0], 0) / 5, s12 = shares.reduce((a, x) => a + x[1], 0) / 5;
+  ok(s12 >= 0.65 && s12 > s3, `exam share ≥65 % two days before and above day 3 (${(s3 * 100).toFixed(0)} → ${(s12 * 100).toFixed(0)} %)`);
+  console.log('A7. frånvaro och prov'); }
+const n3A = checks; console.log(`Del 1: ${n3A} kontroller (Fas 3A-sviten)`);
+
+/* ================= Del 2: Fas 3B ================= */
+// B1. kompakt lagring: koda/avkoda utan förlust
+{ let okAll = true; for (let i = 0; i < 500; i++) { const cid = pick(Object.keys(CAT)); const e = randEv(cid, T0 + i * 1000, 'dv', i); e.t = Math.round(e.t / 1000) * 1000; e.restart = rnd() < 0.1; const d = E.decodeEv(E.encodeEv(e)); for (const k of ['t', 'dev', 'seq', 'cid', 'ok', 'kind', 'k', 'help', 'ctx', 'item', 'fast', 'sess', 'lvl', 'restart']) if (d[k] !== e[k]) { okAll = false; console.log('roundtrip', k, d[k], e[k]); break; } } ok(okAll, 'encode/decode roundtrip'); }
+// B2. live tillämpning == omspelning från logg (samma regler, samma lata kalibrering)
+function mkLog(dev, n, t0, seed) { const r = S.rng(seed); const ids = Object.keys(CAT); const out = []; let t = t0; for (let i = 0; i < n; i++) { t += Math.floor(r() * DAY / 3) * 1000 / 1000; t = Math.round(t / 1000) * 1000; const cid = ids[Math.floor(r() * ids.length)]; out.push({ cid, ok: r() < 0.65, kind: CAT[cid].kinds[Math.floor(r() * CAT[cid].kinds.length)], k: 4, help: r() < 0.8 ? 'none' : 'hint', ctx: r() < 0.6 ? 'first' : 'repeat', item: cid + '#' + Math.floor(r() * 6), dev, seq: i + 1, t, sess: dev + Math.floor(t / (DAY / 2)), lvl: 1, fast: r() < 0.1, restart: false }); } return out; }
+{ const log = mkLog('A', 600, T0, 77); const live = E.newLE(); for (const e of log) E.apply(live, CAT, e, pol); const rep = E.replay(log.map(E.encodeEv), CAT, pol); ok(st(live) === st(rep), 'live state == replay of stored log'); }
+// B3. mergeLE: två enheter, samma migreringsbas → kommutativ, idempotent, = sekventiell historik
+const migP = { skills: { plus20: { att: 12, cor: 11, m: 80, lvl: 2, last: T0 - DAY } } };
+const mcat = { ...CAT, 's:plus20': { id: 's:plus20', subject: 'matte', maxLvl: 3, recall: true } };
+{ const base = E.migrateV1(migP, mcat, { plus20: 's:plus20' }, T0, pol); const la = mkLog('A', 120, T0 + 1000, 1), lb = mkLog('B', 140, T0 + 2000, 2);
+  const A = { ...JSON.parse(JSON.stringify(base)), log: la.map(E.encodeEv), seqs: { A: 120 }, shadow: [{ id: 'A:1', t: 1, v1: [], v2: [], a: [], done: 1 }] }, B = { ...JSON.parse(JSON.stringify(base)), log: lb.map(E.encodeEv), seqs: { B: 140 }, shadow: [{ id: 'B:1', t: 2, v1: [], v2: [], a: [], done: 1 }] };
+  const AB = E.mergeLE(A, B), BA = E.mergeLE(B, A); ok(st(AB) === st(BA), 'mergeLE commutative'); ok(st(E.mergeLE(AB, A)) === st(AB) && st(E.mergeLE(AB, AB)) === st(AB), 'mergeLE idempotent');
+  ok(AB.log.length === 260 && AB.seqs.A === 120 && AB.seqs.B === 140 && AB.shadow.length === 2, 'union of logs, seqs and shadow records');
+  const seqAll = [...la, ...lb].sort((x, y) => x.t - y.t || (x.dev < y.dev ? -1 : 1) || x.seq - y.seq);
+  ok(st(E.replay(AB.log, mcat, pol, AB.base)) === st(E.replay(seqAll, mcat, pol, base.base)), 'merged le == one-device history');
+  // olika migreringsbaser (två enheter migrerade vid olika tid) → tidigaste basen, alla händelser kvar
+  const B2 = { ...E.migrateV1(migP, mcat, { plus20: 's:plus20' }, T0 + 3600000, pol), log: lb.map(E.encodeEv) };
+  const m1 = E.mergeLE(A, B2), m2 = E.mergeLE(B2, A); ok(m1.t0 === T0 && m2.t0 === T0 && m1.log.length === 260 && st(m1) === st(m2), 'different migration bases → earliest base, no event lost, commutative');
+  // gammal klient: profil utan le / med inaktuell le
+  ok(E.mergeLE(A, undefined) === A && E.mergeLE(null, A) === A, 'missing le on one side keeps the other');
+  const stale = { ...A, log: A.log.slice(0, 30) }; ok(E.mergeLE(stale, AB).log.length === 260, 'stale le (old client overwrite) cannot shrink the log'); }
+// B4. kompaktering: lagring begränsad, tillstånd oförändrat
+{ const log = mkLog('A', 1200, T0, 9); const base = E.migrateV1(migP, mcat, { plus20: 's:plus20' }, T0 - 1000, pol); const le = { ...base, log: log.map(E.encodeEv) };
+  const before = st(E.replay(le.log, mcat, pol, le.base)); const nowT = log[log.length - 1].t + DAY; const did = E.compact(le, mcat, pol, nowT);
+  ok(did && le.log.length <= E.LOG_HARD && le.folded > 0 && le.t0 > T0, 'compaction folds old events (log ' + le.log.length + ', folded ' + le.folded + ')');
+  ok(st(E.replay(le.log, mcat, pol, le.base)) === before, 'state after compaction == state before');
+  // stor historik: 4000 händelser över ~400 dygn, kompaktering efter varje "pass" → begränsad storlek
+  const big = { ...E.migrateV1(migP, mcat, { plus20: 's:plus20' }, T0 - 1000, pol) }; const many = mkLog('A', 4000, T0, 4); let maxSize = 0;
+  for (let i = 0; i < many.length; i++) { big.log.push(E.encodeEv(many[i])); if (i % 10 === 9) { E.compact(big, mcat, pol, many[i].t); maxSize = Math.max(maxSize, JSON.stringify(big).length); } }
+  ok(big.log.length <= E.LOG_HARD && maxSize < 120000, `storage bounded (max ${Math.round(maxSize / 1024)} kB, log ${big.log.length})`);
+  // kompakterad enhet + annan enhet med nyare händelser → nyare händelser behålls, kommutativt
+  const other = { ...JSON.parse(JSON.stringify(base)), log: mkLog('B', 50, nowT + 1000, 5).map(E.encodeEv) }; const x = E.mergeLE(le, other), y = E.mergeLE(other, le);
+  ok(st(x) === st(y) && x.log.filter(e => e[1] === 'B').length === 50 && x.t0 === le.t0, 'compacted base wins; newer events from other device kept'); }
+// B5. migrering: deterministisk, utspridda förfallodagar, katalogstyrd
+{ const skills = {}; for (let i = 0; i < 14; i++) skills['sk' + i] = { att: 20, cor: 18, m: 85, lvl: 2, last: T0 - 2 * DAY }; skills.unknown = { att: 30, cor: 30, m: 99, lvl: 3, last: T0 };
+  const cat = Object.fromEntries(Object.keys(skills).filter(k => k !== 'unknown').map(k => ['s:' + k, { id: 's:' + k, subject: 'math', maxLvl: 3, recall: true }])); const map = Object.fromEntries(Object.keys(skills).map(k => [k, 's:' + k]));
+  const a = E.migrateV1({ skills }, cat, map, T0, E.POLICIES.younger), b = E.migrateV1({ skills }, cat, map, T0, E.POLICIES.younger); ok(st(a) === st(b), 'migration deterministic (same input → identical le)');
+  ok(!a.base.c['s:unknown'], 'skills without a catalogue concept are not invented');
+  const perDay = {}; for (const c of Object.values(a.base.c)) { const d = Math.round((c.due - E.dayStart(T0)) / DAY); perDay[d] = (perDay[d] || 0) + 1; }
+  ok(Object.keys(perDay).every(d => d >= 1 && d <= 7) && Object.values(perDay).every(n => n <= 3), 'migrated reviews staggered over days 1–7, ≤3 per day ' + JSON.stringify(perDay)); }
+// B6. beslut O-1 … O-9 som byggställning
+{ const D = E.DECISIONS; ok(E.POLICIES.younger.intervalMult === 0.8 && E.STAGE_DAYS.join() === '0,1,3,7,14,30,60' && !E.POLICIES.younger.stages, 'O-1: ladder unchanged, ×0.8 for younger');
+  ok(D.O2_verifiedDays === 7, 'O-2: verified shown 7 days'); ok(E.POLICIES.younger.mcMaxStage === 2 && D.O4_mcMaxStageYounger === 2, 'O-4: MC to stage 2 for younger');
+  ok(D.O7_shadowExit.minDays === 14 && D.O7_shadowExit.needAllProfiles === true, 'O-7: exit needs ≥14 days AND evidence for all profiles');
+  ok(D.O8_felbokDisplay.younger === 3 && D.O8_felbokDisplay.middle === 5 && D.O8_felbokDisplay.older === 5, 'O-8: 3/5/5');
+  ok(D.K12_fast.calibration === false && D.K12_fast.stage === false, 'K-12: fast flag not used for calibration or stage');
+  ok(D.accuracyBand[0] === 0.7 && D.accuracyBand[1] === 0.85, 'accuracy band recorded as diagnostic band');
+  const L = E.newLE(); for (let i = 0; i < 9; i++) { const c = E.cstate(L, 'x' + i); c.n = 3; c.fb = { s: i % 3 ? 'open' : 'corrected', at: T0 + i, wd: 1, items: [] }; }
+  const dy = E.felbokDisplay(L, E.POLICIES.younger), dm = E.felbokDisplay(L, E.POLICIES.middle); ok(dy.shown.length === 3 && dy.more === 6 && dm.shown.length === 5 && dm.more === 4, 'O-8: display cap with "fler väntar"');
+  const L2 = E.newLE(); const v = E.cstate(L2, 'v'); v.fb = { s: 'verified', vd: E.dayIdx(T0) - 3 }; const o = E.cstate(L2, 'o'); o.fb = { s: 'resolved', rd: E.dayIdx(T0) - 9 };
+  ok(E.felbokRecentWins(L2, T0).join() === 'v', 'O-2: only wins from the last 7 days');
+  const thin = E.newConcept(); thin.n = 2; const good = E.newConcept(); good.n = 6; good.st = 3; const meh = E.newConcept(); meh.n = 6; meh.st = 1; const fbc = E.newConcept(); fbc.n = 6; fbc.st = 4; fbc.fb = { s: 'open' };
+  ok(E.readiness(thin, T0) === 'För lite underlag' && E.readiness(good, T0) === 'Bra koll' && E.readiness(meh, T0) === 'Öva lite mer' && E.readiness(fbc, T0) === 'Öva lite mer', 'O-5: readiness buckets, no grades'); }
+// B7. K-12: snabb-flaggan ändrar inte stadium, nivå, förfallodag eller kalibrering
+{ const log = mkLog('A', 400, T0, 21); const noFast = log.map(e => ({ ...e, fast: false })), allFast = log.map(e => ({ ...e, fast: !e.ok }));
+  const a = E.replay(noFast, CAT, pol), b = E.replay(allFast, CAT, pol); const core = (L) => st({ iv: L.ivMult, rs: L.rs, c: Object.fromEntries(Object.entries(L.c).map(([k, c]) => [k, [c.st, c.lvl, c.due, c.lap]])) });
+  ok(core(a) === core(b), 'fast flag does not change stage/level/due/calibration'); ok(b.d.fastWrong > 0 && a.d.fastWrong === 0, 'fast errors are only counted (diagnostic)'); }
+// B8. glosor som planeringskoncept: följer Leitner, får aldrig stadium
+{ const cat = { 'd:es': { id: 'd:es', kind: 'deck', subject: 'lang' }, 's:a': { id: 's:a', kind: 'skill', subject: 'math', recall: true } }; const L = E.newLE();
+  const p1 = E.priority(L, cat, 'd:es', T0, { decks: { 'd:es': { due: 6, nw: 0 } } }, pol); const p2 = E.priority(L, cat, 'd:es', T0, { decks: { 'd:es': { due: 0, nw: 5 } } }, pol); const p3 = E.priority(L, cat, 'd:es', T0, { decks: {} }, pol);
+  ok(p1.why === 'due' && p2.why === 'new' && p3.P === 0, 'deck priority from Leitner due/new words');
+  const plan = E.planSession(L, cat, T0, { decks: { 'd:es': { due: 6, nw: 0 } }, subjectCount: 2 }, E.POLICIES.younger, { n: 6 }); ok(plan.length <= 6 && plan.some(s => s.cid === 'd:es'), 'deck concepts appear in v2 plans'); ok(!L.c['d:es'], 'planning never creates deck stage state'); }
+// B9. motorns källkod: ingen slump, ingen klocka, inga appglobaler
+{ const src = (fs.readFileSync(path.join(__dirname, '../src/05b_engine2.js'), 'utf8') + fs.readFileSync(path.join(__dirname, '../src/05a_concepts.js'), 'utf8')).replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '').replace(/ \/\/ .*$/gm, '');
+  ok(!/Math\.random|Date\.now|localStorage|document\.|window\.|fetch\(/.test(src), 'engine + catalogue are pure (no randomness, clock, storage, DOM or network)');
+  ok(LECAT.itemId({ type: 'num', text: '7 + 5 = ?' }) === LECAT.itemId({ type: 'num', text: '7  + 5 = ?' }) && LECAT.itemId({ type: 'num', text: '7 + 5 = ?' }) !== LECAT.itemId({ type: 'num', text: '7 + 6 = ?' }), 'item ids stable and distinct'); }
+// B10. dygnsgränser i lokal tid (Europe/Stockholm) – förfallodagar hamnar på lokal midnatt
+{ const { execFileSync } = require('child_process'); const out = execFileSync(process.execPath, ['-e', `const E=require(${JSON.stringify(path.join(__dirname, '../src/05b_engine2.js'))}); const t=Date.UTC(2026,9,24,22,30); const d=new Date(E.dayStart(t)); console.log(d.getHours()+':'+d.getMinutes()+' '+d.getDate())`], { env: { ...process.env, TZ: 'Europe/Stockholm' } }).toString().trim();
+  ok(out === '0:0 25', 'local-midnight day boundary in Europe/Stockholm (got ' + out + ')'); }
+
+console.log(`Del 2: ${checks - n3A} kontroller (Fas 3B)`);
+console.log(`\n${checks} kontroller, ${fails} fel`); console.log(fails ? 'LE ENGINE TEST FAILED' : 'LE ENGINE TEST OK'); process.exit(fails ? 1 : 0);

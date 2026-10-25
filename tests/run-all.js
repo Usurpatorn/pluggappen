@@ -15,6 +15,10 @@ const suites = [
   ['Indatasäkerhet (XSS)', 'test_xss.js'],
   ['Integritet: inga familjeuppgifter i bundlen', 'test_privacy.js'],
   ['Smoke: hela användarflödet (jsdom)', 'smoke.js'],
+  ['Motor v2: regler, logg, synk, migrering (3A+3B)', 'test_le_engine.js'],
+  ['Motor v2: simuleringsregression', 'test_le_sim.js'],
+  ['Skuggläge: barnen får v1, fångst, föräldravy, täckning', 'test_le_shadow.js'],
+  ['Skuggläge: flera enheter, Felboken-synk', 'test_le_sync.js'],
 ];
 let failed = 0; const rows = [];
 for (const [name, file, opts = {}] of suites) {
