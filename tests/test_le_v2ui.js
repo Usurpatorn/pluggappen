@@ -169,6 +169,7 @@ setTimeout(async () => {
     /* ---------- 12. Inga fria svarstexter, ingen svarstid ---------- */
     const allLe = JSON.stringify(['k2', 'k4', 'k8'].map(id => PA().DB.profiles[id].le));
     ok(!/zzqx|987654|vet inte/.test(allLe), 'inga fria svarstexter i le');
+    ok(!(D.log.types.open > 0), `v2 använder aldrig fritextfrågor med nyckelordsrättning (${D.log.types.open || 0})`);
     ok(!/"(ms|elapsed|rt)"/.test(allLe), 'ingen svarstidstelemetri i le');
     ok(PA().LE.errors.length === 0, 'inga fel i v2-lagret: ' + JSON.stringify(PA().LE.errors));
     /* ---------- 13. Omladdning mitt i Rescue + fel klocka ---------- */

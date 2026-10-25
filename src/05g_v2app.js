@@ -147,7 +147,10 @@ const V2 = {
     const avoid = new Set([...((c && c.items) || []).slice(-4), ...((c && c.fb && c.fb.items) || []), ...V.seen]);
     let q;
     if (spec.mode === 'challenge') q = CHG.make(skill, spec.lvl, (c && c.ch && c.ch.n) || 0, { young: pol.name === 'younger' });   // annars: vanlig uppgift på högsta nivån, märkt UTMANING
-    if (!q) q = V2.pickItem(kid, skill, spec.lvl, avoid, () => makeQuestion(kid, skill, spec.lvl, V.exam ? { noOpen: true } : undefined));
+    // Fria textsvar (nyckelordsrättning) används aldrig i v2 – rättningen är inte tillräckligt säker för att styra stadier och Felboken (3E).
+    const genNoOpen = () => { let q1 = null; for (let lv = spec.lvl; lv >= 1 && (!q1 || q1.type === 'open'); lv--) for (let j = 0; j < 4 && (!q1 || q1.type === 'open'); j++) q1 = makeQuestion(kid, skill, lv, { noOpen: true }); return q1; };
+    if (!q) q = V2.pickItem(kid, skill, spec.lvl, avoid, genNoOpen);
+    if (q && q.type === 'open') return [];   // inget annat finns för momentet på någon nivå → hoppa över platsen
     q = { ...q, skill, cat: 'math', level: q.level || spec.lvl };
     // 3E: aktiv hämtning – eget svar när flerval inte längre räcker som bevis (stadium ≥ policyns flervalsgräns)
     const wantRecall = spec.format === 'recall' || (!V.exam && c && c.st >= pol.mcMaxStage && !['warmup', 'rescue', 'easy'].includes(spec.role) && spec.mode !== 'challenge') || spec.role === 'readclose';
