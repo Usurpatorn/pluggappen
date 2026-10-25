@@ -144,7 +144,7 @@ const V2 = {
     if (spec.mode === 'teach') return [{ cat: 'learn', spec, skill, ex: V2.teachExample(skill, spec) }];
     const avoid = new Set([...((c && c.items) || []).slice(-4), ...((c && c.fb && c.fb.items) || []), ...V.seen]);
     let q;
-    if (spec.mode === 'challenge') q = CHG.make(skill, spec.lvl, (c && c.ch && c.ch.n) || 0);
+    if (spec.mode === 'challenge') q = CHG.make(skill, spec.lvl, (c && c.ch && c.ch.n) || 0, { young: pol.name === 'younger' });   // annars: vanlig uppgift på högsta nivån, märkt UTMANING
     if (!q) q = V2.pickItem(kid, skill, spec.lvl, avoid, () => makeQuestion(kid, skill, spec.lvl, V.exam ? { noOpen: true } : undefined));
     q = { ...q, skill, cat: 'math', level: q.level || spec.lvl };
     // 3E: aktiv hämtning – eget svar när flerval inte längre räcker som bevis (stadium ≥ policyns flervalsgräns)

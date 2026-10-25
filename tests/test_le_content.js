@@ -77,6 +77,8 @@ setTimeout(() => {
     }
     ok(made >= skills.length * 5, `Utmaningar: ${made} skapade · typer ${JSON.stringify(kinds)}`);
     ok(['spot', 'combine', 'create', 'equation', 'order', 'false'].every(k => kinds[k] > 0), 'alla utmaningstyper förekommer');
+    { let bad = 0, n = 0; for (const { s } of skills) for (let k = 0; k < 4; k++) { const q = CHG.make(s, s.maxLvl || 3, k, { young: true }); if (q) { n++; if (!['combine', 'spot'].includes(q.challenge)) bad++; } else if ((s.group || 'math') !== 'math') continue; }
+      ok(bad === 0 && n > 0, `yngre: bara korta matteutmaningar (dubbelsteg/hitta felet), ${n} skapade`); }
     ok(none <= Math.ceil(skills.length * 0.15), `moment utan Utmaning: ${none} (${noneList.join(', ')}) – motorn erbjuder då inga utmaningar där`);
     /* ---------- 4. Innehållsrevision (rapport) ---------- */
     const lowVar = []; const audit = [];

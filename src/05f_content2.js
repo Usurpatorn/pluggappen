@@ -114,16 +114,18 @@ const CHG = (() => {
   }
   const MATH_ORDER = ['spot', 'combine', 'create', 'equation', 'order'];
   /* Bygg en Utmaning för ett moment. k = hur många utmaningar barnet gjort i momentet (ger växling mellan typerna). Null om inget passar. */
-  function make(skill, lvl, k = 0) {
+  // opts.young: yngre barn får bara korta mattebaserade utmaningar (dubbelsteg, hitta felet) – inga lästunga påståendelistor
+  function make(skill, lvl, k = 0, opts = {}) {
     if (!skill || typeof skill.gen !== 'function') return null;
     const math = (skill.group || 'math') === 'math';
-    const kinds = math ? MATH_ORDER : ['false'];
+    const kinds = opts.young ? (math ? ['combine', 'spot'] : []) : math ? MATH_ORDER : ['false'];
+    if (!kinds.length) return null;
     for (let j = 0; j < kinds.length; j++) {
       const kind = kinds[(k + j) % kinds.length];
       const q = kind === 'false' ? falseStatement(skill, lvl, k) : MATH[kind](skill, lvl, k);
       if (q) { q.level = lvl; return q; }
     }
-    const f = math ? falseStatement(skill, lvl, k) : null; if (f) f.level = lvl; return f;
+    const f = math && !opts.young ? falseStatement(skill, lvl, k) : null; if (f) f.level = lvl; return f;
   }
   // Rättning av egna uttryck/ekvationer (deterministisk, Poly)
   const MULT_PAREN = /(?:[\dA-Za-zåäö)²³]|−|-)\s*\(/;
