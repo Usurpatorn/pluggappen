@@ -29,7 +29,7 @@ ok(new Set(packs.map(p => p.id)).size === packs.length, 'paket-id:n är unika');
 // Moment-id:n får inte krocka mellan paket (ett moment hör till ett paket)
 { const seen = {}; for (const p of packs) for (const s of p.skills) { ok(!seen[s.id] || seen[s.id] === p.id, `moment ${s.id} finns i både ${seen[s.id]} och ${p.id}`); seen[s.id] = p.id; } }
 
-const { strip, norm, normT } = PACKS;
+const { strip, normT } = PACKS; const norm = PACKS.key;
 const tagOk = (h) => { const bad = String(h || '').match(/<\/?([a-z0-9]+)[^>]*>/gi) || []; return bad.every(t => PACKS.ALLOWED_TAGS.test(t.replace(/^<\/?/, '').replace(/[\s>].*$/, '')) && !/\son\w+=|javascript:/i.test(t)); };
 const SEEDS = [1, 2, 3, 5, 8, 13, 21, 34, 55, 89];
 const checkQ = (q, ctx, pol, correctByText) => {
@@ -108,6 +108,16 @@ if (!priv) {
   }
 }
 
+// Learning Recipes: stadiet styr aktiviteten (NY → igenkänning/sortering, SÄKER → koppla/tillämpa/hitta felet) – i genomsnitt över alla punkter
+{ let newRec = 0, newN = 0, secDepth = 0, secN = 0;
+  for (const pk of packs) for (const pol of pk.policies) for (const kp of pk.kps) { const cid = PACKS.cidOf(pk.id, kp.id); const r = PACKS.seeded(11);
+    for (let i = 0; i < 12; i++) { const a = PACKS.question(cid, { lvl: 1, format: 'any', pol, rnd: r, stage: { n: 0, st: 0 } }); if (a) { newN++; if (['recognition', 'relationship'].includes(a.form)) newRec++; }
+      const b = PACKS.question(cid, { lvl: 3, format: 'any', pol, rnd: r, stage: { n: 9, st: 4 } }); if (b) { secN++; if (PACKS.DEPTH.has(b.form)) secDepth++; } } }
+  ok(newRec / newN >= 0.7, `recept NY: ${Math.round(newRec / newN * 100)} % igenkänning/sortering (minst 70 %)`);
+  ok(secDepth / secN >= 0.6, `recept SÄKER: ${Math.round(secDepth / secN * 100)} % fördjupande former (minst 60 %)`);
+  console.log(`Recept: NY ${Math.round(newRec / newN * 100)} % igenkänning/sortering · SÄKER ${Math.round(secDepth / secN * 100)} % fördjupning`);
+  for (const pk of packs) for (const kp of pk.kps) ok(PACKS.TYPES.includes(PACKS.typeOf(kp)), `${pk.id}/${kp.id}: kunskapstyp`);
+}
 const n = Object.keys(cats).length; const tot = Object.values(cats).reduce((a, c) => a + c.ids, 0);
 console.log(`${packs.length} paket · ${n} kunskapspunkter×policy · ${tot} olika frågor`);
 if (weak.length) { console.log(`Svagt innehåll (${weak.length}) – rapporteras, inte fel:`); for (const w of weak.slice(0, 40)) console.log('  · ' + w); }

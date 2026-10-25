@@ -44,15 +44,17 @@ setTimeout(() => { try {
   const inflated = Object.entries(C1.L.c).filter(([id, c]) => id.startsWith(KP) && c.st > 1);
   ok(inflated.length === 0, 'ingen uppblåst kunskap: ett gammalt rätt svar ger högst stadium 1');
   // ---- Kör! med paketfrågor i flera dagar
-  openKid(T, 'k8'); const forms = new Set(); let kpItems = 0;
+  openKid(T, 'k8'); const forms = new Set(); let kpItems = 0, intros = 0; const introLog = [];
   for (let d = 0; d < 8; d++) {
     T.click(T.$('[data-v2="kor"]') || T.$('[data-v2="extra"]'));
-    let n = 0; while (PA.S && PA.S.v2 && T.$('#qcard') && n++ < 60) { const it = PA.S.queue[PA.S.i]; if (it && it.kp) { kpItems++; forms.add(it.form); ok(it.skill && it.text && (it.type !== 'choicetext' || it.choices.length >= 3), 'paketfråga är komplett'); } D.answer((x) => trnd() < 0.25); if (w.__advance) w.__advance(4000); }
+    let n = 0; while (PA.S && PA.S.v2 && T.$('#qcard') && n++ < 60) { const it = PA.S.queue[PA.S.i]; if (it && it.cat === 'learn' && it.spec.role === 'intro') { intros++; const lg = p.le.log.length; introLog.push(lg); ok(/Något nytt/.test(T.$('#app').textContent) && /UPPTÄCK/.test(T.$('#app').textContent), 'UPPTÄCK-kortet visas'); } if (it && it.kp) { kpItems++; forms.add(it.form); ok(it.skill && it.text && (it.type !== 'choicetext' || it.choices.length >= 3), 'paketfråga är komplett'); } D.answer((x) => trnd() < 0.25); if (w.__advance) w.__advance(4000); }
     ok(/Bra jobbat|KLART/i.test(T.$('#app').textContent), `dag ${d + 1}: passet avslutas med KLAR`);
     toStart(T); w.__advance(86400000); openKid(T, 'k8');
   }
   ok(kpItems >= 8, `Kör! ställer paketfrågor (${kpItems})`);
-  ok(forms.size >= 3, 'flera frågeformer i passen: ' + [...forms].join(', '));
+  ok(intros >= 1, `nya kunskapspunkter börjar med UPPTÄCK (${intros})`);
+  ok(p.le.log.every(e => e[15] !== 'intro'), 'UPPTÄCK-kortet ger inget bevis');
+  ok(forms.size >= 2, 'flera frågeformer i passen (receptet: tidiga stadier = igenkänning och eget svar): ' + [...forms].join(', '));
   const evs = p.le.log.filter(e => typeof e[19] === 'string'); ok(evs.length >= 5, `bevisen bär formkod (${evs.length})`);
   ok(evs.every(e => 'rcvlmxaes'.includes(e[19])), 'formkoderna är giltiga');
   ok(PA.LE.errors.length === 0, 'inga fel i v2-lagret: ' + JSON.stringify(PA.LE.errors.slice(-3)));

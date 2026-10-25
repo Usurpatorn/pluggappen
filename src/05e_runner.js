@@ -7,7 +7,7 @@ const LER = (() => {
   const E = typeof LE2 !== 'undefined' ? LE2 : require('./05b_engine2.js');
   // Rollkoder i bevisloggen (diagnostik, Bossens CHALLENGE). Barnet ser aldrig koderna.
   const ROLE_CODE = { warmup: 'W', remember: 'R', revansch: 'V', focus: 'F', practice: 'P', boss: 'B', rescue: 'X', easy: 'E', retry: 'T', challenge: 'C', manual: 'M', readclose: 'Q', testa: 'S' };
-  const newBy = () => ({ n: 0, fails: 0, run: 0, rescued: 0, taught: 0 });
+  const newBy = () => ({ n: 0, fails: 0, run: 0, rescued: 0, taught: 0, intro: 0 });
   /* Skapa ett pass. plan = LE2.planSession(...). opts.mode: 'practice' | 'exam' (Testa mig) | 'revansch'. */
   function create(L, cat, plan, pol, opts = {}) {
     return { pol, cat, mode: opts.mode || 'practice', sessId: opts.sessId || '', queue: plan.map(s => ({ ...s })), i: 0, byC: {}, results: [], answered: 0,
@@ -31,6 +31,12 @@ const LER = (() => {
         (R.byC[s.cid] = R.byC[s.cid] || newBy()).taught = 1;
         R.queue[R.i] = { ...s, help: 'hint', teachFollow: 1 };
         R.queue.splice(R.i, 0, { cid: s.cid, role: 'teach', mode: 'teach', why: 'kort förklaring först' });
+        s = R.queue[R.i];
+      }
+      // 2.1 UPPTÄCK: en helt ny kunskapspunkt börjar med en kort förklaring (Learning Recipe: NY → förstå). Ger inget bevis.
+      if (R.mode !== 'exam' && s.mode !== 'challenge' && s.mode !== 'teach' && s.role !== 'rescue' && s.role !== 'readclose' && s.role !== 'revansch' && def.kind === 'kp' && def.intro !== false && !(c && c.n > 0) && !(R.byC[s.cid] && (R.byC[s.cid].intro || R.byC[s.cid].n))) {
+        (R.byC[s.cid] = R.byC[s.cid] || newBy()).intro = 1;
+        R.queue.splice(R.i, 0, { cid: s.cid, role: 'intro', mode: 'teach', why: 'nytt – upptäck först' });
         s = R.queue[R.i];
       }
       if (s.mode === 'teach') return { ...s, code: '' };

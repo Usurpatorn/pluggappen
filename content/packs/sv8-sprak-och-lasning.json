@@ -1,0 +1,1936 @@
+{
+ "pluggPackVersion": 1,
+ "id": "sv8-sprak-och-lasning",
+ "title": "Svenska åk 7–9: språk, ord och läsning",
+ "subject": "sv",
+ "topic": "Svenska",
+ "grades": [
+  7,
+  9
+ ],
+ "policies": [
+  "older"
+ ],
+ "templates": [
+  "ak8"
+ ],
+ "rev": 1,
+ "sources": [
+  {
+   "id": "lgr22",
+   "label": "Lgr22 Svenska åk 7–9: språkets struktur, ord och begrepp, läsa och tolka texter",
+   "kind": "lgr22"
+  }
+ ],
+ "skills": [
+  {
+   "id": "sv8_ordklasser",
+   "name": "Ordklasser",
+   "short": "Ordklasser",
+   "icon": "🔤",
+   "read": "<p>Orden delas in i <b>ordklasser</b> efter vad de gör i språket.</p><ul><li><b>Substantiv</b> – namn på saker, levande varelser, platser och företeelser (en cykel, glädje, Kiruna).</li><li><b>Verb</b> – vad någon gör eller vad som händer (springer, tänkte, blev).</li><li><b>Adjektiv</b> – hur något är (modig, blå, snabbare).</li><li><b>Pronomen</b> – ersätter substantiv (hon, dem, vår, någon).</li><li><b>Räkneord</b> – antal eller ordning (sju, tredje).</li><li><b>Adverb</b> – hur, var, när, hur mycket (snabbt, där, ofta, mycket).</li><li><b>Prepositioner</b> – läge och riktning (på, under, mellan).</li><li><b>Konjunktioner</b> binder ihop lika delar (och, men, eller), <b>subjunktioner</b> inleder bisatser (att, eftersom, medan).</li></ul>"
+  },
+  {
+   "id": "sv8_satsdelar",
+   "name": "Satsdelar",
+   "short": "Satsdelar",
+   "icon": "🧩",
+   "read": "<p>En sats byggs av <b>satsdelar</b>.</p><ul><li><b>Predikat</b> – verbet: vad som händer.</li><li><b>Subjekt</b> – vem eller vad som gör något. Fråga: <i>Vem/vad + predikatet?</i></li><li><b>Objekt</b> – vem eller vad som påverkas. <i>Vem/vad + predikat + subjekt?</i> Det <b>indirekta objektet</b> är mottagaren (Hon gav <b>mig</b> boken).</li><li><b>Adverbial</b> – när, var, hur eller varför.</li></ul><p class=\"ex\">Igår (adverbial) köpte (predikat) Sara (subjekt) en cykel (objekt).</p>"
+  },
+  {
+   "id": "sv8_sprak",
+   "name": "Språkriktighet",
+   "short": "Språkriktighet",
+   "icon": "✏️",
+   "read": "<p><b>de eller dem?</b> Byt till vi/oss: går <i>vi</i> → de, går <i>oss</i> → dem.</p><p><b>sin eller hans/hennes?</b> Sin, sitt och sina syftar på subjektet i samma sats: Maja borstade <b>sina</b> tänder.</p><p><b>var eller vart?</b> Var = plats (Var bor du?). Vart = riktning (Vart ska du?).</p><p><b>Särskrivning</b>: sammansatta ord skrivs ihop – fotbollsmatch, inte fotbolls match.</p><p><b>Huvudsats och bisats</b>: en huvudsats kan stå ensam, en bisats kan det inte. Står bisatsen först sätter man ofta komma: När jag kom hem, var alla borta.</p>"
+  },
+  {
+   "id": "sv8_ord",
+   "name": "Ord och begrepp",
+   "short": "Ord & begrepp",
+   "icon": "📚",
+   "read": "<p><b>Synonymer</b> betyder ungefär samma sak (enorm – gigantisk). <b>Antonymer</b> (motsatsord) betyder motsatsen (generös – snål).</p><p>Nya ord bildas med <b>prefix</b> före (o-lycklig, miss-förstå), <b>suffix</b> efter (fri-het, vän-skap) och genom <b>sammansättning</b> (skol + gård). I ett sammansatt ord bestämmer <b>efterleden</b>: en skolväska är en väska.</p><p>Skolans viktiga ord: argument, källa, konsekvens, perspektiv, objektiv, subjektiv, analysera, jämföra, sammanfatta.</p>"
+  },
+  {
+   "id": "sv8_lasa",
+   "name": "Läsförståelse",
+   "short": "Läsförståelse",
+   "icon": "📖",
+   "readAloud": false,
+   "read": "<p>Läs aktivt: titta först på rubrik och bilder, läs sedan noga. <b>Skumläsa</b> = snabbt få en överblick. <b>Läsa mellan raderna</b> = förstå sådant som inte står rakt ut. Fråga dig: Vad är <b>huvudbudskapet</b>? Varför gör personerna som de gör?</p>"
+  }
+ ],
+ "kps": [
+  {
+   "id": "ok-grund",
+   "skill": "sv8_ordklasser",
+   "name": "Substantiv, verb och adjektiv",
+   "explain": "Substantiv namnger saker, levande varelser, platser och företeelser (kan få en/ett). Verb berättar vad någon gör eller vad som händer (kan få att framför och böjas i tid). Adjektiv beskriver hur något är (kan kompareras: glad – gladare – gladast).",
+   "facts": [
+    {
+     "k": "term",
+     "term": "substantiv",
+     "q": "Vad kallas ord som namnger saker, levande varelser, platser och företeelser?",
+     "not": [
+      "Verb",
+      "Adjektiv",
+      "Adverb"
+     ],
+     "cls": "ordklass"
+    },
+    {
+     "k": "term",
+     "term": "verb",
+     "q": "Vad kallas ord som berättar vad någon gör eller vad som händer?",
+     "not": [
+      "Substantiv",
+      "Adjektiv",
+      "Pronomen"
+     ],
+     "cls": "ordklass"
+    },
+    {
+     "k": "term",
+     "term": "adjektiv",
+     "q": "Vad kallas ord som beskriver hur någon eller något är?",
+     "not": [
+      "Substantiv",
+      "Verb",
+      "Preposition"
+     ],
+     "cls": "ordklass"
+    },
+    {
+     "k": "group",
+     "groups": [
+      {
+       "q": "Vilket ord är ett substantiv?",
+       "items": [
+        "glädje",
+        "cykel",
+        "Kiruna",
+        "vänskap"
+       ],
+       "odd": "Vilket ord är INTE ett substantiv?"
+      },
+      {
+       "q": "Vilket ord är ett verb?",
+       "items": [
+        "springer",
+        "tänkte",
+        "blev",
+        "simmade"
+       ],
+       "odd": "Vilket ord är INTE ett verb?"
+      },
+      {
+       "q": "Vilket ord är ett adjektiv?",
+       "items": [
+        "modig",
+        "blå",
+        "snabbare",
+        "tråkig"
+       ],
+       "odd": "Vilket ord är INTE ett adjektiv?"
+      }
+     ]
+    },
+    {
+     "k": "pick",
+     "text": "Hon cyklade snabbt hem.",
+     "ask": "Vilket ord är ett verb?",
+     "a": "cyklade"
+    },
+    {
+     "k": "pick",
+     "text": "Igår skrev hon ett brev.",
+     "ask": "Vilket ord är ett substantiv?",
+     "a": "brev"
+    },
+    {
+     "k": "pick",
+     "text": "Läraren var mycket trevlig.",
+     "ask": "Vilket ord är ett adjektiv?",
+     "a": "trevlig"
+    },
+    {
+     "k": "pick",
+     "text": "Efter matchen var alla trötta.",
+     "ask": "Vilket ord är ett adjektiv?",
+     "a": "trötta",
+     "lvl": 2
+    },
+    {
+     "k": "stmt",
+     "s": "Substantiv kan oftast få en eller ett framför sig.",
+     "f": [
+      "Verb kan oftast få en eller ett framför sig."
+     ]
+    },
+    {
+     "k": "stmt",
+     "s": "Adjektiv kan kompareras, till exempel glad – gladare – gladast.",
+     "f": [
+      "Substantiv kompareras, till exempel bil – bilare – bilast."
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "stmt",
+     "s": "Abstrakta ord som glädje och rädsla är också substantiv.",
+     "f": [
+      "Bara saker man kan ta på är substantiv."
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Vilket test visar att ett ord är ett verb?",
+     "a": "Man kan sätta att framför och böja det i tid: springer – sprang",
+     "not": [
+      "Man kan sätta en eller ett framför",
+      "Man kan jämföra det: mer – mest",
+      "Det står alltid sist i meningen"
+     ],
+     "form": "explanation",
+     "lvl": 3
+    },
+    {
+     "k": "qa",
+     "q": "Vilken ordklass är ordet 'snabbare' i 'Hon är snabbare än jag'?",
+     "a": "Adjektiv (komparativ)",
+     "not": [
+      "Verb",
+      "Substantiv",
+      "Preposition"
+     ],
+     "form": "application",
+     "lvl": 2
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "ok-pronomen",
+   "skill": "sv8_ordklasser",
+   "name": "Pronomen och räkneord",
+   "explain": "Pronomen ersätter substantiv: personliga (jag, mig, hon, henne, de, dem), possessiva (min, vår, sin), reflexiva (sig) och andra (någon, ingen, den här). Räkneord anger antal (grundtal: tre) eller ordning (ordningstal: tredje).",
+   "facts": [
+    {
+     "k": "term",
+     "term": "pronomen",
+     "q": "Vad kallas ord som ersätter ett substantiv, till exempel hon, den och vi?",
+     "not": [
+      "Adverb",
+      "Räkneord",
+      "Preposition"
+     ],
+     "cls": "ordklass"
+    },
+    {
+     "k": "term",
+     "term": "räkneord",
+     "q": "Vad kallas ord som anger antal eller ordning?",
+     "not": [
+      "Pronomen",
+      "Adjektiv",
+      "Adverb"
+     ],
+     "cls": "ordklass"
+    },
+    {
+     "k": "pairs",
+     "q": "Vilken objektsform har <b>{a}</b>?",
+     "items": [
+      [
+       "jag",
+       "mig"
+      ],
+      [
+       "du",
+       "dig"
+      ],
+      [
+       "han",
+       "honom"
+      ],
+      [
+       "hon",
+       "henne"
+      ],
+      [
+       "vi",
+       "oss"
+      ],
+      [
+       "de",
+       "dem"
+      ]
+     ],
+     "rq": "Vilken subjektsform hör ihop med <b>{b}</b>?",
+     "lvl": 2,
+     "why": "Subjektsform när ordet gör något (de springer), objektsform när det påverkas (jag ser dem).",
+     "recall": true
+    },
+    {
+     "k": "group",
+     "groups": [
+      {
+       "q": "Vilket ord är ett pronomen?",
+       "items": [
+        "hon",
+        "dem",
+        "vår",
+        "någon"
+       ],
+       "odd": "Vilket ord är INTE ett pronomen?"
+      },
+      {
+       "q": "Vilket ord är ett räkneord?",
+       "items": [
+        "sju",
+        "tredje",
+        "hundra",
+        "första"
+       ],
+       "odd": "Vilket ord är INTE ett räkneord?"
+      }
+     ]
+    },
+    {
+     "k": "pick",
+     "text": "Hon gav honom boken.",
+     "ask": "Vilket ord är ett pronomen i objektsform?",
+     "a": "honom",
+     "lvl": 2
+    },
+    {
+     "k": "pick",
+     "text": "Vår katt sover hela dagen.",
+     "ask": "Vilket ord är ett possessivt pronomen (visar ägande)?",
+     "a": "Vår",
+     "lvl": 2
+    },
+    {
+     "k": "stmt",
+     "s": "Grundtal anger antal (tre), ordningstal anger ordning (tredje).",
+     "f": [
+      "Ordningstal anger antal (tredje), grundtal anger ordning (tre)."
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Vilken mening har ett reflexivt pronomen?",
+     "a": "Han tvättade sig.",
+     "not": [
+      "Han tvättade bilen.",
+      "Hon tvättade honom.",
+      "De tvättade alla fönster."
+     ],
+     "form": "application",
+     "lvl": 3,
+     "why": "Sig syftar tillbaka på subjektet – det är reflexivt."
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "ok-smaord",
+   "skill": "sv8_ordklasser",
+   "name": "Adverb, prepositioner och bindeord",
+   "explain": "Adverb berättar hur, var, när eller hur mycket (snabbt, där, ofta, mycket). Prepositioner visar läge eller riktning (på, under, mellan). Konjunktioner binder ihop lika delar (och, men, eller). Subjunktioner inleder bisatser (att, eftersom, medan).",
+   "facts": [
+    {
+     "k": "term",
+     "term": "adverb",
+     "q": "Vad kallas ord som berättar hur, var, när eller hur mycket, till exempel snabbt, där och ofta?",
+     "not": [
+      "Adjektiv",
+      "Preposition",
+      "Konjunktion"
+     ],
+     "cls": "ordklass"
+    },
+    {
+     "k": "term",
+     "term": "preposition",
+     "q": "Vad kallas små ord som visar läge eller riktning, till exempel på, under och mellan?",
+     "alias": [
+      "prepositioner"
+     ],
+     "not": [
+      "Konjunktion",
+      "Adverb",
+      "Pronomen"
+     ],
+     "cls": "ordklass"
+    },
+    {
+     "k": "term",
+     "term": "konjunktion",
+     "q": "Vad kallas ord som binder ihop ord eller satser av samma slag, till exempel och, men och eller?",
+     "alias": [
+      "konjunktioner"
+     ],
+     "not": [
+      "Subjunktion",
+      "Preposition",
+      "Adverb"
+     ],
+     "cls": "ordklass"
+    },
+    {
+     "k": "term",
+     "term": "subjunktion",
+     "q": "Vad kallas ord som inleder en bisats, till exempel eftersom och medan?",
+     "alias": [
+      "subjunktioner"
+     ],
+     "not": [
+      "Konjunktion",
+      "Preposition",
+      "Pronomen"
+     ],
+     "cls": "ordklass",
+     "lvl": 2
+    },
+    {
+     "k": "group",
+     "groups": [
+      {
+       "q": "Vilket ord är en preposition?",
+       "items": [
+        "under",
+        "mellan",
+        "bakom",
+        "genom"
+       ],
+       "odd": "Vilket ord är INTE en preposition?"
+      },
+      {
+       "q": "Vilket ord är en konjunktion?",
+       "items": [
+        "och",
+        "men",
+        "eller",
+        "samt"
+       ],
+       "odd": "Vilket ord är INTE en konjunktion?"
+      },
+      {
+       "q": "Vilket ord är en subjunktion?",
+       "items": [
+        "eftersom",
+        "medan",
+        "ifall"
+       ]
+      }
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "pick",
+     "text": "Katten gömde sig under sängen.",
+     "ask": "Vilket ord är en preposition?",
+     "a": "under"
+    },
+    {
+     "k": "pick",
+     "text": "Vi ses snart.",
+     "ask": "Vilket ord är ett adverb?",
+     "a": "snart"
+    },
+    {
+     "k": "pick",
+     "text": "Jag stannade hemma eftersom jag var sjuk.",
+     "ask": "Vilket ord är en subjunktion?",
+     "a": "eftersom",
+     "lvl": 2
+    },
+    {
+     "k": "stmt",
+     "s": "En subjunktion inleder en bisats.",
+     "f": [
+      "En subjunktion inleder alltid en huvudsats."
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "stmt",
+     "s": "Adverb kan beskriva ett verb: hon sjunger vackert.",
+     "f": [
+      "Adverb kan bara beskriva substantiv."
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Vilket ord i 'Hon sjunger vackert' är ett adverb, och varför?",
+     "a": "Vackert – det berättar hur hon sjunger",
+     "not": [
+      "Hon – det berättar vem",
+      "Sjunger – det är en handling",
+      "Inget av orden är ett adverb"
+     ],
+     "form": "explanation",
+     "lvl": 3
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "sd-pred-subj",
+   "skill": "sv8_satsdelar",
+   "name": "Predikat och subjekt",
+   "explain": "Predikatet är verbet – vad som händer. Subjektet är den eller det som gör något: fråga vem eller vad + predikatet. Subjektet står inte alltid först: I skogen bor rävar (subjekt: rävar).",
+   "facts": [
+    {
+     "k": "term",
+     "term": "predikat",
+     "q": "Vad kallas satsdelen som säger vad som händer – verbet i satsen?",
+     "alias": [
+      "predikatet"
+     ],
+     "not": [
+      "Subjekt",
+      "Objekt",
+      "Adverbial"
+     ],
+     "cls": "satsdel"
+    },
+    {
+     "k": "term",
+     "term": "subjekt",
+     "q": "Vad kallas satsdelen som svarar på frågan vem eller vad som gör något?",
+     "alias": [
+      "subjektet"
+     ],
+     "not": [
+      "Predikat",
+      "Objekt",
+      "Adverbial"
+     ],
+     "cls": "satsdel"
+    },
+    {
+     "k": "pick",
+     "text": "Hunden skäller högt.",
+     "ask": "Vilket ord är subjekt?",
+     "a": "Hunden"
+    },
+    {
+     "k": "pick",
+     "text": "Igår vann laget matchen.",
+     "ask": "Vilket ord är subjekt?",
+     "a": "laget",
+     "lvl": 2
+    },
+    {
+     "k": "pick",
+     "text": "Igår vann laget matchen.",
+     "ask": "Vilket ord är predikat?",
+     "a": "vann"
+    },
+    {
+     "k": "pick",
+     "text": "I skogen bor rävar.",
+     "ask": "Vilket ord är subjekt?",
+     "a": "rävar",
+     "form": "application",
+     "lvl": 3
+    },
+    {
+     "k": "pick",
+     "text": "Nu ringer telefonen.",
+     "ask": "Vilket ord är subjekt?",
+     "a": "telefonen",
+     "lvl": 2
+    },
+    {
+     "k": "pick",
+     "text": "Eleverna läste tyst.",
+     "ask": "Vilket ord är predikat?",
+     "a": "läste"
+    },
+    {
+     "k": "stmt",
+     "s": "Subjektet står inte alltid först i meningen.",
+     "f": [
+      "Subjektet står alltid först i meningen."
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "stmt",
+     "s": "Predikatet är ett verb.",
+     "f": [
+      "Predikatet är ett substantiv."
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Hur hittar du subjektet i en mening?",
+     "a": "Fråga vem eller vad + predikatet, till exempel 'Vem vann?'",
+     "not": [
+      "Ta alltid det första ordet",
+      "Leta efter ett adjektiv",
+      "Ta det sista ordet i meningen"
+     ],
+     "form": "explanation",
+     "lvl": 2
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "sd-objekt",
+   "skill": "sv8_satsdelar",
+   "name": "Objekt",
+   "explain": "Objektet är den eller det som påverkas av handlingen: fråga vem eller vad + predikat + subjekt (Vad jagade hunden? – katten). Det indirekta objektet är mottagaren: Hon gav mig boken (mig = indirekt objekt, boken = direkt objekt). Alla satser har inte objekt.",
+   "facts": [
+    {
+     "k": "term",
+     "term": "objekt",
+     "q": "Vad kallas satsdelen som påverkas av handlingen, till exempel 'katten' i 'Hunden jagade katten'?",
+     "alias": [
+      "objektet",
+      "direkt objekt"
+     ],
+     "not": [
+      "Subjekt",
+      "Predikat",
+      "Adverbial"
+     ],
+     "cls": "satsdel"
+    },
+    {
+     "k": "pick",
+     "text": "Hunden jagade katten.",
+     "ask": "Vilket ord är objekt?",
+     "a": "katten"
+    },
+    {
+     "k": "pick",
+     "text": "Jag köpte blommor.",
+     "ask": "Vilket ord är objekt?",
+     "a": "blommor"
+    },
+    {
+     "k": "pick",
+     "text": "Hon gav honom boken.",
+     "ask": "Vilket ord är indirekt objekt (mottagaren)?",
+     "a": "honom",
+     "lvl": 3
+    },
+    {
+     "k": "pick",
+     "text": "Hon gav honom boken.",
+     "ask": "Vilket ord är direkt objekt?",
+     "a": "boken",
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Vilken mening saknar objekt?",
+     "a": "Barnen sov länge.",
+     "not": [
+      "Barnen åt glass.",
+      "Läraren hjälpte oss.",
+      "Hon läste en bok."
+     ],
+     "form": "application",
+     "lvl": 2,
+     "why": "Sov har inget som påverkas – länge är ett adverbial."
+    },
+    {
+     "k": "stmt",
+     "s": "Alla satser har inte objekt – 'Hunden sover' saknar objekt.",
+     "f": [
+      "Alla satser måste ha ett objekt."
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Vilken fråga hittar objektet i 'Maja ringde sin mormor'?",
+     "a": "Vem ringde Maja?",
+     "not": [
+      "Vem ringde?",
+      "När ringde Maja?",
+      "Hur ringde Maja?"
+     ],
+     "form": "explanation",
+     "lvl": 3
+    }
+   ],
+   "requires": [
+    "sd-pred-subj"
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "sd-adverbial",
+   "skill": "sv8_satsdelar",
+   "name": "Adverbial",
+   "explain": "Adverbial berättar när (tid), var (rum), hur (sätt) eller varför (orsak) något händer. Ett adverbial kan vara ett ord (ofta) eller flera (efter skolan, på grund av regnet).",
+   "facts": [
+    {
+     "k": "term",
+     "term": "adverbial",
+     "q": "Vad kallas satsdelen som berättar när, var, hur eller varför något händer?",
+     "alias": [
+      "adverbialet"
+     ],
+     "not": [
+      "Objekt",
+      "Subjekt",
+      "Predikat"
+     ],
+     "cls": "satsdel"
+    },
+    {
+     "k": "pick",
+     "text": "Vi tränar ofta.",
+     "ask": "Vilket ord är adverbial?",
+     "a": "ofta"
+    },
+    {
+     "k": "pick",
+     "text": "Hon log glatt.",
+     "ask": "Vilket ord är adverbial?",
+     "a": "glatt"
+    },
+    {
+     "k": "pick",
+     "text": "Imorgon börjar skolan.",
+     "ask": "Vilket ord är adverbial?",
+     "a": "Imorgon",
+     "lvl": 2
+    },
+    {
+     "k": "pairs",
+     "q": "Vilken sorts adverbial är <b>{a}</b>?",
+     "items": [
+      [
+       "igår",
+       "Tidsadverbial (när?)"
+      ],
+      [
+       "i parken",
+       "Rumsadverbial (var?)"
+      ],
+      [
+       "försiktigt",
+       "Sättsadverbial (hur?)"
+      ],
+      [
+       "på grund av regnet",
+       "Orsaksadverbial (varför?)"
+      ]
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "stmt",
+     "s": "Ett adverbial kan bestå av flera ord, till exempel 'efter skolan'.",
+     "f": [
+      "Ett adverbial består alltid av ett enda ord."
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "order",
+     "q": "Ta ut satsdelarna i ordning i meningen 'Igår köpte Sara en cykel.'",
+     "items": [
+      "Igår – adverbial",
+      "köpte – predikat",
+      "Sara – subjekt",
+      "en cykel – objekt"
+     ],
+     "lvl": 3,
+     "ch": true
+    },
+    {
+     "k": "qa",
+     "q": "I 'På lördag spelar vi match' – vilket är subjektet?",
+     "a": "vi",
+     "not": [
+      "På lördag",
+      "spelar",
+      "match"
+     ],
+     "form": "application",
+     "lvl": 3,
+     "why": "Vem spelar? – vi. 'På lördag' är tidsadverbial."
+    }
+   ],
+   "requires": [
+    "sd-pred-subj"
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "sr-dedem",
+   "skill": "sv8_sprak",
+   "name": "de eller dem",
+   "explain": "De används som subjekt (de kom sent), dem som objekt eller efter preposition (jag såg dem, av dem). Testa med vi/oss: går 'vi' → de, går 'oss' → dem.",
+   "facts": [
+    {
+     "k": "fix",
+     "bad": "Jag träffade de på bion.",
+     "good": "Jag träffade dem på bion.",
+     "err": "de",
+     "fix": "dem",
+     "why": "Objekt – det går att säga 'oss': dem.",
+     "lvl": 2
+    },
+    {
+     "k": "fix",
+     "bad": "Dem kom för sent till lektionen.",
+     "good": "De kom för sent till lektionen.",
+     "err": "Dem",
+     "fix": "de",
+     "why": "Subjekt – det går att säga 'vi': de.",
+     "lvl": 2
+    },
+    {
+     "k": "fix",
+     "bad": "Vi lånade böckerna av de.",
+     "good": "Vi lånade böckerna av dem.",
+     "err": "de",
+     "fix": "dem",
+     "why": "Efter en preposition (av) används dem.",
+     "lvl": 2
+    },
+    {
+     "k": "fix",
+     "bad": "Läraren berömde de för arbetet.",
+     "good": "Läraren berömde dem för arbetet.",
+     "err": "de",
+     "fix": "dem",
+     "lvl": 2
+    },
+    {
+     "k": "stmt",
+     "s": "Går 'vi' att sätta in ska det vara de, går 'oss' ska det vara dem.",
+     "f": [
+      "Går 'jag' att sätta in ska det vara dem."
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Varför ska det vara 'dem' i 'Jag såg dem'?",
+     "a": "Ordet är objekt – det påverkas av handlingen",
+     "not": [
+      "Ordet är subjekt",
+      "Det står sist i meningen",
+      "Det är plural"
+     ],
+     "form": "explanation",
+     "lvl": 3
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "sr-sin",
+   "skill": "sv8_sprak",
+   "name": "sin, sitt, sina eller hans och hennes",
+   "explain": "Sin, sitt och sina syftar tillbaka på subjektet i samma sats: Maja borstade sina tänder. Hans och hennes syftar på någon annan.",
+   "facts": [
+    {
+     "k": "fix",
+     "bad": "Maja borstade hennes tänder.",
+     "good": "Maja borstade sina tänder.",
+     "err": "hennes",
+     "fix": "sina",
+     "why": "Det är Majas egna tänder – då ska det vara sina.",
+     "lvl": 2
+    },
+    {
+     "k": "fix",
+     "bad": "Leo kliade hans näsa.",
+     "good": "Leo kliade sin näsa.",
+     "err": "hans",
+     "fix": "sin",
+     "why": "Leos egen näsa – sin.",
+     "lvl": 2
+    },
+    {
+     "k": "fix",
+     "bad": "Elsa packade hennes väska inför resan.",
+     "good": "Elsa packade sin väska inför resan.",
+     "err": "hennes",
+     "fix": "sin",
+     "lvl": 2
+    },
+    {
+     "k": "stmt",
+     "s": "Sin, sitt och sina syftar tillbaka på subjektet i samma sats.",
+     "f": [
+      "Sin, sitt och sina syftar alltid på någon annan än subjektet."
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Lisa har en hund. Vilket ord passar: 'Lisa älskar ___ hund.'?",
+     "a": "sin",
+     "not": [
+      "hans",
+      "hennes",
+      "sina"
+     ],
+     "form": "application",
+     "lvl": 2,
+     "why": "Hunden är Lisas egen och Lisa är subjekt – sin."
+    },
+    {
+     "k": "qa",
+     "q": "Ali hjälpte Omar med Omars läxa. Vilken mening säger det tydligast?",
+     "a": "Ali hjälpte Omar med hans läxa.",
+     "not": [
+      "Ali hjälpte Omar med sin läxa.",
+      "Ali hjälpte Omar med sina läxor.",
+      "Ali hjälpte Omar med sitt läxa."
+     ],
+     "form": "application",
+     "lvl": 3,
+     "why": "Sin skulle syfta på subjektet Ali. Läxan är Omars – hans."
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "sr-varvart",
+   "skill": "sv8_sprak",
+   "name": "var eller vart, och eller att",
+   "explain": "Var handlar om plats (Var bor du?), vart om riktning (Vart ska du?). Att står före verb i grundform (lovade att hjälpa), och binder ihop (bröd och smör).",
+   "facts": [
+    {
+     "k": "fix",
+     "bad": "Vart bor du?",
+     "good": "Var bor du?",
+     "err": "Vart",
+     "fix": "var",
+     "why": "Plats – var.",
+     "lvl": 2
+    },
+    {
+     "k": "fix",
+     "bad": "Var ska du åka på sommarlovet?",
+     "good": "Vart ska du åka på sommarlovet?",
+     "err": "Var",
+     "fix": "vart",
+     "why": "Riktning – vart.",
+     "lvl": 2
+    },
+    {
+     "k": "fix",
+     "bad": "Jag lovade och hjälpa till.",
+     "good": "Jag lovade att hjälpa till.",
+     "err": "och",
+     "fix": "att",
+     "why": "Före ett verb i grundform: att.",
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Vilken mening är rätt?",
+     "a": "Hon brukar spela fotboll.",
+     "not": [
+      "Hon brukar att spela fotboll.",
+      "Hon brukar och spela fotboll.",
+      "Hon brukar spelar fotboll."
+     ],
+     "form": "mistake",
+     "lvl": 3,
+     "why": "Efter 'brukar' kommer verbet direkt, utan att."
+    },
+    {
+     "k": "stmt",
+     "s": "Vart används om riktning, var om plats.",
+     "f": [
+      "Var används om riktning, vart om plats."
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Vilken mening är rätt?",
+     "a": "Vart tog nycklarna vägen?",
+     "not": [
+      "Var tog nycklarna vägen?",
+      "Vart ligger nycklarna?",
+      "Var tog nycklarna vägen till?"
+     ],
+     "form": "application",
+     "lvl": 3,
+     "why": "'Ta vägen' handlar om riktning – vart."
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "sr-sarskrivning",
+   "skill": "sv8_sprak",
+   "name": "Sammansatta ord och särskrivning",
+   "explain": "Sammansatta ord skrivs ihop på svenska: fotbollsmatch, glasstrut. Skrivs de isär kan betydelsen ändras: en brunhårig sjuksköterska är inte samma sak som en brun hårig sjuksköterska.",
+   "facts": [
+    {
+     "k": "qa",
+     "q": "Vilken mening är rätt skriven?",
+     "a": "Vi åt glasstrutar på stranden.",
+     "not": [
+      "Vi åt glass strutar på stranden.",
+      "Vi åt glass-strutar på stranden.",
+      "Vi åt Glass Strutar på stranden."
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Vilken mening är rätt skriven?",
+     "a": "Matchen spelades på fotbollsplanen.",
+     "not": [
+      "Matchen spelades på fotbolls planen.",
+      "Matchen spelades på fot bolls planen.",
+      "Matchen spelades på fotbolls-planen."
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Vad är skillnaden mellan 'kycklinglever' och 'kyckling lever'?",
+     "a": "Kycklinglever är en sorts mat; 'kyckling lever' betyder att kycklingen lever",
+     "not": [
+      "Ingen skillnad",
+      "Båda betyder att kycklingen lever",
+      "Kyckling lever är finare skrivet"
+     ],
+     "form": "explanation",
+     "lvl": 2
+    },
+    {
+     "k": "stmt",
+     "s": "Sammansatta ord skrivs ihop på svenska, till exempel fotbollsmatch.",
+     "f": [
+      "Sammansatta ord skrivs isär på svenska, till exempel fotbolls match."
+     ]
+    },
+    {
+     "k": "stmt",
+     "s": "En särskrivning kan ändra vad meningen betyder.",
+     "f": [
+      "En särskrivning ändrar aldrig betydelsen."
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Vilket ord ska skrivas ihop?",
+     "a": "sjuk + sköterska",
+     "not": [
+      "glad + igen",
+      "snabb + sprang",
+      "hem + igår"
+     ],
+     "form": "application",
+     "lvl": 2
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "sr-satser",
+   "skill": "sv8_sprak",
+   "name": "Huvudsats, bisats och kommatecken",
+   "explain": "En huvudsats kan stå ensam som mening. En bisats kan inte stå ensam – den inleds ofta av en subjunktion (att, eftersom, när, som). Står bisatsen först sätter man ofta komma före huvudsatsen: När jag kom hem, var alla borta.",
+   "facts": [
+    {
+     "k": "term",
+     "term": "huvudsats",
+     "q": "Vad kallas en sats som kan stå ensam som en mening?",
+     "def": "En sats som kan stå ensam",
+     "rq": "Vad är en huvudsats?",
+     "alias": [
+      "huvudsatser"
+     ],
+     "not": [
+      "Bisats",
+      "Frågesats",
+      "Bindeord"
+     ],
+     "notDef": [
+      "En sats som inte kan stå ensam",
+      "Ett ord som binder ihop meningar",
+      "Den längsta meningen i en text"
+     ],
+     "cls": "sats"
+    },
+    {
+     "k": "term",
+     "term": "bisats",
+     "q": "Vad kallas en sats som inte kan stå ensam, till exempel 'eftersom det regnade'?",
+     "def": "En sats som inte kan stå ensam",
+     "rq": "Vad är en bisats?",
+     "alias": [
+      "bisatser"
+     ],
+     "not": [
+      "Huvudsats",
+      "Predikat",
+      "Rubrik"
+     ],
+     "notDef": [
+      "En sats som kan stå ensam",
+      "En mening med frågetecken",
+      "En sats utan verb"
+     ],
+     "cls": "sats"
+    },
+    {
+     "k": "pick",
+     "text": "Vi stannade inne eftersom det regnade.",
+     "ask": "Vilket ord inleder bisatsen?",
+     "a": "eftersom",
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Vilken mening har kommat på rätt plats?",
+     "a": "När jag kom hem, var alla borta.",
+     "not": [
+      "När jag kom, hem var alla borta.",
+      "När, jag kom hem var alla borta.",
+      "När jag kom hem var, alla borta."
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Vilken del av meningen är en bisats? 'Hon blev glad när hon fick brevet.'",
+     "a": "när hon fick brevet",
+     "not": [
+      "Hon blev glad",
+      "Hon blev",
+      "glad när"
+     ],
+     "form": "application",
+     "lvl": 2
+    },
+    {
+     "k": "stmt",
+     "s": "En bisats kan inte stå ensam som mening.",
+     "f": [
+      "En bisats kan alltid stå ensam som mening."
+     ]
+    },
+    {
+     "k": "stmt",
+     "s": "Står bisatsen först sätter man ofta komma före huvudsatsen.",
+     "f": [
+      "Man sätter alltid komma före ordet och."
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Varför är 'Eftersom bussen var sen.' ingen fullständig mening?",
+     "a": "Det är bara en bisats – huvudsatsen saknas",
+     "not": [
+      "Den saknar subjekt",
+      "Den är för kort",
+      "Den har inget verb"
+     ],
+     "form": "explanation",
+     "lvl": 3
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "ord-synant",
+   "skill": "sv8_ord",
+   "name": "Synonymer och antonymer",
+   "explain": "Synonymer är ord som betyder ungefär samma sak (enorm – gigantisk). Antonymer, motsatsord, betyder motsatsen (generös – snål).",
+   "facts": [
+    {
+     "k": "term",
+     "term": "synonymer",
+     "q": "Vad kallas ord som betyder ungefär samma sak?",
+     "alias": [
+      "synonym"
+     ],
+     "not": [
+      "Antonymer",
+      "Homonymer",
+      "Sammansättningar"
+     ],
+     "cls": "ordrel"
+    },
+    {
+     "k": "term",
+     "term": "antonymer",
+     "q": "Vad kallas ord som betyder motsatsen till varandra?",
+     "alias": [
+      "antonym",
+      "motsatsord"
+     ],
+     "not": [
+      "Synonymer",
+      "Homonymer",
+      "Prefix"
+     ],
+     "cls": "ordrel"
+    },
+    {
+     "k": "pairs",
+     "q": "Vilket ord betyder nästan samma sak som <b>{a}</b>?",
+     "items": [
+      [
+       "förvånad",
+       "överraskad"
+      ],
+      [
+       "envis",
+       "hårdnackad"
+      ],
+      [
+       "noggrann",
+       "omsorgsfull"
+      ],
+      [
+       "tillfällig",
+       "temporär"
+      ],
+      [
+       "enorm",
+       "gigantisk"
+      ],
+      [
+       "modig",
+       "djärv"
+      ],
+      [
+       "lugn",
+       "sansad"
+      ]
+     ],
+     "rq": "Vilket ord betyder nästan samma sak som <b>{b}</b>?",
+     "lvl": 2
+    },
+    {
+     "k": "pairs",
+     "q": "Vilket ord är motsatsen till <b>{a}</b>?",
+     "items": [
+      [
+       "generös",
+       "snål"
+      ],
+      [
+       "optimistisk",
+       "pessimistisk"
+      ],
+      [
+       "frivillig",
+       "obligatorisk"
+      ],
+      [
+       "tillåten",
+       "förbjuden"
+      ],
+      [
+       "sällsynt",
+       "vanlig"
+      ],
+      [
+       "fientlig",
+       "vänlig"
+      ]
+     ],
+     "rq": "Vilket ord är motsatsen till <b>{b}</b>?",
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Vilket ord passar bäst? 'Det var ett ___ beslut – alla var tvungna att följa det.'",
+     "a": "obligatoriskt",
+     "not": [
+      "frivilligt",
+      "tillfälligt",
+      "sällsynt"
+     ],
+     "form": "application",
+     "lvl": 3
+    },
+    {
+     "k": "stmt",
+     "s": "Synonymer betyder ungefär samma sak.",
+     "f": [
+      "Synonymer betyder motsatsen till varandra."
+     ]
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "ord-bildning",
+   "skill": "sv8_ord",
+   "name": "Ordbildning",
+   "explain": "Prefix sätts före ett ord och ändrar betydelsen (o-lycklig = inte lycklig, miss-förstå = förstå fel). Suffix sätts efter och bildar nya ord (fri-het, vän-skap). I ett sammansatt ord bestämmer efterleden vad det är: en skolväska är en väska.",
+   "facts": [
+    {
+     "k": "term",
+     "term": "prefix",
+     "q": "Vad kallas en del som sätts före ett ord och ändrar betydelsen, till exempel o- i 'olycklig'?",
+     "not": [
+      "Suffix",
+      "Efterled",
+      "Synonym"
+     ],
+     "cls": "ordbild"
+    },
+    {
+     "k": "term",
+     "term": "suffix",
+     "q": "Vad kallas en ändelse som bildar ett nytt ord, till exempel -het i 'frihet'?",
+     "not": [
+      "Prefix",
+      "Förled",
+      "Antonym"
+     ],
+     "cls": "ordbild"
+    },
+    {
+     "k": "term",
+     "term": "sammansättning",
+     "q": "Vad kallas ett ord som består av två eller fler ord, till exempel 'skolgård'?",
+     "alias": [
+      "sammansatt ord",
+      "sammansättningar"
+     ],
+     "not": [
+      "Prefix",
+      "Förkortning",
+      "Synonym"
+     ],
+     "cls": "ordbild",
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Vad betyder prefixet o- i 'ovänlig'?",
+     "a": "inte",
+     "not": [
+      "mycket",
+      "igen",
+      "före"
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Vad betyder prefixet miss- i 'missförstå'?",
+     "a": "fel eller dåligt",
+     "not": [
+      "mycket bra",
+      "igen",
+      "före"
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Vilket ord har bildats med ett suffix av ett adjektiv?",
+     "a": "frihet",
+     "not": [
+      "fritid",
+      "befria",
+      "ofri"
+     ],
+     "form": "application",
+     "lvl": 2,
+     "why": "fri (adjektiv) + -het = frihet (substantiv)."
+    },
+    {
+     "k": "qa",
+     "q": "Vad är efterleden i 'fotbollsplan'?",
+     "a": "plan",
+     "not": [
+      "fot",
+      "boll",
+      "fotboll"
+     ],
+     "why": "Efterleden bestämmer: en fotbollsplan är en sorts plan."
+    },
+    {
+     "k": "stmt",
+     "s": "I ett sammansatt ord bestämmer efterleden vad det är: en skolväska är en väska.",
+     "f": [
+      "I ett sammansatt ord bestämmer förleden vad det är: en skolväska är en skola."
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Vad är skillnaden mellan en 'husbåt' och ett 'båthus'?",
+     "a": "En husbåt är en båt man bor i, ett båthus är ett hus för båtar",
+     "not": [
+      "Ingen skillnad",
+      "Båda är båtar",
+      "Båda är hus"
+     ],
+     "form": "explanation",
+     "lvl": 3
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "ord-skolord",
+   "skill": "sv8_ord",
+   "name": "Skolans viktiga ord",
+   "explain": "Ord som används i alla ämnen: argument (skäl för en åsikt), källa (där information kommer ifrån), konsekvens (följd), perspektiv (synvinkel), objektiv (saklig, opartisk), subjektiv (personlig), analysera (undersöka delar och samband), jämföra (se likheter och skillnader), sammanfatta (berätta det viktigaste kort).",
+   "facts": [
+    {
+     "k": "term",
+     "term": "argument",
+     "q": "Vad kallas ett skäl som stöder en åsikt?",
+     "alias": [
+      "argumentet"
+     ],
+     "not": [
+      "Rubrik",
+      "Källa",
+      "Slutsats"
+     ],
+     "cls": "skolord"
+    },
+    {
+     "k": "term",
+     "term": "konsekvens",
+     "q": "Vad kallas en följd av något som har hänt?",
+     "def": "En följd av något",
+     "rq": "Vad betyder konsekvens?",
+     "alias": [
+      "konsekvenser",
+      "följd"
+     ],
+     "not": [
+      "Orsak",
+      "Argument",
+      "Perspektiv"
+     ],
+     "notDef": [
+      "En orsak till något",
+      "En åsikt",
+      "En synvinkel"
+     ],
+     "cls": "skolord"
+    },
+    {
+     "k": "term",
+     "term": "perspektiv",
+     "q": "Vad kallas den synvinkel man ser något ifrån?",
+     "alias": [
+      "synvinkel"
+     ],
+     "not": [
+      "Argument",
+      "Konsekvens",
+      "Källa"
+     ],
+     "cls": "skolord",
+     "lvl": 2
+    },
+    {
+     "k": "term",
+     "term": "objektiv",
+     "q": "Vad kallas en text som är saklig och inte tar ställning?",
+     "def": "Saklig och opartisk",
+     "rq": "Vad betyder att en text är objektiv?",
+     "alias": [
+      "saklig"
+     ],
+     "not": [
+      "Subjektiv",
+      "Vinklad",
+      "Personlig"
+     ],
+     "notDef": [
+      "Personlig och tycker till",
+      "Kort och snabbläst",
+      "Skriven av en elev"
+     ],
+     "cls": "ton",
+     "lvl": 2
+    },
+    {
+     "k": "term",
+     "term": "subjektiv",
+     "q": "Vad kallas en text som visar skribentens egna åsikter och känslor?",
+     "alias": [
+      "personlig"
+     ],
+     "not": [
+      "Objektiv",
+      "Saklig",
+      "Neutral"
+     ],
+     "cls": "ton",
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Läraren ber dig sammanfatta en text. Vad ska du göra?",
+     "a": "Berätta det viktigaste kort med egna ord",
+     "not": [
+      "Skriva av hela texten",
+      "Säga vad du tycker om texten",
+      "Hitta stavfel i texten"
+     ],
+     "form": "application",
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Vad gör du när du jämför två texter?",
+     "a": "Letar efter likheter och skillnader",
+     "not": [
+      "Väljer den som är längst",
+      "Skriver om båda",
+      "Räknar orden"
+     ],
+     "form": "application",
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Vilken mening är skriven objektivt?",
+     "a": "Skolan har 420 elever och ligger nära centrum.",
+     "not": [
+      "Skolan är världens bästa skola.",
+      "Jag älskar min skola.",
+      "Skolan är tråkig och för stor."
+     ],
+     "form": "application",
+     "lvl": 3
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "las-fakta",
+   "skill": "sv8_lasa",
+   "name": "Läsa och förstå faktatexter",
+   "explain": "Läs rubriken först. Leta efter textens huvudbudskap och de fakta som stöder det. Skilj på vad texten säger rakt ut och vad du själv drar för slutsatser.",
+   "facts": [
+    {
+     "k": "read",
+     "text": "<p><b>Mikroplast</b> är plastbitar som är mindre än fem millimeter. En del tillverkas så små, till exempel i vissa kosmetiska produkter. Det mesta bildas ändå när större plastföremål slits och bryts ner av sol, vind och vågor.</p><p>Mikroplast har hittats i hav, sjöar, jord och till och med i snö på höga berg. Små djur som musslor och plankton kan få i sig plasten, och så följer den med i näringskedjan. Forskarna vet ännu inte säkert hur farligt det är för människor, men de är eniga om att utsläppen behöver minska.</p>",
+     "qs": [
+      {
+       "q": "Hur stor är mikroplast enligt texten?",
+       "a": "Mindre än fem millimeter",
+       "not": [
+        "Mindre än fem centimeter",
+        "Lika stor som en mussla",
+        "Större än en meter"
+       ]
+      },
+      {
+       "q": "Hur bildas det mesta av mikroplasten?",
+       "a": "När större plastföremål slits och bryts ner",
+       "not": [
+        "I kosmetiska produkter",
+        "I snö på höga berg",
+        "När plankton äter plast"
+       ],
+       "form": "cause",
+       "lvl": 2
+      },
+      {
+       "q": "Varför kan mikroplast hamna i större djur?",
+       "a": "Den följer med i näringskedjan när små djur får i sig den",
+       "not": [
+        "Större djur äter plast direkt från fabrikerna",
+        "Mikroplast bildas inne i djuren",
+        "Vinden blåser in den i djuren"
+       ],
+       "form": "cause",
+       "lvl": 2
+      },
+      {
+       "q": "Vad är textens huvudbudskap?",
+       "a": "Mikroplast finns överallt och utsläppen behöver minska",
+       "not": [
+        "Mikroplast är helt ofarligt",
+        "Kosmetika är den enda källan",
+        "Musslor är farliga att äta"
+       ],
+       "form": "explanation",
+       "lvl": 3
+      }
+     ],
+     "title": "Mikroplast"
+    },
+    {
+     "k": "read",
+     "text": "<p><b>Norrsken</b> uppstår när laddade partiklar från solen träffar gaserna högt upp i jordens atmosfär. Gaserna börjar då lysa – oftast grönt, ibland rött eller lila.</p><p>Jordens magnetfält leder partiklarna mot områdena runt polerna. Därför syns norrsken oftast i norr, till exempel i Kiruna och Abisko. Under perioder när solen är extra aktiv kan norrskenet ses längre söderut. Det syns bäst en klar och mörk natt, långt från starka gatlampor.</p>",
+     "qs": [
+      {
+       "q": "Vad händer när partiklarna från solen träffar atmosfären?",
+       "a": "Gaserna börjar lysa",
+       "not": [
+        "Det börjar regna",
+        "Solen blir varmare",
+        "Magnetfältet försvinner"
+       ]
+      },
+      {
+       "q": "Varför syns norrsken oftast långt i norr?",
+       "a": "Magnetfältet leder partiklarna mot polerna",
+       "not": [
+        "Det är kallare där",
+        "Det finns fler gaser i norr",
+        "Gatlamporna är starkare i norr"
+       ],
+       "form": "cause",
+       "lvl": 2
+      },
+      {
+       "q": "Du vill se norrsken. Vilken plats och tid är bäst enligt texten?",
+       "a": "En klar, mörk natt långt från gatlampor",
+       "not": [
+        "En molnig kväll i en stad",
+        "Mitt på dagen i solsken",
+        "En regnig natt vid en motorväg"
+       ],
+       "form": "application",
+       "lvl": 3
+      }
+     ],
+     "title": "Norrsken"
+    },
+    {
+     "k": "read",
+     "text": "<p>Tonåringar behöver ungefär <b>8–10 timmars sömn</b> per natt. Medan vi sover sorterar hjärnan det vi har lärt oss under dagen, och kroppen återhämtar sig.</p><p>I tonåren förskjuts dygnsrytmen: många blir trötta först sent på kvällen. Starkt ljus från skärmar sent på kvällen kan göra det ännu svårare att somna, eftersom ljuset lurar hjärnan att det fortfarande är dag. Den som sover för lite får svårare att koncentrera sig och att minnas.</p>",
+     "qs": [
+      {
+       "q": "Hur mycket sömn behöver tonåringar enligt texten?",
+       "a": "Ungefär 8–10 timmar per natt",
+       "not": [
+        "Ungefär 5–6 timmar",
+        "Minst 12 timmar",
+        "Det står inte i texten"
+       ]
+      },
+      {
+       "q": "Varför kan skärmar sent på kvällen göra det svårare att somna?",
+       "a": "Ljuset lurar hjärnan att det fortfarande är dag",
+       "not": [
+        "Skärmar gör rummet kallare",
+        "Spelen är för roliga",
+        "Skärmar tar bort tröttheten för alltid"
+       ],
+       "form": "cause",
+       "lvl": 2
+      },
+      {
+       "q": "Vilket råd stämmer bäst med texten?",
+       "a": "Lägg undan skärmen en stund innan du ska sova",
+       "not": [
+        "Sov mindre för att hinna plugga mer",
+        "Titta på en ljus skärm för att bli trött",
+        "Strunta i sömnen på vardagar"
+       ],
+       "form": "application",
+       "lvl": 3
+      },
+      {
+       "q": "Vad gör hjärnan medan vi sover?",
+       "a": "Sorterar det vi har lärt oss under dagen",
+       "not": [
+        "Glömmer allt från dagen",
+        "Vilar helt och hållet",
+        "Förskjuter dygnsrytmen"
+       ],
+       "lvl": 2
+      }
+     ],
+     "title": "Sömn"
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "las-skon",
+   "skill": "sv8_lasa",
+   "name": "Läsa mellan raderna i berättelser",
+   "explain": "I berättelser står känslor och motiv ofta inte rakt ut. Titta på vad personerna gör, säger och tänker – och dra slutsatser av det.",
+   "facts": [
+    {
+     "k": "read",
+     "text": "<p>Elin stod länge vid dörren till gympasalen. Inifrån hördes bollar som studsade och någon som skrattade. Hon drog i ärmen på tröjan, tog ett djupt andetag och tittade på klockan igen. Tre minuter sen redan.</p><p>– Kommer du? sa Noor, som plötsligt stod bakom henne.</p><p>Elin ryckte till. Sedan nickade hon, och för första gången den dagen log hon lite.</p>",
+     "qs": [
+      {
+       "q": "Hur känner sig Elin i början av texten?",
+       "a": "Nervös",
+       "not": [
+        "Arg",
+        "Uttråkad",
+        "Jättelycklig"
+       ],
+       "form": "application",
+       "lvl": 2,
+       "why": "Hon står länge vid dörren, drar i ärmen och tar ett djupt andetag."
+      },
+      {
+       "q": "Vad visar att Elin är sen?",
+       "a": "Hon tittar på klockan – tre minuter sen",
+       "not": [
+        "Noor säger att hon är sen",
+        "Lektionen är slut",
+        "Bollarna har slutat studsa"
+       ],
+       "lvl": 2
+      },
+      {
+       "q": "Varför ler Elin i slutet?",
+       "a": "Noor kommer och gör det lättare att gå in",
+       "not": [
+        "Hon har vunnit en match",
+        "Lektionen är inställd",
+        "Hon har fått en ny tröja"
+       ],
+       "form": "cause",
+       "lvl": 3
+      }
+     ]
+    },
+    {
+     "k": "read",
+     "text": "<p>Morfar hade aldrig varit bra på att säga förlåt. När Jonas kom in i köket låg det en ny fiskespö-hållare på bordet, en sådan som Jonas hade tjatat om hela sommaren. Bredvid låg en lapp: <i>Till fisketuren på lördag. /M</i></p><p>Jonas tänkte på grälet i bilen dagen innan. Han tog upp hållaren, vände på den och gick ut på trappan där morfar satt med kaffet.</p>",
+     "qs": [
+      {
+       "q": "Varför ligger hållaren på bordet?",
+       "a": "Morfar vill säga förlåt efter grälet utan att säga det",
+       "not": [
+        "Jonas har köpt den själv",
+        "Det är Jonas födelsedag",
+        "Morfar har glömt den där"
+       ],
+       "form": "explanation",
+       "lvl": 3
+      },
+      {
+       "q": "Vad hade hänt dagen innan?",
+       "a": "Jonas och morfar hade grälat i bilen",
+       "not": [
+        "De hade varit och fiskat",
+        "Morfar hade varit sjuk",
+        "Jonas hade köpt ett fiskespö"
+       ]
+      },
+      {
+       "q": "Vad tror du händer härnäst?",
+       "a": "Jonas går ut och blir sams med morfar",
+       "not": [
+        "Jonas slänger hållaren",
+        "Morfar åker hem",
+        "Jonas går och lägger sig"
+       ],
+       "form": "application",
+       "lvl": 2
+      }
+     ]
+    },
+    {
+     "k": "read",
+     "text": "<p>Det hade snöat hela natten. Amir drog upp rullgardinen och stelnade. Cykeln, som han hade lovat att ställa in i förrådet, låg helt begravd i snön.</p><p>Från köket hördes pappas röst: – Har du sett ut?</p><p>Amir svarade inte. Han drog på sig jackan, tog snöskyffeln i hallen och gick ut innan pappa hann säga något mer.</p>",
+     "qs": [
+      {
+       "q": "Vad hade Amir lovat?",
+       "a": "Att ställa in cykeln i förrådet",
+       "not": [
+        "Att skotta snö",
+        "Att laga frukost",
+        "Att cykla till skolan"
+       ]
+      },
+      {
+       "q": "Varför stelnar Amir när han ser ut?",
+       "a": "Han inser att han har glömt att ställa in cykeln",
+       "not": [
+        "Han fryser",
+        "Han ser en räv i snön",
+        "Han är rädd för snö"
+       ],
+       "form": "cause",
+       "lvl": 2
+      },
+      {
+       "q": "Vad tänker Amir troligen göra med snöskyffeln?",
+       "a": "Gräva fram cykeln",
+       "not": [
+        "Leka i snön",
+        "Skotta åt grannen",
+        "Ge den till pappa"
+       ],
+       "form": "application",
+       "lvl": 2
+      },
+      {
+       "q": "Varför går Amir ut innan pappa hinner säga något mer?",
+       "a": "Han skäms och vill ordna det själv",
+       "not": [
+        "Han är arg på pappa",
+        "Han ska till skolan",
+        "Han hör inte vad pappa säger"
+       ],
+       "form": "explanation",
+       "lvl": 3
+      }
+     ]
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "las-strategi",
+   "skill": "sv8_lasa",
+   "name": "Lässtrategier",
+   "explain": "Skumläsa = snabbt få överblick. Läsa mellan raderna = förstå det som inte står rakt ut. Huvudbudskap = det viktigaste texten vill säga. Innan du läser: titta på rubrik, bilder och fetstil.",
+   "facts": [
+    {
+     "k": "term",
+     "term": "skumläsa",
+     "q": "Vad kallas det att snabbt titta igenom en text för att få en överblick?",
+     "alias": [
+      "skumläsning",
+      "skumma"
+     ],
+     "not": [
+      "Närläsa",
+      "Högläsa",
+      "Sammanfatta"
+     ],
+     "cls": "las"
+    },
+    {
+     "k": "term",
+     "term": "huvudbudskap",
+     "q": "Vad kallas det viktigaste som en text vill säga?",
+     "alias": [
+      "budskap",
+      "huvudbudskapet"
+     ],
+     "not": [
+      "Rubrik",
+      "Inledning",
+      "Källa"
+     ],
+     "cls": "las"
+    },
+    {
+     "k": "qa",
+     "q": "Vad betyder det att läsa mellan raderna?",
+     "a": "Att förstå sådant som inte står rakt ut i texten",
+     "not": [
+      "Att läsa varannan rad",
+      "Att bara läsa rubrikerna",
+      "Att läsa högt"
+     ],
+     "form": "explanation",
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Vad är klokt att göra innan du läser en lång faktatext?",
+     "a": "Titta på rubrik, bilder och fetstil för att få en överblick",
+     "not": [
+      "Börja läsa sista stycket",
+      "Läsa texten högt flera gånger",
+      "Strunta i rubrikerna"
+     ],
+     "form": "application",
+     "lvl": 2
+    },
+    {
+     "k": "stmt",
+     "s": "En sammanfattning tar bara med det viktigaste.",
+     "f": [
+      "En sammanfattning ska vara lika lång som texten."
+     ]
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  }
+ ]
+}

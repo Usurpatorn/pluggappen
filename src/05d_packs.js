@@ -22,6 +22,28 @@ const PACKS = (() => {
   // Textgränser per policy (frågetext i ord, svarsalternativ i tecken, längsta ord). Kontrolleras i CI.
   const TEXT = { younger: { qWords: 22, choice: 48, word: 16 }, middle: { qWords: 34, choice: 80, word: 22 }, older: { qWords: 48, choice: 120, word: 26 } };
   const KINDS = ['term', 'qa', 'pairs', 'group', 'order', 'stmt', 'num', 'pick', 'fix', 'read'];
+  /* Kunskapstyp (Learning Recipes, 2.1): HUR en kunskapspunkt bäst lärs in. Minsta användbara uppsättning – sätts i paketet (kp.type)
+     eller härleds ur faktaslagen. Typen styr vilka aktiviteter som väger tyngst i receptet (RECIPE nedan). */
+  const TYPES = ['fact', 'term', 'classification', 'sequence', 'cause', 'language', 'concept', 'procedure'];
+  const KIND_TYPE = { term: 'term', group: 'classification', order: 'sequence', fix: 'language', pick: 'language', num: 'procedure', stmt: 'concept', read: 'concept', pairs: 'fact', qa: 'fact' };
+  function typeOf(kp) {
+    if (kp.type && TYPES.includes(kp.type)) return kp.type;
+    const n = {}; for (const f of kp.facts || []) { const t = f.k === 'qa' && f.form === 'cause' ? 'cause' : f.k === 'qa' && (f.form === 'explanation') ? 'concept' : KIND_TYPE[f.k] || 'fact'; n[t] = (n[t] || 0) + 1; }
+    return Object.entries(n).sort((a, b) => b[1] - a[1] || TYPES.indexOf(a[0]) - TYPES.indexOf(b[0]))[0]?.[0] || 'fact';
+  }
+  // Signaturaktiviteter per kunskapstyp: faktaslag och former som passar typen extra bra
+  const SIGNATURE = { term: { k: ['term'] }, classification: { k: ['group'] }, sequence: { k: ['order'], dir: ['gap'] }, cause: { forms: ['cause'] }, language: { k: ['fix', 'pick'] }, concept: { k: ['stmt'], forms: ['explanation', 'mistake'] }, procedure: { k: ['num'] }, fact: { k: ['qa', 'pairs'] } };
+  /* Learning Recipe: kunskapstyp × inlärningsstadium × policy → vikt per form. Stadierna motsvarar motorns stadier:
+     NY (aldrig sett: förstå – UPPTÄCK-kort, sedan igenkänning/sortering) · LÄR SIG (stadium 0–1: stöttad övning) ·
+     ÖVAR (stadium 2: eget svar och görande) · SÄKER (stadium ≥ 3: koppla, tillämpa, hitta felet, utmaning).
+     Senare repetition med eget svar styrs av motorns format (recall), djupgrinden av format depth. */
+  const RECIPE = {
+    new: { recognition: 4, relationship: 1.2, recall: 0.4, reverse: 0.6, mistake: 0.2, cause: 0.4, application: 0.2, explanation: 0.1, multistep: 0.1 },
+    learning: { recognition: 2, recall: 2, relationship: 2, reverse: 1.2, mistake: 0.6, cause: 0.8, application: 0.4, explanation: 0.2, multistep: 0.3 },
+    practising: { recognition: 0.8, recall: 3, reverse: 2, relationship: 2, mistake: 1.5, cause: 1.5, application: 1.2, explanation: 0.8, multistep: 1 },
+    secure: { recognition: 0.3, recall: 1.5, reverse: 1, relationship: 3, mistake: 3, cause: 3, application: 3, explanation: 3, multistep: 3 },
+  };
+  const bandOf = (stage) => stage == null ? null : stage.n === 0 ? 'new' : stage.st <= 1 ? 'learning' : stage.st === 2 ? 'practising' : 'secure';
   const HINT = {
     recognition: 'Uteslut först de alternativ du vet är fel.', recall: 'Försök minnas ordet innan du gissar.', reverse: 'Tänk baklänges: vad hör ihop med det här?',
     relationship: 'Hur hänger sakerna ihop?', mistake: 'Läs varje alternativ noga – leta efter det som inte stämmer.', cause: 'Fråga dig: varför händer det?',
@@ -41,7 +63,9 @@ const PACKS = (() => {
   }
   const tolOf = (w) => (w.length >= 9 ? 2 : w.length >= 6 ? 1 : 0);
   const shuffle = (arr, rnd) => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
-  const toks = (sentence) => { const out = []; for (const w of strip(sentence).split(/\s+/)) { const t = w.replace(/^[„"'(«]+|[.,!?;:"'»)]+$/g, ''); if (t && !out.includes(t)) out.push(t); } return out; };
+  const toks = (sentence) => { const out = []; for (const w of strip(sentence).split(/\s+/)) { const t = w.replace(/^[„"'(«]+|[.,!?;:"'»)]+$/g, ''); if (t && !out.some(x => x.toLowerCase() === t.toLowerCase())) out.push(t); } return out; };
+  // Identitet för alternativ: skiftläge och blanksteg spelar ingen roll, men skiljetecken gör det (kommatering kan vara själva frågan)
+  const key = (s) => strip(s).normalize('NFC').toLowerCase().replace(/\s+/g, ' ').trim();
   const cidOf = (packId, kpId) => `k:${packId}/${kpId}`;
   const ALLOWED_TAGS = /^(b|i|br|sub|sup|p|em|strong|span|ul|ol|li|div)$/i;
 
@@ -73,6 +97,7 @@ const PACKS = (() => {
       if (!skillIds.has(kp.skill)) err(`${w}: skill ${kp.skill} finns inte i paketet`);
       if (!kp.name || typeof kp.name !== 'string') err(`${w}: name saknas`);
       if (!kp.explain || typeof kp.explain !== 'string') err(`${w}: explain saknas`);
+      if (kp.type != null && !TYPES.includes(kp.type)) err(`${w}: okänd kunskapstyp ${kp.type} (${TYPES.join(', ')})`);
       if (!Array.isArray(kp.facts) || !kp.facts.length) err(`${w}: facts saknas`);
       srcOk(kp.src, w);
       (kp.facts || []).forEach((f, i) => {
@@ -190,6 +215,9 @@ const PACKS = (() => {
         });
       } else if (f.k === 'order') {
         add(f, 'relationship', 'ord', () => ({ type: 'order', text: f.q, items: f.items.slice(), answer: f.items.slice(), steps: [`<b>Rätt ordning:</b> ${f.items.map(esc).join(' → ')}`, why].filter(Boolean), hint: f.hint || HINT.relationship }));
+        // Saknad länk (2.1, samband): A → ? → C ur samma kedja. Felalternativen är andra led i kedjan – fel på den platsen.
+        if (f.items.length >= 4 && f.gap !== false) for (let i = 1; i < f.items.length - 1; i++) add({ ...f, id: (f.id || fnv(f.q)) + '.gap' + i, lvl: Math.max(2, f.lvl || 1) }, 'relationship', 'gap',
+          (r) => mc(`${f.gapq || 'Vad saknas i kedjan?'}<br>${esc(f.items[i - 1])} → <b>?</b> → ${esc(f.items[i + 1])}`, f.items[i], f.items.filter((_, j) => j !== i && j !== i - 1 && j !== i + 1), f.items.filter((_, j) => j === i - 1 || j === i + 1), `<b>Hela kedjan:</b> ${f.items.map(esc).join(' → ')}`, r));
       } else if (f.k === 'stmt') {
         add(f, f.form || 'recognition', 'true', (r) => mc(f.q || 'Vilket påstående stämmer?', f.s, f.f, falsePool(f), why, r));
         f.f.forEach((ff, i) => add({ ...f, id: (f.id || fnv(f.s)) + '.f' + i }, 'mistake', 'false', (r) => mc(f.mq || 'Vilket påstående är <b>fel</b>?', ff, [], truePool(f), `Det stämmer inte. Rätt är: ${f.s}${f.why ? ' ' + f.why : ''}`, r)));
@@ -210,9 +238,9 @@ const PACKS = (() => {
   }
   // Flerval: rätt svar + 3 unika felalternativ – författade (not) först, sedan paketets pool. Alias räknas aldrig som felalternativ.
   function mc(text, correct, authored, pool, why, rnd, o = {}) {
-    const bad = new Set([norm(correct), ...(o.alias || []).map(norm)]); const d = []; const want = o.exactD || 3;
+    const bad = new Set([key(correct), ...(o.alias || []).map(key)]); const d = []; const want = o.exactD || 3;
     const tierList = Array.isArray(pool) && pool.length && Array.isArray(pool[0]) ? pool : [pool || []];   // pool kan vara nivåer (närmast först)
-    for (const x of [...shuffle(authored || [], rnd), ...tierList.flatMap(t => shuffle(t, rnd))]) { const n = norm(x); if (!n || bad.has(n)) continue; bad.add(n); d.push(x); if (d.length >= want) break; }
+    for (const x of [...shuffle(authored || [], rnd), ...tierList.flatMap(t => shuffle(t, rnd))]) { const n = key(x); if (!n || bad.has(n)) continue; bad.add(n); d.push(x); if (d.length >= want) break; }
     const choices = shuffle([correct, ...d], rnd);
     return { type: 'choicetext', text, choices, answer: choices.indexOf(correct), steps: [why].filter(Boolean), hint: HINT.recognition };
   }
@@ -243,14 +271,20 @@ const PACKS = (() => {
       if (opts.format === 'recall') { const r = all.filter(v => v.form === 'recall'); if (r.length) pool = r; }
       else if (opts.format === 'depth') { const r = all.filter(v => DEPTH.has(v.form)); if (r.length) pool = r; }
       const L = Math.max(1, Math.min(3, opts.lvl || 1)); const lv = pool.filter(v => v.lvl <= L); pool = lv.length ? lv : pool.filter(v => v.lvl === Math.min(...pool.map(x => x.lvl)));
-      if (!opts.format || opts.format === 'any') { const L2 = pool.filter(v => v.lvl === L); if (L2.length && rnd() < 0.6) pool = L2; }
     }
     const iid = opts.itemId || ((q) => q.text);
     const built = (v) => finish(ent, v, v.build(rnd), pol);
-    const order = shuffle(pool, rnd);
+    // Learning Recipe: viktat urval efter kunskapstyp × stadium (inte slumpvis rotation). Utan stadium (prov, CI): jämn vikt per nivå.
+    const band = opts.challenge ? null : bandOf(opts.stage); const type = typeOf(ent.kp); const sig = SIGNATURE[type] || {}; const L0 = Math.max(1, Math.min(3, opts.lvl || 1));
+    const wOf = (v) => { let w = band ? (RECIPE[band][v.form] || 0.5) : 1; if ((sig.k || []).includes(v.f.k) || (sig.forms || []).includes(v.form) || (sig.dir || []).includes(v.key.split('|').pop())) w *= 1.5; if (!opts.challenge && v.lvl === L0) w *= 1.6; return w; };
+    const order = weightedOrder(pool, wOf, rnd);
     for (const v of order) { const q = built(v); if (q && !(opts.avoid && opts.avoid.has(iid(q)))) return q; }
+    // Allt i det önskade formatet är nyligen använt (t.ex. Felbokens frågor): en ANNAN fråga om samma kunskap går före samma fråga igen
+    if (!opts.challenge && pool !== all) for (const v of weightedOrder(all.filter(v => !pool.includes(v)), wOf, rnd)) { const q = built(v); if (q && !(opts.avoid && opts.avoid.has(iid(q)))) return q; }
     const q = built(order[0]); return q ? { ...q, onlyVariant: true } : null;
   }
+  // Viktad ordning utan återläggning (deterministisk givet rnd): första elementet är det receptet helst vill ha
+  function weightedOrder(list, wOf, rnd) { const rest = list.map(v => ({ v, w: Math.max(0.001, wOf(v)) })); const out = []; while (rest.length) { let t = rnd() * rest.reduce((a, x) => a + x.w, 0); let i = 0; while (i < rest.length - 1 && (t -= rest[i].w) > 0) i++; out.push(rest.splice(i, 1)[0].v); } return out; }
   function finish(ent, v, q, pol) {
     if (!q) return null;
     if (q.type === 'choicetext' && (!Array.isArray(q.choices) || q.choices.length < 3 || q.answer < 0)) return null;   // för få felalternativ → varianten används inte (CI rapporterar)
@@ -274,7 +308,7 @@ const PACKS = (() => {
     for (const cid of cids) {
       const { pack, kp } = REG.kp[cid]; const vs = variants(cid, pol); if (!vs.length) continue;
       out[cid] = { id: cid, kind: 'kp', ref: skill.id, pack: pack.id, kp: kp.id, name: kp.name, full: kp.name, subject: pack.subject, maxLvl: Math.max(1, ...vs.map(v => v.lvl)),
-        recall: vs.some(v => v.form === 'recall'), depth: vs.some(v => DEPTH.has(v.form)), challenge: vs.some(v => v.ch), focus: !!skill.focus || (kid.focusCids || []).includes(cid), prereq: (kp.requires || []).map(r => cidOf(pack.id, r)), forms: [...new Set(vs.map(v => v.form))] };
+        recall: vs.some(v => v.form === 'recall'), depth: vs.some(v => DEPTH.has(v.form)), challenge: vs.some(v => v.ch), focus: !!skill.focus || (kid.focusCids || []).includes(cid), prereq: (kp.requires || []).map(r => cidOf(pack.id, r)), forms: [...new Set(vs.map(v => v.form))], ktype: typeOf(kp), intro: kp.intro !== false };
       // Nya frågors id → kunskapspunkt (v1-"Öva" på samma moment loggas på momentet och leds hit)
       for (const v of vs) { const q = v.build(seeded(7)); route[itemId(q)] = cid; }
     }
@@ -302,7 +336,7 @@ const PACKS = (() => {
   }
   // Hashar för cachning: ändras när paketen ändras (ny rev eller nya privata paket)
   const regKey = () => Object.values(REG.packs).map(p => p.id + '@' + p.rev).sort().join(',');
-  return { buildVariant, cleanPack, cleanHtml, VERSION, FORMS, FCODE, DEPTH, BASE_LVL, POLICY_FORMS, TEXT, KINDS, validate, register, clearPrivate, REG, newSkillsFor, kpsFor, skillFor, variants, question, check, teach, info, catalogEntries, legacyId, cidOf, regKey, v1Question, seeded, norm, normT, strip, words, toks, shuffle, lev, ALLOWED_TAGS };
+  return { TYPES, typeOf, RECIPE, bandOf, key, buildVariant, cleanPack, cleanHtml, VERSION, FORMS, FCODE, DEPTH, BASE_LVL, POLICY_FORMS, TEXT, KINDS, validate, register, clearPrivate, REG, newSkillsFor, kpsFor, skillFor, variants, question, check, teach, info, catalogEntries, legacyId, cidOf, regKey, v1Question, seeded, norm, normT, strip, words, toks, shuffle, lev, ALLOWED_TAGS };
 })();
 // Inbyggda paket (PACK_DATA byggs in av scripts/build.sh från content/packs/*.json)
 if (typeof PACK_DATA !== 'undefined') for (const p of PACK_DATA) PACKS.register(p);

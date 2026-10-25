@@ -8,7 +8,9 @@
 const V2 = {
   sandbox: null,
   lastReasons: {},   // föräldradiagnostik: senaste passets motorbeslut (i minnet, inte i lagringen)   // förälderns förhandsvisning: { kidId, snap } – inget sparas eller synkas medan den pågår
-  ROLE_CHIP: { warmup: ['UPPVÄRMNING', '☀️'], remember: ['KOMMER DU IHÅG?', '🧠'], focus: ['DAGENS FOKUS', '🎯'], revansch: ['REVANSCH!', '💪'], boss: ['BOSSEN', '👑'], rescue: ['Vi tar det tillsammans', '🤝'], easy: ['', ''], retry: ['NY CHANS', '🔁'], challenge: ['UTMANING', '🧩'], practice: ['', ''], teach: ['LÄR', '💡'], readclose: ['MINNS DU?', '🙈'], testa: ['', ''] },
+  // 2.1: en annan sorts uppgift syns med en liten etikett (samma gränssnitt) – bara för fördjupande former
+  FORM_CHIP: { mistake: ['HITTA FELET', '🔍'], relationship: ['KOPPLA', '🔗'], cause: ['ORSAK OCH VERKAN', '💭'], application: ['ANVÄND DET', '🛠️'], explanation: ['FÖRKLARA', '💡'], multistep: ['FLERA STEG', '🧗'] },
+  ROLE_CHIP: { intro: ['UPPTÄCK', '🔎'], warmup: ['UPPVÄRMNING', '☀️'], remember: ['KOMMER DU IHÅG?', '🧠'], focus: ['DAGENS FOKUS', '🎯'], revansch: ['REVANSCH!', '💪'], boss: ['BOSSEN', '👑'], rescue: ['Vi tar det tillsammans', '🤝'], easy: ['', ''], retry: ['NY CHANS', '🔁'], challenge: ['UTMANING', '🧩'], practice: ['', ''], teach: ['LÄR', '💡'], readclose: ['MINNS DU?', '🙈'], testa: ['', ''] },
   READY_TXT: { 'Bra koll': 'BRA KOLL', 'Öva lite mer': 'ÖVA LITE MER', 'För lite underlag': 'FÖR LITE UNDERLAG' },
   READY_CLS: { 'Bra koll': 'good', 'Öva lite mer': 'warn', 'För lite underlag': '' },
   // v2 bara om föräldern slagit på den – och aldrig på data från en okänd (senare) version: då körs v1 och le lämnas orört (rollback-skydd)
@@ -156,7 +158,8 @@ const V2 = {
     // 2.1: kunskapspunkt ur ett Concept Pack – generatorn väljer form efter motorns behov (eget svar, djup, utmaning) och nivå
     if ((V.C.cat[spec.cid] || {}).kind === 'kp') {
       const fmt = V.exam ? 'any' : spec.role === 'readclose' ? 'recall' : spec.format === 'recall' || spec.format === 'depth' ? spec.format : 'any';
-      let q = PACKS.question(spec.cid, { lvl: spec.lvl, format: fmt, pol: pol.name, avoid, rnd: Math.random, challenge: spec.mode === 'challenge', itemId: LECAT.itemId });
+      const stage = V.exam ? null : { n: c ? c.n : 0, st: c ? c.st : 0 };   // Learning Recipe: stadiet styr aktiviteten (inte i Testa mig)
+      let q = PACKS.question(spec.cid, { lvl: spec.lvl, format: fmt, pol: pol.name, avoid, rnd: Math.random, challenge: spec.mode === 'challenge', itemId: LECAT.itemId, stage });
       if (!q && spec.mode === 'challenge') q = PACKS.question(spec.cid, { lvl: 3, format: 'depth', pol: pol.name, avoid, rnd: Math.random, itemId: LECAT.itemId });
       if (!q) return [];
       q = { ...q, skill, cat: 'math', level: q.level || spec.lvl };
@@ -184,7 +187,7 @@ const V2 = {
   iid(q) { return q.baseId || LECAT.itemId(q); },
   teachExample(skill, spec) {
     if (spec.cid && spec.cid.startsWith('k:')) {   // 2.1: kunskapspunktens förklaring + senaste felet (eller ett löst exempel)
-      const t = PACKS.teach(spec.cid, S.v2.C.pol.name); const last = [...S.queue].reverse().find(x => x.cat === 'math' && x.kp === spec.cid);
+      const t = PACKS.teach(spec.cid, S.v2.C.pol.name); if (t && spec.role === 'intro') return { intro: { name: t.name, explain: t.explain }, text: '', steps: [], answer: '' }; const last = [...S.queue].reverse().find(x => x.cat === 'math' && x.kp === spec.cid);
       const q = last || (t && t.q); if (!t) return null;
       return { text: q ? q.text : t.name, fig: q && q.fig, answer: q ? answerDisplay(q) : '', steps: [`<b>${esc(t.name)}</b>: ${t.explain}`, ...t.mistakes.map(m => `Vanligt fel: <i>${m.wrong}</i> – ${m.right}`)], fromFail: !!last };
     }
@@ -201,12 +204,14 @@ const V2 = {
   progressBar() { const tot = V2.total(); return `<div class="progress">${Array.from({ length: tot }, (_, i) => `<i class="${i < S.i ? (S.v2.exam ? 'ok' : S.results[i] === false ? 'no' : 'ok') : i === S.i ? 'cur' : ''}"></i>`).join('')}</div>`; },
   chip(item) {
     if (!item || !item.spec || S.v2.exam) return '';
-    const s = item.spec; const key = item.cat === 'learn' ? (s.role === 'rescue' ? 'rescue' : 'teach') : s.mode === 'challenge' ? 'challenge' : s.role;
-    const [txt, ic] = V2.ROLE_CHIP[key] || ['', '']; if (!txt) return '';
+    const s = item.spec; const key = item.cat === 'learn' ? (s.role === 'rescue' ? 'rescue' : s.role === 'intro' ? 'intro' : 'teach') : s.mode === 'challenge' ? 'challenge' : s.role;
+    const formChip = item.cat === 'math' && item.form && ['focus', 'practice', 'remember', 'warmup', 'easy'].includes(s.role) ? V2.FORM_CHIP[item.form] : null;
+    const [txt, ic] = formChip || V2.ROLE_CHIP[key] || ['', '']; if (!txt) return '';
     return `<div class="row" style="justify-content:center"><span class="pill acc" style="font-weight:800;letter-spacing:.04em"><span aria-hidden="true">${ic}</span> ${txt}</span></div>`;
   },
   teachBody(item) {
-    const ex = item.ex; const rescue = item.spec.role === 'rescue'; const s = item.skill;
+    const ex = item.ex; const rescue = item.spec.role === 'rescue'; const intro = item.spec.role === 'intro'; const s = item.skill;
+    if (intro && ex && ex.intro) return `<div class="eyebrow">Något nytt</div><h3 style="margin:6px 0">${esc(ex.intro.name)}</h3><p style="font-size:1.05rem">${safeHtml(ex.intro.explain)}</p>${s.method ? `<details class="sketch"><summary>📖 Läs mer om ${esc(s.short || s.name)}</summary><div class="method" style="margin-top:8px">${safeHtml(s.method)}</div></details>` : ''}<button class="btn big wide" data-v2="teachok">Jag är redo →</button>`;
     return `<div class="eyebrow">${rescue ? 'Vi tar det tillsammans' : 'En kort förklaring först'}</div>
       ${ex ? `<div class="steps"><div class="eyebrow">${ex.fromFail ? 'Uppgiften du nyss fick' : 'Exempel'}</div>${ex.fig ? `<div class="figwrap">${safeHtml(ex.fig)}</div>` : ''}<div style="font-weight:700;margin:6px 0">${safeHtml(ex.text)}</div><ol>${ex.steps.map(st => `<li>${safeHtml(st)}</li>`).join('')}</ol><p style="margin-top:8px">Svar: <b>${esc(ex.answer)}</b></p></div>` : ''}
       ${s.method ? `<details class="sketch"><summary>📖 Läs mer om ${esc(s.short || s.name)}</summary><div class="method" style="margin-top:8px">${safeHtml(s.method)}</div></details>` : ''}
