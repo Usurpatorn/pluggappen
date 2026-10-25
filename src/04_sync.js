@@ -36,6 +36,7 @@ const SYNC = {
   schedulePush(kidId) { if (!SYNC.active || !kidId) return; SYNC.pending.add(kidId); clearTimeout(SYNC.pushTimer); SYNC.pushTimer = setTimeout(async () => { const ids = [...SYNC.pending]; SYNC.pending.clear(); for (const id of ids) await SYNC.push(id); SYNC.render(); }, 1500); },
   // Pull remote for a kid and merge into local. Returns true if local changed.
   async refresh(kidId) {
+    if (typeof V2 !== 'undefined' && V2.sandbox && V2.sandbox.kidId === kidId) return false; // förälderns förhandsvisning pågår
     const remote = await SYNC.pull(kidId); SYNC.lastPull[kidId] = Date.now();
     if (!remote) { if (SYNC.active && SYNC.status === 'ok') SYNC.schedulePush(kidId); return false; }
     const local = prof(kidId);

@@ -64,6 +64,7 @@ const LER = (() => {
     seen.n++; R.answered++; R.results.push(!!ok); R.log.push([spec.cid, spec.code, ok ? 1 : 0]);
     if (ok) seen.run = 0; else { seen.fails++; seen.run++; }
     if (spec.mode === 'challenge' || R.mode === 'exam') { R.i++; return out; }   // utmaning och Testa mig: inga omförsök, ingen Rescue
+    if (spec.kind === 'deck') { R.i++; return out; }   // glosor: v1:s Leitner-boxar tar hand om fel ord (ingen Rescue för ord)
     if (!ok && spec.rescueStep === 'normal') {   // fel även efter Rescue → skjut upp konceptet till ett senare pass (ingen ändlös loop)
       for (let j = R.queue.length - 1; j > R.i; j--) if (R.queue[j].cid === spec.cid && !R.queue[j].dynamic) R.queue.splice(j, 1);
       out.push({ type: 'defer', cid: spec.cid });

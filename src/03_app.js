@@ -45,6 +45,7 @@ function rollover(p) {
 }
 let saveTimer = null;
 function save() {
+  if (typeof V2 !== 'undefined' && V2.sandbox) return; // förälderns förhandsvisning av v2: inget sparas eller synkas
   const target = state.screen === 'parent' ? state.tab : state.kid;
   if (target && DB.profiles[target]) { const d = DB.profiles[target]; d.updatedAt = Date.now(); d.since = d.since || { xp: 0, gems: 0, days: {} }; if (d._lx != null) { d.since.xp += d.xp - d._lx; d.since.gems += d.gems - d._lg; } d._lx = d.xp; d._lg = d.gems; SYNC.schedulePush(target); }
   clearTimeout(saveTimer); saveTimer = setTimeout(flushSave, 150);
@@ -357,12 +358,12 @@ function applyLook(kid) {
   // Ljust är standard överallt; mörkt bara om barnet valt det. null = följ telefonen.
   if (p && p.settings.dark === true) root.setAttribute('data-theme', 'dark'); else if (p && p.settings.dark === null) root.removeAttribute('data-theme'); else root.setAttribute('data-theme', 'light');
 }
-function render(html) { app.innerHTML = html; window.scrollTo({ top: 0 }); }
+function render(html) { app.innerHTML = (typeof V2 !== 'undefined' && V2.sandbox ? V2.previewBar() : '') + html; window.scrollTo({ top: 0 }); }
 function kidById(id) { return KIDS.find(k => k.id === id); }
 // Appens namn kommer från familjekonfigurationen (t.ex. "Familjen Xs Pluggapp"); utan konfiguration heter den bara Pluggapp.
 function appName() { return (FAMILY.cfg && FAMILY.cfg.appName) || 'Pluggapp'; }
 function logoHtml() { const n = appName(); const i = n.lastIndexOf(' '); return i > 0 ? `${esc(n.slice(0, i))} <span>${esc(n.slice(i + 1))}</span>` : `<span>${esc(n)}</span>`; }
-function go(screen, extra = {}) { if (S && S.timer) clearInterval(S.timer); state = { ...state, screen, ...extra }; if (screen === 'start' || screen === 'parent') { state.kid = null; applyLook(null); } else applyLook(kidById(state.kid)); VIEWS[screen](); }
+function go(screen, extra = {}) { if (S && S.timer) clearInterval(S.timer); if (typeof V2 !== 'undefined' && V2.sandbox && (screen === 'start' || screen === 'parent')) V2.restoreSandbox(); state = { ...state, screen, ...extra }; if (screen === 'start' || screen === 'parent') { state.kid = null; applyLook(null); } else applyLook(kidById(state.kid)); VIEWS[screen](); }
 function topbar(title, back, right = '') { return `<div class="topbar"><button class="icon-btn" data-go="${back}" aria-label="Tillbaka">${ICON.back}</button><div class="title grow">${title}</div>${right}</div>`; }
 function daysUntil(dateStr) { const d = new Date(dateStr + 'T00:00:00'); const now = new Date(); now.setHours(0, 0, 0, 0); return Math.round((d - now) / DAYMS); }
 const fmtDate = (s) => new Date(s + 'T00:00:00').toLocaleDateString('sv-SE', { day: 'numeric', month: 'long' });
@@ -434,7 +435,7 @@ function recommendSprint(kid) {
 
 VIEWS.home = () => {
   if (!state.subj) { try { state.subj = localStorage.getItem('pluggappen.subj.' + state.kid) || 'math'; } catch (e) { state.subj = 'math'; } }
-  const kid = kidById(state.kid); const p = prof(kid.id); p.kidId = kid.id;
+  const kid = kidById(state.kid); const p = prof(kid.id); p.kidId = kid.id; const v2 = V2.on(kid);
   if (!p.pet) { if (isTeen(kid) || isSport(kid)) { p.pet = 'none'; save(); } else return VIEWS.petpick(); }
   const lvl = levelOf(p.xp); const next = xpForLevel(lvl + 1); const prev = xpForLevel(lvl); const pct = Math.round(((p.xp - prev) / (next - prev)) * 100);
   const today = p.days[todayKey()] || { c: 0, n: 0 }; const goal = goalFor(kid.id);
@@ -457,18 +458,18 @@ VIEWS.home = () => {
   <div class="stack" style="margin-top:6px">
     ${isSport(kid) ? `<div class="player-card lulea"><div><div class="rating">${lvl}</div><div class="pos">${['C', 'LW', 'RW', 'D', 'G'][lvl % 5]}</div></div><div class="grow" style="position:relative"><div class="pname">${esc(kid.name)}</div><div class="ptitle">${levelNameFor(kid, lvl)} · ${p.xp} poäng</div><div class="pstats"><div><b>${p.streak}</b>${LBL(kid).streakWord}</div><div><b>${today.c}/${goal}</b>mål idag</div><div><b>${p.weekCorrect || 0}</b>rätt i veckan</div></div><div class="xpbar"><i style="width:${pct}%"></i></div><div style="font-size:.75rem;opacity:.8;margin-top:4px">${next - p.xp} poäng till ${levelNameFor(kid, lvl + 1)}</div></div></div>` : `<div class="card stack" style="gap:12px">
       <div class="hero">${isTeen(kid) ? `<div class="rank">${lvl}<small>nivå</small></div>` : `<div class="pet">${petEmoji(p)}<span class="lvl">${lvl}</span></div>`}
-        <div class="grow"><div class="eyebrow">${levelNameFor(kid, lvl)} · ${p.xp} XP</div><div class="mood" style="margin:4px 0 8px">${isTeen(kid) ? (today.c >= goal ? 'Dagens mål klart. Allt över det är bonus.' : today.c ? `${goal - today.c} rätt kvar till dagens mål.` : `${p.streak ? `Håll streaken vid liv – ` : ''}en sprint på fem räcker idag.`) : petMood(p)}</div><div class="xpbar"><i style="width:${pct}%"></i></div><div class="muted" style="font-size:.8rem;margin-top:4px">${next - p.xp} XP till nivå ${lvl + 1}</div></div></div>
-      <div class="row" style="gap:8px"><span class="pill">${p.streak} dag${p.streak === 1 ? '' : 'ar'} i rad</span><span class="pill" title="Streakfrys räddar din streak om du missar en dag">${p.freezes} frys</span><span class="pill ${today.c >= goal ? 'good' : ''}">${today.c}/${goal} idag</span></div>
+        <div class="grow"><div class="eyebrow">${levelNameFor(kid, lvl)} · ${p.xp} XP</div><div class="mood" style="margin:4px 0 8px">${isTeen(kid) ? (today.c >= goal ? 'Dagens mål klart. Allt över det är bonus.' : today.c ? `${goal - today.c} rätt kvar till dagens mål.` : `${p.streak && !v2 ? `Håll streaken vid liv – ` : ''}en sprint på fem räcker idag.`) : petMood(p)}</div><div class="xpbar"><i style="width:${pct}%"></i></div><div class="muted" style="font-size:.8rem;margin-top:4px">${next - p.xp} XP till nivå ${lvl + 1}</div></div></div>
+      <div class="row" style="gap:8px"><span class="pill">${p.streak} dag${p.streak === 1 ? '' : 'ar'} i rad</span>${v2 ? V2.weekPill(p) : `<span class="pill" title="Streakfrys räddar din streak om du missar en dag">${p.freezes} frys</span>`}<span class="pill ${today.c >= goal ? 'good' : ''}">${today.c}/${goal} idag</span></div>
     </div>`}
-    <button class="go-btn" data-rec="1"><div><div class="t">${LBL(kid).go}</div><div class="s">${esc(rec.label)} · ${rec.opts.n} ${LBL(kid).unit} · ~${Math.ceil(rec.opts.n * 0.5)} min</div></div><div class="arrow">${ICON.arrow}</div></button>
+    ${v2 ? V2.welcome(kid) + (isSport(kid) ? `<div class="row" style="justify-content:center">${V2.weekPill(p)}</div>` : '') + V2.korBtn(kid) : `<button class="go-btn" data-rec="1"><div><div class="t">${LBL(kid).go}</div><div class="s">${esc(rec.label)} · ${rec.opts.n} ${LBL(kid).unit} · ~${Math.ceil(rec.opts.n * 0.5)} min</div></div><div class="arrow">${ICON.arrow}</div></button>`}
     <div class="card">
       <div class="section-h"><h3>${LBL(kid).quests}</h3><span class="muted" style="font-size:.85rem">${quests.filter(q => q.claimed).length}/${quests.length} klara</span></div>
       ${quests.map(q => `<div class="quest ${q.done ? 'done' : ''}"><div class="qi">${q.done ? '✅' : q.icon}</div><div class="grow"><div class="qt">${esc(q.text)}</div><div class="qp">${q.claimed ? `Klart · +${q.reward.xp} XP, +${q.reward.gems} 💎` : `${Math.min(q.progress, q.target)}/${q.target} · ${q.reward.xp} XP + ${q.reward.gems} 💎`}</div>${q.claimed ? '' : `<div class="mastery hi" style="margin-top:4px"><i style="width:${Math.min(100, Math.round(q.progress / q.target * 100))}%"></i></div>`}</div>${q.done && !q.claimed ? `<button class="btn claim" data-claim="${q.id}">Hämta</button>` : ''}</div>`).join('')}
       <div class="week" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line)"><div class="grow"><div class="qt" style="font-weight:700;font-size:.95rem">${LBL(kid).week}: ${weekTarget} rätt</div><div class="mastery mid" style="margin-top:4px"><i style="width:${Math.min(100, Math.round((p.weekCorrect || 0) / weekTarget * 100))}%"></i></div></div><span class="m">${p.weekCorrect || 0}/${weekTarget}</span></div>
     </div>
-    ${examCards}
+    ${v2 ? V2.examCards(kid) : examCards}
     ${PUSH.card(kid.id, 'kid')}
-    ${(p.mistakes || []).length ? `<button class="card tap row" data-act="felbok" style="gap:12px"><div class="ic" style="width:44px;height:44px;border-radius:12px;background:var(--bad-soft);color:var(--bad);display:grid;place-items:center;font-size:1.3rem">📕</div><div class="grow"><div style="font-weight:800;font-family:var(--display)">Felboken · ${p.mistakes.length} ${p.mistakes.length === 1 ? 'uppgift' : 'uppgifter'}</div><div class="muted" style="font-size:.9rem">Allt du svarat fel på. Klara dem för att tömma boken.</div></div><span class="chev">›</span></button>` : ''}
+    ${v2 ? V2.felbokCard(kid) : (p.mistakes || []).length ? `<button class="card tap row" data-act="felbok" style="gap:12px"><div class="ic" style="width:44px;height:44px;border-radius:12px;background:var(--bad-soft);color:var(--bad);display:grid;place-items:center;font-size:1.3rem">📕</div><div class="grow"><div style="font-weight:800;font-family:var(--display)">Felboken · ${p.mistakes.length} ${p.mistakes.length === 1 ? 'uppgift' : 'uppgifter'}</div><div class="muted" style="font-size:.9rem">Allt du svarat fel på. Klara dem för att tömma boken.</div></div><span class="chev">›</span></button>` : ''}
     ${(() => {
       const subjects = [['math', 'Matte', '🔢'], ['sv', 'Svenska', '📖'], ['en', 'Engelska', '🇬🇧'], ['no', 'NO', '🔬'], ['so', 'SO', '🌍'], ['lang', 'Språk', '🗣️']].filter(([g]) => g === 'lang' || kid.skills.some(s => (s.group || 'math') === g));
       const cur = subjects.some(([g]) => g === state.subj) ? state.subj : subjects[0][0];
@@ -531,7 +532,7 @@ VIEWS.method = () => {
   render(`${topbar(esc(s.name), 'home')}
   <div class="stack" style="margin-top:6px">
     <div class="card pad-lg method"><div class="eyebrow" style="margin-bottom:8px">${(s.group || 'math') === 'math' ? 'Så gör man' : 'Läs på'}</div>${s.lgr ? `<p class="muted" style="font-size:.85rem;margin:0 0 10px"><b>Lgr22 · åk 1–3:</b> <i>${s.lgr}</i></p>` : ''}${s.method}</div>
-    <button class="btn big wide" data-skill="${s.id}">Öva på det här</button>
+    ${V2.on(kid) ? `<button class="btn big wide" data-v2="rc" data-skill="${s.id}">🙈 Stäng texten och testa dig själv</button><p class="muted" style="font-size:.85rem;text-align:center;margin-top:-4px">Läs, stäng, försök minnas – sedan jämför du. Det är så kunskap fastnar.</p><button class="btn ghost wide" data-skill="${s.id}">Öva på det här</button>` : `<button class="btn big wide" data-skill="${s.id}">Öva på det här</button>`}
   </div>`);
 };
 
@@ -700,17 +701,18 @@ function startSession(kid, opts) {
 
 VIEWS.practice = () => {
   const item = S.queue[S.i]; const kid = S.kid; const p = prof(kid.id);
-  const isTest = S.mode === 'test'; const focus = p.settings.focus;
-  const title = isTest ? 'Provläge' : S.mode === 'felbok' ? 'Felboken' : item.cat === 'word' ? esc(item.deck.name) : esc(item.skill.short || item.skill.name);
+  const isTest = S.mode === 'test' || !!(S.v2 && S.v2.exam); const focus = p.settings.focus;
+  const title = S.v2 ? V2.title(item) : isTest ? 'Provläge' : S.mode === 'felbok' ? 'Felboken' : item.cat === 'word' ? esc(item.deck.name) : esc(item.skill.short || item.skill.name);
   const left = S.queue.length - S.i;
-  const right = isTest ? `<span class="timer" id="timer">${fmtTime(S.deadline - Date.now())} kvar</span>` : S.opts.bonus ? `<span class="pill warn">2× XP</span>` : p.settings.timer ? `<span class="timer" id="timer">${fmtTime(Date.now() - S.startedAt)}</span>` : focus ? `<span class="left-count">${left} kvar</span>` : `<span class="pill acc">${S.xp} XP</span>`;
+  const right = S.v2 ? V2.topRight() : isTest ? `<span class="timer" id="timer">${fmtTime(S.deadline - Date.now())} kvar</span>` : S.opts.bonus ? `<span class="pill warn">2× XP</span>` : p.settings.timer ? `<span class="timer" id="timer">${fmtTime(Date.now() - S.startedAt)}</span>` : focus ? `<span class="left-count">${left} kvar</span>` : `<span class="pill acc">${S.xp} XP</span>`;
   let body;
-  if (item.cat === 'word') body = wordBody(item);
+  if (item.cat === 'learn') body = V2.teachBody(item);
+  else if (item.cat === 'word') body = wordBody(item);
   else body = mathBody(item, kid, isTest);
   render(`
   ${topbar(title, 'home', right)}
   <div class="stack" style="margin-top:6px">
-    <div class="progress">${S.queue.map((_, i) => `<i class="${i < S.i ? (S.results[i] ? 'ok' : 'no') : i === S.i ? 'cur' : ''}"></i>`).join('')}</div>
+    ${S.v2 ? V2.progressBar() + V2.chip(item) : `<div class="progress">${S.queue.map((_, i) => `<i class="${i < S.i ? (S.results[i] ? 'ok' : 'no') : i === S.i ? 'cur' : ''}"></i>`).join('')}</div>`}
     <div class="card pad-lg stack" id="qcard" style="gap:16px">${body}</div>
   </div>`);
   initSketch();
@@ -718,6 +720,7 @@ VIEWS.practice = () => {
   if (input && kid.template !== 'ak2' && !(item.cat === 'math' && item.type === 'num' && kid.template === 'ak4' && focus)) setTimeout(() => input.focus({ preventScroll: true }), 50);
   if (input && input.tagName !== 'TEXTAREA') input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); document.getElementById('submit')?.click(); } });
   if (item.cat === 'word' && (item.kind === 'intro' || item.kind === 'listen' || (item.kind === 'pick' && item.speak)) && p.settings.tts) setTimeout(() => TTS.speak(item.word.w, item.deck.lang), 250);
+  if (S.v2) V2.afterRender(item);
   LE.shown(S);
 };
 function mathBody(q, kid, isTest) {
@@ -736,14 +739,14 @@ function mathBody(q, kid, isTest) {
          <div class="keys" style="margin-top:8px">
            ${['7', '8', '9', '4', '5', '6', '1', '2', '3', '0'].map(k => `<button class="key" data-key="${k}">${k}</button>`).join('')}
            ${vars.map(v => `<button class="key acc" data-key="${v}">${v}</button>`).join('')}${vars.length === 1 ? `<button class="key acc" data-key="${q.variable}²">${q.variable}²</button>` : ''}
-           <button class="key" data-key=" + ">+</button><button class="key" data-key=" − ">−</button><button class="key" data-key="(">(</button><button class="key" data-key=")">)</button><button class="key wide" data-key="⌫">⌫</button>
+           ${q.eq ? '<button class="key" data-key=" = ">=</button>' : ''}<button class="key" data-key=" + ">+</button><button class="key" data-key=" − ">−</button><button class="key" data-key="(">(</button><button class="key" data-key=")">)</button><button class="key wide" data-key="⌫">⌫</button>
          </div>`
       : q.type === 'num'
         ? `<input class="answer-input" id="ans" inputmode="${q.answer < 0 ? 'text' : Number.isInteger(q.answer) ? 'numeric' : 'decimal'}" autocomplete="off" placeholder="${Number.isInteger(q.answer) ? '?' : 't.ex. 2,5'}" aria-label="Ditt svar">
            ${kid.template === 'ak2' || q.answer < 0 ? `<div class="keys" style="margin-top:8px;grid-template-columns:repeat(6,1fr)">${['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'].map(k => `<button class="key" data-key="${k}">${k}</button>`).join('')}<button class="key" data-key="−">−</button><button class="key" data-key="⌫">⌫</button></div>` : ''}`
         : `<input class="answer-input" id="ans" autocomplete="off" autocapitalize="off" placeholder="Skriv svaret" aria-label="Ditt svar">`;
   const p = prof(kid.id);
-  return `<div class="row" style="justify-content:space-between"><span class="eyebrow">Uppgift ${S.i + 1} av ${S.queue.length}${isTest && q.part ? ` · ${q.part}-nivå` : ''}${!isTest && !p.settings.focus ? ` · ${esc(q.skill.short || '')}` : ''}</span><span class="row" style="gap:8px">${TTS.ok && p.settings.tts ? `<button class="icon-btn" data-speak="${esc(q.text.replace(/<[^>]+>/g, ''))}" data-lang="sv" data-highlight="1" style="width:36px;height:36px" aria-label="Läs upp">${ICON.speaker}</button>` : ''}<span class="lvl-dots" aria-label="Svårighet ${q.level}">${[1, 2, 3].map(i => `<i class="${i <= q.level ? 'on' : ''}"></i>`).join('')}</span></span></div>
+  return `<div class="row" style="justify-content:space-between"><span class="eyebrow">Uppgift ${S.i + 1} av ${S.v2 ? V2.total() : S.queue.length}${isTest && q.part ? ` · ${q.part}-nivå` : ''}${!isTest && !p.settings.focus ? ` · ${esc(q.skill.short || '')}` : ''}</span><span class="row" style="gap:8px">${TTS.ok && p.settings.tts ? `<button class="icon-btn" data-speak="${esc(q.text.replace(/<[^>]+>/g, ''))}" data-lang="sv" data-highlight="1" style="width:36px;height:36px" aria-label="Läs upp">${ICON.speaker}</button>` : ''}<span class="lvl-dots" aria-label="Svårighet ${q.level}">${[1, 2, 3].map(i => `<i class="${i <= q.level ? 'on' : ''}"></i>`).join('')}</span></span></div>
       ${q.fig ? `<div class="figwrap">${safeHtml(q.fig)}</div>` : ''}
       <div class="question" id="qtext">${safeHtml(q.text)}</div>
       <div id="inputArea">${inputHtml}</div>
@@ -767,7 +770,7 @@ function initSketch() {
   document.getElementById('sketchClear')?.addEventListener('click', () => ctx.clearRect(0, 0, cv.width, cv.height));
 }
 function wordBody(ex) {
-  const lang = ex.deck.lang; const head = `<div class="row" style="justify-content:space-between"><span class="eyebrow">${S.i + 1} av ${S.queue.length} · ${esc(ex.title || 'Nytt ord')}</span><span>${LANGS[lang]?.flag || ''}</span></div>`;
+  const lang = ex.deck.lang; const head = `<div class="row" style="justify-content:space-between"><span class="eyebrow">${S.i + 1} av ${S.v2 ? V2.total() : S.queue.length} · ${esc(ex.title || 'Nytt ord')}</span><span>${LANGS[lang]?.flag || ''}</span></div>`;
   if (ex.kind === 'intro') { const sv = lang === 'sv'; return `${head}<div class="word-card"><div class="eyebrow">${sv ? 'Nytt kort' : 'Nytt ord'}</div><div class="we">${ex.word.e || '✨'}</div><div class="ww">${esc(sv ? ex.word.t : ex.word.w)}</div><div class="wt">${esc(sv ? ex.word.w : ex.word.t)}</div>${sv ? '' : speakBtn(ex.word.w, lang)}</div><div class="row" id="actions"><button class="btn grow big" id="next">Jag har sett det → </button></div>`; }
   if (ex.kind === 'pick') return `${head}<div class="word-card"><div class="we" style="font-size:${ex.promptEmoji ? '3.6rem' : '0'}">${ex.promptEmoji}</div><div class="ww">${esc(ex.prompt)}</div>${ex.speak ? speakBtn(ex.word.w, lang) : ''}</div><div class="wchoices">${ex.choices.map(c => `<button class="wchoice" data-wchoice="${c.id}">${c.e ? `<span class="ce">${esc(c.e)}</span>` : ''}<span>${esc(c.label)}</span></button>`).join('')}</div><div id="fb"></div><div class="row" id="actions"></div>`;
   if (ex.kind === 'listen') return `${head}<div class="word-card"><div class="eyebrow">Tryck och lyssna</div>${speakBtn(ex.word.w, lang, 'big')}<button class="pill" data-speak="${esc(ex.word.w)}" data-lang="${lang}" data-rate="0.6">🐢 Långsamt</button></div><div class="wchoices">${ex.choices.map(c => `<button class="wchoice" data-wchoice="${c.id}"><span>${esc(c.label)}</span></button>`).join('')}</div><div id="fb"></div><div class="row" id="actions"></div>`;
@@ -783,6 +786,7 @@ function wordBody(ex) {
 
 function onPractice(e) {
   const item = S.queue[S.i]; const t = e.target;
+  if (item && item.cat === 'learn') return;
   if (t.closest('#next')) { if (item.cat === 'word' && item.kind === 'intro' && !S.answered) { S.answered = true; S.results.push(true); } return nextQuestion(); }
   if (S.answered) return;
   if (item.cat === 'math') return onMath(e, item);
@@ -854,12 +858,13 @@ function finishWord(ex, correct, revealForeign, note) {
   else if (!correct) { noteMistake(prof(S.kid.id), ex); save(); }
   if (correct) { S.streak++; } else S.streak = 0;
   S.xp += xp; S.results.push(correct);
+  if (S.v2) { V2.observeWord(ex, correct); if (S.v2.exam) return V2.examAnswered(ex, correct, document.getElementById('ans')?.value || ''); }
   const fb = document.getElementById('fb');
   if (correct) { beep('ok', S.streak); xpPop(xp); fb.innerHTML = `<div class="feedback ok"><span style="font-size:1.4rem">✅</span><div><div class="big">${R.pick(['¡Muy bien!', 'Rätt!', 'Snyggt!', 'Perfekt!', 'Boom!'])}</div><div class="sub">${esc(ex.word.w)} = ${esc(ex.word.t)}${note ? `<br>${note}` : ''}</div></div></div>`; }
-  else { beep('no'); fb.innerHTML = `<div class="feedback no"><span style="font-size:1.4rem">❌</span><div><div class="big">Inte riktigt</div><div class="sub"><b>${esc(ex.word.w)}</b> = ${esc(ex.word.t)}. Ordet kommer tillbaka snart.</div></div></div>`; if (!correct && S.mode === 'practice' && S.queue.length < 18) S.queue.push({ ...makeWordExercise(ex.deck, ex.word, 'pick'), cat: 'word' }); }
+  else { beep('no'); fb.innerHTML = `<div class="feedback no"><span style="font-size:1.4rem">❌</span><div><div class="big">Inte riktigt</div><div class="sub"><b>${esc(ex.word.w)}</b> = ${esc(ex.word.t)}. Ordet kommer tillbaka snart.</div></div></div>`; if (!correct && S.mode === 'practice' && !S.v2 && S.queue.length < 18) S.queue.push({ ...makeWordExercise(ex.deck, ex.word, 'pick'), cat: 'word' }); }
   if (TTS.ok && prof(S.kid.id).settings.tts) TTS.speak(ex.word.w, ex.deck.lang);
   document.querySelectorAll('.ltile, #undoTile').forEach(b => b.disabled = true);
-  document.getElementById('actions').innerHTML = `<button class="btn grow" id="next">${S.i + 1 < S.queue.length ? 'Nästa →' : 'Visa resultat'}</button>`;
+  document.getElementById('actions').innerHTML = `<button class="btn grow" id="next">${(S.v2 ? V2.hasNext() : S.i + 1 < S.queue.length) ? 'Nästa →' : 'Visa resultat'}</button>`;
   document.getElementById('next').focus({ preventScroll: true });
 }
 function renderOrder() { const el = document.getElementById('orderSlots'); const O = S.order; el.innerHTML = O.picked.length ? O.picked.map((i, n) => `<div class="otile picked"><span class="onum">${n + 1}</span>${S.queue[S.i].items[i]}</div>`).join('') : `<span class="muted" style="font-size:.9rem;align-self:center">Tryck på stegen i rätt ordning</span>`; document.getElementById('submit').disabled = O.picked.length !== S.queue[S.i].items.length; }
@@ -898,7 +903,7 @@ const answerDisplay = (q) => q.type === 'expr' ? Poly.format(q.answer) : q.type 
 function submitMath() {
   const q = S.queue[S.i]; const input = document.getElementById('ans');
   const raw = q.type === 'order' ? 'order' : q.choices || q.type === 'choicetext' ? (S.selected === undefined ? '' : String(S.selected)) : input.value;
-  const res = checkAnswer(q, raw); const fb = document.getElementById('fb');
+  const res = (q.v2check ? V2.check : checkAnswer)(q, raw); const fb = document.getElementById('fb');
   if (res.status === 'empty') { toast(q.type === 'order' ? 'Placera alla steg först' : 'Skriv ett svar först'); return; }
   if (res.status === 'invalid') { fb.innerHTML = `<div class="feedback warn"><span>✍️</span><div><div class="big">Hmm</div><div class="sub">${res.msg}</div></div></div>`; document.getElementById('qcard').classList.add('shake'); setTimeout(() => document.getElementById('qcard')?.classList.remove('shake'), 400); return; }
   if (res.status === 'unsimplified' && !S.retried) { S.retried = true; fb.innerHTML = `<div class="feedback warn"><span>🧐</span><div><div class="big">Nästan!</div><div class="sub">Värdet stämmer, men uttrycket ska förenklas färdigt. Multiplicera in och slå ihop lika termer.</div></div></div>`; return; }
@@ -910,6 +915,8 @@ function submitMath() {
   else if (!correct) { noteMistake(prof(S.kid.id), q); save(); }
   if (correct) { S.streak++; if (S.streak >= 3) { const b = Math.min(10, S.streak * 2); xp += b; prof(S.kid.id).xp += b; save(); } } else S.streak = 0;
   S.xp += xp; S.results.push(correct);
+  let v2evs = null; const v2rw = S.v2 ? S.v2.rewards.length : 0;
+  if (S.v2) { v2evs = V2.observe(q, correct); if (S.v2.exam) return V2.examAnswered(q, correct, raw); }
   if (q.choices || q.type === 'choicetext') document.querySelectorAll('.choice, .wchoice').forEach(c => { const v = Number(c.dataset.choice); if (v === q.answer) c.classList.add('ok'); else if (v === S.selected) c.classList.add('no'); c.disabled = true; });
   if (input) input.disabled = true;
   const praise = R.pick(['Snyggt!', 'Rätt!', 'Perfekt!', 'Så ska det se ut!', 'Boom!', 'Exakt!']);
@@ -926,11 +933,12 @@ function submitMath() {
     else { beep('no'); fb.innerHTML = `<div class="feedback no"><span style="font-size:1.4rem">✍️</span><div><div class="big">Svaret behöver mer</div><div class="sub">${hitTxt}${missTxt}</div></div></div>`; }
     if (!isTest || !correct) showSteps(q, false);
   }
-  else if (correct) { beep('ok', S.streak); xpPop(xp); fb.innerHTML = `<div class="feedback ok"><span style="font-size:1.4rem">✅</span><div><div class="big">${praise}${S.streak >= 3 ? ` ${S.streak} i rad 🔥` : ''}</div><div class="sub">${esc(answerDisplay(q))}</div></div></div>`; }
+  else if (correct) { beep('ok', S.streak); xpPop(xp); fb.innerHTML = `<div class="feedback ok"><span style="font-size:1.4rem">✅</span><div><div class="big">${praise}${S.streak >= 3 ? ` ${S.streak} i rad 🔥` : ''}</div><div class="sub">${esc(answerDisplay(q))}${res.note ? `<br>${res.note}` : ''}</div></div></div>`; }
   else if (S.revealed) { fb.innerHTML = `<div class="feedback warn"><span style="font-size:1.4rem">👀</span><div><div class="big">Nu vet du hur man gör</div><div class="sub">Du får en liknande uppgift igen om en stund.</div></div></div>`; }
   else { beep('no'); fb.innerHTML = `<div class="feedback no"><span style="font-size:1.4rem">❌</span><div><div class="big">Inte riktigt</div><div class="sub">Rätt svar: <b>${esc(answerDisplay(q))}</b>${q.choices || q.type === 'choicetext' || !raw ? '' : ` · Du svarade: ${esc(raw)}`}</div></div></div>`; if (!isTest) showSteps(q, false); }
   document.getElementById('hintBtn')?.remove(); document.getElementById('explainBtn')?.remove();
-  document.getElementById('actions').innerHTML = `<button class="btn grow" id="next">${S.i + 1 < S.queue.length ? 'Nästa →' : 'Visa resultat'}</button>${!correct && !isTest ? `<button class="btn ghost" id="stepsBtn2">Visa lösning</button>` : ''}`;
+  if (S.v2) V2.feedbackExtra(v2evs, v2rw);
+  document.getElementById('actions').innerHTML = `<button class="btn grow" id="next">${(S.v2 ? V2.hasNext() : S.i + 1 < S.queue.length) ? 'Nästa →' : 'Visa resultat'}</button>${!correct && !isTest ? `<button class="btn ghost" id="stepsBtn2">Visa lösning</button>` : ''}`;
   document.getElementById('stepsBtn2')?.addEventListener('click', () => showSteps(q, false));
   document.getElementById('next').focus({ preventScroll: true });
 }
@@ -938,11 +946,13 @@ function nextQuestion() {
   const cur = S.queue[S.i];
   if (cur.cat === 'math' && !S.results[S.i] && S.mode === 'practice' && S.queue.length < 18) S.queue.push(makeQuestion(S.kid, cur.skill, cur.level));
   S.i++; S.usedHelp = false; S.retried = false; S.revealed = false; S.answered = false; S.selected = undefined; S.match = null; S.spell = null; S.order = null;
+  if (S.v2 && !V2.advance()) return finishSession();
   if (S.i >= S.queue.length) return finishSession();
   VIEWS.practice();
 }
 function finishSession() {
   clearInterval(S.timer);
+  if (S.v2) return V2.finish();
   LE.sessionEnd(S); // Fas 3B: skuggläge
   const p = prof(S.kid.id); p.sessions++; p.sprintsSinceBreak = (p.sprintsSinceBreak || 0) + 1;
   const n = S.results.length, c = S.results.filter(Boolean).length;
@@ -1067,7 +1077,7 @@ VIEWS.parent = () => {
     if (sub === 'overview') body += parentOverview(kid, p);
     else if (sub === 'exams') body += parentExams(kid, p);
     else if (sub === 'decks') body += parentDecks(kid, p);
-    else if (sub === 'v2') body += LE.view(kid);
+    else if (sub === 'v2') body += V2.engineCard(kid) + (p.settings.engine === 'v2' ? V2.insightsCard(kid) : '') + LE.view(kid);
     else body += parentSettings(kid, p);
   } else {
     body = `<div class="card stack" style="gap:12px"><div class="eyebrow">Inställningar</div>
@@ -1092,6 +1102,10 @@ VIEWS.parent = () => {
   </div>`);
 };
 function parentOverview(kid, p) {
+  if (p.settings.engine === 'v2') return V2.insightsCard(kid) + parentOverviewV1(kid, p);
+  return parentOverviewV1(kid, p);
+}
+function parentOverviewV1(kid, p) {
   const lvl = levelOf(p.xp);
   const days = []; for (let i = 13; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); const k = todayKey(d); days.push({ k, ...(p.days[k] || { n: 0, c: 0, xp: 0 }), lbl: d.toLocaleDateString('sv-SE', { weekday: 'short' }).slice(0, 2) }); }
   const maxN = Math.max(1, ...days.map(d => d.n));
@@ -1246,6 +1260,7 @@ app.addEventListener('click', (e) => {
   const kidBtn = t.closest('[data-kid]'); if (kidBtn) { state.kid = kidBtn.dataset.kid; state.subj = null; go('home'); if (SYNC.active && Date.now() - (SYNC.lastPull[state.kid] || 0) > 20000) SYNC.refresh(state.kid).then(ch => { if (ch && state.screen === 'home') VIEWS.home(); }); return; }
   const petBtn = t.closest('[data-pet]'); if (petBtn) { const p = prof(state.kid); p.pet = petBtn.dataset.pet; save(); confetti(); return go('home'); }
   const kid = state.kid ? kidById(state.kid) : null;
+  const v2Btn = t.closest('[data-v2]'); if (v2Btn) return V2.click(v2Btn, kid);
   const skillBtn = t.closest('[data-skill]'); if (skillBtn && kid) return startSession(kid, { skillIds: [skillBtn.dataset.skill] });
   const deckBtn = t.closest('[data-deck]'); if (deckBtn && kid) return startSession(kid, { deckIds: [deckBtn.dataset.deck], wordsOnly: true, n: 12 });
   const chainBtn = t.closest('[data-chain-next]'); if (chainBtn && kid && S) { const id = chainBtn.dataset.chainNext; const deck = id.startsWith('mix_') ? virtualMixDeck(prof(kid.id), id.slice(4)) : deckById(prof(kid.id), id); return startSession(kid, { deckIds: [deck.id], deck, wordsOnly: true, n: 12, chainStats: S.chain }); }
@@ -1330,11 +1345,11 @@ function boot(snap) {
   if (SYNC.active) { ensureMembership().then(() => FAMILY.pull()).then((cfgChanged) => { if (cfgChanged) { load(); if (state.screen === 'start') VIEWS.start(); } return SYNC.refreshAll(); }).then((changed) => { if (state.screen === 'start' || (changed && state.screen === 'home')) VIEWS[state.screen](); }); document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && SYNC.active && state.screen !== 'practice' && state.screen !== 'blitzplay') SYNC.refreshAll().then((changed) => { if (changed && VIEWS[state.screen]) VIEWS[state.screen](); }); }); }
   const [hk, hact] = h.split('-');
   if (snap && snap.kid && kidById(snap.kid)) { state.kid = snap.kid; go('home'); }
-  else if (kidById(hk) && hact === 'kor') { state.kid = hk; applyLook(kidById(hk)); const kid = kidById(hk); const p = prof(hk); if (!p.pet) { p.pet = isTeen(kid) || isSport(kid) ? 'none' : PETS[0].id; save(); } LE.nextSrc = 'kor'; startSession(kid, recommendSprint(kid).opts); }
+  else if (kidById(hk) && hact === 'kor') { state.kid = hk; applyLook(kidById(hk)); const kid = kidById(hk); const p = prof(hk); if (!p.pet) { p.pet = isTeen(kid) || isSport(kid) ? 'none' : PETS[0].id; save(); } if (V2.on(kid)) { state.screen = 'home'; V2.start(kid, 'kor'); } else { LE.nextSrc = 'kor'; startSession(kid, recommendSprint(kid).opts); } }
   else if (kidById(hk) && hact === 'sprak') { state.kid = hk; applyLook(kidById(hk)); const kid = kidById(hk); const nx = nextDeckAfter(kid, null); if (nx) startSession(kid, { deckIds: [nx.deck.id], deck: nx.deck, wordsOnly: true, n: 12 }); else go('home'); }
   else if (kidById(h)) { state.kid = h; go('home'); }
   else if (h === 'foralder') go('parent');
   else go('start');
 }
 window.claude?.hot?.ready ? window.claude.hot.ready(boot) : boot(window.claude?.hot?.data ?? null);
-window.PA = { LE, LE2, LECAT, get S() { return S; }, get DB() { return DB; }, get B() { return B; }, Poly, KIDS, TEMPLATES, FAMILY, AUTH, deleteKidData, deleteFamilyData, buildKids, load, flushSave, rerender: () => VIEWS[state.screen] && VIEWS[state.screen](), BUILTIN_DECKS, SYNC, save, setKid: (id) => { state.kid = id; }, version: '3.0' };
+window.PA = { LE, LE2, LECAT, LER, V2, RECALL, CHG, checkAnswer, answerDisplay, makeQuestion, get S() { return S; }, get DB() { return DB; }, get B() { return B; }, Poly, KIDS, TEMPLATES, FAMILY, AUTH, deleteKidData, deleteFamilyData, buildKids, load, flushSave, rerender: () => VIEWS[state.screen] && VIEWS[state.screen](), BUILTIN_DECKS, SYNC, save, setKid: (id) => { state.kid = id; }, version: '3.0' };

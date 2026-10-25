@@ -93,7 +93,7 @@ setTimeout(() => {
                   ok(decks.every(d => b.cat['d:' + d.id]), `${kid.template}: every deck has a concept (${decks.length})`);
                   ok(Object.values(b.cat).every(c => c.subject && c.name && c.maxLvl >= 1), `${kid.template}: complete concept definitions`);
                   // varje uppgift från varje generator på varje nivå hamnar på sitt koncept och får ett stabilt uppgifts-id
-                  let items = 0, bad = 0; for (const s of kid.skills) for (let lv = 1; lv <= (s.maxLvl || 3); lv++) for (let r = 0; r < 4; r++) { const q = s.gen(lv, {}); q.skill = s; q.cat = 'math'; items++; if (P3.LECAT.cidOfItem(q) !== 's:' + s.id || !/^i[0-9a-z]+$/.test(P3.LECAT.itemId(q)) || P3.LECAT.itemId(q) !== P3.LECAT.itemId(JSON.parse(JSON.stringify({ type: q.type, text: q.text })))) bad++; }
+                  let items = 0, bad = 0; for (const s of kid.skills) for (let lv = 1; lv <= (s.maxLvl || 3); lv++) for (let r = 0; r < 4; r++) { const q = s.gen(lv, {}); q.skill = s; q.cat = 'math'; items++; if (P3.LECAT.cidOfItem(q) !== 's:' + s.id || !/^i[0-9a-z]+$/.test(P3.LECAT.itemId(q)) || P3.LECAT.itemId(q) !== P3.LECAT.itemId(JSON.parse(JSON.stringify({ type: q.type, text: q.text, answer: q.answer, choices: q.choices })))) bad++; }
                   ok(bad === 0, `${kid.template}: ${items} generated items map to concept + stable item id`); cov.push(`${kid.template}: ${items} genererade uppgifter → rätt koncept`);
                   const bySubj = {}; for (const c of Object.values(b.cat)) bySubj[c.subject] = (bySubj[c.subject] || 0) + 1; cov.push(`${kid.template}: ${Object.keys(b.cat).length} koncept (${Object.entries(bySubj).map(([k, v]) => k + ' ' + v).join(', ')})`);
                 }
