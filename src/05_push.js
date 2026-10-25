@@ -17,7 +17,7 @@ const PUSH = {
       const body = { fields: { json: { stringValue: JSON.stringify({ sub: sub.toJSON(), kid: kidId, device: navigator.userAgent.slice(0, 80), createdAt: Date.now() }) }, updatedAt: { integerValue: String(Date.now()) }, kid: { stringValue: kidId } } };
       const r = await SYNC.fetch(SYNC.url(id), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       if (!r.ok) throw new Error('HTTP ' + r.status);
-      DB.settings.push = { id, kid: kidId }; try { localStorage.setItem(STORE_KEY, JSON.stringify(DB)); } catch (e) { /* ignore */ }
+      DB.settings.push = { id, kid: kidId }; try { localStorage.setItem(STORE_KEY, dbJSON()); } catch (e) { /* ignore */ }
       return { ok: true };
     } catch (e) { return { ok: false, msg: 'Det gick inte att slå på: ' + e.message }; }
   },
@@ -25,7 +25,7 @@ const PUSH = {
     const cur = PUSH.current(); if (!cur) return;
     try { const reg = await navigator.serviceWorker.ready; const sub = await reg.pushManager.getSubscription(); if (sub) await sub.unsubscribe(); } catch (e) { /* ignore */ }
     try { await SYNC.fetch(SYNC.url(cur.id), { method: 'DELETE' }); } catch (e) { /* ignore */ }
-    DB.settings.push = null; try { localStorage.setItem(STORE_KEY, JSON.stringify(DB)); } catch (e) { /* ignore */ }
+    DB.settings.push = null; try { localStorage.setItem(STORE_KEY, dbJSON()); } catch (e) { /* ignore */ }
   },
   card(kidId, who) {
     if (!PUSH.key || !SYNC.cfg) return '';

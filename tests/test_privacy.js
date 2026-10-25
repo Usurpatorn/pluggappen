@@ -11,7 +11,7 @@ if (!Array.isArray(priv)) priv = [];
 const terms = [...generic, ...priv];
 let fails = 0;
 for (const f of files) {
-  const txt = fs.readFileSync(f, 'utf8');
+  const txt = f.endsWith('.gz') ? require('zlib').gunzipSync(fs.readFileSync(f)).toString('utf8') : fs.readFileSync(f, 'utf8'); // arkiverade byggen granskas okomprimerade
   for (const t of terms) { const re = new RegExp(t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'); const n = (txt.match(re) || []).length; if (n) { fails++; console.log('PRIVACY FAIL', f.split('/').slice(-2).join('/'), JSON.stringify(t), 'x' + n); } }
 }
 console.log(fails ? 'PRIVACY TEST FAILED' : `PRIVACY TEST OK (${files.length} files, ${terms.length} terms${priv.length ? ' incl. private list' : ''})`);

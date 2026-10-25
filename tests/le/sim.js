@@ -14,6 +14,7 @@ add('m1', { subject: 'matte', name: 'Plus inom 10' }); add('m2', { subject: 'mat
 add('m3', { subject: 'matte', name: 'Minus med tiotalsövergång', prereq: ['m2'] }); add('m4', { subject: 'matte', name: 'Dubbelt och hälften', prereq: ['m1'] });
 add('m5', { subject: 'matte', name: '2:ans och 5:ans tabell', prereq: ['m4'] }); add('m6', { subject: 'matte', name: 'Vilket tal saknas?', prereq: ['m2', 'm3'] });
 add('m7', { subject: 'matte', name: 'Talen till 100', prereq: ['m2'] }); add('m8', { subject: 'matte', name: 'Klockan hel/halv', prereq: [] });
+for (const id of Object.keys(CAT)) CAT[id].recall = true;   // matte: eget svar
 // svenska: identifiera → producera (flerval + eget svar)
 for (const [i, n] of [['s1', 'Substantiv'], ['s2', 'Verb'], ['s3', 'Motsatsord'], ['s4', 'Stor bokstav och punkt']].map(x => x)) add(i, { subject: 'svenska', name: n, kinds: ['mc', 'free'], items: 6, maxLvl: 2 });
 // fakta (geografi): frågebank med 5 frågor per koncept; två koncept bara flerval
@@ -56,46 +57,35 @@ function answer(Lr, cid, kind, lvl, help, now) {
   st.last = now; return { ok, fast: fast && !ok };
 }
 
-/* ---------- v2-passkörare ---------- */
-function runSessionV2(Lr, L, now, ctx, pol, log, dev, seqRef, out) {
-  const plan = E.planSession(L, CAT, now, ctx, pol); const sessId = dev + ':' + Math.round(now / 1000);
-  const sess = { id: sessId, baseLvl: {} }; const st = { mode: 'practice', byC: {}, results: [] };
-  const lines = []; const rewards = []; let t = now; let rescues = 0; let i = 0; const queue = plan.map(s => ({ ...s, ctx: null }));
-  const variant = (cid) => { const c = E.cstate(L, cid); const k = CAT[cid].items; if (!k) return { item: cid + '#' + (c.n + 1) + '.' + seqRef.v, only: false }; const avoid = new Set([...(c.fb ? c.fb.items : []), ...c.items.slice(-Math.min(3, k - 1))]); for (let j = 0; j < k; j++) { const it = cid + '#' + ((c.n + j) % k); if (!avoid.has(it)) return { item: it, only: false }; } return { item: cid + '#' + (c.n % k), only: true }; };
-  while (i < queue.length && i < (plan.maxItems || pol.maxItems)) {
-    let s = queue[i];
-    if (s.dynamic) { st.examC = s.examC; const b = E.pickBoss(L, st, queue, pol); if (!b) { i++; continue; } s = queue[i] = { ...s, cid: b.cid, why: b.why, stretch: b.stretch, dynamic: false }; }
-    const c = E.cstate(L, s.cid); if (sess.baseLvl[s.cid] == null) sess.baseLvl[s.cid] = c.lvl;
-    if (c.teach && !(st.byC[s.cid] && st.byC[s.cid].taught) && s.role !== 'rescue') { (st.byC[s.cid] = st.byC[s.cid] || { fails: 0, run: 0, rescued: 0, n: 0 }).taught = 1; Lr.m[s.cid].k += Lr.m[s.cid].rate * 1.2 * (1 - Lr.m[s.cid].k); lines.push(`LÄR     ${s.cid}: kort förklaring + löst exempel (Läs → stäng → hämta), sedan stöttat försök`); s = queue[i] = { ...s, help: 'hint' }; c.teach = 0; c.taughtDay = E.dayIdx(t); }
-    const seen = st.byC[s.cid] || (st.byC[s.cid] = { fails: 0, run: 0, rescued: 0, n: 0 });
-    const ctxKind = s.ctx || (seen.n === 0 ? 'first' : 'repeat');
-    const kinds = CAT[s.cid].kinds; const kind = kinds.length === 1 ? kinds[0] : (c.st < pol.mcMaxStage || s.role === 'warmup' && c.st < 2) && kinds.includes('mc') ? 'mc' : 'free';
-    let lvl = s.lvl || Math.max(1, c.lvl + (s.lvlDelta || 0)); if (s.role === 'boss' && s.stretch && lvl < CAT[s.cid].maxLvl) lvl++;
-    let help = s.help || 'none'; if (help === 'none' && Lr.r() < Lr.prof.hintUse && recallP(Lr.m[s.cid], t) < 0.4) help = 'hint';
-    const res = answer(Lr, s.cid, kind, lvl, help, t);
-    const vv = variant(s.cid); const ev = { restart: !!plan.restart, cid: s.cid, ok: res.ok, kind, k: 4, help, ctx: ctxKind, item: vv.item, onlyVariant: vv.only, role: s.role, lvl, fast: res.fast, dev, seq: ++seqRef.v, t, sess: sessId };
-    log.push(ev); const R = E.recordEvidence(L, CAT, s.cid, ev, t, pol, sess); rewards.push(...R.rewards);
-    seen.n++; st.results.push(res.ok); if (res.ok) { seen.run = 0; } else { seen.fails++; seen.run++; }
-    lines.push(`${s.role.padEnd(8)} ${s.cid}@${lvl} ${kind}${help !== 'none' ? '+' + help : ''} ${res.ok ? '✓' : '✗'}  st ${R.diff.before.st}→${R.diff.after.st}${R.diff.after.fb ? ' fb:' + R.diff.after.fb : ''}${R.rewards.length ? ' [' + R.rewards.join(',') + ']' : ''}  (${s.why})`);
+/* ---------- v2-passkörare: produktionens passkörare (src/05e_runner.js) med syntetiska svar ---------- */
+const LER = require('../../src/05e_runner.js');
+function runSessionV2(Lr, L, now, ctx, pol, log, dev, seqRef, out, opts = {}) {
+  const plan = E.planSession(L, CAT, now, ctx, pol, { sessionNo: opts.sessionNo || 0, n: opts.n }); const sessId = dev + ':' + Math.round(now / 1000);
+  const Rn = LER.create(L, CAT, plan, pol, { sessId }); const lines = []; const rewards = []; let t = now; let chCap = 0;
+  const variant = (cid, ch) => { const c = E.cstate(L, cid); if (ch) return { item: cid + '#ch' + ((c.ch || {}).n || 0), only: false }; const k = CAT[cid].items; if (!k) return { item: cid + '#' + (c.n + 1) + '.' + seqRef.v, only: false }; const avoid = new Set([...(c.fb ? c.fb.items : []), ...c.items.slice(-Math.min(3, k - 1))]); for (let j = 0; j < k; j++) { const it = cid + '#' + ((c.n + j) % k); if (!avoid.has(it)) return { item: it, only: false }; } return { item: cid + '#' + (c.n % k), only: true }; };
+  for (let guard = 0; guard < 40; guard++) {
+    const s = LER.peek(Rn, L); if (!s) break;
+    if (s.mode === 'teach') { const m = Lr.m[s.cid]; m.k += m.rate * 1.2 * (1 - m.k); lines.push(`LÄR     ${s.cid}: kort förklaring + löst exempel (Läs → stäng → hämta)${s.rescueStep ? ' [Rescue]' : ''}`); LER.answered(Rn, L, s, true); continue; }
+    const c = E.cstate(L, s.cid); const kinds = CAT[s.cid].kinds;
+    const kind = s.mode === 'challenge' ? 'free' : kinds.length === 1 ? kinds[0] : s.format === 'recall' ? 'free' : (c.st < pol.mcMaxStage || s.role === 'warmup' || s.role === 'rescue') && kinds.includes('mc') ? 'mc' : 'free';
+    let help = s.help || 'none'; if (help === 'none' && s.role !== 'rescue' && s.mode !== 'challenge' && Lr.r() < Lr.prof.hintUse && recallP(Lr.m[s.cid], t) < 0.4) help = 'hint';
+    const res = s.mode === 'challenge' ? answerChallenge(Lr, s.cid, t) : answer(Lr, s.cid, kind, s.lvl, help, t);
+    if (s.role === 'rescue' && s.help === 'rescue') { const m = Lr.m[s.cid]; m.k += m.rate * 0.8 * (1 - m.k); }
+    const vv = variant(s.cid, s.mode === 'challenge');
+    const ev = { restart: !!plan.restart, cid: s.cid, ok: res.ok, kind, k: 4, help, ctx: s.ctx, item: vv.item, onlyVariant: vv.only, role: s.code, stretch: !!s.stretch, mode: s.mode === 'challenge' ? 'challenge' : undefined, lvl: s.lvl, fast: res.fast, dev, seq: ++seqRef.v, t, sess: sessId };
+    log.push(ev); const R = E.apply(L, CAT, ev, pol);
+    for (const rw of R.rewards) { if (rw === 'CHALLENGE' && chCap++) continue; rewards.push(rw); }
+    const evs = LER.answered(Rn, L, s, res.ok);
+    lines.push(`${(s.role || '').padEnd(8)} ${s.cid}@${s.lvl} ${kind}${help !== 'none' ? '+' + help : ''} ${res.ok ? '✓' : '✗'}  st ${R.diff.before.st}→${R.diff.after.st}${R.diff.after.fb ? ' fb:' + R.diff.after.fb : ''}${R.rewards.length ? ' [' + R.rewards.join(',') + ']' : ''}  (${s.why})`);
+    for (const e of evs) if (e.type !== 'retry') lines.push(`  ↳ ${({ rescue: 'RESCUE LOOP på ', ease: 'LÄTTARE LÄGE', defer: 'skjuts upp till imorgon: ' })[e.type]}${e.cid || ''}`);
     t += 30000;
-    if (!res.ok && s.help !== 'rescue') {
-      const trig = E.rescueTrigger(st, s.cid, pol);
-      if (trig === 'ease') { st.eased = true; const strong = Object.entries(L.c).filter(([id, cc]) => cc.st >= 2 && !(st.byC[id] && st.byC[id].fails)).sort((a, b) => b[1].st - a[1].st).slice(0, 2); queue.splice(i + 1, 0, ...strong.map(([id]) => ({ cid: id, role: 'easy', why: 'lättare läge – bygga självförtroende', lvlDelta: -1 }))); lines.push('  ↳ LÄTTARE LÄGE: två säkra uppgifter in'); }
-      else if (trig === 'rescue') {
-        rescues++; seen.rescued = 1;
-        const lv = Math.max(1, c.lvl - 1);
-        queue.splice(i + 1, 0, { cid: s.cid, role: 'rescue', why: 'vi tar det tillsammans', help: 'rescue', lvl: lv, ctx: 'retry' }, { cid: s.cid, role: 'rescue', why: 'egen variant', help: 'rescue', lvl: lv, ctx: 'retry' });
-        Lr.m[s.cid].k += Lr.m[s.cid].rate * (1 - Lr.m[s.cid].k);   // förklaringen lär ut
-        lines.push(`  ↳ RESCUE LOOP på ${s.cid}`);
-      } else if (trig === 'defer') { lines.push(`  ↳ skjuts upp till imorgon: ${s.cid}`); for (let j = queue.length - 1; j > i; j--) if (queue[j].cid === s.cid) queue.splice(j, 1); }
-      else if (seen.fails === 1 && !queue.slice(i + 1).some(q => q.cid === s.cid)) queue.splice(Math.min(queue.length, i + 3), 0, { cid: s.cid, role: 'retry', why: 'ny variant om en stund', ctx: 'retry' });
-    }
-    i++;
   }
-  E.calibrate(L);
-  out.push({ lines, rewards, rescues, n: st.results.length, ok: st.results.filter(Boolean).length, light: !!plan.light });
+  const sm = LER.summary(Rn);
+  out.push({ lines, rewards, rescues: sm.rescues, n: sm.n, ok: sm.ok, light: !!plan.light, plan, log: Rn.log, challenge: Rn.log.filter(x => x[1] === 'C').length });
   return t;
 }
+// Utmaning: kräver djupare förståelse än vanlig hämtning – sannolikhet ≈ k² · minne
+function answerChallenge(Lr, cid, now) { const st = Lr.m[cid]; const p = Math.min(0.95, st.k * st.k * (0.5 + 0.5 * recallP(st, now) / Math.max(0.01, st.k))); return { ok: Lr.r() < p, fast: false }; }
 
 /* ---------- v1-baslinje (nuvarande motor, förenklad men trogen) ---------- */
 function runSessionV1(Lr, V, now, n, out) {
@@ -127,7 +117,7 @@ function runProfile(key, opts = {}) {
     if (prof.examAt && d === prof.examAt) { examScore.v2 = surpriseTest(Lr2, prof.examAt * DAY + 9 * 3600000, prof.examC); examScore.v1 = surpriseTest(Lr1, prof.examAt * DAY + 9 * 3600000, prof.examC); }
     const share = {}; const flat = recentSubj.slice(-2).flat(); for (const s of flat) share[s] = (share[s] || 0) + 1 / flat.length;
     const ctx = { exams, lastSessionAt: lastSess, recentSubjectShare: share, subjectCount: 3, dueDoneToday: 0 };
-    const out = []; runSessionV2(Lr2, L, now, ctx, pol, log, 'A', seq, out); const o = out[0];
+    const out = []; runSessionV2(Lr2, L, now, ctx, pol, log, 'A', seq, out, { sessionNo: stats.sessions }); const o = out[0];
     const sessSubj = [...new Set(log.filter(e => e.t >= now).map(e => CAT[e.cid].subject))]; recentSubj.push(sessSubj);
     const o1 = []; runSessionV1(Lr1, V, now, o.n, o1);
     lastSess = now; stats.sessions++; if (o.light) stats.light++; stats.items += o.n; stats.ok += o.ok; stats.rescue += o.rescues; for (const r of o.rewards) stats.rewards[r] = (stats.rewards[r] || 0) + 1;
@@ -145,4 +135,4 @@ function runProfile(key, opts = {}) {
     v1: { test: surpriseTest(Lr1, T), test14: surpriseTest(Lr1, T + 14 * DAY), test30: surpriseTest(Lr1, T + 30 * DAY), exam: examT ? examScore.v1 : null } };
   return res;
 }
-module.exports = { runProfile, PROFILES, CAT, IDS, rng, learner, answer, recallP, surpriseTest, runSessionV2 };
+module.exports = { runProfile, PROFILES, CAT, IDS, rng, learner, answer, answerChallenge, recallP, surpriseTest, runSessionV2 };

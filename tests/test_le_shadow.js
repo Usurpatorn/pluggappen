@@ -6,61 +6,9 @@
    5. Täckning: konceptkatalogen täcker alla moment i alla kursmallar + alla glosdeck, med stabila, unika id:n. */
 'use strict';
 const { JSDOM } = require('jsdom'); const fs = require('fs'); const path = require('path');
-const html = fs.readFileSync(path.join(__dirname, '../dist/pluggappen.html'), 'utf8');
 const FIX = require('./test_fixture_family.json');
 let fails = 0, checks = 0; const ok = (c, m) => { checks++; if (!c) { fails++; console.log('FAIL', m); } };
-function rng(seed) { let a = seed >>> 0; return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
-const T_FIXED = Date.UTC(2026, 9, 25, 15, 0, 0);
-function mkWin({ seed = 0, fixedClock = false, storage = null } = {}) {
-  const dom = new JSDOM(`<!doctype html><html><head><meta charset="utf-8"></head><body>${html}</body></html>`, { runScripts: 'dangerously', pretendToBeVisual: true, url: 'https://example.org/', beforeParse(win) {
-    win.scrollTo = () => {}; win.matchMedia = () => ({ matches: false, addEventListener() {} }); win.HTMLCanvasElement.prototype.getContext = () => null;
-    if (seed) win.Math.random = rng(seed);
-    if (fixedClock) { const RD = win.Date; let now = T_FIXED; class FD extends RD { constructor(...a) { if (a.length) super(...a); else super(now); } static now() { return now; } } win.Date = FD; win.__advance = (ms) => { now += ms; }; }
-    if (storage) for (const [k, v] of Object.entries(storage)) win.localStorage.setItem(k, v);
-  } });
-  return dom.window;
-}
-const tools = (w) => {
-  const $ = (s) => w.document.querySelector(s); const click = (el) => { if (!el) throw new Error('click on null'); el.dispatchEvent(new w.MouseEvent('click', { bubbles: true })); };
-  const PA = () => w.PA; const snaps = []; let mathAnswers = 0; let k = 0;
-  const snap = (label) => snaps.push([label, $('#app').innerHTML]);
-  const answer = () => {
-    const S = PA().S; const item = S.queue[S.i]; k++; const wrong = k % 3 === 0;
-    if (item.cat === 'math') {
-      mathAnswers++;
-      if (k % 7 === 0 && $('#hintBtn')) click($('#hintBtn'));
-      if (item.type === 'choicetext' || item.choices) { const el = wrong ? [...w.document.querySelectorAll('[data-choice]')].find(b => b.dataset.choice !== String(item.answer)) : $(`[data-choice="${item.answer}"]`); click(el || $(`[data-choice="${item.answer}"]`)); if ($('#submit') && !$('#next')) click($('#submit')); }
-      else if (item.type === 'order') { const idx = item.items.map((_, i) => i); if (wrong && idx.length > 1) [idx[0], idx[1]] = [idx[1], idx[0]]; for (const i of idx) click($(`[data-otile="${i}"]`)); click($('#submit')); }
-      else if (item.type === 'open') { $('#ans').value = wrong ? 'ZZQX123 vet inte' : item.model; click($('#submit')); }
-      else { $('#ans').value = wrong ? 'ZZQX123' : item.type === 'expr' ? PA().Poly.format(item.answer) : item.type === 'num' ? String(item.answer) : item.answer[0]; click($('#submit')); if (!$('#next') && $('#submit')) { $('#ans').value = '987654'; click($('#submit')); } }
-    } else if (item.kind === 'pick' || item.kind === 'listen') click($(`[data-wchoice="${wrong ? item.choices.find(c => c.id !== item.correctId).id : item.correctId}"]`));
-    else if (item.kind === 'match') { for (const pr of item.pairs) { click($(`[data-mside="l"][data-mid="${pr.id}"]`)); click($(`[data-mside="r"][data-mid="${pr.id}"]`)); } }
-    else if (item.kind === 'spell') { for (const ch of item.target.replace(/\s/g, '')) { const tile = [...w.document.querySelectorAll('[data-tile]')].find(t => !t.classList.contains('used') && t.textContent === ch); click(tile); } click($('#submit')); }
-    else if (item.kind === 'type') { $('#ans').value = wrong ? 'zzqx' : item.word.w; click($('#submit')); }
-    else if (item.kind === 'speak') { click($('#skipSpeak')); return; }
-    if (!$('#next')) throw new Error('no next for ' + (item.kind || item.type)); click($('#next'));
-  };
-  const run = (max = 40) => { let n = 0; while (PA().S && PA().S.i < PA().S.queue.length && $('#qcard') && n++ < max) { answer(); if (w.__advance) w.__advance(4000); } };
-  return { $, click, PA, snap, snaps, run, get mathAnswers() { return mathAnswers; } };
-};
-const strip = (p) => { const o = JSON.parse(JSON.stringify(p)); delete o.le; return o; };
-const childFlow = (w, T) => {
-  const { $, click, PA, snap, run } = T;
-  PA().FAMILY.apply(FIX); PA().load(); PA().rerender(); snap('start');
-  click($('[data-kid="k2"]')); click($('[data-pet="uggla"]')); snap('k2 home');
-  click($('[data-rec]')); snap('k2 kör start'); run(); snap('k2 kör summary');
-  click($('[data-act="again"]')); run(); snap('k2 again summary');
-  click($('[data-go="home"]')); snap('k2 home 2');
-  if ($('[data-act="felbok"]')) { click($('[data-act="felbok"]')); run(); snap('k2 felbok summary'); click($('[data-go="home"]')); }
-  click($('[data-subj="sv"]')); click($('[data-skill="sv_stavning"]')); run(); snap('k2 svenska'); click($('[data-go="home"]'));
-  click($('[data-subj="lang"]')); click($('[data-deck="es_siffror"]')); run(); snap('k2 lesson'); click($('[data-go="home"]'));
-  click($('[data-go="start"]')); click($('[data-kid="k8"]')); snap('k8 home');
-  click($('[data-rec]')); run(); snap('k8 kör'); click($('[data-go="home"]'));
-  click($('[data-test="alg12"]')); run(); snap('k8 test'); click($('[data-go="home"]'));
-  click($('[data-subj="math"]')); click($('[data-skill="ekvation"]')); run(); snap('k8 ekvation'); click($('[data-go="home"]'));
-  click($('[data-go="blitz"]')); click($('[data-blitz="talfoljd"]')); for (let i = 0; i < 4; i++) { const q = PA().B.q; click($(`[data-bchoice="${q.answer}"]`)); } snap('k8 blitz'); click($('[data-go="blitz"]')); click($('[data-go="home"]'));
-  click($('[data-go="start"]')); click($('[data-kid="k4"]')); if ($('[data-pet="uggla"]')) click($('[data-pet="uggla"]')); click($('[data-rec]')); run(); snap('k4 kör'); click($('[data-go="home"]')); snap('k4 home');
-};
+const { rng, T_FIXED, mkWin, tools, strip, childFlow } = require('./le/childflow.js');
 
 setTimeout(() => {
   try {
@@ -127,7 +75,7 @@ setTimeout(() => {
             setTimeout(() => {
               try {
                 const P3 = w3.PA, P4 = w4.PA; const k8a = P3.KIDS.find(k => k.id === 'k8'), k8b = P4.KIDS.find(k => k.id === 'k8');
-                const before = JSON.stringify(P3.DB.profiles.k8); P3.LE.ensure(k8a); P4.LE.ensure(k8b);
+                const before = JSON.stringify(strip(P3.DB.profiles.k8)); P3.LE.ensure(k8a); P4.LE.ensure(k8b);
                 ok(JSON.stringify(strip(P3.DB.profiles.k8)) === before, 'migration leaves every v1 field byte-identical');
                 ok(P3.LE2.stable(P3.DB.profiles.k8.le) === P4.LE2.stable(P4.DB.profiles.k8.le), 'migration deterministic across devices (same profile, same time)');
                 const c = P3.DB.profiles.k8.le.base.c; ok(Object.keys(c).length > 0 && Object.values(c).every(x => x.st <= 2), 'migrated: concepts from v1 skills, none above stage 2');
@@ -145,7 +93,7 @@ setTimeout(() => {
                   ok(decks.every(d => b.cat['d:' + d.id]), `${kid.template}: every deck has a concept (${decks.length})`);
                   ok(Object.values(b.cat).every(c => c.subject && c.name && c.maxLvl >= 1), `${kid.template}: complete concept definitions`);
                   // varje uppgift från varje generator på varje nivå hamnar på sitt koncept och får ett stabilt uppgifts-id
-                  let items = 0, bad = 0; for (const s of kid.skills) for (let lv = 1; lv <= (s.maxLvl || 3); lv++) for (let r = 0; r < 4; r++) { const q = s.gen(lv, {}); q.skill = s; q.cat = 'math'; items++; if (P3.LECAT.cidOfItem(q) !== 's:' + s.id || !/^i[0-9a-z]+$/.test(P3.LECAT.itemId(q)) || P3.LECAT.itemId(q) !== P3.LECAT.itemId(JSON.parse(JSON.stringify({ type: q.type, text: q.text })))) bad++; }
+                  let items = 0, bad = 0; for (const s of kid.skills) for (let lv = 1; lv <= (s.maxLvl || 3); lv++) for (let r = 0; r < 4; r++) { const q = s.gen(lv, {}); q.skill = s; q.cat = 'math'; items++; if (P3.LECAT.cidOfItem(q) !== 's:' + s.id || !/^i[0-9a-z]+$/.test(P3.LECAT.itemId(q)) || P3.LECAT.itemId(q) !== P3.LECAT.itemId(JSON.parse(JSON.stringify({ type: q.type, text: q.text, answer: q.answer, choices: q.choices })))) bad++; }
                   ok(bad === 0, `${kid.template}: ${items} generated items map to concept + stable item id`); cov.push(`${kid.template}: ${items} genererade uppgifter → rätt koncept`);
                   const bySubj = {}; for (const c of Object.values(b.cat)) bySubj[c.subject] = (bySubj[c.subject] || 0) + 1; cov.push(`${kid.template}: ${Object.keys(b.cat).length} koncept (${Object.entries(bySubj).map(([k, v]) => k + ' ' + v).join(', ')})`);
                 }

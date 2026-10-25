@@ -9,11 +9,13 @@
 const LE = {
   on: true, errors: [], C: {}, _shownAt: 0, _dev: null, nextSrc: null, skewMs: null,
   FAST_MS: { mc: 1500, free: 2500, order: 3000, open: 4000 },   // under detta + fel svar → snabb-flagga (svag signal, K-12)
-  ROLE: { warmup: 'W', remember: 'R', revansch: 'V', focus: 'F', practice: 'P', boss: 'B' },
-  ROLE_TXT: { W: 'Uppvärmning', R: 'Kommer du ihåg?', V: 'Revansch', F: 'Dagens fokus', P: 'Övning', B: 'Bossen' },
+  ROLE: { warmup: 'W', remember: 'R', revansch: 'V', focus: 'F', practice: 'P', boss: 'B', challenge: 'C', rescue: 'X', easy: 'E', retry: 'T', readclose: 'Q', testa: 'S' },
+  ROLE_TXT: { W: 'Uppvärmning', R: 'Kommer du ihåg?', V: 'Revansch', F: 'Dagens fokus', P: 'Övning', B: 'Bossen', C: 'Utmaning', X: 'Rescue', E: 'Lättare', T: 'Ny chans', Q: 'Läs–stäng–minns', S: 'Testa mig' },
   POLICY_TXT: { younger: 'Yngre', middle: 'Mellan', older: 'Äldre' },
   guard(fn, where) { if (!LE.on) return undefined; try { return fn(); } catch (e) { LE.errors.push({ where, msg: String(e && e.message || e).slice(0, 120), t: Date.now() }); if (LE.errors.length > 20) LE.errors.shift(); return undefined; } },
-  dev() {
+  // Förhandsvisningen (förälder) får ett eget enhets-id: dess löpnummer kan aldrig krocka med barnets riktiga bevis (granskning H2)
+  dev() { const b = LE.devBase(); return typeof V2 !== 'undefined' && V2.sandbox ? b + '~p' : b; },
+  devBase() {
     if (LE._dev) return LE._dev; let d = null;
     try { d = localStorage.getItem('pluggappen.dev'); } catch (e) { /* ignore */ }
     if (!d) { try { const b = new Uint8Array(8); crypto.getRandomValues(b); d = [...b].map(x => (x % 36).toString(36)).join(''); } catch (e) { d = (Date.now().toString(36) + (typeof performance !== 'undefined' ? Math.floor(performance.now() * 1000).toString(36) : '')).slice(-10); } try { localStorage.setItem('pluggappen.dev', d); } catch (e) { /* ignore */ } }
@@ -36,7 +38,7 @@ const LE = {
   state(kid) {
     const p = prof(kid.id); const { cat, map, key } = LE.catFor(kid, p); const pn = LE.policyName(kid, p); const pol = LE2.POLICIES[pn];
     if (p.le && p.le.v !== 2) throw new Error('okänd le-version ' + p.le.v); // skriv aldrig över en senare fas data (rollback)
-    if (!p.le) p.le = LE2.migrateV1(p, cat, map, Date.now(), pol);
+    if (!p.le) p.le = LE2.migrateV1(p, cat, map, LE.now(), pol);   // granskning H3d: serverkorrigerad tid
     let C = LE.C[kid.id];
     if (!C || C.ref !== p.le || C.n !== p.le.log.length || C.pn !== pn || C.catKey !== key) {
       C = LE.C[kid.id] = { ref: p.le, n: p.le.log.length, pn, pol, cat, map, catKey: key, L: LE2.replay(p.le.log, cat, pol, p.le.base) };
@@ -44,6 +46,17 @@ const LE = {
     return C;
   },
   invalidate(kidId) { delete LE.C[kidId]; },
+  // Passets tid: avrundad till minut; monoton mot motorns klocka så att loggens ordning = tidsordning (samma tillstånd före och efter synk).
+  // Undantag: ligger motorns klocka mer än 14 dygn före enhetens (t.ex. en enhet med klockan inställd på fel år har synkat) vinner verklig tid.
+  // En enhet vars klocka går efter (upp till 14 dygn) fortsätter alltså framåt från senaste bevis. Serverns klockavvikelse (skew) rättar båda fallen efter synk.
+  // Granskning H3: tillbaka till 3B:s lilla gräns (6 h). En enhet med klockan långt fram kan inte längre dra alla enheter in i framtiden;
+  // en enhet som går efter mer än 6 h stämplar sin riktiga tid och tillståndet byggs då om i tidsordning (rebuildIfLate).
+  sessClock(C) { const real = Math.floor(LE.now() / 60000) * 60000; const last = C.L.clock.last || 0; return last && last < real + 6 * 3600000 ? Math.max(real, Math.floor(last / 1000) * 1000 + 1000) : real; },
+  // En händelse äldre än senaste kända → bygg om tillståndet i tidsordning PÅ SAMMA objekt (passköraren håller en referens), så live = omspelning.
+  rebuildIfLate(p, C, t, last) { if (!(t < last)) return; const fresh = LE2.replay(p.le.log, C.cat, C.pol, p.le.base); for (const k of Object.keys(C.L)) delete C.L[k]; Object.assign(C.L, fresh); C.n = p.le.log.length; },
+  newSessId(p) { const dev = LE.dev(); const sseq = ((p.le.seqs || {})[dev] || 0) + 1; p.le.seqs = { ...(p.le.seqs || {}), [dev]: sseq }; return { id: dev + ':' + sseq, dev }; },
+  // Efter ett pass: packa loggen och håll le långt under dokumentgränsen (1 MiB). Normalt ~30–70 kB.
+  housekeep(kid) { const p = prof(kid.id); const C = LE.state(kid); if (LE2.compact(p.le, C.cat, C.pol, LE.now())) LE.invalidate(kid.id); if (JSON.stringify(p.le).length > 250000) { p.le.shadow = p.le.shadow.slice(-15); LE.invalidate(kid.id); } },
   ensure(kid) { return LE.guard(() => LE.state(kid).ref, 'ensure'); },
   mergeLE(a, b) { try { return LE2.mergeLE(a, b); } catch (e) { LE.errors.push({ where: 'merge', msg: String(e.message).slice(0, 120), t: Date.now() }); return a || b; } },
   // serverMs: dokumentets updateTime. fresh = svaret på vår egen uppladdning (≈ serverns "nu") → mät klockavvikelse.
@@ -67,7 +80,7 @@ const LE = {
   activeCat(C, p) { const on = new Set((p.enabledDecks || []).map(LECAT.deckCid)); const out = {}; for (const [id, d] of Object.entries(C.cat)) if (d.kind !== 'deck' || on.has(id)) out[id] = d; return out; },
   plan(kid, n, now, exclId) {
     const p = prof(kid.id); const C = LE.state(kid); const ctx = LE.ctx(kid, p, C, now, exclId);
-    const plan = LE2.planSession(C.L, LE.activeCat(C, p), now, ctx, C.pol, { n });
+    const plan = LE2.planSession(C.L, LE.activeCat(C, p), now, ctx, C.pol, { n, sessionNo: C.L.sessN || 0 });   // granskning L1: Utmaning var annat pass
     return { plan, ctx, C };
   },
   whyKey(s) { if (s.role === 'boss') return 'boss'; const top = Object.entries(s.parts || {}).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1])[0]; return top ? top[0] : 'maintenance'; },
@@ -75,16 +88,13 @@ const LE = {
     LE.guard(() => {
       const hint = LE.nextSrc; LE.nextSrc = null;
       if (!S || !S.kid) return; const kid = S.kid; const p = prof(kid.id); if (!LE.canStart(kid, p)) return; const C = LE.state(kid);
-      // Passets tid: avrundad till minut; monoton mot motorns klocka (utom om den ligger orimligt långt fram – då vinner verklig tid)
-      const real = Math.floor(LE.now() / 60000) * 60000; const last = C.L.clock.last || 0;
-      const now = last && last < real + 6 * 3600000 ? Math.max(real, Math.floor(last / 1000) * 1000 + 1000) : real;
-      const dev = LE.dev(); const sseq = ((p.le.seqs || {})[dev] || 0) + 1; p.le.seqs = { ...(p.le.seqs || {}), [dev]: sseq }; const id = dev + ':' + sseq;
+      const now = LE.sessClock(C); const { id } = LE.newSessId(p);
       const v1 = S.queue.map(LECAT.cidOfItem).map(x => x || '?');
       const recs = p.le.shadow || []; const lastAt = recs.length ? recs[recs.length - 1].t * 1000 : null;
       const restart = !!(lastAt && (now - lastAt) / LE2.DAY > 10);
       const { plan, ctx } = LE.plan(kid, Math.max(1, Math.min(S.queue.length, 18)), now, id);
       const exC = new Set(ctx.exams.filter(e => (e.at - now) / LE2.DAY <= 21).flatMap(e => e.concepts));
-      const L = C.L; const vis = LE2.felbokVisible(L).length; const due = Object.entries(L.c).filter(([cid, c]) => C.cat[cid] && c.n > 0 && c.due <= now).length;
+      const L = C.L; const vis = LE2.felbokVisible(L, now).length; const due = Object.entries(L.c).filter(([cid, c]) => C.cat[cid] && c.n > 0 && c.due <= now).length;
       const rec = { id, t: Math.round(now / 1000), src: LE.srcOf(S, hint), mode: S.mode, v1, v2: plan.map(s => [s.cid, LE.ROLE[s.role] || '?', LE.whyKey(s)]), light: plan.light ? 1 : 0, rst: restart ? 1 : 0, pol: C.pn,
         iv: L.ivMult || 1, fbo: vis, fb1: (p.mistakes || []).length, due, ex: exC.size ? [v1.filter(c => exC.has(c)).length, plan.filter(s => exC.has(s.cid)).length] : null, a: [], w: [0, 0], done: 0 };
       p.le.shadow = [...(p.le.shadow || []), rec].slice(-LE2.SHADOW_MAX);
@@ -105,7 +115,7 @@ const LE = {
       const t = sx.start + 1000 * (++sx.k); // passets start + löpnummer: ordning bevaras, svarstid går inte att utläsa
       const ev = { t, dev, seq, cid, ok: !!correct, kind, k: kind === 'mc' ? ((q.choices || []).length || 3) : 0, help, ctx, item: LECAT.itemId(q), fast, sess: sx.id, lvl: q.level || 1, restart: sx.restart };
       p.le.seqs = { ...(p.le.seqs || {}), [dev]: seq }; p.le.log.push(LE2.encodeEv(ev));
-      LE2.apply(C.L, C.cat, ev, C.pol); C.n = p.le.log.length;
+      const last = C.L.clock.last || 0; LE2.apply(C.L, C.cat, ev, C.pol); C.n = p.le.log.length; LE.rebuildIfLate(p, C, ev.t, last);
       sx.seen[cid] = 1; sx.rec.a.push([cid, correct ? 1 : 0, ctx[0]]);
     }, 'observe');
   },
@@ -115,9 +125,7 @@ const LE = {
       let wn = 0, wc = 0; S.queue.forEach((q, i) => { if (q.cat === 'word' && i < S.results.length && q.kind !== 'intro') { wn++; if (S.results[i]) wc++; } });
       rec.w = [wn, wc]; rec.done = 1; rec.n = S.results.length;
       const extra = S.queue.slice(S._le.n0).map(LECAT.cidOfItem).map(x => x || '?'); if (extra.length) rec.x = extra.slice(0, 12); // omförsök som v1 lade till under passet
-      const C = LE.state(S.kid); if (LE2.compact(p.le, C.cat, C.pol, Date.now())) LE.invalidate(S.kid.id);
-      // Storleksskydd: le får aldrig närma sig dokumentgränsen (1 MiB). Normalt ~30–70 kB.
-      if (JSON.stringify(p.le).length > 250000) { p.le.shadow = p.le.shadow.slice(-15); LE.invalidate(S.kid.id); }
+      LE.housekeep(S.kid);
     }, 'sessionEnd');
   },
 
@@ -125,11 +133,11 @@ const LE = {
   report(kid) {
     if (!LE.canStart(kid, prof(kid.id))) throw new Error('väntar på första synken med molnet');
     const p = prof(kid.id); const C = LE.state(kid); const L = C.L; const now = Date.now(); const pol = C.pol; const D = L.d || {};
-    const cat = LE.activeCat(C, p); const recs = (Array.isArray(p.le.shadow) ? p.le.shadow : []).map(LE.cleanRec); const done = recs.filter(r => r.done);
+    const cat = LE.activeCat(C, p); const all = (Array.isArray(p.le.shadow) ? p.le.shadow : []).map(LE.cleanRec); const v2done = all.filter(r => r.e === 2 && r.done).length; const recs = all.filter(r => r.e !== 2); const done = recs.filter(r => r.done);
     const pct = (a) => a && a[0] ? Math.round(a[1] / a[0] * 100) : null;
     const concepts = Object.entries(cat).filter(([, d]) => d.kind === 'skill').map(([cid, d]) => { const c = L.c[cid]; return { cid, name: d.name, subject: d.subject, st: c ? c.st : null, n: c ? c.n : 0, lvl: c ? c.lvl : null, due: c && c.n ? c.due : null, fb: c && c.fb ? c.fb.s : null, label: LE2.childLabel(c, now, pol, L), ready: LE2.readiness(c, now) }; });
     const overdue = concepts.filter(c => c.due && c.due <= now).length; const tomorrow = concepts.filter(c => c.due && c.due > now && c.due <= LE2.dayStart(now) + 2 * LE2.DAY).length;
-    const fbd = LE2.felbokDisplay(L, pol); const wins = LE2.felbokRecentWins(L, now);
+    const fbd = LE2.felbokDisplay(L, pol, now); const wins = LE2.felbokRecentWins(L, now);
     const fbStates = {}; for (const c of Object.values(L.c)) if (c.fb) fbStates[c.fb.s] = (fbStates[c.fb.s] || 0) + 1;
     // jämförelse per pass
     const cmp = done.map(r => { const a = new Set(r.v1.filter(x => x !== '?')), b = new Set(r.v2.map(x => x[0])); const inter = [...a].filter(x => b.has(x)).length; const uni = new Set([...a, ...b]).size;
@@ -153,16 +161,16 @@ const LE = {
       ['Minst 5 uppföljningar efter snabba fel och 5 efter långsamma (K-12)', (D.fw || [0])[0] >= 5 && (D.sw || [0])[0] >= 5, `${(D.fw || [0])[0]} / ${(D.sw || [0])[0]}`],
       ['Minst 3 Kör!-pass att jämföra planer på', done.filter(r => r.src === 'kor').length >= 3, `${done.filter(r => r.src === 'kor').length} st`],
     ];
-    return { weekDays, kid, p, C, L, pol, now, D, concepts, overdue, tomorrow, fbd, wins, fbStates, cmp, recs, done, v1Subj, v2Subj, newSlots, lastNew, unseen, exRecs, exV1, exV2, sessAcc, days, subjPerSess, v2SubjPerSess, checks, pct, avg,
+    return { v2done, weekDays, kid, p, C, L, pol, now, D, concepts, overdue, tomorrow, fbd, wins, fbStates, cmp, recs, done, v1Subj, v2Subj, newSlots, lastNew, unseen, exRecs, exV1, exV2, sessAcc, days, subjPerSess, v2SubjPerSess, checks, pct, avg,
       size: JSON.stringify(p.le).length, logN: p.le.log.length, folded: p.le.folded || 0, ready: checks.every(c => c[1]) };
   },
   // Skuggposter kommer via synk från andra enheter → normaliseras innan de visas (bara kända koder, tal som tal).
   cleanRec(r) {
     const num = (x) => (Number.isFinite(+x) ? +x : 0); const arr = (x) => (Array.isArray(x) ? x : []); const cid = (x) => (typeof x === 'string' ? x.slice(0, 64) : '?');
-    const ROLES = new Set(Object.values(LE.ROLE)); const WHY = new Set(['due', 'fb', 'exam', 'weak', 'new', 'focus', 'maintenance', 'boss']); const SRC = new Set(['kor', 'skill', 'mix', 'lang', 'felbok', 'test', 'bonus']);
+    const ROLES = new Set(Object.values(LE.ROLE)); const WHY = new Set(['due', 'fb', 'exam', 'weak', 'new', 'focus', 'maintenance', 'boss']); const SRC = new Set(['kor', 'skill', 'mix', 'lang', 'felbok', 'test', 'bonus', 'v2']);
     r = r || {};
     return { id: String(r.id || '').slice(0, 40), t: num(r.t), src: SRC.has(r.src) ? r.src : 'mix', v1: arr(r.v1).map(cid), v2: arr(r.v2).map(x => [cid(arr(x)[0]), ROLES.has(arr(x)[1]) ? x[1] : '?', WHY.has(arr(x)[2]) ? x[2] : 'maintenance']),
-      a: arr(r.a).map(x => [cid(arr(x)[0]), arr(x)[1] ? 1 : 0, ['f', 'p', 'r', 'e'].includes(arr(x)[2]) ? x[2] : 'f']), ex: Array.isArray(r.ex) ? [num(r.ex[0]), num(r.ex[1])] : null, light: r.light ? 1 : 0, rst: r.rst ? 1 : 0, n: num(r.n), done: r.done ? 1 : 0 };
+      a: arr(r.a).map(x => [cid(arr(x)[0]), arr(x)[1] ? 1 : 0, ['f', 'p', 'r', 'e'].includes(arr(x)[2]) ? x[2] : 'f']), ex: Array.isArray(r.ex) ? [num(r.ex[0]), num(r.ex[1])] : null, light: r.light ? 1 : 0, rst: r.rst ? 1 : 0, n: num(r.n), done: r.done ? 1 : 0, e: r.e === 2 ? 2 : 0 };
   },
   FB_TXT: { open: 'öppen', corrected: 'rättad', verified: 'verifierad', resolved: 'löst', awaiting: 'väntar' },
   pctTxt(x) { return x == null ? '–' : Math.round(x * 100) + ' %'; },
@@ -180,7 +188,7 @@ const LE = {
     const lastCmp = R.cmp.slice(-8).reverse();
     return `
     <div class="card stack" style="gap:8px;border-left:3px solid var(--acc)"><div class="eyebrow">Learning Engine v2 · skuggläge</div>
-      <p style="font-size:.95rem">${esc(kid.name)} får <b>v1</b> precis som förut. v2 räknar i bakgrunden på samma svar och visar här vad den <i>skulle</i> ha valt. Inget här syns för barnet, och inget skickas utanför familjens lagring.</p>
+      <p style="font-size:.95rem">${V2.engineOf(p) === 'v2' ? `${esc(kid.name)} har <b>v2</b> påslagen (${R.v2done} v2-pass hittills). Jämförelsen nedan gäller pass som körts med v1-urval (t.ex. "Öva" på ett enskilt moment).` : `${esc(kid.name)} får <b>v1</b> precis som förut. v2 räknar i bakgrunden på samma svar och visar här vad den <i>skulle</i> ha valt.`} Inget här syns för barnet, och inget skickas utanför familjens lagring.</p>
       ${kv([['Skugga sedan', p.le.migratedAt ? new Date(p.le.migratedAt).toLocaleDateString('sv-SE') + ` (${R.days} d)` : '–'], ['Pass jämförda', `${R.done.length} avslutade · ${R.recs.length - R.done.length} avbrutna`], ['Bevis i loggen', `${R.logN}${R.folded ? ` (+${R.folded} inbakade)` : ''}`], ['Lagring', `${Math.round(R.size / 1024)} kB`], ['Fel i skuggan', LE.errors.length ? `${LE.errors.length} (${esc(LE.errors.slice(-1)[0].where)})` : '0']])}
     </div>
     <div class="card stack" style="gap:8px"><div class="eyebrow">Upplevelsepolicy (O-9)</div>
