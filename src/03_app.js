@@ -459,7 +459,7 @@ VIEWS.home = () => {
     ${isSport(kid) ? `<div class="player-card lulea"><div><div class="rating">${lvl}</div><div class="pos">${['C', 'LW', 'RW', 'D', 'G'][lvl % 5]}</div></div><div class="grow" style="position:relative"><div class="pname">${esc(kid.name)}</div><div class="ptitle">${levelNameFor(kid, lvl)} · ${p.xp} poäng</div><div class="pstats"><div><b>${p.streak}</b>${LBL(kid).streakWord}</div><div><b>${today.c}/${goal}</b>mål idag</div><div><b>${p.weekCorrect || 0}</b>rätt i veckan</div></div><div class="xpbar"><i style="width:${pct}%"></i></div><div style="font-size:.75rem;opacity:.8;margin-top:4px">${next - p.xp} poäng till ${levelNameFor(kid, lvl + 1)}</div></div></div>` : `<div class="card stack" style="gap:12px">
       <div class="hero">${isTeen(kid) ? `<div class="rank">${lvl}<small>nivå</small></div>` : `<div class="pet">${petEmoji(p)}<span class="lvl">${lvl}</span></div>`}
         <div class="grow"><div class="eyebrow">${levelNameFor(kid, lvl)} · ${p.xp} XP</div><div class="mood" style="margin:4px 0 8px">${isTeen(kid) ? (today.c >= goal ? 'Dagens mål klart. Allt över det är bonus.' : today.c ? `${goal - today.c} rätt kvar till dagens mål.` : `${p.streak && !v2 ? `Håll streaken vid liv – ` : ''}en sprint på fem räcker idag.`) : petMood(p)}</div><div class="xpbar"><i style="width:${pct}%"></i></div><div class="muted" style="font-size:.8rem;margin-top:4px">${next - p.xp} XP till nivå ${lvl + 1}</div></div></div>
-      <div class="row" style="gap:8px"><span class="pill">${p.streak} dag${p.streak === 1 ? '' : 'ar'} i rad</span>${v2 ? V2.weekPill(p) : `<span class="pill" title="Streakfrys räddar din streak om du missar en dag">${p.freezes} frys</span>`}<span class="pill ${today.c >= goal ? 'good' : ''}">${today.c}/${goal} idag</span></div>
+      <div class="row" style="gap:8px">${v2 && !p.streak ? '' : `<span class="pill">${p.streak} dag${p.streak === 1 ? '' : 'ar'} i rad</span>`}${v2 ? V2.weekPill(p) : `<span class="pill" title="Streakfrys räddar din streak om du missar en dag">${p.freezes} frys</span>`}<span class="pill ${today.c >= goal ? 'good' : ''}">${today.c}/${goal} idag</span></div>
     </div>`}
     ${v2 ? V2.welcome(kid) + (isSport(kid) ? `<div class="row" style="justify-content:center">${V2.weekPill(p)}</div>` : '') + V2.korBtn(kid) : `<button class="go-btn" data-rec="1"><div><div class="t">${LBL(kid).go}</div><div class="s">${esc(rec.label)} · ${rec.opts.n} ${LBL(kid).unit} · ~${Math.ceil(rec.opts.n * 0.5)} min</div></div><div class="arrow">${ICON.arrow}</div></button>`}
     <div class="card">
@@ -1077,7 +1077,7 @@ VIEWS.parent = () => {
     if (sub === 'overview') body += parentOverview(kid, p);
     else if (sub === 'exams') body += parentExams(kid, p);
     else if (sub === 'decks') body += parentDecks(kid, p);
-    else if (sub === 'v2') body += V2.engineCard(kid) + (p.settings.engine === 'v2' ? V2.insightsCard(kid) : '') + LE.view(kid);
+    else if (sub === 'v2') body += V2.engineCard(kid) + (p.settings.engine === 'v2' ? V2.insightsCard(kid) + V2.explainCard(kid) : '') + LE.view(kid);
     else body += parentSettings(kid, p);
   } else {
     body = `<div class="card stack" style="gap:12px"><div class="eyebrow">Inställningar</div>

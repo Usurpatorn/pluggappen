@@ -6,7 +6,8 @@
    - Belöningar använder bara befintlig XP och ädelstenar. En markör per belöning (LE2.rewardOnce) → ingen dubbelbelöning efter synk.
    - Inga felräknare, inga syskonjämförelser, ingen AI-rättning. */
 const V2 = {
-  sandbox: null,   // förälderns förhandsvisning: { kidId, snap } – inget sparas eller synkas medan den pågår
+  sandbox: null,
+  lastReasons: {},   // föräldradiagnostik: senaste passets motorbeslut (i minnet, inte i lagringen)   // förälderns förhandsvisning: { kidId, snap } – inget sparas eller synkas medan den pågår
   ROLE_CHIP: { warmup: ['UPPVÄRMNING', '☀️'], remember: ['KOMMER DU IHÅG?', '🧠'], focus: ['DAGENS FOKUS', '🎯'], revansch: ['REVANSCH!', '💪'], boss: ['BOSSEN', '👑'], rescue: ['Vi tar det tillsammans', '🤝'], easy: ['', ''], retry: ['NY CHANS', '🔁'], challenge: ['UTMANING', '🧩'], practice: ['', ''], teach: ['LÄR', '💡'], readclose: ['MINNS DU?', '🙈'], testa: ['', ''] },
   READY_TXT: { 'Bra koll': 'BRA KOLL', 'Öva lite mer': 'ÖVA LITE MER', 'För lite underlag': 'FÖR LITE UNDERLAG' },
   READY_CLS: { 'Bra koll': 'good', 'Öva lite mer': 'warn', 'För lite underlag': '' },
@@ -34,7 +35,7 @@ const V2 = {
     }, 'korBtn', `<button class="go-btn" data-v2="kor"><div><div class="t">${LBL(kid).go}</div></div><div class="arrow">${ICON.arrow}</div></button>`);
   },
   welcome(kid) { return V2.safe(() => { const p = prof(kid.id); const last = V2.lastAt(p); if (!last || (LE.now() - last) / LE2.DAY < LE2.CFG.session.absentWarmDays || V2.doneToday(p)) return ''; return `<div class="card row" style="gap:12px;border:2px solid var(--acc)"><div style="font-size:1.6rem">👋</div><div class="grow"><div style="font-weight:800;font-family:var(--display)">Välkommen tillbaka!</div><div class="muted" style="font-size:.9rem">Vi börjar lugnt med sådant du redan kan.</div></div></div>`; }, 'welcome', ''); },
-  weekPill(p) { const n = V2.weekDays(p); return `<span class="pill ${n >= 3 ? 'good' : ''}">Pluggat ${n} ${n === 1 ? 'dag' : 'dagar'} den här veckan</span>`; },
+  weekPill(p) { const n = V2.weekDays(p); if (!n) return ''; return `<span class="pill ${n >= 3 ? 'good' : ''}">Pluggat ${n} ${n === 1 ? 'dag' : 'dagar'} den här veckan</span>`; },
   felbokCard(kid) {
     return V2.safe(() => {
       const p = prof(kid.id); if (!p.le || !LE.canStart(kid, p)) return '';
@@ -60,7 +61,7 @@ const V2 = {
         const msg = st.ready ? 'Du har bra koll. Korta pass räcker – och vila gärna dagen före.' : days <= 1 ? 'Lugnt och kort idag. Det viktiga sitter redan bättre än du tror.' : 'Kör! väljer det som gör mest nytta inför provet.';
         return `<div class="card pad-lg exam stack" style="gap:12px">
         <div class="row"><div class="grow"><div class="eyebrow">${esc(e.title)} · ${fmtDate(e.date)}</div><div class="days">${days > 0 ? days : 'Idag'}</div><div style="opacity:.85">${days > 1 ? 'dagar kvar' : days === 1 ? 'dag kvar' : 'Lycka till!'}</div></div></div>
-        <div class="stack" style="gap:6px">${shown.map(x => `<div class="row" style="justify-content:space-between;gap:8px"><span style="font-weight:700">${esc(x.name)}</span><span class="pill ${V2.READY_CLS[x.ready]}" style="font-size:.75rem">${V2.READY_TXT[x.ready]}</span></div>`).join('')}${st.per.length > shown.length ? `<div style="opacity:.8;font-size:.85rem">+ ${st.per.length - shown.length} till</div>` : ''}</div>
+        ${st.per.length && st.per.every(x => x.ready === 'För lite underlag') ? `<div style="font-size:.95rem;opacity:.9">${st.per.length} områden på provet. Kör några pass så ser du här vad som sitter.</div>` : `<div class="stack" style="gap:6px">${shown.map(x => `<div class="row" style="justify-content:space-between;gap:8px"><span style="font-weight:700">${esc(x.name)}</span><span class="pill ${V2.READY_CLS[x.ready]}" style="font-size:.75rem">${V2.READY_TXT[x.ready]}</span></div>`).join('')}${st.per.length > shown.length ? `<div style="opacity:.8;font-size:.85rem">+ ${st.per.length - shown.length} till</div>` : ''}</div>`}
         <div style="font-size:.9rem;opacity:.9">${msg}</div>
         <div class="row"><button class="btn grow" data-v2="kor">IDAG ${plan.length} frågor · cirka ${V2.mins(plan.length)} minuter</button><button class="btn ghost" data-v2="testa" data-exam="${esc(e.id)}">Testa mig</button></div>
       </div>`; }).join('');
@@ -105,7 +106,7 @@ const V2 = {
     const rec = { id, t: Math.round(now / 1000), src: 'v2', e: 2, m: mode, mode: 'v2', v1: [], v2: plan.map(s => [s.cid, LE.ROLE[s.role] || '?', LE.whyKey(s)]), light: plan.light ? 1 : 0, rst: plan.restart ? 1 : 0, pol: C.pn, a: [], w: [0, 0], done: 0 };
     p.le.shadow = [...(p.le.shadow || []), rec].slice(-LE2.SHADOW_MAX);
     S = { kid, mode: 'v2', opts: { v2: mode, ...extra }, queue: [], i: 0, results: [], xp: 0, usedHelp: false, retried: false, startedAt: Date.now(), streak: 0, revealed: false, answered: false, examId: extra.examId, deadline: null, chain: null,
-      v2: { R, C, id, mode, exam, start: now, k: 0, plan, light: !!plan.light, restart: !!plan.restart, rewards: [], answers: [], seen: new Set(), fbBefore: LE2.felbokVisible(C.L, now).length, extra } };
+      v2: { R, C, id, mode, exam, start: now, k: 0, plan, light: !!plan.light, restart: !!plan.restart, rewards: [], answers: [], seen: new Set(), stageUps: new Set(), fbBefore: LE2.felbokVisible(C.L, now).length, extra } };
     save();
     state.screen = 'practice';
     if (!V2.advance()) return V2.finish();
@@ -203,6 +204,9 @@ const V2 = {
       const ev = { t: V.start + 1000 * (++V.k), dev, seq, cid: spec.cid, ok: !!correct, kind, k: kind === 'mc' ? ((q.choices || []).length || 3) : 0, help, ctx: spec.ctx || 'first', item: V2.iid(q), fast, sess: V.id, lvl: q.level || spec.lvl || 1, restart: V.restart,
         role: spec.code || undefined, stretch: !!spec.stretch, mode: spec.mode === 'challenge' ? 'challenge' : V.exam ? 'testa' : V.mode === 'readclose' ? 'readclose' : undefined };
       p.le.log.push(LE2.encodeEv(ev)); const res = LE2.apply(C.L, C.cat, ev, C.pol); C.n = p.le.log.length;
+      if (res.diff && res.diff.after && res.diff.after.st > res.diff.before.st) V.stageUps.add(spec.cid);
+      // Förklaring för föräldern (bara i minnet, sparas aldrig): vad ändrades och varför
+      (V2.lastReasons[kid.id] = V2.lastReasons[kid.id] || []).push({ cid: spec.cid, ok: !!correct, role: spec.role, reasons: (res.reasons || []).slice(0, 3) }); if (V2.lastReasons[kid.id].length > 30) V2.lastReasons[kid.id].shift();
       V.rewards.push(...V2.grant(p, res.rewards || [], spec.cid));
       const evs = LER.answered(V.R, C.L, spec, correct);
       const rec = (p.le.shadow || []).find(r => r.id === V.id); if (rec) { rec.a.push([spec.cid, correct ? 1 : 0, (spec.ctx || 'first')[0]]); rec.v1.push(spec.cid); }
@@ -216,7 +220,7 @@ const V2 = {
   grant(p, list, cid) {
     const V = S.v2; const day = LE2.dayIdx(V.start); const out = [];
     for (const rw of list) {
-      const key = rw === 'REMEMBERED' ? `REM:${day}:${cid}` : rw === 'COMEBACK' ? `CB:${day}:${cid}` : rw === 'CHALLENGE' ? `CH:${V.id}` : rw === 'MASTERY' ? `MA:${cid}` : rw === 'FOCUS' ? `FO:${day}` : rw === 'CONSISTENCY' ? `CO:${weekKey()}` : null;
+      const key = rw === 'REMEMBERED' ? `REM:${day}:${cid}` : rw === 'COMEBACK' ? `CB:${day}:${cid}` : rw === 'CHALLENGE' ? `CH:${day}` : rw === 'MASTERY' ? `MA:${cid}` : rw === 'FOCUS' ? `FO:${day}` : rw === 'CONSISTENCY' ? `CO:${weekKey()}` : null;
       if (!key || !LE2.rewardOnce(p.le, key)) continue;
       const a = LE2.CFG.reward[rw] || {}; if (a.xp) { p.xp += a.xp; S.xp += a.xp; } if (a.gems) p.gems += a.gems;
       out.push({ k: rw, xp: a.xp || 0, gems: a.gems || 0 });
@@ -255,14 +259,20 @@ const V2 = {
     const klar = V.light || !!(next && next.light);
     const fbNow = V2.safe(() => LE2.felbokVisible(C.L, LE.now()).length, 'fb', 0); const newFb = Math.max(0, fbNow - V.fbBefore); const cap = LE2.DECISIONS.O8_felbokDisplay[C.pol.name] || 5;
     const quests = dailyQuests(kid); const claimable = quests.filter(q => q.done && !q.claimed);
-    if (won.length) beep('badge'); else beep('win');
+    const young = C.pol.name === 'younger'; const gems = V.rewards.reduce((a, r) => a + r.gems, 0);
+    if (won.length) beep('badge'); else beep('win'); if (klar && young) confetti(60);
     render(`${topbar('Klart', 'home')}
     <div class="stack" style="margin-top:6px">
       <div class="card pad-lg summary-hero stack" style="gap:8px;text-align:center">
         <div style="font-size:2rem">${klar ? '✅' : '🎉'}</div>
+        <div class="eyebrow">KLART!</div>
         <div style="font-weight:800;font-family:var(--display);font-size:1.3rem">${klar ? 'Bra jobbat. Du är klar för idag.' : 'Bra jobbat!'}</div>
-        <div class="muted">${sum.n} ${sum.n === 1 ? 'uppgift' : 'uppgifter'} · cirka ${Math.max(1, Math.round((Date.now() - S.startedAt) / 60000))} min${S.xp ? ` · +${S.xp} XP` : ''}</div>
+        <div style="font-weight:700">${sum.ok} av ${sum.n} rätt</div>
+        ${V.stageUps.size ? `<div>${V.stageUps.size === 1 ? 'Ett område' : `${V.stageUps.size} områden`} blev säkrare${young ? ' ⭐' : ''}</div>` : ''}
+        ${V.rewards.some(r => r.k === 'COMEBACK') ? '<div>Du tog revansch på något som var svårt</div>' : ''}
+        ${gems ? `<div>+${gems} 💎</div>` : ''}
         ${V.restart ? '<div class="muted" style="font-size:.9rem">Skönt att vara igång igen!</div>' : ''}
+        <div class="muted" style="font-size:.9rem">${klar ? (young ? 'Nästa pass: imorgon.' : 'Nästa pass: imorgon – då sitter det bättre.') : `Cirka ${Math.max(1, Math.round((Date.now() - S.startedAt) / 60000))} min${S.xp ? ` · +${S.xp} XP` : ''}`}</div>
       </div>
       ${V.rewards.length ? `<div class="card stack" style="gap:6px"><div class="eyebrow">Det här gick bra</div>${V.rewards.map(r => `<div class="row" style="justify-content:space-between"><span>${V2.REWARD_TXT[r.k]}</span><b>${r.xp ? `+${r.xp} XP` : ''}${r.gems ? ` +${r.gems} 💎` : ''}</b></div>`).join('')}</div>` : ''}
       ${newFb ? `<div class="card row" style="gap:10px"><span style="font-size:1.3rem">📕</span><div class="grow muted" style="font-size:.9rem">${newFb > cap ? 'Några saker' : newFb === 1 ? 'En sak' : `${newFb} saker`} hamnade i Felboken – revansch ett annat pass.</div></div>` : ''}
@@ -334,6 +344,23 @@ const V2 = {
         ${tests.length ? `<div style="font-size:.9rem"><b>Testa mig</b> ${tests.map(t => `<div>${esc(t.date)} · ${esc(p.exams.find(e => e.id === t.examId)?.title || '')}: ${Number(t.score)}/${Number(t.total)} · övningsindikation ${esc(t.ind || '–')}</div>`).join('')}<div class="muted" style="font-size:.8rem">Övningsindikationen (E/C/A) är bara ett övningsresultat för dig som förälder – ingen betygsprognos. Barnet ser den inte.</div></div>` : ''}
       </div>`;
     }, 'insights', '');
+  },
+  // §6: för varje vald uppgift – vad, varför, varför nu, roll, vad ett svar ändrar, när den kan komma tillbaka, varför nivån är som den är
+  explainCard(kid) {
+    return V2.safe(() => {
+      const p = prof(kid.id); if (!p.le) return ''; const C = LE.state(kid); const now = LE.now(); const { plan } = LE.plan(kid, V2.n(kid, C), now); const pol = C.pol; const L = C.L;
+      const d = (ms) => { const x = Math.round(ms / LE2.DAY); return x === 0 ? 'idag' : x > 0 ? `om ${x} d` : `för ${-x} d sedan`; };
+      const rows = plan.map(s => { const c = L.c[s.cid]; const def = C.cat[s.cid] || {}; const st = c ? c.st : 0; const I1 = LE2.intervalDays(Math.min(6, st + 1), pol, L);
+        const now1 = !c || !c.n ? 'aldrig övat' : c.fb && c.fb.s !== 'resolved' ? `i Felboken (${LE.FB_TXT[c.fb.s] || c.fb.s})` : c.due ? `förfaller ${d(c.due - now)}` : '–';
+        const change = def.kind === 'deck' ? 'glosornas egna boxar (Leitner) uppdateras' : s.mode === 'challenge' ? 'bara fördjupning – grundkunskapen påverkas inte' : `rätt utan hjälp → ${c && c.lastOk && (now - c.lastOk) / LE2.DAY < LE2.CFG.early * LE2.intervalDays(st, pol, L) ? 'för tidigt för att höja stadiet' : `stadium ${st} → ${Math.min(6, st + 1)}`}; fel → ${st >= 2 ? 'sänks max ett steg, ny chans i passet' : 'ny variant i passet, Felboken om det upprepas'}`;
+        const back = def.kind === 'deck' ? 'enligt ordens boxar' : s.mode === 'challenge' ? 'ett senare pass' : `vid rätt: om cirka ${I1} d · vid fel: imorgon`;
+        const lvl = c ? `nivå ${c.lvl}${c.lvlDir === 1 ? ' (höjd efter flera rätt i rad på olika uppgifter)' : c.lvlDir === -1 ? ' (sänkt efter fel i rad)' : ''}` : 'nivå 1 (nytt)';
+        return `<div class="r"><div><div style="font-weight:700">${esc(V2.ROLE_CHIP[s.mode === 'challenge' ? 'challenge' : s.role] ? (V2.ROLE_CHIP[s.mode === 'challenge' ? 'challenge' : s.role][0] || 'ÖVNING') : s.role)} · ${esc(def.name || s.cid)}</div>
+          <div class="muted" style="font-size:.85rem">Varför: ${esc(s.why || '')}${s.P ? ` (poäng ${Number(s.P)})` : ''} · Varför nu: ${esc(now1)}<br>Svaret ändrar: ${esc(change)}<br>Tillbaka: ${esc(back)} · ${esc(lvl)}</div></div></div>`; }).join('');
+      const last = (V2.lastReasons[kid.id] || []).slice(-8).reverse();
+      return `<div class="card stack" style="gap:8px"><div class="eyebrow">Nästa Kör! – varför just detta (bara för förälder)</div>${plan.light ? '<div class="muted" style="font-size:.9rem">KLAR-läge: inget mer är särskilt värdefullt idag – kort pass.</div>' : ''}<div class="breakdown">${rows}</div>
+        ${last.length ? `<div class="eyebrow" style="margin-top:6px">Senaste svaren på den här enheten – vad motorn gjorde</div>${last.map(x => `<div style="font-size:.85rem;padding:3px 0;border-top:1px solid var(--line)">${x.ok ? '✅' : '🔁'} <b>${esc(V2.cname(kid, C, x.cid))}</b>: ${x.reasons.map(esc).join(' · ') || '–'}</div>`).join('')}` : ''}</div>`;
+    }, 'explain', '');
   },
   engineCard(kid) {
     const p = prof(kid.id); const on = p.settings.engine === 'v2'; const ask = state.v2ask === kid.id;

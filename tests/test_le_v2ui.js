@@ -29,7 +29,7 @@ setTimeout(() => {
     /* ---------- 2. Smart Kör! ---------- */
     openKid(T, 'k4'); const home = txt(T);
     const korTxt = T.$('.go-btn[data-v2="kor"]') ? T.$('.go-btn[data-v2="kor"]').textContent.replace(/\s+/g, ' ').trim() : ''; ok(/^(Kör!|Spela match|\S.*) ?\d+ uppgifter · cirka \d+ minuter$/.test(korTxt), 'startsidan: "Kör! N uppgifter · cirka M minuter" – ' + korTxt);
-    ok(/Pluggat \d+ dag(ar)? den här veckan/.test(home), 'veckokonsekvens visas');
+    ok(!/Pluggat 0 dagar/.test(home), 'veckokonsekvens visas inte som "0 dagar" (ingen skuld)');
     ok(!/\bfrys\b/.test(home), 'streakfrys-pillret ersatt av veckokonsekvens');
     ok(!FORBIDDEN_CHILD.test(home), 'startsidan: inga skuld-/felräknare, ingen v2-jargong');
     const k4 = () => PA().DB.profiles.k4; const att0 = Object.values(k4().skills).reduce((a, s) => a + s.att, 0);
@@ -38,11 +38,12 @@ setTimeout(() => {
     let firstScreen = txt(T); ok(/Uppgift 1 av \d+/.test(firstScreen) || /1 av \d+/.test(firstScreen), 'räknare "1 av N"');
     D.run((item) => item.spec && item.spec.role === 'focus' && item.type !== 'choicetext');
     ok(/Bra jobbat/.test(txt(T)), 'slutskärm: "Bra jobbat"');
+    click($('[data-go="home"]')); ok(/Pluggat 1 dag den här veckan/.test(txt(T)), 'veckokonsekvens efter första passet: "Pluggat 1 dag den här veckan"'); click($('[data-v2="kor"]')); D.run(false); 
     ok(!FORBIDDEN_CHILD.test(txt(T)), 'slutskärm: inga felräknare');
     const le = k4().le; const evs = le.log; ok(evs.length >= planN - 2, `bevis loggade (${evs.length})`);
     ok(evs.every(e => e.length >= 15 && /^[WRVFPBXETCMQSL]?$/.test(e[15] || '')), 'varje bevis bär rollkod (index 15)');
     const att1 = Object.values(k4().skills).reduce((a, s) => a + s.att, 0); ok(att1 > att0, `v1-mastery uppdateras samtidigt (rollback) ${att0} → ${att1}`);
-    const rec = le.shadow.filter(r => r.e === 2); ok(rec.length === 1 && rec[0].done === 1 && rec[0].src === 'v2', 'v2-passet sparat som avslutad passpost');
+    const rec = le.shadow.filter(r => r.e === 2); ok(rec.length >= 1 && rec.every(r => r.done === 1 && r.src === 'v2'), 'v2-passen sparade som avslutade passposter');
     ok(D.log.chips.size >= 1, 'rollkort visas: ' + [...D.log.chips].join(', '));
     /* ---------- 3. Rescue Loop + LÄR ---------- */
     click($('[data-v2="kor"]')); const before = D.log.rescueLearn; D.run(true);
@@ -74,7 +75,7 @@ setTimeout(() => {
     PA().LE.plan = realPlan;
     /* ---------- 6. Testa mig (k8) ---------- */
     enableV2(w, T, 'k8'); openKid(T, 'k8'); const k8home = txt(T);
-    ok(/BRA KOLL|ÖVA LITE MER|FÖR LITE UNDERLAG/.test(k8home), 'provkort: beredskap i tre lägen');
+    ok(/BRA KOLL|ÖVA LITE MER|FÖR LITE UNDERLAG|Kör några pass så ser du/.test(k8home), 'provkort: beredskap (tre lägen, eller en lugn rad när underlag saknas)');
     ok(/IDAG \d+ frågor · cirka \d+ minuter/.test(k8home), 'provkort: "IDAG N frågor · cirka M minuter"');
     ok(!/E\/C\/A|Indikation/.test(k8home), 'barnet ser inget E/C/A');
     const tb = $('[data-v2="testa"][data-exam="alg12"]'); ok(!!tb, 'Testa mig-knapp'); click(tb);
@@ -103,6 +104,17 @@ setTimeout(() => {
     const card = [...w.document.querySelectorAll('.card')].find(c => /insikter från Learning Engine v2/.test(c.textContent)); const others = FIX.kids.filter(k => k.id !== 'k8').map(k => k.name);
     ok(card && !others.some(n => card.textContent.includes(n)) && !/bättre än|sämre än|jämfört med|syskon|placering|topplista/i.test(card.textContent), 'insiktskortet nämner inga andra barn och jämför inte');
     click($('[data-sub="v2"]')); ok(/Motor för Åttan/.test(txt(T)), 'motorkort i fliken Motor v2');
+    const ex = txt(T); ok(/varför just detta/.test(ex) && /Varför nu:/.test(ex) && /Svaret ändrar:/.test(ex) && /Tillbaka:/.test(ex) && /nivå \d/.test(ex), 'förälder: varje vald uppgift förklaras (vad, varför, varför nu, vad svaret ändrar, när den kommer tillbaka, nivå)');
+    ok(/vad motorn gjorde/.test(ex), 'förälder: senaste svarens motorbeslut visas (bara i minnet)');
+    ok(!JSON.stringify(PA().DB.profiles.k8).includes('stadium '), 'förklaringstexterna sparas inte i profilen');
+    /* ---------- 9b. Belöningar går inte att farma ---------- */
+    { openKid(T, 'k4'); for (let r = 0; r < 4; r++) { click($('[data-v2="kor"]') || $('[data-v2="extra"]')); D.run(() => Math.random() < 0.5); goHome(T); }
+      const rw = PA().DB.profiles.k4.le.rw || []; const day = PA().LE2.dayIdx(PA().LE.now()); const cnt = (pre) => rw.filter(k => k.startsWith(pre)).length;
+      ok(rw.filter(k => k === 'FO:' + day).length <= 1 && rw.filter(k => k === 'CH:' + day).length <= 1, 'FOCUS och CHALLENGE högst en gång per dygn trots många pass');
+      ok(cnt('CO:') <= 2, 'CONSISTENCY högst en gång per vecka (' + rw.filter(k => k.startsWith('CO:')).join(',') + ')');
+      const rem = rw.filter(k => k.startsWith('REM:')); ok(rem.length === new Set(rem).size, 'REMEMBERED högst en gång per koncept och dygn');
+      const ma = rw.filter(k => k.startsWith('MA:')); ok(ma.length === new Set(ma).size, 'MASTERY högst en gång per koncept'); }
+    unlockParent(w, T); click($('[data-tab="k8"]')); click($('[data-sub="v2"]'));
     /* ---------- 10. Rollback till v1 ---------- */
     const k8v1skills = JSON.stringify(k8.skills); click($('[data-v2="engine"][data-val="v1"]')); ok(!PA().DB.profiles.k8.settings.engine, 'rollback: tillbaka till v1 med ett tryck');
     openKid(T, 'k8'); ok($('[data-rec]') && !$('[data-v2="kor"]') && /frys/.test(txt(T)), 'rollback: v1-startsidan igen');
@@ -120,14 +132,14 @@ setTimeout(() => {
     /* ---------- 11b. Säkerhetsnät ---------- */
     { const p4 = PA().DB.profiles.k4; const errs0 = PA().LE.errors.length;
       // XSS: ett eget glosdeck med HTML i namnet, kopplat till ett prov, visas escapat i v2:s provkort
-      p4.decks.push({ id: 'evil', lang: 'en', name: '<img src=x onerror="window.__x=1">', emoji: '🗂️', level: 1, builtin: false, words: [{ id: 'ev1', w: 'cat', t: 'katt', e: '' }] }); p4.enabledDecks.push('evil');
+      p4.decks.push({ id: 'evil', lang: 'en', name: '<img src=x onerror="window.__x=1">', emoji: '🗂️', level: 1, builtin: false, words: [{ id: 'ev1', w: 'cat', t: 'katt', e: '' }] }); p4.enabledDecks.push('evil'); p4.words.ev1 = { box: 4, due: Date.now() + 9 * DAY, seen: 4, cor: 4, wrong: 0, last: Date.now() };
       p4.exams.push({ id: 'evx', title: '<b onclick=1>Prov</b>', date: '2026-11-20', skillIds: [], deckIds: ['evil'] }); PA().LE.invalidate('k4');
       openKid(T, 'k4'); ok(!w.document.querySelector('#app img[src="x"]') && !w.document.querySelector('#app b[onclick]') && /&lt;img|<img/.test($('#app').innerHTML) && !w.__x, 'v2-provkort: deck- och provnamn escapas');
       // ett fel i v2 stoppar aldrig barnet: Kör! faller tillbaka till v1
       const realPlan2 = PA().V2.plan; PA().V2.plan = () => { throw new Error('test'); }; click($('[data-v2="kor"]'));
       ok(PA().S && !PA().S.v2 && PA().S.mode === 'practice' && $('#qcard'), 'fel i v2 → v1-pass startar i stället'); PA().V2.plan = realPlan2; T.run(); goHome(T);
       ok(PA().LE.errors.length > errs0, 'felet loggas för föräldradiagnostiken'); PA().LE.errors.length = errs0;
-      p4.exams = p4.exams.filter(e => e.id !== 'evx'); p4.decks = p4.decks.filter(d => d.id !== 'evil'); p4.enabledDecks = p4.enabledDecks.filter(x => x !== 'evil'); PA().LE.invalidate('k4');
+      p4.exams = p4.exams.filter(e => e.id !== 'evx'); p4.decks = p4.decks.filter(d => d.id !== 'evil'); p4.enabledDecks = p4.enabledDecks.filter(x => x !== 'evil'); delete p4.words.ev1; PA().LE.invalidate('k4');
       // okänd (senare) le-version: v2 stängs av för barnet och le skrivs aldrig över
       const realLe = p4.le; p4.le = { v: 3, future: true }; PA().LE.invalidate('k4'); openKid(T, 'k4');
       ok($('[data-rec]') && !$('[data-v2="kor"]'), 'okänd le-version: barnet får v1'); click($('[data-rec]')); T.run(); goHome(T);
