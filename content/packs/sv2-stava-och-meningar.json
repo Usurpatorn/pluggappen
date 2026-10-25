@@ -1,0 +1,607 @@
+{
+ "pluggPackVersion": 1,
+ "id": "sv2-stava-och-meningar",
+ "title": "Svenska åk 2: stavningsregler och meningar",
+ "subject": "sv",
+ "topic": "Svenska",
+ "grades": [
+  1,
+  3
+ ],
+ "policies": [
+  "younger"
+ ],
+ "templates": [
+  "ak2"
+ ],
+ "rev": 1,
+ "sources": [
+  {
+   "id": "lgr22",
+   "label": "Lgr22 Svenska åk 1–3: stavningsregler, stor bokstav och punkt, ordföljd",
+   "kind": "lgr22"
+  }
+ ],
+ "skills": [
+  {
+   "id": "sv2_stava",
+   "name": "Stava rätt – regler",
+   "short": "Stavningsregler",
+   "icon": "✍️",
+   "group": "sv",
+   "read": "<p><b>Kort vokal → två konsonanter:</b> katt, boll, simma. Lång vokal → en: sol, bil.</p><p>Man skriver <b>ck</b>, inte kk: jacka, tack.</p><p><b>sj-ljudet</b> kan skrivas sj (sju), skj (skjorta) och stj (stjärna). <b>j-ljudet</b> kan skrivas j (jag), g (gilla), hj (hjälpa), lj (ljus) och dj (djur).</p>"
+  },
+  {
+   "id": "sv2_felet",
+   "name": "Hitta felet i meningen",
+   "short": "Hitta felet",
+   "icon": "🔍",
+   "group": "sv",
+   "read": "<p>En mening börjar med <b>stor bokstav</b> och slutar med <b>punkt</b>. Namn skrivs med stor bokstav: Anna, Kalle.</p><p>Orden ska passa ihop: <b>ett</b> hus, <b>en</b> bil. Igår <b>sprang</b> jag. Två <b>katter</b>.</p>"
+  }
+ ],
+ "kps": [
+  {
+   "id": "stav2-dubbel",
+   "skill": "sv2_stava",
+   "name": "Kort vokal – två konsonanter",
+   "explain": "Säg ordet långsamt. Är vokalen kort skriver man ofta två konsonanter: katt, boll, simma. Är den lång skriver man en: sol, bil.",
+   "facts": [
+    {
+     "k": "fix",
+     "bad": "Vi har en kat.",
+     "good": "Vi har en katt.",
+     "err": "kat",
+     "fix": "katt",
+     "why": "Kort a – två t.",
+     "lvl": 2
+    },
+    {
+     "k": "fix",
+     "bad": "Jag har en bol.",
+     "good": "Jag har en boll.",
+     "err": "bol",
+     "fix": "boll",
+     "why": "Kort o – två l.",
+     "lvl": 2
+    },
+    {
+     "k": "fix",
+     "bad": "Kan du hopa högt?",
+     "good": "Kan du hoppa högt?",
+     "err": "hopa",
+     "fix": "hoppa",
+     "why": "Kort o – två p.",
+     "lvl": 2
+    },
+    {
+     "k": "fix",
+     "bad": "Vi ska sima.",
+     "good": "Vi ska simma.",
+     "err": "sima",
+     "fix": "simma",
+     "why": "Kort i – två m.",
+     "lvl": 2
+    },
+    {
+     "k": "fix",
+     "bad": "Katten siter här.",
+     "good": "Katten sitter här.",
+     "err": "siter",
+     "fix": "sitter",
+     "why": "Kort i – två t.",
+     "lvl": 2
+    },
+    {
+     "k": "fix",
+     "bad": "Jag har en mösa.",
+     "good": "Jag har en mössa.",
+     "err": "mösa",
+     "fix": "mössa",
+     "why": "Kort ö – två s.",
+     "lvl": 2
+    },
+    {
+     "k": "group",
+     "groups": [
+      {
+       "q": "Vilket ord har två konsonanter?",
+       "items": [
+        "katt",
+        "boll",
+        "simma",
+        "hoppa"
+       ]
+      },
+      {
+       "q": "Vilket ord har bara en konsonant i mitten?",
+       "items": [
+        "sol",
+        "bil",
+        "mat",
+        "ros"
+       ]
+      }
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "stmt",
+     "s": "Kort vokal ger ofta två konsonanter.",
+     "f": [
+      "Kort vokal ger alltid bara en konsonant."
+     ]
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "stav2-ck",
+   "skill": "sv2_stava",
+   "name": "ck i stället för kk",
+   "explain": "När det låter kk skriver man ck: jacka, tack, socker. Man skriver aldrig kk.",
+   "facts": [
+    {
+     "k": "fix",
+     "bad": "Hon har en röd jaka.",
+     "good": "Hon har en röd jacka.",
+     "err": "jaka",
+     "fix": "jacka",
+     "why": "Det låter kk – skriv ck.",
+     "lvl": 2
+    },
+    {
+     "k": "fix",
+     "bad": "Tak för hjälpen!",
+     "good": "Tack för hjälpen!",
+     "err": "Tak",
+     "fix": "tack",
+     "why": "Det låter kk – skriv ck.",
+     "lvl": 2
+    },
+    {
+     "k": "fix",
+     "bad": "Jag vill ha soker.",
+     "good": "Jag vill ha socker.",
+     "err": "soker",
+     "fix": "socker",
+     "why": "Det låter kk – skriv ck.",
+     "lvl": 2
+    },
+    {
+     "k": "fix",
+     "bad": "Klokan är tre.",
+     "good": "Klockan är tre.",
+     "err": "Klokan",
+     "fix": "klockan",
+     "why": "Det låter kk – skriv ck.",
+     "lvl": 2
+    },
+    {
+     "k": "fix",
+     "bad": "Vi takade för maten.",
+     "good": "Vi tackade för maten.",
+     "err": "takade",
+     "fix": "tackade",
+     "why": "Det låter kk – skriv ck.",
+     "lvl": 2
+    },
+    {
+     "k": "stmt",
+     "s": "Man skriver ck, inte kk.",
+     "f": [
+      "Man skriver kk, inte ck."
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Vilket ord är rätt stavat?",
+     "a": "jacka",
+     "not": [
+      "jakka",
+      "jaka",
+      "jacca"
+     ],
+     "exact": true
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "stav2-sj",
+   "skill": "sv2_stava",
+   "name": "sj-ljudet",
+   "explain": "Sj-ljudet kan skrivas på flera sätt: sj (sju, sjö), skj (skjorta) och stj (stjärna).",
+   "facts": [
+    {
+     "k": "qa",
+     "q": "Vilket ord är rätt stavat?",
+     "a": "sju",
+     "not": [
+      "skju",
+      "stju",
+      "schu"
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Vilket ord är rätt stavat?",
+     "a": "sjö",
+     "not": [
+      "skjö",
+      "schö",
+      "stjö"
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Vilket ord är rätt stavat?",
+     "a": "stjärna",
+     "not": [
+      "sjärna",
+      "skjärna",
+      "chärna"
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Vilket ord är rätt stavat?",
+     "a": "skjorta",
+     "not": [
+      "sjorta",
+      "stjorta",
+      "schorta"
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "fix",
+     "bad": "Vi badar i skjön.",
+     "good": "Vi badar i sjön.",
+     "err": "skjön",
+     "fix": "sjön",
+     "why": "Sjö stavas med sj.",
+     "lvl": 2
+    },
+    {
+     "k": "fix",
+     "bad": "Han har en blå sjorta.",
+     "good": "Han har en blå skjorta.",
+     "err": "sjorta",
+     "fix": "skjorta",
+     "why": "Skjorta stavas med skj.",
+     "lvl": 2
+    },
+    {
+     "k": "fix",
+     "bad": "Titta på sjärnan!",
+     "good": "Titta på stjärnan!",
+     "err": "sjärnan",
+     "fix": "stjärnan",
+     "why": "Stjärna stavas med stj.",
+     "lvl": 2
+    },
+    {
+     "k": "stmt",
+     "s": "Sj-ljudet kan stavas på flera sätt.",
+     "f": [
+      "Sj-ljudet stavas alltid sj."
+     ]
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "stav2-j",
+   "skill": "sv2_stava",
+   "name": "j-ljudet",
+   "explain": "J-ljudet kan skrivas j (jag), g (gilla), hj (hjälpa), lj (ljus) och dj (djur).",
+   "facts": [
+    {
+     "k": "fix",
+     "bad": "Det finns ett jur i skogen.",
+     "good": "Det finns ett djur i skogen.",
+     "err": "jur",
+     "fix": "djur",
+     "why": "Djur stavas med dj.",
+     "lvl": 2
+    },
+    {
+     "k": "fix",
+     "bad": "Vi tände ett jus.",
+     "good": "Vi tände ett ljus.",
+     "err": "jus",
+     "fix": "ljus",
+     "why": "Ljus stavas med lj.",
+     "lvl": 2
+    },
+    {
+     "k": "fix",
+     "bad": "Kan du jälpa mig?",
+     "good": "Kan du hjälpa mig?",
+     "err": "jälpa",
+     "fix": "hjälpa",
+     "why": "Hjälpa stavas med hj.",
+     "lvl": 2
+    },
+    {
+     "k": "fix",
+     "bad": "Jag jillar glass.",
+     "good": "Jag gillar glass.",
+     "err": "jillar",
+     "fix": "gillar",
+     "why": "Gilla stavas med g.",
+     "lvl": 2
+    },
+    {
+     "k": "fix",
+     "bad": "Mitt järta slår fort.",
+     "good": "Mitt hjärta slår fort.",
+     "err": "järta",
+     "fix": "hjärta",
+     "why": "Hjärta stavas med hj.",
+     "lvl": 2
+    },
+    {
+     "k": "stmt",
+     "s": "J-ljudet i ljus stavas med lj.",
+     "f": [
+      "J-ljudet i ljus stavas med dj."
+     ]
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "fel2-stor",
+   "skill": "sv2_felet",
+   "name": "Stor bokstav och punkt",
+   "explain": "En mening börjar med stor bokstav och slutar med punkt. Namn skrivs med stor bokstav.",
+   "facts": [
+    {
+     "k": "qa",
+     "q": "Vilken mening är rätt skriven?",
+     "a": "Kalle har en hund.",
+     "not": [
+      "kalle har en hund.",
+      "Kalle har en hund",
+      "Kalle Har en hund."
+     ],
+     "cs": true
+    },
+    {
+     "k": "qa",
+     "q": "Vilken mening är rätt skriven?",
+     "a": "Vi leker i parken.",
+     "not": [
+      "vi leker i parken.",
+      "Vi leker i parken",
+      "Vi Leker i parken."
+     ],
+     "cs": true
+    },
+    {
+     "k": "qa",
+     "q": "Vilken mening är rätt skriven?",
+     "a": "Anna bor i Umeå.",
+     "not": [
+      "anna bor i Umeå.",
+      "Anna bor i umeå.",
+      "Anna bor i Umeå"
+     ],
+     "cs": true,
+     "lvl": 2
+    },
+    {
+     "k": "fix",
+     "bad": "Jag heter anna.",
+     "good": "Jag heter Anna.",
+     "err": "anna",
+     "fix": "Anna",
+     "cs": true,
+     "why": "Namn skrivs med stor bokstav.",
+     "lvl": 2,
+     "recall": false
+    },
+    {
+     "k": "fix",
+     "bad": "min katt är grå.",
+     "good": "Min katt är grå.",
+     "err": "min",
+     "fix": "Min",
+     "cs": true,
+     "why": "Meningen börjar med stor bokstav.",
+     "lvl": 2,
+     "recall": false
+    },
+    {
+     "k": "stmt",
+     "s": "Namn skrivs med stor bokstav.",
+     "f": [
+      "Namn skrivs med liten bokstav."
+     ]
+    },
+    {
+     "k": "stmt",
+     "s": "En mening slutar med punkt.",
+     "f": [
+      "En mening slutar med stor bokstav."
+     ]
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "fel2-ord",
+   "skill": "sv2_felet",
+   "name": "Ord som passar ihop",
+   "explain": "Orden i en mening ska passa ihop: ett hus men en bil, två katter, igår sprang jag.",
+   "facts": [
+    {
+     "k": "fix",
+     "bad": "Jag ser en hus.",
+     "good": "Jag ser ett hus.",
+     "err": "en",
+     "fix": "ett",
+     "why": "Det heter ett hus.",
+     "lvl": 2
+    },
+    {
+     "k": "fix",
+     "bad": "Det är en äpple.",
+     "good": "Det är ett äpple.",
+     "err": "en",
+     "fix": "ett",
+     "why": "Det heter ett äpple.",
+     "lvl": 2
+    },
+    {
+     "k": "fix",
+     "bad": "Jag har två katt.",
+     "good": "Jag har två katter.",
+     "err": "katt",
+     "fix": "katter",
+     "why": "Två – flera: katter.",
+     "lvl": 2
+    },
+    {
+     "k": "fix",
+     "bad": "Igår springer jag fort.",
+     "good": "Igår sprang jag fort.",
+     "err": "springer",
+     "fix": "sprang",
+     "why": "Igår – det har redan hänt: sprang.",
+     "lvl": 2
+    },
+    {
+     "k": "fix",
+     "bad": "Vi är glad idag.",
+     "good": "Vi är glada idag.",
+     "err": "glad",
+     "fix": "glada",
+     "why": "Vi är flera: glada.",
+     "lvl": 2
+    },
+    {
+     "k": "group",
+     "groups": [
+      {
+       "q": "Vilket ord ska ha ett framför sig?",
+       "items": [
+        "hus",
+        "äpple",
+        "bord",
+        "barn"
+       ]
+      },
+      {
+       "q": "Vilket ord ska ha en framför sig?",
+       "items": [
+        "bil",
+        "katt",
+        "boll",
+        "stol"
+       ]
+      }
+     ]
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "fel2-ordfoljd",
+   "skill": "sv2_felet",
+   "name": "Orden i rätt ordning",
+   "explain": "Orden i en mening står i en bestämd ordning. Ordet med stor bokstav kommer först och ordet med punkt sist.",
+   "facts": [
+    {
+     "k": "order",
+     "q": "Sätt orden i rätt ordning.",
+     "items": [
+      "Vi",
+      "äter",
+      "glass."
+     ]
+    },
+    {
+     "k": "order",
+     "q": "Sätt orden i rätt ordning.",
+     "items": [
+      "Hunden",
+      "springer",
+      "fort."
+     ]
+    },
+    {
+     "k": "order",
+     "q": "Sätt orden i rätt ordning.",
+     "items": [
+      "Jag",
+      "har",
+      "en",
+      "katt."
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "order",
+     "q": "Sätt orden i rätt ordning.",
+     "items": [
+      "Mamma",
+      "läser",
+      "en",
+      "bok."
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Vilken mening är rätt?",
+     "a": "Jag har en röd boll.",
+     "not": [
+      "Jag en har röd boll.",
+      "Har jag boll en röd.",
+      "Röd jag har en boll."
+     ]
+    },
+    {
+     "k": "stmt",
+     "s": "Ordet med stor bokstav kommer först.",
+     "f": [
+      "Ordet med punkt kommer först."
+     ]
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,1386 @@
+{
+ "pluggPackVersion": 1,
+ "id": "sv4-sprak-och-lasning",
+ "title": "Svenska åk 4: ord, meningar, stavning och läsning",
+ "subject": "sv",
+ "topic": "Svenska",
+ "grades": [
+  4,
+  5
+ ],
+ "policies": [
+  "middle"
+ ],
+ "templates": [
+  "ak4"
+ ],
+ "rev": 1,
+ "sources": [
+  {
+   "id": "lgr22",
+   "label": "Lgr22 Svenska åk 4–6: språkets struktur, stavning, ord och begrepp, läsa och tolka texter",
+   "kind": "lgr22"
+  }
+ ],
+ "skills": [
+  {
+   "id": "sv4_ordklasser",
+   "name": "Ordklasser",
+   "short": "Ordklasser",
+   "icon": "🔤",
+   "read": "<p><b>Substantiv</b> är ord för saker, djur, människor och platser – du kan sätta <i>en</i> eller <i>ett</i> framför: en katt, ett hus. <b>Verb</b> är ord för vad någon gör: hoppar, äter, skrev. <b>Adjektiv</b> beskriver hur något är: glad, röd, stor. <b>Pronomen</b> ersätter namn: jag, du, han, hon, vi, de.</p>"
+  },
+  {
+   "id": "sv4_ord",
+   "name": "Synonymer, motsatser och sammansatta ord",
+   "short": "Ord",
+   "icon": "🔁",
+   "read": "<p><b>Synonymer</b> betyder nästan samma sak: glad – lycklig. <b>Motsatsord</b> betyder tvärtom: varm – kall. <b>Sammansatta ord</b> är två ord som blivit ett: fot + boll = fotboll. Det sista ordet berättar vad det är: en snöboll är en boll.</p>"
+  },
+  {
+   "id": "sv4_mening",
+   "name": "Meningar och skiljetecken",
+   "short": "Meningar",
+   "icon": "❗",
+   "read": "<p>En mening börjar med <b>stor bokstav</b> och slutar med <b>punkt</b>, <b>frågetecken</b> eller <b>utropstecken</b>. Namn på personer och platser skrivs med stor bokstav: Lisa, Göteborg. Veckodagar och månader skrivs med liten bokstav: måndag, juni.</p>"
+  },
+  {
+   "id": "sv4_bojning",
+   "name": "Böja ord",
+   "short": "Böja ord",
+   "icon": "🔧",
+   "read": "<p>Substantiv kan stå i <b>plural</b> (flera: bil – bilar) och i <b>bestämd form</b> (bilen). Verb ändras efter <b>tid</b>: nu springer jag, igår sprang jag. Adjektiv kan <b>jämföras</b>: stor – större – störst, bra – bättre – bäst.</p>"
+  },
+  {
+   "id": "sv4_stavning",
+   "name": "Stavningsregler",
+   "short": "Stavning",
+   "icon": "✍️",
+   "readAloud": false,
+   "read": "<p><b>Kort vokal → dubbel konsonant:</b> katt, boll, simma. Lång vokal → en konsonant: bil, sol.</p><p><b>sj-ljudet</b> kan stavas sj (sju), skj (skjorta), stj (stjärna), sk (sked), ch (choklad) och sch (dusch).</p><p><b>j-ljudet</b> kan stavas j (ja), g (gilla), gj (gjorde), hj (hjärta), dj (djur) och lj (ljus).</p>"
+  },
+  {
+   "id": "sv4_lasa",
+   "name": "Läsförståelse",
+   "short": "Läsa",
+   "icon": "📖",
+   "readAloud": false,
+   "read": "<p>Läs noga. Svaret står ofta i texten – men ibland måste du tänka själv: <i>Varför gör personen så? Hur känns det?</i></p>"
+  }
+ ],
+ "kps": [
+  {
+   "id": "ok4-sva",
+   "skill": "sv4_ordklasser",
+   "name": "Substantiv, verb och adjektiv",
+   "explain": "Substantiv är ord för saker, djur, människor och platser (en katt, ett hus). Verb berättar vad någon gör (hoppar, äter). Adjektiv beskriver hur något är (glad, röd, stor).",
+   "facts": [
+    {
+     "k": "term",
+     "term": "substantiv",
+     "q": "Vad kallas ord för saker, djur, människor och platser?",
+     "not": [
+      "Verb",
+      "Adjektiv",
+      "Pronomen"
+     ],
+     "cls": "ordklass"
+    },
+    {
+     "k": "term",
+     "term": "verb",
+     "q": "Vad kallas ord som berättar vad någon gör?",
+     "not": [
+      "Substantiv",
+      "Adjektiv",
+      "Pronomen"
+     ],
+     "cls": "ordklass"
+    },
+    {
+     "k": "term",
+     "term": "adjektiv",
+     "q": "Vad kallas ord som beskriver hur något är?",
+     "not": [
+      "Substantiv",
+      "Verb",
+      "Pronomen"
+     ],
+     "cls": "ordklass"
+    },
+    {
+     "k": "group",
+     "groups": [
+      {
+       "q": "Vilket ord är ett substantiv?",
+       "items": [
+        "katt",
+        "skola",
+        "boll",
+        "Sverige"
+       ],
+       "odd": "Vilket ord är INTE ett substantiv?"
+      },
+      {
+       "q": "Vilket ord är ett verb?",
+       "items": [
+        "hoppar",
+        "äter",
+        "skrev",
+        "sjunger"
+       ],
+       "odd": "Vilket ord är INTE ett verb?"
+      },
+      {
+       "q": "Vilket ord är ett adjektiv?",
+       "items": [
+        "glad",
+        "röd",
+        "stor",
+        "snabb"
+       ],
+       "odd": "Vilket ord är INTE ett adjektiv?"
+      }
+     ]
+    },
+    {
+     "k": "pick",
+     "text": "Hunden springer fort.",
+     "ask": "Vilket ord är ett verb?",
+     "a": "springer"
+    },
+    {
+     "k": "pick",
+     "text": "Min katt är svart.",
+     "ask": "Vilket ord är ett adjektiv?",
+     "a": "svart"
+    },
+    {
+     "k": "pick",
+     "text": "Han har en ny cykel.",
+     "ask": "Vilket ord är ett adjektiv?",
+     "a": "ny",
+     "lvl": 2
+    },
+    {
+     "k": "pick",
+     "text": "Lisa åt en banan.",
+     "ask": "Vilket ord är ett verb?",
+     "a": "åt",
+     "lvl": 2
+    },
+    {
+     "k": "stmt",
+     "s": "Man kan sätta en eller ett framför de flesta substantiv.",
+     "f": [
+      "Man kan sätta en eller ett framför verb."
+     ]
+    },
+    {
+     "k": "stmt",
+     "s": "Verb ändras efter när något händer: hoppar – hoppade.",
+     "f": [
+      "Adjektiv ändras efter när något händer: glad – gladde."
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Vilket ord kan man sätta 'att' framför?",
+     "a": "simma",
+     "not": [
+      "glad",
+      "bok",
+      "snabb"
+     ],
+     "form": "application",
+     "lvl": 2,
+     "why": "Att simma – verb kan få att framför."
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "ok4-pron",
+   "skill": "sv4_ordklasser",
+   "name": "Pronomen",
+   "explain": "Pronomen är små ord som kan ersätta ett namn: jag, du, han, hon, den, det, vi, de. 'Lisa är trött' kan bli 'Hon är trött'.",
+   "facts": [
+    {
+     "k": "term",
+     "term": "pronomen",
+     "q": "Vad kallas ord som ersätter ett namn, till exempel han, hon och vi?",
+     "not": [
+      "Substantiv",
+      "Adjektiv",
+      "Verb"
+     ],
+     "cls": "ordklass"
+    },
+    {
+     "k": "pairs",
+     "q": "Vilket pronomen kan ersätta <b>{a}</b>?",
+     "items": [
+      [
+       "Lisa",
+       "hon"
+      ],
+      [
+       "Erik",
+       "han"
+      ],
+      [
+       "Lisa och jag",
+       "vi"
+      ],
+      [
+       "Lisa och Erik",
+       "de"
+      ],
+      [
+       "bordet",
+       "det"
+      ],
+      [
+       "katten",
+       "den"
+      ]
+     ],
+     "recallB": true,
+     "exact": true
+    },
+    {
+     "k": "group",
+     "groups": [
+      {
+       "q": "Vilket ord är ett pronomen?",
+       "items": [
+        "jag",
+        "hon",
+        "vi",
+        "de"
+       ],
+       "odd": "Vilket ord är INTE ett pronomen?"
+      },
+      {
+       "q": "Vilket ord är ett substantiv?",
+       "items": [
+        "bord",
+        "hund",
+        "Lisa"
+       ]
+      }
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "fix",
+     "bad": "Erik har en hund. Hon heter Ludde.",
+     "good": "Erik har en hund. Den heter Ludde.",
+     "err": "Hon",
+     "fix": "den",
+     "cs": true,
+     "why": "Hunden ersätts med den.",
+     "lvl": 3
+    },
+    {
+     "k": "stmt",
+     "s": "Vi kan ersätta 'mamma och jag'.",
+     "f": [
+      "Vi kan ersätta 'mamma och pappa'."
+     ],
+     "lvl": 2,
+     "why": "Mamma och pappa blir de."
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "ord4-syn",
+   "skill": "sv4_ord",
+   "name": "Synonymer",
+   "explain": "Synonymer är ord som betyder nästan samma sak: glad – lycklig, börja – starta.",
+   "facts": [
+    {
+     "k": "term",
+     "term": "synonymer",
+     "q": "Vad kallas ord som betyder nästan samma sak?",
+     "alias": [
+      "synonym"
+     ],
+     "not": [
+      "Motsatsord",
+      "Rimord",
+      "Sammansatta ord"
+     ],
+     "cls": "ordrel"
+    },
+    {
+     "k": "pairs",
+     "q": "Vilket ord betyder nästan samma sak som <b>{a}</b>?",
+     "items": [
+      [
+       "glad",
+       "lycklig"
+      ],
+      [
+       "börja",
+       "starta"
+      ],
+      [
+       "snabb",
+       "kvick"
+      ],
+      [
+       "prata",
+       "tala"
+      ],
+      [
+       "trött",
+       "sömnig"
+      ],
+      [
+       "rädd",
+       "skrämd"
+      ],
+      [
+       "tyst",
+       "stilla"
+      ]
+     ],
+     "rq": "Vilket ord betyder nästan samma sak som <b>{b}</b>?"
+    },
+    {
+     "k": "qa",
+     "q": "Vilket ord kan bytas ut mot 'vacker' i 'en vacker blomma'?",
+     "a": "fin",
+     "not": [
+      "ful",
+      "stor",
+      "snabb"
+     ],
+     "form": "application",
+     "lvl": 2
+    },
+    {
+     "k": "stmt",
+     "s": "Synonymer betyder nästan samma sak.",
+     "f": [
+      "Synonymer betyder motsatsen."
+     ]
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "ord4-mot",
+   "skill": "sv4_ord",
+   "name": "Motsatsord",
+   "explain": "Motsatsord betyder tvärtom: varm – kall, full – tom, vinna – förlora.",
+   "facts": [
+    {
+     "k": "term",
+     "term": "motsatsord",
+     "q": "Vad kallas ord som betyder tvärtom?",
+     "alias": [
+      "motsatser",
+      "antonymer",
+      "motsats"
+     ],
+     "not": [
+      "Synonymer",
+      "Rimord",
+      "Pronomen"
+     ],
+     "cls": "ordrel"
+    },
+    {
+     "k": "pairs",
+     "q": "Vad är motsatsen till <b>{a}</b>?",
+     "items": [
+      [
+       "varm",
+       "kall"
+      ],
+      [
+       "ljus",
+       "mörk"
+      ],
+      [
+       "tung",
+       "lätt"
+      ],
+      [
+       "öppen",
+       "stängd"
+      ],
+      [
+       "full",
+       "tom"
+      ],
+      [
+       "vinna",
+       "förlora"
+      ],
+      [
+       "början",
+       "slutet"
+      ]
+     ],
+     "recallB": true,
+     "rq": "Vad är motsatsen till <b>{b}</b>?"
+    },
+    {
+     "k": "qa",
+     "q": "Vilket ord passar? 'Glaset var inte fullt – det var ___.'",
+     "a": "tomt",
+     "not": [
+      "kallt",
+      "tungt",
+      "ljust"
+     ],
+     "form": "application",
+     "lvl": 2
+    },
+    {
+     "k": "stmt",
+     "s": "Motsatsen till 'tung' är 'lätt'.",
+     "f": [
+      "Motsatsen till 'tung' är 'stor'."
+     ]
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "ord4-sam",
+   "skill": "sv4_ord",
+   "name": "Sammansatta ord",
+   "explain": "Ett sammansatt ord är två ord som blivit ett: fot + boll = fotboll. Det sista ordet berättar vad det är: en snöboll är en boll, en skolväska är en väska. Sammansatta ord skrivs ihop.",
+   "facts": [
+    {
+     "k": "qa",
+     "q": "Vilka två ord bildar <b>fotboll</b>?",
+     "a": "fot + boll",
+     "not": [
+      "fo + tboll",
+      "fotb + oll",
+      "fot + bol"
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Vilka två ord bildar <b>solglasögon</b>?",
+     "a": "sol + glasögon",
+     "not": [
+      "solg + lasögon",
+      "so + lglasögon",
+      "sol + ögon"
+     ]
+    },
+    {
+     "k": "pairs",
+     "q": "Vilket ord kan sättas ihop med <b>{a}</b>?",
+     "items": [
+      [
+       "snö",
+       "boll → snöboll"
+      ],
+      [
+       "tand",
+       "borste → tandborste"
+      ],
+      [
+       "is",
+       "glass → isglass"
+      ],
+      [
+       "mat",
+       "säck → matsäck"
+      ]
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Vad är en skolväska?",
+     "a": "En väska man har till skolan",
+     "not": [
+      "En skola för väskor",
+      "En väska som är en skola",
+      "En skola som bär väskor"
+     ],
+     "form": "relationship",
+     "lvl": 2,
+     "why": "Sista ordet berättar vad det är: en väska."
+    },
+    {
+     "k": "qa",
+     "q": "Vad är skillnaden mellan en husbåt och ett båthus?",
+     "a": "En husbåt är en båt man bor i, ett båthus är ett hus för båtar",
+     "not": [
+      "Ingen skillnad",
+      "Båda är båtar",
+      "Båda är hus"
+     ],
+     "form": "cause",
+     "lvl": 3
+    },
+    {
+     "k": "stmt",
+     "s": "Sammansatta ord skrivs ihop: fotboll, inte fot boll.",
+     "f": [
+      "Sammansatta ord skrivs isär: fot boll."
+     ]
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "men4-tecken",
+   "skill": "sv4_mening",
+   "name": "Stor bokstav och skiljetecken",
+   "explain": "En mening börjar med stor bokstav och slutar med punkt, frågetecken eller utropstecken. Namn på personer och platser skrivs med stor bokstav. Veckodagar och månader skrivs med liten bokstav.",
+   "facts": [
+    {
+     "k": "qa",
+     "q": "Vilken mening är rätt skriven?",
+     "a": "Vi åkte till Göteborg i juni.",
+     "not": [
+      "vi åkte till Göteborg i juni.",
+      "Vi åkte till göteborg i juni.",
+      "Vi åkte till Göteborg i Juni."
+     ],
+     "cs": true
+    },
+    {
+     "k": "qa",
+     "q": "Vilken mening är rätt skriven?",
+     "a": "Lisa och Omar spelar fotboll.",
+     "not": [
+      "lisa och Omar spelar fotboll.",
+      "Lisa och omar spelar fotboll.",
+      "Lisa och Omar Spelar fotboll."
+     ],
+     "cs": true,
+     "lvl": 2
+    },
+    {
+     "k": "pairs",
+     "q": "Vilket tecken passar efter: <i>{a}</i>?",
+     "items": [
+      [
+       "Vad heter din katt",
+       "Frågetecken (?)"
+      ],
+      [
+       "Akta dig",
+       "Utropstecken (!)"
+      ],
+      [
+       "Jag har en katt",
+       "Punkt (.)"
+      ]
+     ]
+    },
+    {
+     "k": "fix",
+     "bad": "Vi ses på Måndag.",
+     "good": "Vi ses på måndag.",
+     "err": "Måndag",
+     "fix": "måndag",
+     "cs": true,
+     "why": "Veckodagar skrivs med liten bokstav.",
+     "lvl": 2,
+     "recall": false
+    },
+    {
+     "k": "fix",
+     "bad": "Min kompis heter emma.",
+     "good": "Min kompis heter Emma.",
+     "err": "emma",
+     "fix": "Emma",
+     "cs": true,
+     "why": "Namn skrivs med stor bokstav.",
+     "lvl": 2,
+     "recall": false
+    },
+    {
+     "k": "stmt",
+     "s": "Namn på personer och platser skrivs med stor bokstav.",
+     "f": [
+      "Veckodagar skrivs med stor bokstav."
+     ]
+    },
+    {
+     "k": "stmt",
+     "s": "En fråga slutar med frågetecken.",
+     "f": [
+      "En fråga slutar alltid med punkt."
+     ]
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "men4-ordfoljd",
+   "skill": "sv4_mening",
+   "name": "Bygga meningar",
+   "explain": "Orden i en mening står i en viss ordning. Ordet med stor bokstav står först och ordet med punkt sist. En fråga börjar ofta med verbet eller ett frågeord: Har du en hund? Var bor du?",
+   "facts": [
+    {
+     "k": "order",
+     "q": "Sätt orden i rätt ordning så att det blir en mening.",
+     "items": [
+      "Katten",
+      "sover",
+      "i",
+      "soffan."
+     ]
+    },
+    {
+     "k": "order",
+     "q": "Sätt orden i rätt ordning så att det blir en mening.",
+     "items": [
+      "Igår",
+      "åkte",
+      "vi",
+      "till",
+      "stranden."
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "order",
+     "q": "Sätt orden i rätt ordning så att det blir en fråga.",
+     "items": [
+      "Har",
+      "du",
+      "gjort",
+      "läxan?"
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Gör om till en fråga: 'Du har en hund.'",
+     "a": "Har du en hund?",
+     "not": [
+      "Du har en hund?",
+      "Hund du har en?",
+      "En hund har du."
+     ],
+     "form": "application",
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Vilket ord passar först i frågan: '___ bor du?'",
+     "a": "Var",
+     "not": [
+      "Vem",
+      "Vad",
+      "Vilken"
+     ],
+     "form": "application",
+     "lvl": 2
+    },
+    {
+     "k": "stmt",
+     "s": "En fråga kan börja med verbet: Har du ätit?",
+     "f": [
+      "En fråga måste alltid börja med ordet vad."
+     ],
+     "lvl": 2
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "boj4-subst",
+   "skill": "sv4_bojning",
+   "name": "Substantiv: flera och bestämd form",
+   "explain": "Substantiv kan stå i plural när det är flera: en bil – två bilar, en katt – två katter, ett äpple – två äpplen. Vissa ändras mer: en mus – två möss. Bestämd form: en bok – boken, ett hus – huset.",
+   "facts": [
+    {
+     "k": "pairs",
+     "q": "Hur blir <b>{a}</b> när det är flera?",
+     "items": [
+      [
+       "en bil",
+       "bilar"
+      ],
+      [
+       "en katt",
+       "katter"
+      ],
+      [
+       "en stol",
+       "stolar"
+      ],
+      [
+       "ett äpple",
+       "äpplen"
+      ],
+      [
+       "en mus",
+       "möss"
+      ],
+      [
+       "en fot",
+       "fötter"
+      ],
+      [
+       "ett barn",
+       "barn"
+      ]
+     ],
+     "recallB": true,
+     "exact": true,
+     "why": "Plural = flera."
+    },
+    {
+     "k": "pairs",
+     "q": "Hur blir <b>{a}</b> i bestämd form?",
+     "items": [
+      [
+       "en bok",
+       "boken"
+      ],
+      [
+       "ett hus",
+       "huset"
+      ],
+      [
+       "en hund",
+       "hunden"
+      ],
+      [
+       "ett bord",
+       "bordet"
+      ],
+      [
+       "en flicka",
+       "flickan"
+      ]
+     ],
+     "recallB": true,
+     "exact": true,
+     "lvl": 2
+    },
+    {
+     "k": "fix",
+     "bad": "Jag har två katts.",
+     "good": "Jag har två katter.",
+     "err": "katts",
+     "fix": "katter",
+     "why": "På svenska blir det katter.",
+     "lvl": 2
+    },
+    {
+     "k": "stmt",
+     "s": "Ordet 'barn' är likadant i singular och plural: ett barn, två barn.",
+     "f": [
+      "Ordet 'barn' blir barnar i plural."
+     ],
+     "lvl": 2
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "boj4-verb",
+   "skill": "sv4_bojning",
+   "name": "Verb: nu och då",
+   "explain": "Verb ändras efter när något händer. Nu: jag hoppar. Igår: jag hoppade. Många verb får -ade, men vissa ändras mer: springer – sprang, går – gick, äter – åt.",
+   "facts": [
+    {
+     "k": "pairs",
+     "q": "Vad blir <b>{a}</b> om det hände igår?",
+     "items": [
+      [
+       "hoppar",
+       "hoppade"
+      ],
+      [
+       "simmar",
+       "simmade"
+      ],
+      [
+       "springer",
+       "sprang"
+      ],
+      [
+       "äter",
+       "åt"
+      ],
+      [
+       "skriver",
+       "skrev"
+      ],
+      [
+       "går",
+       "gick"
+      ],
+      [
+       "ser",
+       "såg"
+      ]
+     ],
+     "recallB": true,
+     "exact": true,
+     "rq": "Vad blir <b>{b}</b> om det händer nu?"
+    },
+    {
+     "k": "fix",
+     "bad": "Igår springer jag till skolan.",
+     "good": "Igår sprang jag till skolan.",
+     "err": "springer",
+     "fix": "sprang",
+     "why": "Igår → dåtid: sprang.",
+     "lvl": 2
+    },
+    {
+     "k": "fix",
+     "bad": "I förrgår äter vi pizza.",
+     "good": "I förrgår åt vi pizza.",
+     "err": "äter",
+     "fix": "åt",
+     "why": "I förrgår → dåtid: åt.",
+     "lvl": 2
+    },
+    {
+     "k": "stmt",
+     "s": "Vissa verb ändras mycket i dåtid, till exempel går – gick.",
+     "f": [
+      "Alla verb får -ade i dåtid."
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Vilken mening handlar om något som redan har hänt?",
+     "a": "Vi badade i sjön.",
+     "not": [
+      "Vi badar i sjön.",
+      "Vi ska bada i sjön.",
+      "Vi vill bada i sjön."
+     ],
+     "form": "application",
+     "lvl": 2
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "boj4-adj",
+   "skill": "sv4_bojning",
+   "name": "Jämföra med adjektiv",
+   "explain": "Adjektiv kan jämföras i tre steg: stor – större – störst, glad – gladare – gladast. Några är oregelbundna: bra – bättre – bäst, liten – mindre – minst, gammal – äldre – äldst.",
+   "facts": [
+    {
+     "k": "pairs",
+     "q": "Jämför två saker: <b>{a}</b> – ?",
+     "items": [
+      [
+       "stor",
+       "större"
+      ],
+      [
+       "glad",
+       "gladare"
+      ],
+      [
+       "snabb",
+       "snabbare"
+      ],
+      [
+       "bra",
+       "bättre"
+      ],
+      [
+       "liten",
+       "mindre"
+      ],
+      [
+       "gammal",
+       "äldre"
+      ]
+     ],
+     "recallB": true,
+     "exact": true
+    },
+    {
+     "k": "pairs",
+     "q": "Den som är mest: <b>{a}</b> – ?",
+     "items": [
+      [
+       "stor",
+       "störst"
+      ],
+      [
+       "glad",
+       "gladast"
+      ],
+      [
+       "bra",
+       "bäst"
+      ],
+      [
+       "liten",
+       "minst"
+      ]
+     ],
+     "recallB": true,
+     "exact": true,
+     "lvl": 2
+    },
+    {
+     "k": "order",
+     "q": "Sätt i ordning från minst till mest.",
+     "items": [
+      "bra",
+      "bättre",
+      "bäst"
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Vilket ord passar? 'Elefanten är ___ än musen.'",
+     "a": "större",
+     "not": [
+      "störst",
+      "stor",
+      "storare"
+     ],
+     "form": "application",
+     "lvl": 2
+    },
+    {
+     "k": "stmt",
+     "s": "Bra – bättre – bäst är oregelbundet.",
+     "f": [
+      "Bra – brare – brast är rätt."
+     ],
+     "lvl": 2
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "stav4-dubbel",
+   "skill": "sv4_stavning",
+   "name": "Kort vokal och dubbel konsonant",
+   "explain": "Efter en kort vokal skriver man oftast dubbel konsonant: katt, boll, simma. Efter en lång vokal skriver man en konsonant: bil, sol, mat.",
+   "facts": [
+    {
+     "k": "fix",
+     "bad": "Jag har en kat.",
+     "good": "Jag har en katt.",
+     "err": "kat",
+     "fix": "katt",
+     "why": "Kort a → dubbel t.",
+     "lvl": 2
+    },
+    {
+     "k": "fix",
+     "bad": "Vi ska sima i sjön.",
+     "good": "Vi ska simma i sjön.",
+     "err": "sima",
+     "fix": "simma",
+     "why": "Kort i → dubbel m.",
+     "lvl": 2
+    },
+    {
+     "k": "fix",
+     "bad": "Han sparkade på bolen.",
+     "good": "Han sparkade på bollen.",
+     "err": "bolen",
+     "fix": "bollen",
+     "why": "Kort o → dubbel l.",
+     "lvl": 2
+    },
+    {
+     "k": "fix",
+     "bad": "Katten siter på taket.",
+     "good": "Katten sitter på taket.",
+     "err": "siter",
+     "fix": "sitter",
+     "why": "Kort i → dubbel t.",
+     "lvl": 2
+    },
+    {
+     "k": "fix",
+     "bad": "Hon tapade nyckeln.",
+     "good": "Hon tappade nyckeln.",
+     "err": "tapade",
+     "fix": "tappade",
+     "why": "Kort a → dubbel p.",
+     "lvl": 2
+    },
+    {
+     "k": "fix",
+     "bad": "Vi hopade högt.",
+     "good": "Vi hoppade högt.",
+     "err": "hopade",
+     "fix": "hoppade",
+     "why": "Kort o → dubbel p.",
+     "lvl": 2
+    },
+    {
+     "k": "group",
+     "groups": [
+      {
+       "q": "Vilket ord har kort vokal och dubbel konsonant?",
+       "items": [
+        "katt",
+        "boll",
+        "hoppa",
+        "simma"
+       ]
+      },
+      {
+       "q": "Vilket ord har lång vokal och en konsonant?",
+       "items": [
+        "bil",
+        "sol",
+        "mat",
+        "hus"
+       ]
+      }
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "stmt",
+     "s": "Efter en kort vokal skriver man oftast dubbel konsonant.",
+     "f": [
+      "Efter en lång vokal skriver man alltid dubbel konsonant."
+     ]
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "stav4-sj",
+   "skill": "sv4_stavning",
+   "name": "sj-ljudet",
+   "explain": "Sj-ljudet kan stavas på flera sätt: sj (sju), skj (skjorta), stj (stjärna), sk före e, i, y, ä, ö (sked, skön), ch (choklad) och sch (dusch).",
+   "facts": [
+    {
+     "k": "fix",
+     "bad": "Hon har en blå sjorta.",
+     "good": "Hon har en blå skjorta.",
+     "err": "sjorta",
+     "fix": "skjorta",
+     "why": "Skjorta stavas med skj.",
+     "lvl": 2
+    },
+    {
+     "k": "fix",
+     "bad": "Titta på sjärnan!",
+     "good": "Titta på stjärnan!",
+     "err": "sjärnan",
+     "fix": "stjärnan",
+     "why": "Stjärna stavas med stj.",
+     "lvl": 2
+    },
+    {
+     "k": "fix",
+     "bad": "Vi äter shoklad.",
+     "good": "Vi äter choklad.",
+     "err": "shoklad",
+     "fix": "choklad",
+     "why": "Choklad stavas med ch.",
+     "lvl": 2
+    },
+    {
+     "k": "fix",
+     "bad": "Jag ska dusha.",
+     "good": "Jag ska duscha.",
+     "err": "dusha",
+     "fix": "duscha",
+     "why": "Duscha stavas med sch.",
+     "lvl": 2
+    },
+    {
+     "k": "fix",
+     "bad": "Han tappade sjeden.",
+     "good": "Han tappade skeden.",
+     "err": "sjeden",
+     "fix": "skeden",
+     "why": "Sked stavas med sk – före e låter sk som sj.",
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Vilket ord är rätt stavat?",
+     "a": "sju",
+     "not": [
+      "skju",
+      "stju",
+      "chu"
+     ],
+     "exact": true
+    },
+    {
+     "k": "stmt",
+     "s": "Sj-ljudet kan stavas på flera olika sätt.",
+     "f": [
+      "Sj-ljudet stavas alltid sj."
+     ]
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "stav4-j",
+   "skill": "sv4_stavning",
+   "name": "j-ljudet",
+   "explain": "J-ljudet kan stavas j (ja), g (gilla), gj (gjorde), hj (hjärta), dj (djur) och lj (ljus).",
+   "facts": [
+    {
+     "k": "fix",
+     "bad": "Det finns många jur i skogen.",
+     "good": "Det finns många djur i skogen.",
+     "err": "jur",
+     "fix": "djur",
+     "why": "Djur stavas med dj.",
+     "lvl": 2
+    },
+    {
+     "k": "fix",
+     "bad": "Mitt järta slår fort.",
+     "good": "Mitt hjärta slår fort.",
+     "err": "järta",
+     "fix": "hjärta",
+     "why": "Hjärta stavas med hj.",
+     "lvl": 2
+    },
+    {
+     "k": "fix",
+     "bad": "Vi tände ett jus.",
+     "good": "Vi tände ett ljus.",
+     "err": "jus",
+     "fix": "ljus",
+     "why": "Ljus stavas med lj.",
+     "lvl": 2
+    },
+    {
+     "k": "fix",
+     "bad": "Han jorde läxan.",
+     "good": "Han gjorde läxan.",
+     "err": "jorde",
+     "fix": "gjorde",
+     "why": "Gjorde stavas med gj.",
+     "lvl": 2
+    },
+    {
+     "k": "fix",
+     "bad": "Jag jillar glass.",
+     "good": "Jag gillar glass.",
+     "err": "jillar",
+     "fix": "gillar",
+     "why": "Gilla stavas med g.",
+     "lvl": 2
+    },
+    {
+     "k": "stmt",
+     "s": "J-ljudet i 'hjälp' stavas med hj.",
+     "f": [
+      "J-ljudet i 'hjälp' stavas med dj."
+     ],
+     "lvl": 2
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "las4",
+   "skill": "sv4_lasa",
+   "name": "Förstå det du läser",
+   "explain": "Läs noga. En del svar står i texten. Andra måste du lista ut: Varför gör personen så? Hur känner hon sig?",
+   "facts": [
+    {
+     "k": "read",
+     "text": "<p><b>Igelkotten</b> är ett däggdjur med ungefär 5 000 taggar på ryggen. När den blir rädd rullar den ihop sig till en taggig boll.</p><p>Igelkotten är mest vaken på natten. Den äter sniglar, maskar och insekter. På hösten äter den extra mycket, för på vintern sover den i ett bo av löv. Det kallas att gå i ide.</p>",
+     "qs": [
+      {
+       "q": "Vad gör igelkotten när den blir rädd?",
+       "a": "Rullar ihop sig till en taggig boll",
+       "not": [
+        "Springer upp i ett träd",
+        "Gräver ner sig",
+        "Simmar iväg"
+       ]
+      },
+      {
+       "q": "När är igelkotten mest vaken?",
+       "a": "På natten",
+       "not": [
+        "På morgonen",
+        "Mitt på dagen",
+        "På vintern"
+       ]
+      },
+      {
+       "q": "Varför äter igelkotten extra mycket på hösten?",
+       "a": "Den ska sova hela vintern",
+       "not": [
+        "Den ska få ungar",
+        "Den ska flytta söderut",
+        "Den har tappat taggarna"
+       ],
+       "form": "cause",
+       "lvl": 2
+      },
+      {
+       "q": "Vad betyder 'gå i ide'?",
+       "a": "Sova hela vintern",
+       "not": [
+        "Gå på promenad",
+        "Bygga ett bo",
+        "Leta efter mat"
+       ],
+       "lvl": 2
+      }
+     ],
+     "title": "Igelkotten"
+    },
+    {
+     "k": "read",
+     "text": "<p>Saga hade väntat hela veckan på lördagen. Hon och morfar skulle åka och fiska. Men när hon vaknade öste regnet ner. Saga suckade och drog täcket över huvudet.</p><p>Då knackade det på dörren. Morfar stod där i regnkläder och höll upp två fiskespön.</p><p>– Fiskarna bryr sig inte om lite regn, sa han och blinkade.</p>",
+     "qs": [
+      {
+       "q": "Varför suckade Saga?",
+       "a": "Hon trodde att fisketuren var inställd",
+       "not": [
+        "Hon var trött på morfar",
+        "Hon ville inte fiska",
+        "Hon hade ont i huvudet"
+       ],
+       "form": "cause",
+       "lvl": 2
+      },
+      {
+       "q": "Hur känner sig Saga troligen i slutet?",
+       "a": "Glad",
+       "not": [
+        "Arg",
+        "Ledsen",
+        "Rädd"
+       ],
+       "form": "application",
+       "lvl": 2
+      },
+      {
+       "q": "Vad menar morfar?",
+       "a": "Att de kan fiska fast det regnar",
+       "not": [
+        "Att fiskarna har flyttat",
+        "Att de ska stanna inne",
+        "Att det slutat regna"
+       ],
+       "form": "application",
+       "lvl": 3
+      }
+     ]
+    },
+    {
+     "k": "read",
+     "text": "<p><b>Regler i skolbiblioteket</b></p><p>Du får låna fem böcker åt gången. Lånetiden är tre veckor. Vill du ha boken längre kan du låna om den två gånger. Lämna tillbaka alla böcker innan sommarlovet!</p>",
+     "qs": [
+      {
+       "q": "Hur många böcker får du låna åt gången?",
+       "a": "Fem",
+       "not": [
+        "Tre",
+        "Två",
+        "Tio"
+       ]
+      },
+      {
+       "q": "Du lånar en bok och lånar om den två gånger. Hur länge får du ha den?",
+       "a": "Nio veckor",
+       "not": [
+        "Tre veckor",
+        "Sex veckor",
+        "Fem veckor"
+       ],
+       "form": "multistep",
+       "lvl": 3,
+       "why": "3 + 3 + 3 = 9 veckor."
+      },
+      {
+       "q": "Vad måste du göra innan sommarlovet?",
+       "a": "Lämna tillbaka alla böcker",
+       "not": [
+        "Låna fem nya böcker",
+        "Låna om böckerna",
+        "Städa biblioteket"
+       ]
+      }
+     ]
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  }
+ ]
+}

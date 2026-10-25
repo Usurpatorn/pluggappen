@@ -65,7 +65,9 @@ const PACKS = (() => {
   const shuffle = (arr, rnd) => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
   const toks = (sentence) => { const out = []; for (const w of strip(sentence).split(/\s+/)) { const t = w.replace(/^[„"'(«]+|[.,!?;:"'»)]+$/g, ''); if (t && !out.some(x => x.toLowerCase() === t.toLowerCase())) out.push(t); } return out; };
   // Identitet för alternativ: skiftläge och blanksteg spelar ingen roll, men skiljetecken gör det (kommatering kan vara själva frågan)
-  const key = (s) => strip(s).normalize('NFC').toLowerCase().replace(/\s+/g, ' ').trim();
+  const keyCi = (s) => strip(s).normalize('NFC').toLowerCase().replace(/\s+/g, ' ').trim();
+  const keyCs = (s) => strip(s).normalize('NFC').replace(/\s+/g, ' ').trim();
+  const key = keyCi;
   const cidOf = (packId, kpId) => `k:${packId}/${kpId}`;
   const ALLOWED_TAGS = /^(b|i|br|sub|sup|p|em|strong|span|ul|ol|li|div)$/i;
 
@@ -152,7 +154,7 @@ const PACKS = (() => {
     return out;
   }
   function makeSkill(pack, s) {
-    const sk = { id: s.id, name: s.name, short: s.short, icon: s.icon, group: pack.subject, subject: pack.topic || '', pack: pack.id, v2only: true, maxLvl: 3, readAloud: s.readAloud !== false,
+    const sk = { id: s.id, name: s.name, short: s.short, icon: s.icon, group: s.group || pack.subject, subject: pack.topic || '', pack: pack.id, v2only: true, maxLvl: 3, readAloud: s.readAloud !== false,
       method: `${pack.topic ? `<div class="eyebrow" style="margin-bottom:6px">${esc(pack.topic)}</div>` : ''}${s.read || ''}` };
     sk.gen = (lvl, o = {}) => v1Question(sk, lvl, o);
     return sk;
@@ -176,7 +178,9 @@ const PACKS = (() => {
     const termPool = (f) => pack.kps.flatMap(k => k.facts.filter(x => x.k === 'term' && x !== f && (x.cls || '') === (f.cls || '')).map(x => x.term));
     const defPool = (f) => pack.kps.flatMap(k => k.facts.filter(x => x.k === 'term' && x !== f && x.def && (x.cls || '') === (f.cls || '')).map(x => x.def));
     // Påståendepooler i nivåer: samma kunskapspunkt → samma moment → hela paketet (närmast först, så felalternativen hör till ämnet)
-    const tiers = (pick) => [kp.facts, sameSkill.filter(k => k !== kp).flatMap(k => k.facts), pack.kps.filter(k => k.skill !== kp.skill).flatMap(k => k.facts)].map(pick);
+    // Yngre: bara samma moment (ingen ämnesblandning) – och alla felalternativ ryms inom policyns textgräns
+    const fitLen = (arr) => arr.filter(x => strip(x).length <= TEXT[pol].choice);
+    const tiers = (pick) => [kp.facts, sameSkill.filter(k => k !== kp).flatMap(k => k.facts), pol === 'younger' ? [] : pack.kps.filter(k => k.skill !== kp.skill).flatMap(k => k.facts)].map(fs => fitLen(pick(fs)));
     const falsePool = (f) => tiers(fs => fs.filter(x => x.k === 'stmt' && x !== f).flatMap(x => x.f));
     const truePool = (f) => tiers(fs => fs.filter(x => x.k === 'stmt' && x !== f).map(x => x.s));
     const badPool = (f) => tiers(fs => fs.filter(x => x.k === 'fix' && x !== f).map(x => x.bad));
@@ -189,7 +193,7 @@ const PACKS = (() => {
         if (f.def) add(f, 'reverse', 'd', (r) => mc(f.rq || `Vad betyder <b>${esc(f.term)}</b>?`, f.def, f.notDef, defPool(f), why, r));
       } else if (f.k === 'qa') {
         const form = f.form || 'recognition';
-        add(f, form, 'q', (r) => mc(f.q, f.a, f.not, [], why, r, { alias: f.alias }));
+        add(f, form, 'q', (r) => mc(f.q, f.a, f.not, [], why, r, { alias: f.alias, cs: f.cs }));
         if (f.recall && shortTerm(f.a, pol)) add(f, 'recall', 'c', () => typed(f.q, [f.a, ...(f.alias || [])], why, { exact: !!f.exact, pool: f.not }));
       } else if (f.k === 'pairs') {
         const As = f.items.map(p => p[0]), Bs = f.items.map(p => p[1]);
@@ -199,9 +203,11 @@ const PACKS = (() => {
           const sub = { ...f, id: (f.id || fnv(f.q)) + '.' + i };
           add(sub, f.form || 'recognition', 'ab', (r) => mc(fill(f.q, a, b), b, [], Bs.filter(x => !bOf(a).some(y => norm(y) === norm(x))), why, r));
           if (f.rq) add(sub, 'reverse', 'ba', (r) => mc(fill(f.rq, a, b), a, [], As.filter(x => !aOf(b).some(y => norm(y) === norm(x))), why, r));
-          if (f.rq && f.recall && shortTerm(a, pol)) add(sub, 'recall', 'bA', () => typed(fill(f.rq, a, b), [a, ...((f.alias || {})[a] || [])], why, { pool: As.filter(x => x !== a) }));
+          if (f.recallB && shortTerm(b, pol)) add(sub, 'recall', 'aB', () => typed(fill(f.q, a, b), [b, ...((f.aliasB || {})[b] || [])], why, { pool: Bs.filter(x => x !== b), exact: !!f.exact }));   // omvandla: skriv själv (t.ex. plural, dåtid)
+          if (f.rq && f.recall && shortTerm(a, pol)) add(sub, 'recall', 'bA', () => typed(fill(f.rq, a, b), [a, ...((f.alias || {})[a] || [])], why, { pool: As.filter(x => x !== a), exact: !!f.exact }));
         });
-        if (f.items.length >= 4) add({ ...f, id: (f.id || fnv(f.q)) + '.par', lvl: Math.max(2, f.lvl || 1) }, 'relationship', 'pair', (r) => {
+        const pairLen = Math.max(...As.map(x => strip(x).length)) + Math.max(...Bs.map(x => strip(x).length)) + 3;
+        if (f.items.length >= 4 && pairLen <= TEXT[pol].choice) add({ ...f, id: (f.id || fnv(f.q)) + '.par', lvl: Math.max(2, f.lvl || 1) }, 'relationship', 'pair', (r) => {
           const pick = Math.floor(r() * f.items.length); const [a, b] = f.items[pick]; const wrong = [];
           const usedB = new Set([norm(b)]);   // felparen använder andra högerled än det rätta paret – och olika sinsemellan
           for (const [a2] of shuffle(f.items.filter((_, j) => j !== pick), r)) { const b2 = shuffle(Bs.filter(x => !usedB.has(norm(x)) && !bOf(a2).some(y => norm(y) === norm(x))), r)[0]; if (b2) { usedB.add(norm(b2)); wrong.push(`${a2} – ${b2}`); } if (wrong.length >= 3) break; }
@@ -216,8 +222,9 @@ const PACKS = (() => {
       } else if (f.k === 'order') {
         add(f, 'relationship', 'ord', () => ({ type: 'order', text: f.q, items: f.items.slice(), answer: f.items.slice(), steps: [`<b>Rätt ordning:</b> ${f.items.map(esc).join(' → ')}`, why].filter(Boolean), hint: f.hint || HINT.relationship }));
         // Saknad länk (2.1, samband): A → ? → C ur samma kedja. Felalternativen är andra led i kedjan – fel på den platsen.
-        if (f.items.length >= 4 && f.gap !== false) for (let i = 1; i < f.items.length - 1; i++) add({ ...f, id: (f.id || fnv(f.q)) + '.gap' + i, lvl: Math.max(2, f.lvl || 1) }, 'relationship', 'gap',
-          (r) => mc(`${f.gapq || 'Vad saknas i kedjan?'}<br>${esc(f.items[i - 1])} → <b>?</b> → ${esc(f.items[i + 1])}`, f.items[i], f.items.filter((_, j) => j !== i && j !== i - 1 && j !== i + 1), f.items.filter((_, j) => j === i - 1 || j === i + 1), `<b>Hela kedjan:</b> ${f.items.map(esc).join(' → ')}`, r));
+        // Minst fem led, så att det finns felalternativ som inte redan står i frågan (grannarna visas aldrig som alternativ)
+        if (f.items.length >= 5 && f.gap !== false) for (let i = 1; i < f.items.length - 1; i++) add({ ...f, id: (f.id || fnv(f.q)) + '.gap' + i, lvl: Math.max(2, f.lvl || 1) }, 'relationship', 'gap',
+          (r) => mc(`${f.gapq || 'Vad saknas i kedjan?'}<br>${esc(f.items[i - 1])} → <b>?</b> → ${esc(f.items[i + 1])}`, f.items[i], f.items.filter((_, j) => j !== i && j !== i - 1 && j !== i + 1), [], `<b>Hela kedjan:</b> ${f.items.map(esc).join(' → ')}`, r));
       } else if (f.k === 'stmt') {
         add(f, f.form || 'recognition', 'true', (r) => mc(f.q || 'Vilket påstående stämmer?', f.s, f.f, falsePool(f), why, r));
         f.f.forEach((ff, i) => add({ ...f, id: (f.id || fnv(f.s)) + '.f' + i }, 'mistake', 'false', (r) => mc(f.mq || 'Vilket påstående är <b>fel</b>?', ff, [], truePool(f), `Det stämmer inte. Rätt är: ${f.s}${f.why ? ' ' + f.why : ''}`, r)));
@@ -228,7 +235,7 @@ const PACKS = (() => {
       } else if (f.k === 'fix') {
         add(f, 'mistake', 'err', () => { const ch = toks(f.bad); return { type: 'choicetext', text: `${f.mq || 'Ett ord är fel i meningen. Vilket?'}<br><i>${esc(f.bad)}</i>`, choices: ch, answer: ch.indexOf(f.err), steps: [`Rätt: <b>${esc(f.good)}</b>`, why].filter(Boolean), hint: f.hint || HINT.mistake, ordered: true }; });
         if (f.recall !== false) add(f, 'recall', 'fx', () => typed(`${f.rq || 'Skriv ordet rätt'}: <i>${esc(f.bad)}</i><br><b>${esc(f.err)}</b> → ?`, [f.fix, ...(f.alias || [])], `Rätt: <b>${esc(f.good)}</b>${why ? '<br>' + why : ''}`, { exact: f.exact !== false, pool: [f.err] }));
-        add(f, f.form || 'recognition', 'good', (r) => mc(f.gq || 'Vilken mening är rätt skriven?', f.good, [f.bad], badPool(f), why, r));
+        add(f, f.form || 'recognition', 'good', (r) => mc(f.gq || 'Vilken mening är rätt skriven?', f.good, [f.bad], badPool(f), why, r, { cs: f.cs }));
       } else if (f.k === 'read') {
         f.qs.forEach((x, i) => add({ ...f, id: (f.id || fnv(f.text)) + '.' + i, lvl: x.lvl || f.lvl, ages: x.ages || f.ages }, x.form || 'recognition', 'rd', (r) => ({ ...mc(x.q, x.a, x.not, [], x.why || `Svaret står i texten.`, r), fig: `<div class="readbox">${f.title ? `<div style="font-weight:800;margin-bottom:4px">${esc(f.title)}</div>` : ''}${f.text}</div>`, speak: false })));
       }
@@ -238,11 +245,12 @@ const PACKS = (() => {
   }
   // Flerval: rätt svar + 3 unika felalternativ – författade (not) först, sedan paketets pool. Alias räknas aldrig som felalternativ.
   function mc(text, correct, authored, pool, why, rnd, o = {}) {
+    const key = o.cs ? keyCs : keyCi;   // cs: skiftläget är själva frågan (stor bokstav) – då är "Vi" och "vi" olika alternativ
     const bad = new Set([key(correct), ...(o.alias || []).map(key)]); const d = []; const want = o.exactD || 3;
     const tierList = Array.isArray(pool) && pool.length && Array.isArray(pool[0]) ? pool : [pool || []];   // pool kan vara nivåer (närmast först)
     for (const x of [...shuffle(authored || [], rnd), ...tierList.flatMap(t => shuffle(t, rnd))]) { const n = key(x); if (!n || bad.has(n)) continue; bad.add(n); d.push(x); if (d.length >= want) break; }
     const choices = shuffle([correct, ...d], rnd);
-    return { type: 'choicetext', text, choices, answer: choices.indexOf(correct), steps: [why].filter(Boolean), hint: HINT.recognition };
+    return { type: 'choicetext', text, choices, answer: choices.indexOf(correct), steps: [why].filter(Boolean), hint: HINT.recognition, cs: o.cs ? true : undefined };
   }
   function typed(text, accept, why, o = {}) {
     return { type: 'text', text, answer: accept.slice(), display: strip(accept[0]).trim(), steps: [why].filter(Boolean), hint: o.hint || HINT.recall, v2check: 'pack', accept: { exact: !!o.exact, pool: (o.pool || []).map(normT) } };
@@ -307,7 +315,7 @@ const PACKS = (() => {
     const pol = polName || 'middle'; const out = {}; const route = {};
     for (const cid of cids) {
       const { pack, kp } = REG.kp[cid]; const vs = variants(cid, pol); if (!vs.length) continue;
-      out[cid] = { id: cid, kind: 'kp', ref: skill.id, pack: pack.id, kp: kp.id, name: kp.name, full: kp.name, subject: pack.subject, maxLvl: Math.max(1, ...vs.map(v => v.lvl)),
+      out[cid] = { id: cid, kind: 'kp', ref: skill.id, pack: pack.id, kp: kp.id, name: kp.name, full: kp.name, subject: skill.group || pack.subject, maxLvl: Math.max(1, ...vs.map(v => v.lvl)),
         recall: vs.some(v => v.form === 'recall'), depth: vs.some(v => DEPTH.has(v.form)), challenge: vs.some(v => v.ch), focus: !!skill.focus || (kid.focusCids || []).includes(cid), prereq: (kp.requires || []).map(r => cidOf(pack.id, r)), forms: [...new Set(vs.map(v => v.form))], ktype: typeOf(kp), intro: kp.intro !== false };
       // Nya frågors id → kunskapspunkt (v1-"Öva" på samma moment loggas på momentet och leds hit)
       for (const v of vs) { const q = v.build(seeded(7)); route[itemId(q)] = cid; }

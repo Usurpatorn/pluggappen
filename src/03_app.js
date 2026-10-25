@@ -641,7 +641,7 @@ function pickSkills(kid, ids, n) {
 const skillById = (kid, id) => kid.skills.find(s => s.id === id) || (kid.v2skills || []).find(s => s.id === id);
 function makeQuestion(kid, skill, levelOverride, genOpts) {
   const st = skillState(prof(kid.id), skill.id); const lvl = levelOverride || st.lvl;
-  let q = skill.gen(lvl, genOpts || {});
+  let q = (genOpts && genOpts.v2 && skill.gen2 ? skill.gen2 : skill.gen)(lvl, genOpts || {});   // 2.1: v2 får rikare generatorer (gen2), v1 oförändrad
   if (!genOpts?.noOpen && ['ekvation', 'forenkla', 'problemekv'].includes(skill.id) && q.steps && q.steps.length >= 4 && R.chance(0.15)) {
     const items = q.steps.slice(0, -1).map(st => st.replace(/^<b>[^<]*<\/b>\s*/, ''));
     q = { type: 'order', text: `Sätt lösningens steg i rätt ordning:<br><span class="muted" style="font-size:1rem">${q.text}</span>`, items, answer: items, steps: [`<b>Rätt ordning:</b><ol style="margin:6px 0 0;padding-left:20px">${items.map(i => `<li>${i}</li>`).join('')}</ol>`], hint: 'Vad måste göras först? Oftast: ta bort parenteser, förenkla, samla, dela.', level: lvl };
@@ -750,7 +750,7 @@ function mathBody(q, kid, isTest) {
            ${kid.template === 'ak2' || q.answer < 0 ? `<div class="keys" style="margin-top:8px;grid-template-columns:repeat(6,1fr)">${['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'].map(k => `<button class="key" data-key="${k}">${k}</button>`).join('')}<button class="key" data-key="−">−</button><button class="key" data-key="⌫">⌫</button></div>` : ''}`
         : `<input class="answer-input" id="ans" autocomplete="off" autocapitalize="off" placeholder="Skriv svaret" aria-label="Ditt svar">`;
   const p = prof(kid.id);
-  return `<div class="row" style="justify-content:space-between"><span class="eyebrow">Uppgift ${S.i + 1} av ${S.v2 ? V2.total() : S.queue.length}${isTest && q.part ? ` · ${q.part}-nivå` : ''}${!isTest && !p.settings.focus ? ` · ${esc(q.skill.short || '')}` : ''}</span><span class="row" style="gap:8px">${TTS.ok && p.settings.tts ? `<button class="icon-btn" data-speak="${esc(q.text.replace(/<[^>]+>/g, ''))}" data-lang="sv" data-highlight="1" style="width:36px;height:36px" aria-label="Läs upp">${ICON.speaker}</button>` : ''}<span class="lvl-dots" aria-label="Svårighet ${q.level}">${[1, 2, 3].map(i => `<i class="${i <= q.level ? 'on' : ''}"></i>`).join('')}</span></span></div>
+  return `<div class="row" style="justify-content:space-between"><span class="eyebrow">Uppgift ${S.i + 1} av ${S.v2 ? V2.total() : S.queue.length}${isTest && q.part ? ` · ${q.part}-nivå` : ''}${!isTest && !p.settings.focus ? ` · ${esc(q.skill.short || '')}` : ''}</span><span class="row" style="gap:8px">${S.v2 ? V2.speakBtn(q, p) : TTS.ok && p.settings.tts ? `<button class="icon-btn" data-speak="${esc(q.text.replace(/<[^>]+>/g, ''))}" data-lang="sv" data-highlight="1" style="width:36px;height:36px" aria-label="Läs upp">${ICON.speaker}</button>` : ''}<span class="lvl-dots" aria-label="Svårighet ${q.level}">${[1, 2, 3].map(i => `<i class="${i <= q.level ? 'on' : ''}"></i>`).join('')}</span></span></div>
       ${q.fig ? `<div class="figwrap">${safeHtml(q.fig)}</div>` : ''}
       <div class="question" id="qtext">${safeHtml(q.text)}</div>
       <div id="inputArea">${inputHtml}</div>
@@ -1358,4 +1358,4 @@ function boot(snap) {
   else go('start');
 }
 window.claude?.hot?.ready ? window.claude.hot.ready(boot) : boot(window.claude?.hot?.data ?? null);
-window.PA = { LE, LE2, LECAT, LER, V2, RECALL, CHG, checkAnswer, answerDisplay, makeQuestion, mergeProfiles, get S() { return S; }, get DB() { return DB; }, get B() { return B; }, Poly, KIDS, TEMPLATES, FAMILY, AUTH, deleteKidData, deleteFamilyData, buildKids, load, flushSave, rerender: () => VIEWS[state.screen] && VIEWS[state.screen](), BUILTIN_DECKS, SYNC, save, setKid: (id) => { state.kid = id; }, version: '3.0' };
+window.PA = { LE, LE2, LECAT, LER, V2, RECALL, CHG, PACKS, checkAnswer, answerDisplay, makeQuestion, mergeProfiles, get S() { return S; }, get DB() { return DB; }, get B() { return B; }, Poly, KIDS, TEMPLATES, FAMILY, AUTH, deleteKidData, deleteFamilyData, buildKids, load, flushSave, rerender: () => VIEWS[state.screen] && VIEWS[state.screen](), BUILTIN_DECKS, SYNC, save, setKid: (id) => { state.kid = id; }, version: '3.0' };

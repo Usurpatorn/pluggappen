@@ -168,7 +168,7 @@ const V2 = {
     let q;
     if (spec.mode === 'challenge') q = CHG.make(skill, spec.lvl, (c && c.ch && c.ch.n) || 0, { young: pol.name === 'younger' });   // annars: vanlig uppgift på högsta nivån, märkt UTMANING
     // Fria textsvar (nyckelordsrättning) används aldrig i v2 – rättningen är inte tillräckligt säker för att styra stadier och Felboken (3E).
-    const genNoOpen = () => { let q1 = null; for (let lv = spec.lvl; lv >= 1 && (!q1 || q1.type === 'open'); lv--) for (let j = 0; j < 4 && (!q1 || q1.type === 'open'); j++) q1 = makeQuestion(kid, skill, lv, { noOpen: true }); return q1; };
+    const genNoOpen = () => { let q1 = null; for (let lv = spec.lvl; lv >= 1 && (!q1 || q1.type === 'open'); lv--) for (let j = 0; j < 4 && (!q1 || q1.type === 'open'); j++) q1 = makeQuestion(kid, skill, lv, { noOpen: true, v2: true }); return q1; };
     if (!q) q = V2.pickItem(kid, skill, spec.lvl, avoid, genNoOpen);
     if (q && q.type === 'open') return [];   // inget annat finns för momentet på någon nivå → hoppa över platsen
     q = { ...q, skill, cat: 'math', level: q.level || spec.lvl };
@@ -176,7 +176,7 @@ const V2 = {
     const wantRecall = spec.format === 'recall' || (!V.exam && c && c.st >= pol.mcMaxStage && !['warmup', 'rescue', 'easy'].includes(spec.role) && spec.mode !== 'challenge') || spec.role === 'readclose';
     if (wantRecall && q.type === 'choicetext' && !q.challenge) {
       // Sök en uppgift i banken som säkert kan bli eget svar (annars flerval – motorn kräver då två fördröjda träffar per stadium)
-      let r = RECALL.convert(q); for (let j = 0; !r && j < 6; j++) { const q2 = V2.safe(() => makeQuestion(kid, skill, spec.lvl, { noOpen: true }), 'recallGen', null); if (q2 && !avoid.has(LECAT.itemId(q2))) { r = RECALL.convert(q2); if (r) q = { ...q2, skill, cat: 'math', level: q2.level || spec.lvl }; } }
+      let r = RECALL.convert(q); for (let j = 0; !r && j < 6; j++) { const q2 = V2.safe(() => makeQuestion(kid, skill, spec.lvl, { noOpen: true, v2: true }), 'recallGen', null); if (q2 && !avoid.has(LECAT.itemId(q2))) { r = RECALL.convert(q2); if (r) q = { ...q2, skill, cat: 'math', level: q2.level || spec.lvl }; } }
       // samma fråga som eget svar = samma uppgift (id från flervalsoriginalet) → Felbokens "annan uppgift"-regel och variationen gäller frågan, inte formen
       if (r) q = { ...r, skill, cat: 'math', level: q.level, baseId: LECAT.itemId(q) };
     }
@@ -196,6 +196,18 @@ const V2 = {
     const q = last || V2.safe(() => makeQuestion(S.kid, skill, Math.max(1, (spec.lvl || 2) - 1), { noOpen: true }), 'teachEx', null);
     return q ? { text: q.text, fig: q.fig, answer: answerDisplay(q), steps: q.steps || [], fromFail: !!last } : null;
   },
+  /* ---------- 2.1 Läs upp ----------
+     Uppläsningen används för att ta bort onödigt läsmotstånd – aldrig när läsningen själv är det som övas (läsförståelse, lästexter).
+     Behörighet per fråga (q.speak från paketet, momentets readAloud) och per moment. Enhetens egen talsyntes (ingen extern tjänst).
+     Yngre: en tydlig knapp "Läs upp" som läser frågan och svarsalternativen. Övriga: den vanliga högtalarikonen. Finns ingen röst: ingen knapp. */
+  READ_OFF: new Set(['sv_lasa', 'sv4_lasa', 'sv8_lasa']),
+  canSpeak(q) { if (typeof TTS === 'undefined' || !TTS.ok || !q) return false; if (q.speak === false) return false; const sk = q.skill || {}; if (sk.readAloud === false || V2.READ_OFF.has(sk.id)) return false; if (q.fig && /readbox|listen-box|svread/i.test(q.fig)) return false; return true; },
+  sayText(q) { const t = RECALL.strip(q.text).replace(/\s+/g, ' ').trim(); const ch = q.type === 'choicetext' && Array.isArray(q.choices) ? q.choices.map(c => RECALL.strip(c).trim()) : null; return ch ? `${t} … ${ch.slice(0, -1).join(', ')} eller ${ch[ch.length - 1]}?` : t; },
+  speakBtn(q, p) {
+    if (!V2.canSpeak(q)) return '';
+    if (S.v2.C.pol.name === 'younger') return `<button class="btn ghost" data-speak="${esc(V2.sayText(q))}" data-lang="sv" style="min-height:36px;padding:0 12px" aria-label="Läs upp frågan">🔊 Läs upp</button>`;
+    return p.settings.tts ? `<button class="icon-btn" data-speak="${esc(q.text.replace(/<[^>]+>/g, ''))}" data-lang="sv" data-highlight="1" style="width:36px;height:36px" aria-label="Läs upp">${ICON.speaker}</button>` : '';
+  },
   /* ---------- Visning under passet ---------- */
   total() { const pr = LER.progress(S.v2.R); return Math.max(S.queue.length, S.i + Math.max(1, pr.left)); },
   hasNext() { const pr = LER.progress(S.v2.R); return S.i + 1 < S.queue.length || pr.left > 1 || (pr.left === 1 && !(S.queue[S.i] && S.queue[S.i]._slotEnd)); },
@@ -211,7 +223,8 @@ const V2 = {
   },
   teachBody(item) {
     const ex = item.ex; const rescue = item.spec.role === 'rescue'; const intro = item.spec.role === 'intro'; const s = item.skill;
-    if (intro && ex && ex.intro) return `<div class="eyebrow">Något nytt</div><h3 style="margin:6px 0">${esc(ex.intro.name)}</h3><p style="font-size:1.05rem">${safeHtml(ex.intro.explain)}</p>${s.method ? `<details class="sketch"><summary>📖 Läs mer om ${esc(s.short || s.name)}</summary><div class="method" style="margin-top:8px">${safeHtml(s.method)}</div></details>` : ''}<button class="btn big wide" data-v2="teachok">Jag är redo →</button>`;
+    const say = typeof TTS !== 'undefined' && TTS.ok && S.v2.C.pol.name === 'younger' && s.readAloud !== false && !V2.READ_OFF.has(s.id) && ex && ex.intro ? `<button class="btn ghost" data-speak="${esc(RECALL.strip(ex.intro.name + '. ' + ex.intro.explain))}" data-lang="sv" style="min-height:36px">🔊 Läs upp</button>` : '';
+    if (intro && ex && ex.intro) return `<div class="eyebrow">Något nytt</div><h3 style="margin:6px 0">${esc(ex.intro.name)}</h3><p style="font-size:1.05rem">${safeHtml(ex.intro.explain)}</p>${say}${s.method ? `<details class="sketch"><summary>📖 Läs mer om ${esc(s.short || s.name)}</summary><div class="method" style="margin-top:8px">${safeHtml(s.method)}</div></details>` : ''}<button class="btn big wide" data-v2="teachok">Jag är redo →</button>`;
     return `<div class="eyebrow">${rescue ? 'Vi tar det tillsammans' : 'En kort förklaring först'}</div>
       ${ex ? `<div class="steps"><div class="eyebrow">${ex.fromFail ? 'Uppgiften du nyss fick' : 'Exempel'}</div>${ex.fig ? `<div class="figwrap">${safeHtml(ex.fig)}</div>` : ''}<div style="font-weight:700;margin:6px 0">${safeHtml(ex.text)}</div><ol>${ex.steps.map(st => `<li>${safeHtml(st)}</li>`).join('')}</ol><p style="margin-top:8px">Svar: <b>${esc(ex.answer)}</b></p></div>` : ''}
       ${s.method ? `<details class="sketch"><summary>📖 Läs mer om ${esc(s.short || s.name)}</summary><div class="method" style="margin-top:8px">${safeHtml(s.method)}</div></details>` : ''}

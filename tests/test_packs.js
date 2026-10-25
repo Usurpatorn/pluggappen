@@ -43,11 +43,11 @@ const checkQ = (q, ctx, pol, correctByText) => {
   if (pol === 'younger') ok(PACKS.words(q.text).every(w => w.replace(/[^\p{L}]/gu, '').length <= lim.word), `${ctx}: för långt ord för yngre`);
   if (q.type === 'choicetext') {
     ok(Array.isArray(q.choices) && q.choices.length >= 3 && q.choices.length <= (q.ordered ? 10 : 5), `${ctx}: ${q.choices && q.choices.length} alternativ`);
-    const n = q.choices.map(norm); ok(new Set(n).size === n.length, `${ctx}: dubbla alternativ: ${q.choices.join(' | ')}`);
+    const n = q.choices.map(q.cs ? (x) => strip(x).replace(/\s+/g, ' ').trim() : norm); ok(new Set(n).size === n.length, `${ctx}: dubbla alternativ: ${q.choices.join(' | ')}`);
     ok(q.answer >= 0 && q.answer < q.choices.length, `${ctx}: svarsindex utanför`);
     for (const c of q.choices) { ok(c.length <= lim.choice, `${ctx}: alternativet "${c.slice(0, 40)}…" är ${c.length} tecken (max ${lim.choice})`); ok(tagOk(c), `${ctx}: HTML i alternativ`); }
     const amb = correctByText.get(norm(q.text)) || new Set();
-    q.choices.forEach((c, i) => { if (i !== q.answer && !q.ordered) ok(!amb.has(norm(c)), `${ctx}: tvetydigt – "${c}" är rätt svar på samma fråga i en annan variant: ${strip(q.text).slice(0, 80)}`); });
+    q.choices.forEach((c, i) => { if (i !== q.answer && !q.ordered && !q.cs) ok(!amb.has(norm(c)), `${ctx}: tvetydigt – "${c}" är rätt svar på samma fråga i en annan variant: ${strip(q.text).slice(0, 80)}`); });
   } else if (q.type === 'text') {
     ok(Array.isArray(q.answer) && q.answer.length && q.answer.every(a => normT(a)), `${ctx}: godkända svar saknas`);
     for (const a of q.answer) ok(PACKS.check(q, a).status === 'correct', `${ctx}: godkänt svar "${a}" underkänns`);

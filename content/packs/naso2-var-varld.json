@@ -1,0 +1,2720 @@
+{
+ "pluggPackVersion": 1,
+ "id": "naso2-var-varld",
+ "title": "NO och SO åk 2: naturen, kroppen och samhället",
+ "subject": "no",
+ "topic": "NO och SO",
+ "grades": [
+  1,
+  3
+ ],
+ "policies": [
+  "younger"
+ ],
+ "templates": [
+  "ak2"
+ ],
+ "rev": 1,
+ "sources": [
+  {
+   "id": "lgr22",
+   "label": "Lgr22 NO och SO åk 1–3: centralt innehåll",
+   "kind": "lgr22"
+  }
+ ],
+ "skills": [
+  {
+   "id": "no_arstider",
+   "existing": true
+  },
+  {
+   "id": "no_djur",
+   "existing": true
+  },
+  {
+   "id": "no_kroppen",
+   "existing": true
+  },
+  {
+   "id": "no_vatten",
+   "existing": true
+  },
+  {
+   "id": "no_rymden",
+   "existing": true
+  },
+  {
+   "id": "no_material",
+   "existing": true
+  },
+  {
+   "id": "so_karta",
+   "existing": true
+  },
+  {
+   "id": "so_trafik",
+   "existing": true
+  },
+  {
+   "id": "so_samhalle",
+   "existing": true
+  },
+  {
+   "id": "so_hogtider",
+   "existing": true
+  }
+ ],
+ "kps": [
+  {
+   "id": "arstider",
+   "skill": "no_arstider",
+   "name": "De fyra årstiderna",
+   "explain": "Året har fyra årstider: vår, sommar, höst och vinter. På våren smälter snön. På hösten faller löven av träden.",
+   "facts": [
+    {
+     "k": "qa",
+     "q": "Hur många årstider finns det?",
+     "a": "Fyra",
+     "not": [
+      "Två",
+      "Tre",
+      "Sex"
+     ]
+    },
+    {
+     "k": "pairs",
+     "q": "Vilken årstid är det när {a}?",
+     "items": [
+      [
+       "snön smälter och fåglarna kommer tillbaka",
+       "Våren"
+      ],
+      [
+       "det är varmt och ljust länge",
+       "Sommaren"
+      ],
+      [
+       "löven blir gula och faller av",
+       "Hösten"
+      ],
+      [
+       "det är kallt och snö",
+       "Vintern"
+      ]
+     ]
+    },
+    {
+     "k": "order",
+     "q": "Sätt årstiderna i ordning. Börja med våren.",
+     "items": [
+      "vår",
+      "sommar",
+      "höst",
+      "vinter"
+     ]
+    },
+    {
+     "k": "stmt",
+     "s": "På hösten faller löven av träden.",
+     "f": [
+      "På våren faller löven av träden."
+     ]
+    },
+    {
+     "k": "stmt",
+     "s": "På vintern är det kallt och mörkt.",
+     "f": [
+      "På vintern är det varmt och ljust."
+     ]
+    },
+    {
+     "k": "group",
+     "groups": [
+      {
+       "q": "Vilket hör till vintern?",
+       "items": [
+        "Snögubbe",
+        "Skridskor",
+        "Pulka"
+       ],
+       "odd": "Vilket hör INTE till vintern?"
+      },
+      {
+       "q": "Vilket hör till sommaren?",
+       "items": [
+        "Bada i sjön",
+        "Glass",
+        "Jordgubbar"
+       ]
+      }
+     ],
+     "lvl": 2
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "tid-kalender",
+   "skill": "no_arstider",
+   "name": "Månader, veckor och dygn",
+   "explain": "Ett år har 12 månader. En vecka har 7 dagar. Ett dygn har 24 timmar. Året börjar med januari.",
+   "facts": [
+    {
+     "k": "qa",
+     "q": "Hur många månader har ett år?",
+     "a": "12",
+     "not": [
+      "7",
+      "10",
+      "24"
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Hur många dagar har en vecka?",
+     "a": "7",
+     "not": [
+      "5",
+      "10",
+      "12"
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Hur många timmar har ett dygn?",
+     "a": "24",
+     "not": [
+      "12",
+      "7",
+      "60"
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Vilken är årets första månad?",
+     "a": "Januari",
+     "not": [
+      "Mars",
+      "December",
+      "Juni"
+     ]
+    },
+    {
+     "k": "pairs",
+     "q": "Vilken månad kommer efter <b>{a}</b>?",
+     "items": [
+      [
+       "januari",
+       "februari"
+      ],
+      [
+       "mars",
+       "april"
+      ],
+      [
+       "maj",
+       "juni"
+      ],
+      [
+       "augusti",
+       "september"
+      ],
+      [
+       "november",
+       "december"
+      ]
+     ],
+     "recallB": true,
+     "exact": true,
+     "lvl": 2
+    },
+    {
+     "k": "order",
+     "q": "Sätt veckodagarna i rätt ordning.",
+     "items": [
+      "måndag",
+      "tisdag",
+      "onsdag",
+      "torsdag",
+      "fredag"
+     ]
+    },
+    {
+     "k": "order",
+     "q": "Sätt månaderna i rätt ordning.",
+     "items": [
+      "september",
+      "oktober",
+      "november",
+      "december"
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "stmt",
+     "s": "December, januari och februari är vinter.",
+     "f": [
+      "Juni, juli och augusti är vinter."
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "stmt",
+     "s": "En vecka har sju dagar.",
+     "f": [
+      "En vecka har tio dagar."
+     ]
+    }
+   ],
+   "requires": [
+    "arstider"
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "djurgrupper",
+   "skill": "no_djur",
+   "name": "Djurgrupper",
+   "explain": "Djur sorteras i grupper. Däggdjur har päls och ungarna dricker mjölk. Fåglar har fjädrar. Fiskar andas med gälar. Insekter har sex ben.",
+   "facts": [
+    {
+     "k": "group",
+     "groups": [
+      {
+       "q": "Vilket djur är ett däggdjur?",
+       "items": [
+        "Älg",
+        "Hund",
+        "Häst",
+        "Ekorre"
+       ],
+       "odd": "Vilket djur är INTE ett däggdjur?"
+      },
+      {
+       "q": "Vilket djur är en fågel?",
+       "items": [
+        "Talgoxe",
+        "Kråka",
+        "Uggla"
+       ],
+       "odd": "Vilket djur är INTE en fågel?"
+      },
+      {
+       "q": "Vilket djur är en insekt?",
+       "items": [
+        "Myra",
+        "Bi",
+        "Fjäril"
+       ],
+       "odd": "Vilket djur är INTE en insekt?"
+      },
+      {
+       "q": "Vilket djur är en fisk?",
+       "items": [
+        "Gädda",
+        "Lax",
+        "Abborre"
+       ]
+      }
+     ]
+    },
+    {
+     "k": "pairs",
+     "q": "Vad har {a}?",
+     "items": [
+      [
+       "en fågel",
+       "Fjädrar"
+      ],
+      [
+       "en fisk",
+       "Gälar och fjäll"
+      ],
+      [
+       "ett däggdjur",
+       "Päls eller hår"
+      ]
+     ],
+     "why": "Det är så man känner igen djurgrupperna."
+    },
+    {
+     "k": "qa",
+     "q": "Hur många ben har en insekt?",
+     "a": "Sex",
+     "not": [
+      "Fyra",
+      "Åtta",
+      "Två"
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Vad andas fiskar med?",
+     "a": "Gälar",
+     "not": [
+      "Lungor",
+      "Näsan",
+      "Fenorna"
+     ]
+    },
+    {
+     "k": "stmt",
+     "s": "Däggdjurens ungar dricker mjölk.",
+     "f": [
+      "Fåglarnas ungar dricker mjölk."
+     ]
+    },
+    {
+     "k": "stmt",
+     "s": "En spindel har åtta ben och är inte en insekt.",
+     "f": [
+      "En spindel är en insekt."
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "stmt",
+     "s": "Fiskar andas med gälar.",
+     "f": [
+      "Fiskar andas med lungor."
+     ]
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "djurliv",
+   "skill": "no_djur",
+   "name": "Hur djur och växter lever",
+   "explain": "En näringskedja visar vem som äter vem: gräs → hare → räv. Växter behöver vatten, ljus och näring. På vintern sover björnen, flyttfåglar flyger söderut och haren byter till vit päls.",
+   "facts": [
+    {
+     "k": "order",
+     "q": "Sätt näringskedjan i ordning. Vem äts av vem?",
+     "items": [
+      "gräs",
+      "hare",
+      "räv"
+     ]
+    },
+    {
+     "k": "order",
+     "q": "Sätt fjärilens livscykel i ordning.",
+     "items": [
+      "ägg",
+      "larv",
+      "puppa",
+      "fjäril"
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "order",
+     "q": "Sätt grodans livscykel i ordning.",
+     "items": [
+      "ägg (rom)",
+      "grodyngel",
+      "liten groda",
+      "groda"
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Vad behöver en växt för att växa?",
+     "a": "Vatten, ljus och näring",
+     "not": [
+      "Bara sand",
+      "Mörker och kyla",
+      "Godis"
+     ]
+    },
+    {
+     "k": "pairs",
+     "q": "Vad gör {a} på vintern?",
+     "items": [
+      [
+       "björnen",
+       "Sover i ide"
+      ],
+      [
+       "flyttfåglarna",
+       "Flyger söderut"
+      ],
+      [
+       "haren",
+       "Byter till vit päls"
+      ]
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Varför blir harens päls vit på vintern?",
+     "a": "För att inte synas i snön",
+     "not": [
+      "För att bli varmare",
+      "För att den blir gammal",
+      "För att den är smutsig"
+     ],
+     "form": "relationship",
+     "lvl": 2
+    },
+    {
+     "k": "stmt",
+     "s": "En växt är alltid först i en näringskedja.",
+     "f": [
+      "Räven är alltid först i en näringskedja."
+     ],
+     "lvl": 2
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "sinnen",
+   "skill": "no_kroppen",
+   "name": "De fem sinnena",
+   "explain": "Vi har fem sinnen: syn (ögonen), hörsel (öronen), lukt (näsan), smak (tungan) och känsel (huden).",
+   "facts": [
+    {
+     "k": "pairs",
+     "q": "Vilket sinne använder du med {a}?",
+     "items": [
+      [
+       "ögonen",
+       "Syn"
+      ],
+      [
+       "öronen",
+       "Hörsel"
+      ],
+      [
+       "näsan",
+       "Lukt"
+      ],
+      [
+       "tungan",
+       "Smak"
+      ],
+      [
+       "huden",
+       "Känsel"
+      ]
+     ],
+     "rq": "Vilken kroppsdel använder du för {b_lower}?"
+    },
+    {
+     "k": "qa",
+     "q": "Hur många sinnen har vi?",
+     "a": "Fem",
+     "not": [
+      "Tre",
+      "Fyra",
+      "Tio"
+     ]
+    },
+    {
+     "k": "pairs",
+     "q": "Vilket sinne använder du när du {a}?",
+     "items": [
+      [
+       "lyssnar på musik",
+       "Hörsel"
+      ],
+      [
+       "känner att elementet är varmt",
+       "Känsel"
+      ],
+      [
+       "känner doften av bullar",
+       "Lukt"
+      ],
+      [
+       "läser en bok",
+       "Syn"
+      ]
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "stmt",
+     "s": "Med tungan känner vi smak.",
+     "f": [
+      "Med öronen känner vi smak."
+     ]
+    },
+    {
+     "k": "stmt",
+     "s": "Med näsan känner vi lukt.",
+     "f": [
+      "Med ögonen känner vi lukt."
+     ]
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "kroppens-delar",
+   "skill": "no_kroppen",
+   "name": "Kroppens delar och att må bra",
+   "explain": "Hjärtat pumpar blod. Lungorna andas. Skelettet håller oss uppe. Musklerna rör oss. Hjärnan styr allt. Kroppen behöver sömn, mat, rörelse och vatten.",
+   "facts": [
+    {
+     "k": "pairs",
+     "q": "Vad gör {a}?",
+     "items": [
+      [
+       "hjärtat",
+       "Pumpar runt blodet"
+      ],
+      [
+       "lungorna",
+       "Andas in luft"
+      ],
+      [
+       "skelettet",
+       "Håller kroppen uppe"
+      ],
+      [
+       "musklerna",
+       "Gör att vi kan röra oss"
+      ],
+      [
+       "hjärnan",
+       "Styr hela kroppen"
+      ],
+      [
+       "magen",
+       "Bryter ner maten"
+      ]
+     ],
+     "rq": "Vilken del av kroppen {b_lower}?"
+    },
+    {
+     "k": "qa",
+     "q": "Vad händer med pulsen när du springer?",
+     "a": "Den blir snabbare",
+     "not": [
+      "Den stannar",
+      "Den blir långsammare",
+      "Ingenting"
+     ],
+     "form": "relationship",
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Varför behöver vi sova?",
+     "a": "Kroppen och hjärnan vilar och växer",
+     "not": [
+      "För att bli hungriga",
+      "För att natten är tråkig",
+      "Det behöver vi inte"
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "stmt",
+     "s": "Hjärtat pumpar runt blodet.",
+     "f": [
+      "Hjärtat andas in luft."
+     ]
+    },
+    {
+     "k": "stmt",
+     "s": "Skelettet håller kroppen uppe.",
+     "f": [
+      "Hjärnan håller kroppen uppe."
+     ]
+    },
+    {
+     "k": "group",
+     "groups": [
+      {
+       "q": "Vad är bra för kroppen?",
+       "items": [
+        "Sova",
+        "Röra sig",
+        "Dricka vatten",
+        "Äta frukt"
+       ],
+       "odd": "Vad är INTE bra för kroppen?"
+      },
+      {
+       "q": "Vad är inte bra för kroppen?",
+       "items": [
+        "Äta godis hela dagen",
+        "Aldrig röra sig"
+       ]
+      }
+     ],
+     "lvl": 2
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "vatten-former",
+   "skill": "no_vatten",
+   "name": "Is, vatten och ånga",
+   "explain": "Vatten kan vara fast (is), flytande (vatten) och gas (ånga). Vatten fryser vid 0 grader och kokar vid 100 grader. Ånga som kyls blir droppar – det heter att kondensera.",
+   "facts": [
+    {
+     "k": "pairs",
+     "q": "Vad kallas vatten som är {a}?",
+     "items": [
+      [
+       "fast",
+       "Is"
+      ],
+      [
+       "flytande",
+       "Vatten"
+      ],
+      [
+       "gas",
+       "Ånga"
+      ]
+     ],
+     "recallB": true
+    },
+    {
+     "k": "qa",
+     "q": "Vid vilken temperatur fryser vatten?",
+     "a": "0 grader",
+     "not": [
+      "10 grader",
+      "100 grader",
+      "50 grader"
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Vid vilken temperatur kokar vatten?",
+     "a": "100 grader",
+     "not": [
+      "0 grader",
+      "20 grader",
+      "50 grader"
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Vad händer när is blir varm?",
+     "a": "Den smälter",
+     "not": [
+      "Den fryser",
+      "Den blir hårdare",
+      "Den kokar direkt"
+     ]
+    },
+    {
+     "k": "order",
+     "q": "Sätt i ordning från kallast till varmast.",
+     "items": [
+      "is",
+      "kallt vatten",
+      "varmt vatten",
+      "ånga"
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Varför blir det imma på ett glas med kall saft?",
+     "a": "Ånga i luften kyls mot glaset och blir droppar",
+     "not": [
+      "Saften läcker ut",
+      "Glaset svettas",
+      "Isen smälter i glaset"
+     ],
+     "form": "relationship",
+     "lvl": 2
+    },
+    {
+     "k": "stmt",
+     "s": "Is är vatten i fast form.",
+     "f": [
+      "Is är vatten i gasform."
+     ]
+    },
+    {
+     "k": "stmt",
+     "s": "Vatten fryser vid 0 grader.",
+     "f": [
+      "Vatten fryser vid 100 grader."
+     ]
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "kretslopp",
+   "skill": "no_vatten",
+   "name": "Vattnets kretslopp, moln och vind",
+   "explain": "Solen värmer vattnet så det blir ånga och stiger. Ångan blir moln. Ur molnen faller regn eller snö som rinner tillbaka till havet. Vind är luft som rör sig.",
+   "facts": [
+    {
+     "k": "order",
+     "q": "Sätt vattnets kretslopp i ordning.",
+     "items": [
+      "solen värmer havet",
+      "vatten blir ånga och stiger",
+      "ångan blir moln",
+      "regn faller",
+      "vattnet rinner till havet"
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Vad är ett moln?",
+     "a": "Små vattendroppar i luften",
+     "not": [
+      "Rök från skorstenar",
+      "Bomull",
+      "Luft som rör sig"
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Vad är vind?",
+     "a": "Luft som rör sig",
+     "not": [
+      "Moln som faller",
+      "Regn som torkar",
+      "Ljud från träden"
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Vart tar en pöl vägen en varm dag?",
+     "a": "Vattnet blir ånga och försvinner upp i luften",
+     "not": [
+      "Den sjunker ner i asfalten för alltid",
+      "Fåglarna dricker upp den",
+      "Den fryser"
+     ],
+     "form": "relationship",
+     "lvl": 2
+    },
+    {
+     "k": "stmt",
+     "s": "Luft tar plats, som i en ballong.",
+     "f": [
+      "Luft tar ingen plats alls."
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "stmt",
+     "s": "Moln är små vattendroppar.",
+     "f": [
+      "Moln är gjorda av bomull."
+     ]
+    }
+   ],
+   "requires": [
+    "vatten-former"
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "dag-natt-ar",
+   "skill": "no_rymden",
+   "name": "Dag, natt och år",
+   "explain": "Jorden snurrar runt sig själv – därför har vi dag och natt. Ett varv tar ett dygn. Jorden går också runt solen – ett varv tar ett år.",
+   "facts": [
+    {
+     "k": "qa",
+     "q": "Varför har vi dag och natt?",
+     "a": "Jorden snurrar runt sig själv",
+     "not": [
+      "Solen släcks på natten",
+      "Månen täcker solen",
+      "Molnen blir mörka"
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Hur lång tid tar det för jorden att gå ett varv runt solen?",
+     "a": "Ett år",
+     "not": [
+      "En dag",
+      "En vecka",
+      "En månad"
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Hur lång tid tar det för jorden att snurra ett varv runt sig själv?",
+     "a": "Ett dygn",
+     "not": [
+      "Ett år",
+      "En timme",
+      "En vecka"
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "stmt",
+     "s": "Jorden går runt solen.",
+     "f": [
+      "Solen går runt jorden."
+     ]
+    },
+    {
+     "k": "stmt",
+     "s": "När vi har dag har andra sidan jorden natt.",
+     "f": [
+      "Det är dag på hela jorden samtidigt."
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "stmt",
+     "s": "Solen är en stjärna.",
+     "f": [
+      "Solen är en planet."
+     ]
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "sol-mane-planeter",
+   "skill": "no_rymden",
+   "name": "Solen, månen och planeterna",
+   "explain": "Solen är en stjärna. Månen går runt jorden och lyser för att den speglar solens ljus. I vårt solsystem finns åtta planeter. Merkurius är närmast solen och Jupiter är störst.",
+   "facts": [
+    {
+     "k": "qa",
+     "q": "Vad är solen?",
+     "a": "En stjärna",
+     "not": [
+      "En planet",
+      "En måne",
+      "Ett moln"
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Varför lyser månen?",
+     "a": "Den speglar solens ljus",
+     "not": [
+      "Den brinner",
+      "Den har lampor",
+      "Den är en stjärna"
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Vad går månen runt?",
+     "a": "Jorden",
+     "not": [
+      "Solen",
+      "Mars",
+      "Ingenting"
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Hur många planeter finns i vårt solsystem?",
+     "a": "Åtta",
+     "not": [
+      "Fyra",
+      "Tolv",
+      "Hundra"
+     ]
+    },
+    {
+     "k": "pairs",
+     "q": "Vilken planet {a}?",
+     "items": [
+      [
+       "är närmast solen",
+       "Merkurius"
+      ],
+      [
+       "är störst",
+       "Jupiter"
+      ],
+      [
+       "kallas den röda planeten",
+       "Mars"
+      ],
+      [
+       "bor vi på",
+       "Jorden"
+      ]
+     ]
+    },
+    {
+     "k": "order",
+     "q": "Sätt i storleksordning, minst först.",
+     "items": [
+      "månen",
+      "jorden",
+      "solen"
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "stmt",
+     "s": "Månen lyser för att solen lyser på den.",
+     "f": [
+      "Månen lyser för att den brinner."
+     ]
+    },
+    {
+     "k": "term",
+     "term": "fullmåne",
+     "q": "Vad kallas det när hela månen syns rund och lysande?",
+     "alias": [
+      "fullmånen"
+     ],
+     "not": [
+      "Nymåne",
+      "Halvmåne",
+      "Solförmörkelse"
+     ],
+     "cls": "mane",
+     "lvl": 2
+    }
+   ],
+   "requires": [
+    "dag-natt-ar"
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "material",
+   "skill": "no_material",
+   "name": "Material och deras egenskaper",
+   "explain": "Saker är gjorda av olika material: trä, metall, plast, glas och papper. En magnet drar till sig järn. Trä flyter. Glas är genomskinligt.",
+   "facts": [
+    {
+     "k": "qa",
+     "q": "Vad drar en magnet till sig?",
+     "a": "Järn",
+     "not": [
+      "Trä",
+      "Plast",
+      "Papper"
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Vilket material flyter på vatten?",
+     "a": "Trä",
+     "not": [
+      "Sten",
+      "Järn",
+      "Glas"
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Vilket material är genomskinligt?",
+     "a": "Glas",
+     "not": [
+      "Trä",
+      "Sten",
+      "Metall"
+     ]
+    },
+    {
+     "k": "group",
+     "groups": [
+      {
+       "q": "Vilken sak drar magneten till sig?",
+       "items": [
+        "Ett gem",
+        "En järnspik",
+        "En nyckel"
+       ],
+       "odd": "Vilken sak drar magneten INTE till sig?"
+      },
+      {
+       "q": "Vilken sak drar magneten inte till sig?",
+       "items": [
+        "En suddgummi",
+        "En träkloss",
+        "En plastmugg"
+       ]
+      }
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "group",
+     "groups": [
+      {
+       "q": "Vilket skräp är papper?",
+       "items": [
+        "Tidning",
+        "Mjölkpaket",
+        "Kartong"
+       ]
+      },
+      {
+       "q": "Vilket skräp är plast?",
+       "items": [
+        "Plastpåse",
+        "Yoghurtburk"
+       ]
+      },
+      {
+       "q": "Vilket skräp är glas?",
+       "items": [
+        "Syltburk",
+        "Glasflaska"
+       ]
+      }
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "stmt",
+     "s": "Metall leder värme bra.",
+     "f": [
+      "Trä leder värme bättre än metall."
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "stmt",
+     "s": "En magnet drar till sig järn.",
+     "f": [
+      "En magnet drar till sig trä."
+     ]
+    },
+    {
+     "k": "stmt",
+     "s": "Trä flyter på vatten.",
+     "f": [
+      "En sten flyter på vatten."
+     ]
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "kraft-ljus-ljud",
+   "skill": "no_material",
+   "name": "Friktion, skuggor och ljud",
+   "explain": "Friktion gör att saker inte glider: på is är det lite friktion och halt. En skugga blir när något står i vägen för ljuset. Ljud blir när något vibrerar.",
+   "facts": [
+    {
+     "k": "qa",
+     "q": "Varför är det halt på is?",
+     "a": "Isen har väldigt lite friktion",
+     "not": [
+      "Isen är varm",
+      "Isen är blöt inuti",
+      "Isen är för hård"
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Vad behövs för att det ska bli en skugga?",
+     "a": "Ljus och något som står i vägen",
+     "not": [
+      "Bara mörker",
+      "Vatten",
+      "Ljud"
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Hur blir ljud till?",
+     "a": "Något vibrerar",
+     "not": [
+      "Något blir varmt",
+      "Något blir blött",
+      "Något går sönder"
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Varför har gympaskor gummisulor?",
+     "a": "Gummi ger friktion så man inte halkar",
+     "not": [
+      "Gummi är tungt",
+      "Gummi luktar gott",
+      "Gummi är halt"
+     ],
+     "form": "relationship",
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Vad händer med skuggan när solen står lågt?",
+     "a": "Den blir lång",
+     "not": [
+      "Den försvinner",
+      "Den blir kort",
+      "Den blir färgad"
+     ],
+     "form": "relationship",
+     "lvl": 2
+    },
+    {
+     "k": "stmt",
+     "s": "Ljud uppstår när något vibrerar.",
+     "f": [
+      "Ljud uppstår när något är stilla."
+     ]
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "vaderstreck",
+   "skill": "so_karta",
+   "name": "Väderstreck och karta",
+   "explain": "De fyra väderstrecken är norr, söder, öster och väster. På kartan är norr uppåt, söder nedåt, öster till höger och väster till vänster. En kompass pekar mot norr.",
+   "facts": [
+    {
+     "k": "pairs",
+     "q": "Vilket väderstreck är {a} på kartan?",
+     "items": [
+      [
+       "uppåt",
+       "Norr"
+      ],
+      [
+       "nedåt",
+       "Söder"
+      ],
+      [
+       "till höger",
+       "Öster"
+      ],
+      [
+       "till vänster",
+       "Väster"
+      ]
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Vart pekar en kompass?",
+     "a": "Mot norr",
+     "not": [
+      "Mot söder",
+      "Mot solen",
+      "Mot havet"
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Vad visar blått på en karta?",
+     "a": "Vatten",
+     "not": [
+      "Skog",
+      "Vägar",
+      "Berg"
+     ]
+    },
+    {
+     "k": "stmt",
+     "s": "På en karta är norr uppåt.",
+     "f": [
+      "På en karta är söder uppåt."
+     ]
+    },
+    {
+     "k": "stmt",
+     "s": "Stockholm är Sveriges huvudstad.",
+     "f": [
+      "Malmö är Sveriges huvudstad."
+     ]
+    },
+    {
+     "k": "stmt",
+     "s": "Sverige ligger i Europa.",
+     "f": [
+      "Sverige ligger i Afrika."
+     ]
+    },
+    {
+     "k": "order",
+     "q": "Gå medsols runt kompassen. Börja med norr.",
+     "items": [
+      "norr",
+      "öster",
+      "söder",
+      "väster"
+     ],
+     "lvl": 2
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "sverige-norden",
+   "skill": "so_karta",
+   "name": "Sverige, Norden och världen",
+   "explain": "Sveriges huvudstad är Stockholm. Sverige ligger i Norden tillsammans med Norge, Danmark, Finland och Island. Sverige ligger i världsdelen Europa. Det finns sju världsdelar.",
+   "facts": [
+    {
+     "k": "qa",
+     "q": "Vad heter Sveriges huvudstad?",
+     "a": "Stockholm",
+     "not": [
+      "Göteborg",
+      "Malmö",
+      "Uppsala"
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "I vilken världsdel ligger Sverige?",
+     "a": "Europa",
+     "not": [
+      "Asien",
+      "Afrika",
+      "Amerika"
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Hur många världsdelar finns det?",
+     "a": "Sju",
+     "not": [
+      "Tre",
+      "Fem",
+      "Tio"
+     ]
+    },
+    {
+     "k": "group",
+     "groups": [
+      {
+       "q": "Vilket land hör till Norden?",
+       "items": [
+        "Norge",
+        "Danmark",
+        "Finland",
+        "Island"
+       ],
+       "odd": "Vilket land hör INTE till Norden?"
+      },
+      {
+       "q": "Vilket land hör inte till Norden?",
+       "items": [
+        "Spanien",
+        "Italien",
+        "Frankrike"
+       ]
+      }
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "pairs",
+     "q": "Vilket land ligger {a} om Sverige?",
+     "items": [
+      [
+       "väster",
+       "Norge"
+      ],
+      [
+       "öster",
+       "Finland"
+      ],
+      [
+       "söder",
+       "Danmark"
+      ]
+     ],
+     "lvl": 2
+    }
+   ],
+   "requires": [
+    "vaderstreck"
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "trafik-ga",
+   "skill": "so_trafik",
+   "name": "Gå säkert i trafiken",
+   "explain": "Finns ingen trottoar går du på vänster sida så att du ser bilarna. Vid övergångsstället stannar du och tittar vänster, höger och vänster igen. Rött ljus betyder stanna.",
+   "facts": [
+    {
+     "k": "qa",
+     "q": "Vilken sida går du på om det inte finns trottoar?",
+     "a": "Vänster sida, mot trafiken",
+     "not": [
+      "Höger sida",
+      "Mitt på vägen",
+      "Spelar ingen roll"
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Vad betyder rött ljus för den som går?",
+     "a": "Stanna och vänta",
+     "not": [
+      "Spring över",
+      "Gå fort",
+      "Hoppa"
+     ]
+    },
+    {
+     "k": "order",
+     "q": "Hur går du över ett övergångsställe? Sätt i ordning.",
+     "items": [
+      "stanna vid kanten",
+      "titta vänster, höger, vänster",
+      "gå när det är fritt"
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Bollen rullar ut i gatan. Vad gör du?",
+     "a": "Stannar och tittar innan jag hämtar den",
+     "not": [
+      "Springer efter direkt",
+      "Blundar",
+      "Sparkar på den"
+     ],
+     "form": "relationship",
+     "lvl": 2
+    },
+    {
+     "k": "stmt",
+     "s": "Grönt ljus betyder att du får gå.",
+     "f": [
+      "Grönt ljus betyder stanna."
+     ]
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "trafik-cykel",
+   "skill": "so_trafik",
+   "name": "Cykel, bil och skyltar",
+   "explain": "På cykel har du hjälm och cyklar på höger sida. Reflexer gör att bilar ser dig i mörkret. Alla i bilen har bilbälte. En trekantig skylt med röd kant varnar, en rund med röd kant förbjuder.",
+   "facts": [
+    {
+     "k": "qa",
+     "q": "Vad ska du ha på huvudet när du cyklar?",
+     "a": "Hjälm",
+     "not": [
+      "Mössa",
+      "Keps",
+      "Hörlurar"
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Vilken sida cyklar man på?",
+     "a": "Höger sida",
+     "not": [
+      "Vänster sida",
+      "Mitt på vägen",
+      "På trottoaren"
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Varför ska du ha reflexer i mörkret?",
+     "a": "Bilförare ser dig mycket tidigare",
+     "not": [
+      "De är fina",
+      "De värmer",
+      "De lyser upp vägen åt dig"
+     ],
+     "form": "relationship",
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Vad ska alla i bilen ha på sig?",
+     "a": "Bilbälte",
+     "not": [
+      "Hjälm",
+      "Reflex",
+      "Solglasögon"
+     ]
+    },
+    {
+     "k": "pairs",
+     "q": "Vad betyder en skylt som är {a}?",
+     "items": [
+      [
+       "trekantig med röd kant",
+       "Varning"
+      ],
+      [
+       "rund med röd kant",
+       "Förbud"
+      ],
+      [
+       "blå och rund med en gående person",
+       "Gångbana"
+      ]
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "stmt",
+     "s": "En cykel ska ha lampor när det är mörkt.",
+     "f": [
+      "En cykel behöver aldrig lampor."
+     ]
+    },
+    {
+     "k": "stmt",
+     "s": "Cyklister cyklar på höger sida.",
+     "f": [
+      "Cyklister cyklar på vänster sida."
+     ]
+    },
+    {
+     "k": "stmt",
+     "s": "Alla i bilen ska ha bilbälte.",
+     "f": [
+      "Bara föraren behöver bilbälte."
+     ]
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "demokrati",
+   "skill": "so_samhalle",
+   "name": "Regler och demokrati",
+   "explain": "Regler finns för att alla ska vara trygga. Demokrati betyder att alla får vara med och bestämma. På klassrådet säger alla sitt och sedan röstar man. Riksdagen bestämmer Sveriges lagar.",
+   "facts": [
+    {
+     "k": "qa",
+     "q": "Vad betyder demokrati?",
+     "a": "Att alla får vara med och bestämma",
+     "not": [
+      "Att en person bestämmer allt",
+      "Att ingen bestämmer",
+      "Att bara vuxna får prata"
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Hur bestämmer man på ett klassråd?",
+     "a": "Alla får säga sitt och sedan röstar man",
+     "not": [
+      "Läraren bestämmer",
+      "Den som skriker högst vinner",
+      "Man singlar slant"
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Varför finns det regler?",
+     "a": "För att alla ska vara trygga",
+     "not": [
+      "För att det ska vara tråkigt",
+      "För att vuxna gillar regler",
+      "Ingen vet"
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Vem bestämmer lagarna i Sverige?",
+     "a": "Riksdagen",
+     "not": [
+      "Kungen",
+      "Polisen",
+      "Lärarna"
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Vad är en kompromiss?",
+     "a": "Båda ger med sig lite så alla blir nöjda",
+     "not": [
+      "En vinner allt",
+      "Man slåss",
+      "Man går hem"
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "stmt",
+     "s": "Det förslag som får flest röster vinner.",
+     "f": [
+      "Det förslag som får minst röster vinner."
+     ],
+     "lvl": 2
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "rattigheter",
+   "skill": "so_samhalle",
+   "name": "Barns rättigheter och samhället",
+   "explain": "Barnkonventionen säger att alla barn har rätt att gå i skolan, vara trygga, leka och säga vad de tycker. Vid en olycka ringer du 112. Vuxna får lön när de arbetar. Svenska pengar heter kronor.",
+   "facts": [
+    {
+     "k": "qa",
+     "q": "Vad är barnkonventionen?",
+     "a": "Regler om alla barns rättigheter",
+     "not": [
+      "En sagobok",
+      "En skola",
+      "En lek"
+     ]
+    },
+    {
+     "k": "group",
+     "groups": [
+      {
+       "q": "Vilket är en rättighet för alla barn?",
+       "items": [
+        "Att gå i skolan",
+        "Att vara trygg",
+        "Att få leka"
+       ],
+       "odd": "Vilket är INTE en rättighet enligt barnkonventionen?"
+      },
+      {
+       "q": "Vilket är inte en rättighet?",
+       "items": [
+        "Att äta godis varje dag",
+        "Att köra bil"
+       ]
+      }
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Vilket nummer ringer du vid en olycka?",
+     "a": "112",
+     "not": [
+      "911",
+      "123",
+      "100"
+     ]
+    },
+    {
+     "k": "pairs",
+     "q": "Vem {a}?",
+     "items": [
+      [
+       "släcker bränder",
+       "Brandmän"
+      ],
+      [
+       "hjälper sjuka",
+       "Läkare och sjuksköterskor"
+      ],
+      [
+       "bakar bröd",
+       "Bagare"
+      ],
+      [
+       "lär ut i skolan",
+       "Lärare"
+      ]
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Vad heter Sveriges pengar?",
+     "a": "Kronor",
+     "not": [
+      "Euro",
+      "Dollar",
+      "Pund"
+     ]
+    },
+    {
+     "k": "stmt",
+     "s": "Vuxna får lön när de arbetar.",
+     "f": [
+      "Vuxna får betyg när de arbetar."
+     ]
+    },
+    {
+     "k": "stmt",
+     "s": "Vid en olycka ringer man 112.",
+     "f": [
+      "Vid en olycka ringer man 911."
+     ]
+    },
+    {
+     "k": "stmt",
+     "s": "Alla barn har rätt att gå i skolan.",
+     "f": [
+      "Bara vissa barn får gå i skolan."
+     ]
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "hogtider",
+   "skill": "so_hogtider",
+   "name": "Högtider och traditioner",
+   "explain": "På julen firar kristna att Jesus föddes och på påsken att han uppstod. Lucia är den 13 december. Midsommar firas i juni. En tradition är något man gör på samma sätt varje år.",
+   "facts": [
+    {
+     "k": "pairs",
+     "q": "Vad firar man på {a}?",
+     "items": [
+      [
+       "julen",
+       "Att Jesus föddes"
+      ],
+      [
+       "påsken",
+       "Att Jesus uppstod"
+      ],
+      [
+       "midsommar",
+       "Sommaren"
+      ]
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Vilket datum är lucia?",
+     "a": "13 december",
+     "not": [
+      "24 december",
+      "1 januari",
+      "6 juni"
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "När firas midsommar?",
+     "a": "I juni",
+     "not": [
+      "I december",
+      "I mars",
+      "I oktober"
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Vad är en tradition?",
+     "a": "Något man gör på samma sätt varje år",
+     "not": [
+      "En ny uppfinning",
+      "En maträtt",
+      "En bok"
+     ]
+    },
+    {
+     "k": "order",
+     "q": "Sätt högtiderna i ordning. Börja från januari.",
+     "items": [
+      "påsk",
+      "midsommar",
+      "lucia",
+      "jul"
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "stmt",
+     "s": "Lucia firas den 13 december.",
+     "f": [
+      "Lucia firas på midsommar."
+     ]
+    },
+    {
+     "k": "stmt",
+     "s": "Midsommar firas i juni.",
+     "f": [
+      "Midsommar firas i december."
+     ]
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "religioner-forr",
+   "skill": "so_hogtider",
+   "name": "Religioner och förr i tiden",
+   "explain": "Kristna går till kyrkan, muslimer till moskén och judar till synagogan. Under ramadan fastar muslimer på dagen. Förr fanns inga datorer – barn skrev på griffeltavla.",
+   "facts": [
+    {
+     "k": "pairs",
+     "q": "Var går {a} för att be?",
+     "items": [
+      [
+       "kristna",
+       "Kyrkan"
+      ],
+      [
+       "muslimer",
+       "Moskén"
+      ],
+      [
+       "judar",
+       "Synagogan"
+      ]
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Vad är ramadan?",
+     "a": "En månad då muslimer fastar på dagen",
+     "not": [
+      "En jullek",
+      "En stad",
+      "En maträtt"
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Vad skrev barn på i skolan för 100 år sedan?",
+     "a": "Griffeltavla",
+     "not": [
+      "Dator",
+      "Surfplatta",
+      "Mobil"
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Vilket fanns INTE för 100 år sedan?",
+     "a": "Internet",
+     "not": [
+      "Hästar",
+      "Båtar",
+      "Kyrkor"
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "order",
+     "q": "Sätt i ordning, äldst först.",
+     "items": [
+      "hästdroska",
+      "ångtåg",
+      "bil",
+      "rymdraket"
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "stmt",
+     "s": "Muslimer ber i moskén.",
+     "f": [
+      "Muslimer ber i synagogan."
+     ]
+    },
+    {
+     "k": "stmt",
+     "s": "Förr fanns det inga datorer.",
+     "f": [
+      "Förr hade alla barn en dator."
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Hur kan vi ta reda på hur det var förr?",
+     "a": "Gamla foton, saker och äldres berättelser",
+     "not": [
+      "Gissa",
+      "Titta på nya filmer",
+      "Det går inte"
+     ],
+     "form": "relationship",
+     "lvl": 2
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  }
+ ],
+ "legacy": [
+  [
+   "arstider",
+   "choicetext",
+   "Hur många årstider finns det?",
+   "Fyra"
+  ],
+  [
+   "arstider",
+   "choicetext",
+   "Vilken årstid faller löven av träden?",
+   "Hösten"
+  ],
+  [
+   "arstider",
+   "choicetext",
+   "Vad händer på våren?",
+   "Snön smälter och fåglarna kommer tillbaka"
+  ],
+  [
+   "tid-kalender",
+   "choicetext",
+   "Hur många månader har ett år?",
+   "12"
+  ],
+  [
+   "tid-kalender",
+   "choicetext",
+   "Vilken månad kommer efter mars?",
+   "April"
+  ],
+  [
+   "tid-kalender",
+   "choicetext",
+   "Vilken är årets första månad?",
+   "Januari"
+  ],
+  [
+   "tid-kalender",
+   "choicetext",
+   "Hur många dagar har en vecka?",
+   "7"
+  ],
+  [
+   "tid-kalender",
+   "choicetext",
+   "Hur många timmar har ett dygn?",
+   "24"
+  ],
+  [
+   "arstider",
+   "choicetext",
+   "Varför är det ljust nästan hela natten i Luleå på sommaren?",
+   "Luleå ligger långt norrut, nära polcirkeln"
+  ],
+  [
+   "tid-kalender",
+   "choicetext",
+   "Vilka månader är vintermånader i Sverige?",
+   "December, januari, februari"
+  ],
+  [
+   "tid-kalender",
+   "order",
+   "Sätt månaderna i rätt ordning:",
+   "januari"
+  ],
+  [
+   "tid-kalender",
+   "order",
+   "Sätt månaderna i rätt ordning:",
+   "september"
+  ],
+  [
+   "tid-kalender",
+   "order",
+   "Sätt veckodagarna i rätt ordning:",
+   "måndag"
+  ],
+  [
+   "arstider",
+   "order",
+   "Sätt årstiderna i ordning, börja med våren:",
+   "vår"
+  ],
+  [
+   "djurgrupper",
+   "choicetext",
+   "Vilken djurgrupp har päls och diar sina ungar?",
+   "Däggdjur"
+  ],
+  [
+   "djurgrupper",
+   "choicetext",
+   "Hur många ben har en insekt?",
+   "Sex"
+  ],
+  [
+   "djurgrupper",
+   "choicetext",
+   "Vilket djur är en fågel?",
+   "Talgoxe"
+  ],
+  [
+   "djurgrupper",
+   "choicetext",
+   "Vad har fiskar för att andas under vatten?",
+   "Gälar"
+  ],
+  [
+   "djurgrupper",
+   "choicetext",
+   "Vilket djur är ett däggdjur?",
+   "Älg"
+  ],
+  [
+   "djurliv",
+   "choicetext",
+   "Vad kommer alltid först i en näringskedja?",
+   "En växt"
+  ],
+  [
+   "djurliv",
+   "choicetext",
+   "Vad gör björnen på vintern?",
+   "Sover i ide"
+  ],
+  [
+   "djurliv",
+   "choicetext",
+   "Varför byter haren till vit päls på vintern?",
+   "För att inte synas i snön"
+  ],
+  [
+   "djurliv",
+   "choicetext",
+   "Vad gör flyttfåglar på hösten?",
+   "Flyger söderut där det finns mat"
+  ],
+  [
+   "djurliv",
+   "choicetext",
+   "Vad behöver en växt för att växa?",
+   "Vatten, ljus och näring"
+  ],
+  [
+   "djurliv",
+   "choicetext",
+   "Vilka delar har en blomma?",
+   "Rot, stjälk, blad och blomma"
+  ],
+  [
+   "djurliv",
+   "choicetext",
+   "Vad är ett rovdjur?",
+   "Ett djur som äter andra djur"
+  ],
+  [
+   "djurliv",
+   "order",
+   "Sätt fjärilens livscykel i rätt ordning:",
+   "ägg"
+  ],
+  [
+   "djurliv",
+   "order",
+   "Sätt näringskedjan i rätt ordning (vem äts av vem):",
+   "gräs"
+  ],
+  [
+   "djurliv",
+   "order",
+   "Sätt grodans livscykel i rätt ordning:",
+   "ägg (rom)"
+  ],
+  [
+   "sinnen",
+   "choicetext",
+   "Hur många sinnen har människan?",
+   "Fem"
+  ],
+  [
+   "sinnen",
+   "choicetext",
+   "Vilket sinne använder du med tungan?",
+   "Smak"
+  ],
+  [
+   "kroppens-delar",
+   "choicetext",
+   "Vad gör hjärtat?",
+   "Pumpar runt blodet i kroppen"
+  ],
+  [
+   "kroppens-delar",
+   "choicetext",
+   "Vad andas vi med?",
+   "Lungorna"
+  ],
+  [
+   "kroppens-delar",
+   "choicetext",
+   "Vad håller kroppen uppe?",
+   "Skelettet"
+  ],
+  [
+   "kroppens-delar",
+   "choicetext",
+   "Vilket organ styr hela kroppen?",
+   "Hjärnan"
+  ],
+  [
+   "sinnen",
+   "choicetext",
+   "Med vilket sinne känner du att något är varmt?",
+   "Känsel"
+  ],
+  [
+   "kroppens-delar",
+   "choicetext",
+   "Vad gör musklerna?",
+   "Gör att vi kan röra oss"
+  ],
+  [
+   "kroppens-delar",
+   "choicetext",
+   "Varför behöver vi sova?",
+   "Kroppen och hjärnan vilar och växer"
+  ],
+  [
+   "kroppens-delar",
+   "choicetext",
+   "Var bryts maten ner?",
+   "I magen och tarmarna"
+  ],
+  [
+   "sinnen",
+   "choicetext",
+   "Vilket sinne använder du när du lyssnar på musik?",
+   "Hörsel"
+  ],
+  [
+   "kroppens-delar",
+   "choicetext",
+   "Vad händer med pulsen när du springer?",
+   "Den blir snabbare"
+  ],
+  [
+   "vatten-former",
+   "choicetext",
+   "Vilka tre former kan vatten ha?",
+   "Fast, flytande och gas"
+  ],
+  [
+   "vatten-former",
+   "choicetext",
+   "Vad kallas vatten i fast form?",
+   "Is"
+  ],
+  [
+   "vatten-former",
+   "choicetext",
+   "Vad händer när is blir varm?",
+   "Den smälter"
+  ],
+  [
+   "vatten-former",
+   "choicetext",
+   "Vid vilken temperatur fryser vatten?",
+   "0 grader"
+  ],
+  [
+   "vatten-former",
+   "choicetext",
+   "Vid vilken temperatur kokar vatten?",
+   "100 grader"
+  ],
+  [
+   "vatten-former",
+   "choicetext",
+   "Vad kallas det när ånga blir till vattendroppar?",
+   "Kondensera"
+  ],
+  [
+   "vatten-former",
+   "choicetext",
+   "Varför blir det imma på ett glas med kall saft?",
+   "Vattenånga i luften kyls mot glaset och blir droppar"
+  ],
+  [
+   "kretslopp",
+   "choicetext",
+   "Vad är ett moln?",
+   "Små vattendroppar eller iskristaller i luften"
+  ],
+  [
+   "kretslopp",
+   "choicetext",
+   "Vad är vind?",
+   "Luft som rör sig"
+  ],
+  [
+   "kretslopp",
+   "choicetext",
+   "Vad händer med en pöl på en varm sommardag?",
+   "Vattnet avdunstar och blir ånga"
+  ],
+  [
+   "kretslopp",
+   "choicetext",
+   "Tar luft plats?",
+   "Ja – blås upp en ballong så ser du"
+  ],
+  [
+   "kretslopp",
+   "choicetext",
+   "Var kommer regnet ifrån?",
+   "Från moln där vattendroppar blivit tunga"
+  ],
+  [
+   "kretslopp",
+   "order",
+   "Sätt vattnets kretslopp i rätt ordning:",
+   "solen värmer havet"
+  ],
+  [
+   "vatten-former",
+   "order",
+   "Sätt i ordning från kallast till varmast:",
+   "is"
+  ],
+  [
+   "dag-natt-ar",
+   "choicetext",
+   "Varför har vi dag och natt?",
+   "Jorden snurrar runt sig själv"
+  ],
+  [
+   "dag-natt-ar",
+   "choicetext",
+   "Hur lång tid tar det för jorden att gå ett varv runt solen?",
+   "Ett år"
+  ],
+  [
+   "sol-mane-planeter",
+   "choicetext",
+   "Vad är solen?",
+   "En stjärna"
+  ],
+  [
+   "sol-mane-planeter",
+   "choicetext",
+   "Varför lyser månen?",
+   "Den speglar solens ljus"
+  ],
+  [
+   "sol-mane-planeter",
+   "choicetext",
+   "Vad går månen runt?",
+   "Jorden"
+  ],
+  [
+   "sol-mane-planeter",
+   "choicetext",
+   "Vad kallas det när hela månen syns rund och lysande?",
+   "Fullmåne"
+  ],
+  [
+   "sol-mane-planeter",
+   "choicetext",
+   "Hur många planeter finns det i vårt solsystem?",
+   "Åtta"
+  ],
+  [
+   "sol-mane-planeter",
+   "choicetext",
+   "Vilken planet är närmast solen?",
+   "Merkurius"
+  ],
+  [
+   "sol-mane-planeter",
+   "choicetext",
+   "Vilken planet kallas den röda planeten?",
+   "Mars"
+  ],
+  [
+   "sol-mane-planeter",
+   "choicetext",
+   "Vilken är den största planeten?",
+   "Jupiter"
+  ],
+  [
+   "sol-mane-planeter",
+   "choicetext",
+   "Vad är Karlavagnen?",
+   "En stjärnbild"
+  ],
+  [
+   "dag-natt-ar",
+   "choicetext",
+   "Vad är det som gör att vi har årstider?",
+   "Jorden lutar lite när den går runt solen"
+  ],
+  [
+   "sol-mane-planeter",
+   "order",
+   "Sätt planeterna i ordning från solen:",
+   "Merkurius"
+  ],
+  [
+   "sol-mane-planeter",
+   "order",
+   "Sätt i storleksordning, minst först:",
+   "månen"
+  ],
+  [
+   "material",
+   "choicetext",
+   "Vilket material drar en magnet till sig?",
+   "Järn"
+  ],
+  [
+   "kraft-ljus-ljud",
+   "choicetext",
+   "Varför är det halt på is?",
+   "Isen har väldigt lite friktion"
+  ],
+  [
+   "kraft-ljus-ljud",
+   "choicetext",
+   "Vad händer med en skugga när ljuset kommer från sidan?",
+   "Den blir lång"
+  ],
+  [
+   "kraft-ljus-ljud",
+   "choicetext",
+   "Hur uppstår ljud?",
+   "Något vibrerar"
+  ],
+  [
+   "material",
+   "choicetext",
+   "Vilket material flyter på vatten?",
+   "Trä"
+  ],
+  [
+   "kraft-ljus-ljud",
+   "choicetext",
+   "Vad gör att ett högt torn av klossar välter?",
+   "Tyngdpunkten hamnar utanför foten"
+  ],
+  [
+   "kraft-ljus-ljud",
+   "choicetext",
+   "Varför har gymnastikskor gummisulor?",
+   "Gummi ger mycket friktion så man inte halkar"
+  ],
+  [
+   "kraft-ljus-ljud",
+   "choicetext",
+   "Vad behövs för att det ska bli en skugga?",
+   "Ljus och något som står i vägen"
+  ],
+  [
+   "material",
+   "choicetext",
+   "Vilket material är genomskinligt?",
+   "Glas"
+  ],
+  [
+   "material",
+   "choicetext",
+   "Hur kan vi sortera skräp för återvinning?",
+   "Efter material: papper, plast, glas, metall"
+  ],
+  [
+   "kraft-ljus-ljud",
+   "choicetext",
+   "Vad händer med ljudet när något vibrerar snabbare?",
+   "Tonen blir ljusare (högre)"
+  ],
+  [
+   "material",
+   "choicetext",
+   "Vilket material leder värme bäst?",
+   "Metall"
+  ],
+  [
+   "vaderstreck",
+   "choicetext",
+   "Vilket väderstreck är uppåt på en karta?",
+   "Norr"
+  ],
+  [
+   "vaderstreck",
+   "choicetext",
+   "Vilket väderstreck är till höger på kartan?",
+   "Öster"
+  ],
+  [
+   "vaderstreck",
+   "choicetext",
+   "Vart pekar en kompass?",
+   "Mot norr"
+  ],
+  [
+   "sverige-norden",
+   "choicetext",
+   "Vad heter Sveriges huvudstad?",
+   "Stockholm"
+  ],
+  [
+   "sverige-norden",
+   "choicetext",
+   "I vilket landskap ligger Luleå?",
+   "Norrbotten"
+  ],
+  [
+   "sverige-norden",
+   "choicetext",
+   "Vilka länder tillhör Norden?",
+   "Sverige, Norge, Danmark, Finland och Island"
+  ],
+  [
+   "sverige-norden",
+   "choicetext",
+   "Vilket land ligger väster om Sverige?",
+   "Norge"
+  ],
+  [
+   "sverige-norden",
+   "choicetext",
+   "Vilket land ligger öster om Sverige, på andra sidan Bottenviken?",
+   "Finland"
+  ],
+  [
+   "sverige-norden",
+   "choicetext",
+   "I vilken världsdel ligger Sverige?",
+   "Europa"
+  ],
+  [
+   "sverige-norden",
+   "choicetext",
+   "Hur många världsdelar finns det?",
+   "Sju"
+  ],
+  [
+   "sverige-norden",
+   "choicetext",
+   "Vad kallas den stora, öppna ytan av salt vatten mellan världsdelarna?",
+   "Hav"
+  ],
+  [
+   "vaderstreck",
+   "choicetext",
+   "Vad visar blått på en karta?",
+   "Vatten"
+  ],
+  [
+   "sverige-norden",
+   "choicetext",
+   "Om du går mot norr från Luleå, vad kommer du till så småningom?",
+   "Lappland och fjällen"
+  ],
+  [
+   "sverige-norden",
+   "order",
+   "Sätt i ordning från norr till söder:",
+   "Luleå"
+  ],
+  [
+   "trafik-ga",
+   "choicetext",
+   "Vilken sida ska du gå på om det inte finns trottoar?",
+   "Vänster sida, mot trafiken"
+  ],
+  [
+   "trafik-ga",
+   "choicetext",
+   "Vad betyder rött ljus för fotgängare?",
+   "Stanna och vänta"
+  ],
+  [
+   "trafik-cykel",
+   "choicetext",
+   "Vad ska du ha på huvudet när du cyklar?",
+   "Hjälm"
+  ],
+  [
+   "trafik-cykel",
+   "choicetext",
+   "Vilken sida cyklar man på?",
+   "Höger sida"
+  ],
+  [
+   "trafik-cykel",
+   "choicetext",
+   "Varför ska du ha reflexer i mörkret?",
+   "Bilförare ser dig mycket tidigare"
+  ],
+  [
+   "trafik-ga",
+   "choicetext",
+   "Hur gör du innan du går över ett övergångsställe?",
+   "Stannar och tittar vänster, höger, vänster"
+  ],
+  [
+   "trafik-cykel",
+   "choicetext",
+   "Vad ska alla i bilen ha på sig?",
+   "Bilbälte"
+  ],
+  [
+   "trafik-cykel",
+   "choicetext",
+   "Vad betyder en skylt med en gående person i en blå cirkel?",
+   "Gångbana – här ska fotgängare gå"
+  ],
+  [
+   "trafik-cykel",
+   "choicetext",
+   "Vad betyder en trekantig skylt med röd kant?",
+   "Varning"
+  ],
+  [
+   "trafik-cykel",
+   "choicetext",
+   "Vad betyder en rund skylt med röd kant?",
+   "Förbud – det är inte tillåtet"
+  ],
+  [
+   "trafik-cykel",
+   "choicetext",
+   "När får en cykel saknas lampor?",
+   "Aldrig i mörker"
+  ],
+  [
+   "trafik-ga",
+   "choicetext",
+   "Vad gör du om bollen rullar ut i gatan?",
+   "Stannar och tittar innan du hämtar den"
+  ],
+  [
+   "demokrati",
+   "choicetext",
+   "Vad betyder demokrati?",
+   "Att alla får vara med och bestämma"
+  ],
+  [
+   "demokrati",
+   "choicetext",
+   "Hur fattar man beslut på ett klassråd?",
+   "Alla får säga sitt och sedan röstar man"
+  ],
+  [
+   "demokrati",
+   "choicetext",
+   "Varför finns det regler?",
+   "För att alla ska vara trygga och må bra tillsammans"
+  ],
+  [
+   "rattigheter",
+   "choicetext",
+   "Vad är barnkonventionen?",
+   "Regler om alla barns rättigheter"
+  ],
+  [
+   "rattigheter",
+   "choicetext",
+   "Vilket är en rättighet alla barn har enligt barnkonventionen?",
+   "Att gå i skolan"
+  ],
+  [
+   "rattigheter",
+   "choicetext",
+   "Vad får vuxna när de arbetar?",
+   "Lön"
+  ],
+  [
+   "rattigheter",
+   "choicetext",
+   "Vad heter Sveriges valuta (pengar)?",
+   "Kronor"
+  ],
+  [
+   "rattigheter",
+   "choicetext",
+   "Vem släcker bränder?",
+   "Brandmän"
+  ],
+  [
+   "rattigheter",
+   "choicetext",
+   "Vilket nummer ringer du vid en olycka?",
+   "112"
+  ],
+  [
+   "demokrati",
+   "choicetext",
+   "Vem bestämmer lagarna i Sverige?",
+   "Riksdagen"
+  ],
+  [
+   "demokrati",
+   "choicetext",
+   "Vad är en kompromiss?",
+   "Att båda ger med sig lite så alla blir nöjda"
+  ],
+  [
+   "demokrati",
+   "choicetext",
+   "Vad betyder det att vara källkritisk?",
+   "Att fundera på om det man läser eller hör är sant"
+  ],
+  [
+   "hogtider",
+   "choicetext",
+   "Vad firar man på julen inom kristendomen?",
+   "Att Jesus föddes"
+  ],
+  [
+   "hogtider",
+   "choicetext",
+   "Vad firar kristna på påsken?",
+   "Att Jesus dog och uppstod"
+  ],
+  [
+   "hogtider",
+   "choicetext",
+   "Vilket datum är lucia?",
+   "13 december"
+  ],
+  [
+   "religioner-forr",
+   "choicetext",
+   "Var går muslimer för att be?",
+   "Moskén"
+  ],
+  [
+   "religioner-forr",
+   "choicetext",
+   "Vad heter judarnas gudstjänstlokal?",
+   "Synagogan"
+  ],
+  [
+   "religioner-forr",
+   "choicetext",
+   "Vad är ramadan?",
+   "En månad då muslimer fastar på dagen"
+  ],
+  [
+   "hogtider",
+   "choicetext",
+   "När firas midsommar?",
+   "I juni"
+  ],
+  [
+   "hogtider",
+   "choicetext",
+   "Vad är en tradition?",
+   "Något man gör på samma sätt år efter år"
+  ],
+  [
+   "religioner-forr",
+   "choicetext",
+   "Hur kan vi ta reda på hur det var förr i tiden?",
+   "Gamla foton, föremål och äldre människors berättelser"
+  ],
+  [
+   "religioner-forr",
+   "choicetext",
+   "Vad skrev barn på i skolan för 100 år sedan?",
+   "Griffeltavla"
+  ],
+  [
+   "religioner-forr",
+   "choicetext",
+   "Vilket av detta fanns INTE för 100 år sedan?",
+   "Internet"
+  ],
+  [
+   "religioner-forr",
+   "choicetext",
+   "Vad är en symbol för kristendomen?",
+   "Korset"
+  ],
+  [
+   "religioner-forr",
+   "order",
+   "Sätt i ordning, äldst först:",
+   "hästdroska"
+  ],
+  [
+   "hogtider",
+   "order",
+   "Sätt årets högtider i ordning, börja från januari:",
+   "påsk"
+  ]
+ ]
+}

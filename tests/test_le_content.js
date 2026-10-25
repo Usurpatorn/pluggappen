@@ -80,8 +80,11 @@ setTimeout(() => {
     }
     ok(made >= skills.length * 5, `Utmaningar: ${made} skapade · typer ${JSON.stringify(kinds)}`);
     ok(['spot', 'combine', 'create', 'equation', 'order', 'false'].every(k => kinds[k] > 0), 'alla utmaningstyper förekommer');
-    { let bad = 0, n = 0; for (const { s } of skills) for (let k = 0; k < 4; k++) { const q = CHG.make(s, s.maxLvl || 3, k, { young: true }); if (q) { n++; if (!['combine', 'spot'].includes(q.challenge)) bad++; } else if ((s.group || 'math') !== 'math') continue; }
-      ok(bad === 0 && n > 0, `yngre: bara korta matteutmaningar (dubbelsteg/hitta felet), ${n} skapade`); }
+    { let bad = 0, n = 0; const svYoung = new Set(); for (const { s } of skills) for (let k = 0; k < 4; k++) { const q = CHG.make(s, s.maxLvl || 3, k, { young: true }); if (q) { n++; const math = (s.group || 'math') === 'math';
+        if (math ? !['combine', 'spot'].includes(q.challenge) : !(s.group === 'sv' && q.challenge === 'false' && RECALL.strip(q.text).length <= 330)) bad++; if (s.group === 'sv') svYoung.add(s.id); } }
+      ok(bad === 0 && n > 0, `yngre: korta matteutmaningar (dubbelsteg/hitta felet) och korta svenskutmaningar (hitta felet), ${n} skapade`);
+      // 2.1: svenska för yngre har nu Utmaningar (tidigare ingen)
+      const sv2 = skills.filter(x => x.s.group === 'sv' && /^sv_/.test(x.s.id)).map(x => x.s.id); ok(svYoung.size >= Math.min(5, sv2.length), `yngre svenska med Utmaning: ${[...svYoung].join(', ')} av ${sv2.length}`); }
     ok(none <= Math.ceil(skills.length * 0.15), `moment utan Utmaning: ${none} (${noneList.join(', ')}) – motorn erbjuder då inga utmaningar där`);
     /* ---------- 4. Innehållsrevision (rapport) ---------- */
     const lowVar = []; const audit = [];

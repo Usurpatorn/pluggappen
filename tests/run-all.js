@@ -29,6 +29,8 @@ const suites = [
   ['2.1 Concept Packs: kvalitetsgrind (varje variant, migrering, id:n)', 'test_packs.js'],
   ['2.1 Formmedvetna bevis: regler + simulering mot 2.0', 'test_le_forms.js'],
   ['2.1 Paket i appen: Kör!, Testa mig, migrering, v1, rollback till 2.0.0', 'test_le_packs_app.js'],
+  ['2.1 Läs upp: behörighet per fråga, Yngre-knapp, ingen extern tjänst', 'test_readaloud.js'],
+  ['2.1 Små mattebanker åk 2 (former, bråk) – bara v2', 'test_gen2.js'],
 ];
 let failed = 0; const rows = [];
 for (const [name, file, opts = {}] of suites) {
