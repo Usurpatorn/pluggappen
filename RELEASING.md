@@ -3,14 +3,13 @@
 ## Källor och artefakt
 - `src/` är den enda sanningen. `dist/index.html` byggs av `scripts/build.sh` och är **inte** incheckad.
 - Bygget är reproducerbart: bygg-id = `v<VERSION> (<innehållshash av src>)`. Samma källor ⇒ byte-identisk `index.html`.
-- `index.html` i repots rot är den publicerade kopian så länge GitHub Pages serverar från `main` (CI kontrollerar att den är identisk med bygget).
+- Sajten publiceras av CI (GitHub Pages källa = GitHub Actions, variabel `PAGES_ACTIONS=true`). Det finns ingen `index.html` i repots rot.
 
 ## Lokalt
 ```
 npm ci
 npm run build        # → dist/
 npm test             # hela sviten mot dist/ (≈30 s). Måste vara "ALLA TESTER GRÖNA".
-cp dist/index.html index.html   # tills Pages körs via Actions
 git commit -am "…" && git push
 ```
 Privat termlista för integritetstestet läggs i `tests/privacy_terms.local.json` (gitignorerad) – i CI via secret `PRIVACY_TERMS` (JSON-array).
@@ -30,7 +29,6 @@ Privat termlista för integritetstestet läggs i `tests/privacy_terms.local.json
 ## Rollback
 1. Actions → "CI – test, bygg, publicera" → **Run workflow** → `deploy_ref` = en tidigare release-tagg (t.ex. `release-1.1.0-53cee56`) eller commit.
 2. CI bygger och testar den versionen och publicerar den (kräver `PAGES_ACTIONS`). Alternativt: `git revert` på main.
-3. Så länge Pages serverar från `main`: checka ut taggens `index.html` (`git checkout <tagg> -- index.html`), committa, pusha.
 
-## Byta Pages till Actions (en gång)
-GitHub → Settings → Pages → Build and deployment → Source: **GitHub Actions**. Sätt sedan Settings → Secrets and variables → Actions → Variables → `PAGES_ACTIONS` = `true`. Därefter kan `index.html` i roten tas bort.
+## Pages via Actions (inställt 2026-10-25)
+Settings → Pages → Source: **GitHub Actions**; Settings → Secrets and variables → Actions → **Variables** → `PAGES_ACTIONS` = `true`.
