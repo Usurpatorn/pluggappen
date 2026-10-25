@@ -14,6 +14,8 @@ const now = new Date(); const stockholm = new Date(now.toLocaleString('en-US', {
 const hour = stockholm.getHours(); const dow = stockholm.getDay(); const today = stockholm.toISOString().slice(0, 10);
 const slot = FORCE_SLOT || (hour < 19 || (hour === 19 && stockholm.getMinutes() < 30) ? 'afternoon' : 'evening');
 say('Stockholm', stockholm.toString(), 'slot', slot);
+// Tysta timmar: GitHubs schemaläggning kan vara timmar försenad – skicka aldrig sent på kvällen eller på natten (testläge undantaget).
+if (slot !== 'test' && (hour >= 21 || hour < 7)) { say('tyst timme (' + hour + ':xx) – skickar inget'); await writeStatus({ ok: true, sent: 0, slot, subs: 0, quiet: true }); process.exit(0); }
 let list; try { list = await fetch(`${base}?key=${FIREBASE_KEY}&pageSize=100`).then(r => r.json()); if (list.error) throw new Error(JSON.stringify(list.error)); } catch (e) { say('Kunde inte läsa Firestore: ' + e.message); await writeStatus({ ok: false }); process.exit(0); }
 const docs = list.documents || [];
 const profiles = {}; const subs = [];
@@ -24,7 +26,7 @@ for (const d of docs) {
 say('profiler', Object.keys(profiles).join(','), 'enheter med notiser', subs.length, subs.map(x => x.kid).join(','));
 const practicedToday = (p) => !!(p && p.days && p.days[today] && p.days[today].c > 0);
 const goalDone = (p) => !!(p && p.days && p.days[today] && p.days[today].c >= ((p.settings && p.settings.goal) || 10));
-const daysSince = (p) => { if (!p || !p.lastDay) return 99; return Math.round((new Date(today) - new Date(p.lastDay)) / 86400000); };
+const daysSince = (p) => { if (!p || !p.lastDay) return -1; return Math.round((new Date(today) - new Date(p.lastDay)) / 86400000); }; // -1 = har aldrig övat (räknas inte som inaktiv)
 let sent = 0;
 for (const s of subs) {
   const msgs = [];

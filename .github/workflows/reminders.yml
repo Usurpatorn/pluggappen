@@ -2,7 +2,7 @@ name: Påminnelser
 on:
   schedule:
     - cron: '30 17 * * 1-5'   # 18:30 svensk vintertid (17:30 UTC) – vardagar
-    - cron: '0 19 * * *'      # 20:00 svensk vintertid – streak-påminnelse
+    - cron: '45 18 * * *'     # 19:45 svensk vintertid – streak-/föräldrapåminnelse (lagd tidigt eftersom GitHub ofta startar sent; skriptet skickar aldrig efter 21)
   workflow_dispatch:
     inputs:
       slot:
