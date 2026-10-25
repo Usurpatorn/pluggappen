@@ -8,4 +8,4 @@ Vanilla JavaScript, en enda HTML-fil, installeras som webbapp på telefon/surfpl
 - Framsteg synkas mellan en familjs enheter via Firestore. Åtkomst styrs av `firestore.rules`.
 - Påminnelser skickas av `.github/workflows/reminders.yml` (web-push).
 
-Publiceras via GitHub Pages. Byggs från källfiler med `build.sh` (källorna och testerna läggs till i repot i nästa fas).
+Publiceras via GitHub Pages. Källkod i `src/`, tester i `tests/`, bygge med `npm run build` (→ `dist/`). Se `RELEASING.md` för bygg-, test- och releaseprocessen.

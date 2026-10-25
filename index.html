@@ -1,5 +1,5 @@
 <!doctype html><html lang="sv"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="theme-color" content="#fbfaf6"><meta name="apple-mobile-web-app-title" content="Pluggapp"><link rel="apple-touch-icon" href="icon-v2.png"><link rel="icon" href="icon-v2.png"><style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
-<script>window.PLUGG_BUILD = '2026-10-25 09:21';</script>
+<script>window.PLUGG_BUILD = 'v1.1.0 (8ebd25e)';</script>
 <script>window.PLUGG_SYNC = window.PLUGG_SYNC || { projectId: "pluggappen", apiKey: "AIzaSyBexTJ4xs1dL0EytcH2N74pY84PuJQZVYQ" }; if (window.PLUGG_SYNC.projectId.startsWith("__")) window.PLUGG_SYNC = null; window.PLUGG_PUSH_KEY = "BPB-A8j28EB8I1cdEMseKa05bLaVDXnDpe9PBbTjekO6ReD_I2hKjJfQnuS1HkoBr8RafRaqWf2sWuQdghiXQX0"; if ("serviceWorker" in navigator) { window.addEventListener("load", function () { navigator.serviceWorker.register("./sw.js").catch(function () {}); }); }</script>
 <title>Pluggapp</title>
 <meta name="claude:viewport-fit-sides" content="cover">
@@ -553,6 +553,7 @@ const T = {
     return R.shuffle([...set]);
   },
 };
+
 
 /* ========= Content: skills and question generators ========= */
 const m = (s) => `<span class="m">${s}</span>`;
@@ -1157,6 +1158,7 @@ const TEMPLATES = {
 // Fylls av buildKids(FAMILY) vid start – tom tills familjen är parkopplad.
 const KIDS = [];
 
+
 /* ========= Language learning: decks, spaced repetition, exercise generation ========= */
 const LANGS = { es: { name: 'Spanska', flag: '🇪🇸', tts: 'es-ES' }, en: { name: 'Engelska', flag: '🇬🇧', tts: 'en-GB' }, sv: { name: 'Svenska', flag: '🇸🇪', tts: 'sv-SE' } };
 // deck: { id, lang, name, emoji, level, words: [{ id, w (foreign), t (swedish), e (emoji) }], noSpell }
@@ -1376,6 +1378,7 @@ const TTS = {
   },
 };
 
+
 /* ========= SO: Geografi åk 4 (Puls SO 4, s. 36–73) – kunskapsfrågor per lärmål ========= */
 // Q: question, choices (first is correct), why (short explanation shown after answer)
 const Q = (q, choices, why) => ({ q, choices, why });
@@ -1529,6 +1532,7 @@ function makeSoGen(topic) {
 const SO_SKILLS = {
   ak4: GEO4.map(t => ({ id: t.id, name: t.name, short: t.short, icon: t.icon, group: 'so', subject: 'Geografi', gen: makeSoGen(t), method: `<div class="eyebrow" style="margin-bottom:6px">Puls SO 4 · s. 36–73</div>${t.read}` })),
 };
+
 /* ========= NO/Kemi åk 8: Kapitel 4 "Syror och baser" – kunskapsfrågor per delområde ========= */
 const KEMI4 = [
   { id: 'kemi_syror', name: 'Syror – egenskaper och exempel', short: 'Syror', icon: '🍋',
@@ -1633,6 +1637,7 @@ const KEMI4 = [
 const BEGREPPA = {"kemi_syror": [["Syror och baser", "https://app.begreppa.se/videos/kemi/syror-baser-och-salter/syror-och-baser"]], "kemi_ph": [["Varför blir det surt eller basiskt?", "https://app.begreppa.se/videos/kemi/syror-baser-och-salter/varfor-blir-det-surt-eller-basiskt"], ["Vad berättar egentligen pH-värdet?", "https://app.begreppa.se/videos/kemi/syror-baser-och-salter/vad-berattar-egentligen-ph-vardet"]], "kemi_starka": [["Starka och svaga syror", "https://app.begreppa.se/videos/kemi/syror-baser-och-salter/starka-och-svaga-syror"]], "kemi_neutral": [["Vad är ett salt? / Hur bildas salter?", "https://app.begreppa.se/videos/kemi/syror-baser-och-salter/vad-ar-ett-salt"]], "kemi_vardag": [["Vad är ett salt?", "https://app.begreppa.se/videos/kemi/syror-baser-och-salter/vad-ar-ett-salt"]]};
 const KEMI_SKILLS = KEMI4.map(t => ({ id: t.id, name: t.name, short: t.short, icon: t.icon, group: 'no', subject: 'Kemi', gen: makeSoGen(t), method: `<div class="eyebrow" style="margin-bottom:6px">Kemi kapitel 4 · Syror och baser</div>${t.read}${BEGREPPA[t.id] ? `<div class="eyebrow" style="margin:14px 0 6px">Lärarens filmer (Begreppa)</div>${BEGREPPA[t.id].map(([n, u]) => `<a class="btn ghost" style="min-height:40px;justify-content:flex-start;margin:4px 0;width:100%" href="${u}" target="_blank" rel="noopener">▶ ${n}</a>`).join('')}` : ''}` }));
 if (typeof SO_SKILLS !== 'undefined') SO_SKILLS.ak8 = [...(SO_SKILLS.ak8 || []), ...KEMI_SKILLS]; // kemi ingår i åk 8-mallen
+
 /* ========= Open "förklara"-frågor: skriv ett svar, appen letar efter nyckelbegrepp ========= */
 // keys: grupper av godkända formuleringar (stammar räcker: "golfström" matchar "Golfströmmen"). label = vad som visas om gruppen saknas.
 const O = (q, keys, model, hint) => ({ q, keys: keys.map(k => (Array.isArray(k) ? { alts: k, label: k[0] } : k)), model, hint });
@@ -1752,6 +1757,7 @@ function makeOpenQuestion(topicId, level) {
   const q = R.pick(list);
   return { type: 'open', text: q.q, keys: q.keys, model: q.model, hint: q.hint, steps: [`<b>Exempel på fullständigt svar:</b> ${q.model}`], level, answer: q.model };
 }
+
 /* ========= Visual math: inline SVG figures (theme-aware via CSS variables) ========= */
 const VIS = {
   clock(h, mm, size = 180) {
@@ -1805,6 +1811,7 @@ const VIS = {
     return `<svg class="fig" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" role="img" aria-label="${name}"><g fill="var(--acc-soft)" stroke="var(--ink)" stroke-width="3" stroke-linejoin="round">${body}</g></svg>`;
   },
 };
+
 /* ========= Grundkurser matte: mallarna åk 4 och åk 2 ========= */
 const timeStr = (h, mm) => `${h}:${String(mm).padStart(2, '0')}`;
 const timeAnswers = (h, mm) => { const a = [timeStr(h, mm), timeStr(h % 12 === 0 ? 12 : h % 12, mm), `${String(h).padStart(2, '0')}:${String(mm).padStart(2, '0')}`, timeStr(h, mm).replace(':', '.'), timeStr(h % 12 === 0 ? 12 : h % 12, mm).replace(':', '.')]; if (h >= 12 && h % 12 !== 0) a.push(timeStr(h - 12, mm)); return [...new Set(a)]; };
@@ -1928,6 +1935,7 @@ const MORE_SKILLS = {
     { id: 'talrad', name: 'Talraden till 100', short: 'Talraden', icon: '↔', gen: genTalrad, method: METHOD_MORE.talrad },
   ],
 };
+
 /* ========= Svenska åk 2–3 (mallen åk 2) – generatorer med oändlig variation + textbanker ========= */
 // Alla uppgifter följer samma form som matten: { type, text, answer, choices, steps, hint, level, fig }
 
@@ -2153,6 +2161,7 @@ const SV_SKILLS = {
     { id: 'sv_rim', name: 'Rim', short: 'Rim', icon: '🎵', group: 'sv', subject: 'Svenska', gen: SV.genRim, method: METHOD_SV.rim },
   ],
 };
+
 /* ========= NO och SO åk 1–3 (mallen åk 2) – enligt Lgr22 centralt innehåll ========= */
 // Q(fråga, [rätt, fel…], förklaring)  ·  O(fråga, [rätt ordning], förklaring) = sätt i ordning
 const QN = (q, choices, why) => ({ q, choices, why });
@@ -2360,6 +2369,7 @@ const NASO_SKILLS = {
     ...SO2.map(t => ({ id: t.id, name: t.name, short: t.short, icon: t.icon, group: 'so', subject: 'SO', gen: makeNaSoGen(t), method: lgrTag(t, 'SO') + t.read })),
   ],
 };
+
 /* ========= Åk 2-mallen: matte som växer – nivå 4 på befintliga moment + nya moment enligt Lgr22 åk 1–3 ========= */
 // Lgr22 matematik åk 1–3 (centralt innehåll): naturliga tal 0–1000 och positionssystemet, de fyra räknesätten,
 // huvudräkning och skriftliga metoder, enkla bråk, likhetstecknet, mönster i talföljder, geometriska objekt och
@@ -2436,6 +2446,7 @@ const LGR_MATH = {
     { id: 'matning', name: 'Mäta: längd, vikt, volym och tid', short: 'Mätning', icon: '📏', gen: genMatning, method: METHOD_AK2.matning, maxLvl: 4, lgr: LGR_MATH.matning },
   );
 })();
+
 /* ========= Cloud sync (only active in the self-hosted build with window.PLUGG_SYNC set) =========
    Data model: one Firestore document per child: families/{familyCode}/profiles/{kidId}
    fields: json (stringValue = the profile), updatedAt (integerValue, ms). Last-writer-wins with field-level merge.
@@ -2517,6 +2528,7 @@ function mergeProfiles(a, b) {
   out.pet = a.pet || b.pet; out.settings = { ...(b.settings || {}), ...(a.settings || {}) };
   return out;
 }
+
 /* ========= Familjekonfiguration (privat) =========
    Allt som är specifikt för EN familj – barnens namn, vilken kursmall de följer, tema, prov, skolans glosor,
    lärarens kommentar – ligger här, inte i den publika koden. Konfigurationen sparas som dokumentet `_config`
@@ -2585,6 +2597,7 @@ function buildKids() {
 }
 // Standardvärden per barn: mallens inställningar + familjens prov och glosor.
 const kidDefaults = (kidId) => { const k = KIDS.find(x => x.id === kidId); if (!k) return null; const tpl = TEMPLATES[k.template]; return { settings: { ...tpl.defaults }, decks: [...tpl.decks, ...k.cfgDecks.map(d => d.id)], exams: k.cfgExams.map(e => ({ ...e, skillIds: [...e.skillIds], deckIds: [...e.deckIds] })), paper: k.paper || 'rutat' }; };
+
 /* ========= Enhetsidentitet och familjemedlemskap =========
    Varje enhet loggar in anonymt i Firebase (ingen e-post, inget lösenord) och får ett stabilt uid.
    En familj har   meta/info      { joinCode, createdAt, rotatedAt }
@@ -2664,6 +2677,7 @@ const AUTH = {
   // Tolka en parkopplingssträng: "familj.kod" eller gammal "familjekod" (då är koden = familjen).
   parsePair(str) { const s = (str || '').trim().replace(/[^a-zA-Z0-9\-.]/g, ''); if (!s) return null; const i = s.indexOf('.'); return i > 0 ? { fam: s.slice(0, i), code: s.slice(i + 1) } : { fam: s, code: s }; },
 };
+
 /* ========= Push reminders (self-hosted build only; needs service worker + VAPID public key + sync) ========= */
 const PUSH = {
   key: typeof window !== 'undefined' ? window.PLUGG_PUSH_KEY || null : null,
@@ -2702,6 +2716,7 @@ const PUSH = {
     return `<div class="card stack" style="gap:8px"><div class="toggle"><div><div class="tl">Påminnelser</div><div class="td">${text}</div></div><button class="switch ${on ? 'on' : ''}" data-push="${kidId}" aria-label="Påminnelser"></button></div>${who === 'parent' && stTxt ? `<p class="muted" style="font-size:.85rem">${stTxt}</p>` : ''}${cur && cur.kid !== kidId ? `<p class="muted" style="font-size:.85rem">Den här enheten påminner just nu ${cur.kid === 'parent' ? 'föräldern' : (kidById(cur.kid)?.name || cur.kid)}. Slå på här för att byta.</p>` : ''}</div>`;
   },
 };
+
 /* ========= Storage & profile model ========= */
 const STORE_KEY = 'pluggappen.v1';
 const DAYMS = 86400000;
@@ -2751,8 +2766,9 @@ let saveTimer = null;
 function save() {
   const target = state.screen === 'parent' ? state.tab : state.kid;
   if (target && DB.profiles[target]) { const d = DB.profiles[target]; d.updatedAt = Date.now(); d.since = d.since || { xp: 0, gems: 0, days: {} }; if (d._lx != null) { d.since.xp += d.xp - d._lx; d.since.gems += d.gems - d._lg; } d._lx = d.xp; d._lg = d.gems; SYNC.schedulePush(target); }
-  clearTimeout(saveTimer); saveTimer = setTimeout(() => { try { localStorage.setItem(STORE_KEY, JSON.stringify(DB)); } catch (e) { /* ignore */ } }, 150);
+  clearTimeout(saveTimer); saveTimer = setTimeout(flushSave, 150);
 }
+function flushSave() { clearTimeout(saveTimer); saveTimer = null; try { localStorage.setItem(STORE_KEY, JSON.stringify(DB)); } catch (e) { /* ignore */ } }
 const prof = (kidId) => DB.profiles[kidId];
 const goalFor = (kidId) => prof(kidId).settings.goal || 10;
 const allDecks = (p) => [...BUILTIN_DECKS, ...p.decks];
@@ -4026,5 +4042,6 @@ function boot(snap) {
   else go('start');
 }
 window.claude?.hot?.ready ? window.claude.hot.ready(boot) : boot(window.claude?.hot?.data ?? null);
-window.PA = { get S() { return S; }, get DB() { return DB; }, get B() { return B; }, Poly, KIDS, TEMPLATES, FAMILY, AUTH, deleteKidData, deleteFamilyData, buildKids, load, rerender: () => VIEWS[state.screen] && VIEWS[state.screen](), BUILTIN_DECKS, SYNC, save, setKid: (id) => { state.kid = id; }, version: '3.0' };
+window.PA = { get S() { return S; }, get DB() { return DB; }, get B() { return B; }, Poly, KIDS, TEMPLATES, FAMILY, AUTH, deleteKidData, deleteFamilyData, buildKids, load, flushSave, rerender: () => VIEWS[state.screen] && VIEWS[state.screen](), BUILTIN_DECKS, SYNC, save, setKid: (id) => { state.kid = id; }, version: '3.0' };
+
 </script></body></html>

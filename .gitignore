@@ -1,0 +1,4 @@
+node_modules/
+dist/
+tests/privacy_terms.local.json
+*.local.json

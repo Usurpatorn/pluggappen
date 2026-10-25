@@ -1,0 +1,126 @@
+{
+ "v": 1,
+ "updatedAt": 1,
+ "kids": [
+  {
+   "id": "k8",
+   "name": "Åttan",
+   "template": "ak8",
+   "theme": "teen",
+   "hue": "teal",
+   "emoji": "🧮",
+   "exams": [
+    {
+     "id": "alg12",
+     "title": "Prov 3 Algebra",
+     "date": "2026-12-09",
+     "skillIds": [
+      "multin",
+      "forenkla",
+      "blandat",
+      "talfoljd",
+      "ekvation",
+      "problemekv",
+      "andragrad"
+     ],
+     "deckIds": []
+    },
+    {
+     "id": "kemi4",
+     "title": "Kemiprov: Testkapitel",
+     "date": "2026-12-16",
+     "skillIds": [
+      "kemi_syror",
+      "kemi_baser",
+      "kemi_ph",
+      "kemi_starka",
+      "kemi_neutral",
+      "kemi_vardag",
+      "kemi_kropp_natur",
+      "kemi_saker"
+     ],
+     "deckIds": []
+    }
+   ],
+   "decks": [],
+   "note": {
+    "title": "Lärarens kommentar",
+    "lines": [
+     "multiplicera in tal i parenteser",
+     "förenkla uttryck"
+    ]
+   }
+  },
+  {
+   "id": "k4",
+   "name": "Fyran",
+   "template": "ak4",
+   "theme": "sport",
+   "hue": "rod",
+   "emoji": "🏒",
+   "paper": "lulea",
+   "exams": [
+    {
+     "id": "gloso1",
+     "title": "Glosförhör: Testglosor",
+     "date": "2026-12-02",
+     "skillIds": [],
+     "deckIds": [
+      "cfg_test"
+     ]
+    }
+   ],
+   "decks": [
+    {
+     "id": "cfg_test",
+     "lang": "en",
+     "name": "Testglosor",
+     "emoji": "⏰",
+     "level": 2,
+     "words": [
+      [
+       "it rings",
+       "ringer",
+       "⏰"
+      ],
+      [
+       "breakfast",
+       "frukost",
+       "🥣"
+      ],
+      [
+       "best friend",
+       "bästis",
+       "🧑‍🤝‍🧑"
+      ],
+      [
+       "I read",
+       "jag läser",
+       "📖"
+      ],
+      [
+       "in the afternoon",
+       "på eftermiddagen",
+       "🌤️"
+      ],
+      [
+       "we have dinner",
+       "vi äter middag",
+       "🍽️"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "id": "k2",
+   "name": "Tvåan",
+   "template": "ak2",
+   "theme": "pet",
+   "hue": "pink",
+   "emoji": "🦄",
+   "exams": [],
+   "decks": []
+  }
+ ]
+}

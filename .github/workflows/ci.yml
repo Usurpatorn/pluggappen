@@ -1,0 +1,103 @@
+name: CI – test, bygg, publicera
+# Varje push till main: hela testsviten → reproducerbart bygge → kontroll att den publicerade index.html är byggd från källorna →
+# (när Pages är inställt på "GitHub Actions", repo-variabel PAGES_ACTIONS=true) publicering + release-tagg.
+# Rollback: Actions → "CI – test, bygg, publicera" → Run workflow → ange en release-tagg eller commit i `deploy_ref`.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      deploy_ref:
+        description: 'Commit/tagg att bygga och publicera (rollback). Tomt = main.'
+        default: ''
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  test:
+    name: Testa och bygg
+    runs-on: ubuntu-latest
+    outputs:
+      build_id: ${{ steps.build.outputs.build_id }}
+      version: ${{ steps.build.outputs.version }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.inputs.deploy_ref || github.ref }}
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Bygg
+        id: build
+        run: |
+          npm run build | tee build.log
+          echo "build_id=$(grep -o 'v[0-9.]* ([0-9a-f]*)' build.log | head -1)" >> "$GITHUB_OUTPUT"
+          echo "version=$(tr -d '[:space:]' < VERSION)" >> "$GITHUB_OUTPUT"
+      - name: Reproducerbarhet – bygg igen och jämför byte för byte
+        run: |
+          cp dist/index.html /tmp/first.html
+          npm run build >/dev/null
+          cmp /tmp/first.html dist/index.html && echo "Bygget är reproducerbart"
+      - name: Testsvit (måste vara helt grön)
+        env:
+          PRIVACY_TERMS: ${{ secrets.PRIVACY_TERMS }}
+        run: npm test
+      - name: Publicerad index.html måste vara byggd från källorna
+        if: ${{ vars.PAGES_ACTIONS != 'true' }}
+        run: |
+          if [ -f index.html ]; then cmp index.html dist/index.html && echo "index.html i repots rot = bygget"; else echo "ingen index.html i roten (Pages via Actions)"; fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: site-${{ steps.build.outputs.build_id }}
+          path: dist/
+          retention-days: 90
+
+  deploy:
+    name: Publicera (GitHub Pages)
+    needs: test
+    if: ${{ vars.PAGES_ACTIONS == 'true' && (github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')) }}
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: site-${{ needs.test.outputs.build_id }}
+          path: dist
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+      - id: deployment
+        uses: actions/deploy-pages@v4
+
+  release:
+    name: Release-tagg
+    needs: [test]
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v4
+        with:
+          name: site-${{ needs.test.outputs.build_id }}
+          path: dist
+      - name: Tagga och skapa release (en per publicerat bygge)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="release-${{ needs.test.outputs.version }}-$(git rev-parse --short=7 HEAD)"
+          if git rev-parse "$TAG" >/dev/null 2>&1; then echo "taggen finns redan"; exit 0; fi
+          git tag "$TAG" && git push origin "$TAG"
+          gh release create "$TAG" dist/index.html --title "${{ needs.test.outputs.build_id }}" --notes "Automatisk release från CI. Rollback: Run workflow med deploy_ref=$TAG."

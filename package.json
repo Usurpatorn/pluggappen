@@ -1,1 +1,14 @@
-{"name":"pluggappen-reminders","private":true,"type":"module"}
+{
+  "name": "pluggapp",
+  "version": "1.1.0",
+  "private": true,
+  "description": "Lokal-först pluggapp för grundskolan – generisk kod, privat familjekonfiguration",
+  "scripts": {
+    "build": "bash scripts/build.sh",
+    "test": "node tests/run-all.js",
+    "test:quick": "node tests/run-all.js --quick"
+  },
+  "devDependencies": {
+    "jsdom": "^25.0.1"
+  }
+}
