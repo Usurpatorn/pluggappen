@@ -490,7 +490,7 @@ VIEWS.home = () => {
         ${shown.filter(s => (s.group || 'math') === g).map(s => { const st = skillState(p, s.id); const mv = Math.round(st.m); return `
         <div class="card" style="padding:12px 14px">
           <div class="skill">
-            <div class="ic">${s.icon}</div>
+            <div class="ic">${esc(s.icon)}</div>
             <div class="grow" style="min-width:0">
               <div class="nm">${esc(s.name)}</div>
               <div class="sub"><span>${masteryLabel(st)}</span><span>·</span><span class="lvl-dots" title="Svårighet">${Array.from({ length: s.maxLvl || 3 }, (_, i) => i + 1).map(i => `<i class="${i <= st.lvl ? 'on' : ''}"></i>`).join('')}</span>${st.att ? `<span>· ${st.cor}/${st.att} rätt</span>` : ''}</div>
@@ -534,7 +534,7 @@ VIEWS.method = () => {
   const kid = kidById(state.kid); const s = skillById(kid, state.skillId);
   render(`${topbar(esc(s.name), 'home')}
   <div class="stack" style="margin-top:6px">
-    <div class="card pad-lg method"><div class="eyebrow" style="margin-bottom:8px">${(s.group || 'math') === 'math' ? 'Så gör man' : 'Läs på'}</div>${s.lgr ? `<p class="muted" style="font-size:.85rem;margin:0 0 10px"><b>Lgr22 · åk 1–3:</b> <i>${s.lgr}</i></p>` : ''}${s.method}</div>
+    <div class="card pad-lg method"><div class="eyebrow" style="margin-bottom:8px">${(s.group || 'math') === 'math' ? 'Så gör man' : 'Läs på'}</div>${s.lgr ? `<p class="muted" style="font-size:.85rem;margin:0 0 10px"><b>Lgr22 · åk 1–3:</b> <i>${s.lgr}</i></p>` : ''}${s.pack ? safeHtml(s.method) : s.method}</div>
     ${V2.on(kid) ? `<button class="btn big wide" data-v2="rc" data-skill="${s.id}">🙈 Stäng texten och testa dig själv</button><p class="muted" style="font-size:.85rem;text-align:center;margin-top:-4px">Läs, stäng, försök minnas – sedan jämför du. Det är så kunskap fastnar.</p><button class="btn ghost wide" data-skill="${s.id}">Öva på det här</button>` : `<button class="btn big wide" data-skill="${s.id}">Öva på det här</button>`}
   </div>`);
 };
@@ -641,6 +641,9 @@ function pickSkills(kid, ids, n) {
 const skillById = (kid, id) => kid.skills.find(s => s.id === id) || (kid.v2skills || []).find(s => s.id === id);
 function makeQuestion(kid, skill, levelOverride, genOpts) {
   const st = skillState(prof(kid.id), skill.id); const lvl = levelOverride || st.lvl;
+  // 2.1: med motor v2 kommer frågorna på moment med ett Concept Pack från paketets granskade innehåll (även vid manuell övning); v1 oförändrad
+  const pq = typeof PACKS !== 'undefined' && typeof V2 !== 'undefined' && !(genOpts && genOpts.noPack) && V2.engineOf(prof(kid.id)) === 'v2' ? V2.safe(() => PACKS.practiceQuestion(kid, skill, lvl, LE.policyName(kid, prof(kid.id))), 'practiceQ', null) : null;
+  if (pq) { pq.skill = skill; pq.level = pq.level || lvl; pq.cat = 'math'; return pq; }
   let q = (genOpts && genOpts.v2 && skill.gen2 ? skill.gen2 : skill.gen)(lvl, genOpts || {});   // 2.1: v2 får rikare generatorer (gen2), v1 oförändrad
   if (!genOpts?.noOpen && ['ekvation', 'forenkla', 'problemekv'].includes(skill.id) && q.steps && q.steps.length >= 4 && R.chance(0.15)) {
     const items = q.steps.slice(0, -1).map(st => st.replace(/^<b>[^<]*<\/b>\s*/, ''));
@@ -1030,7 +1033,7 @@ VIEWS.blitz = () => {
   render(`${topbar('Blixtläge ⚡', 'home')}
   <div class="stack" style="margin-top:6px">
     <div class="card pad-lg" style="text-align:center"><h2>60 sekunder. Så många rätt du kan.</h2><p class="muted" style="margin-top:6px">Snabba svar med knappar. Fel kostar 2 sekunder. Rekord ger märke!</p></div>
-    <div class="skill-list">${kid.skills.filter(s => (s.group || 'math') === 'math' && s.id !== 'andragrad').map(s => `<button class="card tap skill" data-blitz="${s.id}"><div class="ic">${s.icon}</div><div class="grow"><div class="nm">${esc(s.short)}</div><div class="sub">Rekord: ${p.blitz[s.id] || 0}</div></div><span class="chev">›</span></button>`).join('')}</div>
+    <div class="skill-list">${kid.skills.filter(s => (s.group || 'math') === 'math' && s.id !== 'andragrad').map(s => `<button class="card tap skill" data-blitz="${s.id}"><div class="ic">${esc(s.icon)}</div><div class="grow"><div class="nm">${esc(s.short)}</div><div class="sub">Rekord: ${p.blitz[s.id] || 0}</div></div><span class="chev">›</span></button>`).join('')}</div>
   </div>`);
 };
 function startBlitz(kid, skillId) {
@@ -1253,7 +1256,7 @@ async function deleteFamilyData() {
   await del(AUTH.doc('meta/info')); await del(AUTH.doc('members/' + AUTH.uid));
   // lokalt: koppla bort och glöm familjen
   for (const k of KIDS) DB.profiles[k.id] = defaultProfile(k.id);
-  DB.settings.family = ''; DB.settings.member = null; DB.settings.joinCode = null; DB.settings.push = null; FAMILY.cfg = null; FAMILY.saveLocal(); buildKids();
+  DB.settings.family = ''; DB.settings.member = null; DB.settings.joinCode = null; DB.settings.push = null; FAMILY.cfg = null; FAMILY.saveLocal(); FAMILY.clearContent(); buildKids();
   try { localStorage.setItem(STORE_KEY, JSON.stringify(DB)); } catch (e) { /* ignore */ }
   return n;
 }
@@ -1341,8 +1344,8 @@ async function ensureMembership() {
   return r.ok;
 }
 function boot(snap) {
-  FAMILY.loadLocal(); buildKids(); FAMILY.loadContentLocal();   // 2.1: familjens privata innehåll (paket + skoluppgifter) från förra synken
-  load(); TTS.init();
+  FAMILY.loadLocal(); buildKids();
+  load(); FAMILY.loadContentLocal(); TTS.init();   // 2.1: familjens privata innehåll från förra synken (efter load: kopian måste höra till samma familj)
   try { window.claude?.hot?.snapshot?.(() => ({ screen: state.screen, kid: state.kid })); } catch (e) { /* no hot */ }
   let h = (location.hash || '').replace('#', '');
   if (h.startsWith('fam-') && SYNC.cfg) { const pr = AUTH.parsePair(h.slice(4)); if (pr) { DB.settings.family = pr.fam; DB.settings.joinCode = pr.code; try { localStorage.setItem(STORE_KEY, JSON.stringify(DB)); } catch (e) { /* ignore */ } } h = ''; }

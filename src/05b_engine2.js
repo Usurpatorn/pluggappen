@@ -148,7 +148,7 @@ const LE2 = (() => {
       // 3I: fel på en fördjupande fråga (tillämpning, hitta felet, orsak …) på ett koncept som redan minns är en FÖRSTÅELSElucka, inte glömska:
       // stadiet sänks inte, men konceptet kommer tillbaka om två dygn (och Felboken öppnas som vanligt). Simuleringen visade att en sänkning
       // här kostade hållbarhet utan att ge något (tests/le/forms.js).
-      if (def.depth && isDepthForm(ev.form) && c.st >= 2 && ev.ctx !== 'retry' && ev.help !== 'rescue' && ev.ctx !== 'exam') { reasons.push('fel på en fördjupande fråga → förståelsen tränas mer (räknas inte som glömt)'); c.dpMiss = today; }
+      if (def.depth && isDepthForm(ev.form) && c.st >= 2 && ev.ctx !== 'retry' && ev.help !== 'rescue' && ev.ctx !== 'exam') { reasons.push('fel på en fördjupande fråga → förståelsen tränas mer (räknas inte som glömt)'); if (c.dpMiss !== today) c.dp = Math.max(0, (c.dp || 0) - 1); c.dpMiss = today; }   // granskning 2.1 (M6): upprepade djupmissar tar bort "Säker" 
       else if (ev.ctx !== 'retry' && ev.help !== 'rescue') {
         const old = c.st; const early = c.lastOk && elapsedD < CFG.early * I;
         if (ev.ctx === 'exam' && c.exDay === today) reasons.push('fel i Testa mig igen samma dygn → ingen ytterligare sänkning');   // granskning M4
@@ -210,7 +210,11 @@ const LE2 = (() => {
   function apply(L, cat, e, pol) {
     if (e.sess && L.lastSess !== e.sess) { if (L.lastSess) calibrate(L); L.lastSess = e.sess; L.sessN = (L.sessN || 0) + 1; }
     // 3I: ett vilande moment (Concept Pack) leder beviset till kunskapspunkten frågan prövar. Loggen ändras aldrig (rollback läser originalet).
-    const d = cat[e.cid]; const to = d && d.route && e.item ? d.route[e.item] : null; if (to && cat[to] && to !== e.cid) e = { ...e, cid: to };
+    // Granskning 2.1 (H2): har det vilande momentet en olöst Felboks-post (från 2.0) stannar beviset där tills posten är löst – annars kunde
+    // Revansch aldrig verifiera den. Deterministiskt: beror bara på tillståndet vid omspelningen.
+    const d = cat[e.cid]; const to = d && d.route && e.item ? d.route[e.item] : null; const src = L.c[e.cid];
+    const fbHold = !!(src && src.fb && src.fb.s !== 'resolved' && fbLive(src, dayIdx(e.t)));
+    if (to && cat[to] && to !== e.cid && !fbHold) e = { ...e, cid: to };
     return recordEvidence(L, cat, e.cid, e, e.t, pol, { id: e.sess });
   }
 
@@ -325,7 +329,8 @@ const LE2 = (() => {
   }
   // K-14: hur mycket "pågående inlärning" (stadium ≤1) barnet bär just nu, och när kom senast något nytt?
   // Pågående, ännu inte säker inlärning: stadium ≤1, eller stadium 2 som är förfallen, eller öppen Felbok.
-  function learningLoad(L, cat, now) { return Object.entries(L.c).filter(([id, c]) => c.n > 0 && (!cat[id] || (cat[id].kind !== 'deck' && cat[id].active !== false)) && (c.st <= 1 || (c.st === 2 && now != null && c.due <= now) || ['open', 'awaiting'].includes(fbS(c, now)))).length; }
+  // Granskning 2.1 (M7): bara koncept som finns i katalogen räknas (en borttagen kunskapspunkt låg annars kvar som last för alltid)
+  function learningLoad(L, cat, now) { return Object.entries(L.c).filter(([id, c]) => c.n > 0 && cat[id] && cat[id].kind !== 'deck' && cat[id].active !== false && (c.st <= 1 || (c.st === 2 && now != null && c.due <= now) || ['open', 'awaiting'].includes(fbS(c, now)))).length; }
   function lastNewAt(L) { return Math.max(0, ...Object.values(L.c).map(c => (c.fs || 0) * 1000)); }
   function dueBacklog(L, cat, now) { return Object.entries(L.c).filter(([id, c]) => cat[id] && cat[id].kind !== 'deck' && cat[id].active !== false && c.n > 0 && c.due && c.due <= now).length; }
   function challengeEligible(L, cat, cid) { const c = L.c[cid]; const d = cat[cid]; if (!c || !d || d.challenge === false || d.kind === 'deck') return false; return c.st >= CFG.challenge.ceilingStage || (c.st >= CFG.challenge.minStage && c.lvl >= (d.maxLvl || 3)); }
@@ -508,7 +513,7 @@ const LE2 = (() => {
   /* Sammanslagning av två enheters le (kommutativ, idempotent). Bas: flest inbakade händelser vinner; lika → tidigast t0; lika → hash.
      Loggarna förenas på dev:seq (vid krock på samma nyckel väljs deterministiskt). Skuggposter och v2-passposter förenas på id.
      Belöningsmarkörer (rw) förenas som union – samma belöning delas aldrig ut två gånger efter synk. */
-  const SHADOW_MAX = 40, LOG_SOFT = 300, LOG_HARD = 450, FOLD_AGE = 14 * DAY, RW_MAX = 400, RW_DAYS = 21, RW_AHEAD = 7;   // RW_AHEAD: markörer mer än en vecka fram i tiden (fel klocka) tas bort
+  const SHADOW_MAX = 40, LOG_SOFT = 300, LOG_HARD = 450, FOLD_AGE = 14 * DAY, RW_MAX = 400, RW_DAYS = 21, RW_AHEAD = 7, LOG_HARD_PIN = 900;   // RW_AHEAD: markörer mer än en vecka fram i tiden (fel klocka) tas bort
   /* Belöningsmarkörer "TYP:dygn[:nyckel]" (MA:koncept saknar dygn och behålls alltid – en per koncept). Gallras efter ÅLDER, inte antal:
      en dags- eller veckomarkör får aldrig falla bort medan den gäller (annars kunde samma belöning delas ut igen). Deterministiskt: åldern
      räknas från den nyaste markörens dygn, inte från klockan, så två enheter gallrar likadant. */
@@ -526,12 +531,13 @@ const LE2 = (() => {
      den nyaste markeringen, inte klockan) och antal. Ändrar aldrig bevis, stadier eller innehåll. 2.0 bär fältet orört vidare (rollback). */
   const QR_MAX = 150, QR_DAYS = 120;
   const qrOk = (k) => typeof k === 'string' && /^\d{1,6}\|[A-Za-z0-9:_\/-]{1,90}\|[A-Za-z0-9:_\/-]{1,110}$/.test(k);
-  function pruneQr(list) {
-    const u = [...new Set((list || []).filter(qrOk))]; if (!u.length) return u;
-    const day = (k) => Number(k.split('|')[0]); const top = Math.max(...u.map(day));
+  function pruneQr(list, today) {
+    const day = (k) => Number(k.split('|')[0]);
+    const u = [...new Set((list || []).filter(qrOk))].filter(k => today == null || day(k) <= today + RW_AHEAD); if (!u.length) return u;   // fel klocka: markeringar långt fram i tiden tas bort när passets dygn är känt
+    const top = Math.max(...u.map(day));
     return u.filter(k => day(k) >= top - QR_DAYS).sort((a, b) => day(a) - day(b) || (a < b ? -1 : a > b ? 1 : 0)).slice(-QR_MAX);
   }
-  function reportItem(le, day, item, cid) { const k = `${day}|${item}|${cid}`; if (!qrOk(k)) return false; le.qr = le.qr || []; if (le.qr.includes(k)) return false; le.qr = pruneQr([...le.qr, k]); return le.qr.includes(k); }
+  function reportItem(le, day, item, cid) { const k = `${day}|${item}|${cid}`; if (!qrOk(k)) return false; le.qr = le.qr || []; if (le.qr.includes(k)) return false; le.qr = pruneQr([...le.qr, k], day); return le.qr.includes(k); }
   function mergeLE(a, b) {
     if (!a || !a.v) return b && b.v ? b : (a || b || null); if (!b || !b.v) return a;
     if (a.v !== b.v) return a.v > b.v ? a : b;   // granskning M9: blanda aldrig versioner – den senare versionen lämnas orörd
@@ -554,8 +560,13 @@ const LE2 = (() => {
   function compact(le, cat, pol, now) {
     if (!le || (le.log || []).length <= LOG_SOFT) return false;
     const log = le.log.slice().sort(evOrder); let cut = 0;
-    while (cut < log.length - 200 && evT(log[cut]) < now - FOLD_AGE) cut++;
-    if (log.length - cut > LOG_HARD) cut = log.length - LOG_SOFT;
+    /* Granskning 2.1 (H3): ett bevis på ett vilande moment (route → kunskapspunkt) får inte bakas in i basen i onödan – basen räknas med
+       2.1-katalogen, så 2.0 (rollback) skulle tappa beviset. Den vanliga gallringen stannar därför före det första sådana beviset, och taket
+       höjs till LOG_HARD_PIN. Först över det taket bakas allt in som förut (dokumenterad gräns, docs/CONCEPT_PACKS.md §7). Basens tidsgräns
+       t0 ligger alltid före alla bevis som är kvar i loggen – så 2.0:s sammanslagning kan aldrig kasta något. */
+    const pinned = (e) => { const d = cat[Array.isArray(e) ? e[3] : e.cid]; return !!(d && d.route); };
+    while (cut < log.length - 200 && evT(log[cut]) < now - FOLD_AGE && !pinned(log[cut])) cut++;
+    if (log.length - cut > (log.some(pinned) ? LOG_HARD_PIN : LOG_HARD)) cut = log.length - LOG_SOFT;
     if (cut <= 0) return false;
     while (cut < log.length && evT(log[cut]) === evT(log[cut - 1])) cut++;
     const folded = log.slice(0, cut); const base = replay(folded, cat, pol, le.base);
@@ -584,6 +595,6 @@ const LE2 = (() => {
   return { DAY, RULES, CFG, dayIdx, dayStart, DECISIONS, POLICIES, STAGE_DAYS, intervalDays, calibrate, evidenceWeight, newConcept, cstate, newLE, engineNow, recordEvidence, apply,
     PHASES, phase, felbokVisible, felbokDisplay, felbokRecentWins, felbokChild, childLabel, readiness, parentInsights, delayedOks, rescueCount, W, WHY_TEXT, examUrgency, examReady, examStatus, insights, priority, rankAll, withCtx,
     learningLoad, lastNewAt, dueBacklog, fbOpenCount, challengeEligible, planSession, pickBoss, rescueTrigger, formatFor, isRecallCapable, isDepthForm, depthOk,
-    encodeEv, decodeEv, mergeLog, replay, mergeLE, compact, rewardOnce, pruneRw, pruneQr, reportItem, QR_MAX, QR_DAYS, rwDay, migrateV1, stable, hash, SHADOW_MAX, LOG_SOFT, LOG_HARD, RW_MAX, RW_DAYS };
+    encodeEv, decodeEv, mergeLog, replay, mergeLE, compact, rewardOnce, pruneRw, pruneQr, reportItem, QR_MAX, QR_DAYS, rwDay, migrateV1, stable, hash, SHADOW_MAX, LOG_SOFT, LOG_HARD, LOG_HARD_PIN, RW_MAX, RW_DAYS };
 })();
 if (typeof module !== 'undefined') module.exports = LE2;

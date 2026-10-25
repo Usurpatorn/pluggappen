@@ -14,7 +14,7 @@
  "templates": [
   "ak4"
  ],
- "rev": 1,
+ "rev": 2,
  "sources": [
   {
    "id": "lgr22",
@@ -77,7 +77,7 @@
      "a": "För hand, utifrån vad sjömän och upptäcktsresande såg och mätte",
      "not": [
       "Med satellitbilder",
-      "Med drönare",
+      "Från flygplan med kamera",
       "Med GPS i mobilen"
      ]
     },
@@ -124,9 +124,9 @@
       "en jordglob"
      ],
      "not": [
-      "En platt världskarta",
-      "En stadskarta",
-      "En karta i mobilen"
+      "Platt världskarta",
+      "Stadskarta",
+      "Karta i mobilen"
      ],
      "cls": "karta"
     },
@@ -254,7 +254,7 @@
    "id": "karttecken",
    "skill": "geo_lasa_karta",
    "name": "Karttecken och färger",
-   "explain": "Karttecken är små symboler för till exempel kyrka, väg och järnväg. Teckenförklaringen talar om vad de betyder. Blått är vatten, grönt skog, gult åker och öppen mark, och brunt på världskartor är högt land och berg. Kartan visar också sådant som människor har bestämt, som gränser.",
+   "explain": "Karttecken är små symboler för till exempel kyrka, väg och järnväg. Teckenförklaringen talar om vad de betyder. På en terrängkarta över Sverige är blått vatten, grönt skog och gult åker och öppen mark. På en höjdkarta över världen betyder färgerna höjd: grönt är låg mark och brunt högt land och berg. Kartan visar också sådant som människor har bestämt, som gränser.",
    "facts": [
     {
      "k": "term",
@@ -283,7 +283,7 @@
     },
     {
      "k": "pairs",
-     "q": "Vad betyder {a} färg på en karta?",
+     "q": "Vad betyder {a} färg på en terrängkarta över Sverige?",
      "items": [
       [
        "blå",
@@ -296,18 +296,26 @@
       [
        "gul",
        "Åker och öppen mark"
-      ],
-      [
-       "brun (på en världskarta)",
-       "Högt land och berg"
       ]
      ],
-     "rq": "Vilken färg har {b_lower} på en karta?"
+     "rq": "Vilken färg har {b_lower} på en terrängkarta?"
+    },
+    {
+     "k": "qa",
+     "q": "Vad betyder brunt på en höjdkarta över världen?",
+     "a": "Högt land och berg",
+     "not": [
+      "Skog",
+      "Öken",
+      "Vatten"
+     ],
+     "lvl": 2,
+     "why": "På en höjdkarta visar färgerna höjden: grönt är låg mark, gult och brunt allt högre land."
     },
     {
      "k": "qa",
      "q": "Vilket av detta finns INTE i naturen utan är något människor har bestämt?",
-     "a": "Gränsen mellan två län",
+     "a": "En gräns mellan två län",
      "not": [
       "En sjö",
       "Ett berg",
@@ -504,7 +512,7 @@
     {
      "k": "qa",
      "q": "Vad kan en digital karta göra som en papperskarta inte kan?",
-     "a": "Visa vägen dit och hur lång tid det tar",
+     "a": "Visa snabbaste vägen och hur lång tid den tar",
      "not": [
       "Visa sjöar",
       "Visa länder",
@@ -530,7 +538,7 @@
    "id": "gradnat",
    "skill": "geo_hitta",
    "name": "Gradnätet och ekvatorn",
-   "explain": "Gradnätet är kartans rutnät. Breddgrader går runt jorden parallellt med ekvatorn och visar hur långt norr eller söder om ekvatorn en plats ligger. Längdgrader går från Nordpolen till Sydpolen. Ekvatorn delar jorden i norra och södra halvklotet.",
+   "explain": "Gradnätet är ett nät av breddgrader och längdgrader på kartan och jordgloben. Breddgrader går runt jorden parallellt med ekvatorn och visar hur långt norr eller söder om ekvatorn en plats ligger. Längdgrader går från Nordpolen till Sydpolen. Ekvatorn delar jorden i norra och södra halvklotet.",
    "facts": [
     {
      "k": "term",
@@ -538,7 +546,7 @@
      "q": "Vad kallas linjerna som går runt jorden parallellt med ekvatorn?",
      "alias": [
       "breddgrad",
-      "latitud"
+      "breddgraderna"
      ],
      "not": [
       "Längdgrader",
@@ -605,9 +613,9 @@
     {
      "k": "qa",
      "q": "Två städer ligger på samma breddgrad. Vad vet du då?",
-     "a": "De ligger lika långt norr om ekvatorn",
+     "a": "De ligger lika långt från ekvatorn",
      "not": [
-      "De ligger lika långt väster ut",
+      "De ligger lika långt västerut",
       "De är lika stora",
       "De ligger i samma land"
      ],
@@ -703,7 +711,7 @@
    "id": "grannar-hav",
    "skill": "geo_sverige_lage",
    "name": "Grannländer och hav",
-   "explain": "Sverige gränsar på land till Norge och Finland. Danmark når man över Öresundsbron. Östersjön ligger öster om Sverige, Bottniska viken i nordost och Kattegatt och Skagerrak i väster.",
+   "explain": "Sverige gränsar på land till Norge och Finland. Danmark når man över Öresundsbron. Östersjön ligger öster och sydost om Götaland och Svealand. Bottniska viken ligger längs Norrlands kust, mellan Sverige och Finland. Kattegatt och Skagerrak ligger i väster. Danmark ligger söder och sydväst om Sverige.",
    "facts": [
     {
      "k": "qa",
@@ -721,18 +729,18 @@
      "items": [
       [
        "Östersjön",
-       "Öster om Sverige"
+       "Öster och sydost om Götaland och Svealand"
       ],
       [
        "Bottniska viken",
-       "I nordost, mellan Sverige och Finland"
+       "Längs Norrlands kust, mellan Sverige och Finland"
       ],
       [
        "Kattegatt och Skagerrak",
        "Väster om Sverige"
       ]
      ],
-     "why": "Östersjön i öster, Bottniska viken i nordost, Kattegatt och Skagerrak i väster."
+     "why": "Östersjön ligger öster och sydost om södra Sverige, Bottniska viken längs Norrlands kust och Kattegatt och Skagerrak i väster."
     },
     {
      "k": "pairs",
@@ -748,10 +756,11 @@
       ],
       [
        "Danmark",
-       "Söder"
+       "Sydväst"
       ]
      ],
-     "lvl": 2
+     "lvl": 2,
+     "why": "Norge ligger i väster, Finland i öster och Danmark i sydväst."
     },
     {
      "k": "qa",
@@ -871,7 +880,7 @@
    "id": "landskap",
    "skill": "geo_indelning",
    "name": "Landskapen",
-   "explain": "Sverige har 25 landskap – den gamla indelningen som många fortfarande använder. Lappland är störst och ligger längst norrut. Skåne ligger längst söderut och Gotland är en ö i Östersjön.",
+   "explain": "Sverige har 25 landskap – den gamla indelningen som många fortfarande använder. Lappland är störst och ligger längst norrut. Skåne ligger längst söderut. Gotland och Öland är öar i Östersjön och egna landskap – Gotland är Sveriges största ö.",
    "facts": [
     {
      "k": "qa",
@@ -920,7 +929,7 @@
        "Värmland"
       ]
      ],
-     "rq": "Vilken stad ligger i {b}?",
+     "rq": "Vilken stad ligger i landskapet {b}?",
      "lvl": 2
     },
     {
@@ -936,7 +945,7 @@
     },
     {
      "k": "qa",
-     "q": "Vilket landskap är en ö i Östersjön?",
+     "q": "Vilket landskap är Sveriges största ö?",
      "a": "Gotland",
      "not": [
       "Öland",
@@ -944,7 +953,7 @@
       "Blekinge"
      ],
      "lvl": 2,
-     "why": "Öland är också en ö, men det är en del av Småland."
+     "why": "Gotland är Sveriges största ö. Öland är också ett landskap och en ö, men mindre."
     },
     {
      "k": "stmt",
@@ -1068,9 +1077,6 @@
      "q": "Vad kallas ett område där många människor bor nära varandra?",
      "def": "Många människor bor nära varandra",
      "rq": "Vad betyder tätbefolkat?",
-     "alias": [
-      "tätbebyggt"
-     ],
      "not": [
       "Glesbefolkat",
       "Obefolkat",
@@ -1113,8 +1119,8 @@
      "a": "Kallt klimat, långa avstånd och färre jobb",
      "not": [
       "Det är förbjudet att bo där",
-      "Det finns inga sjöar",
-      "Det är för varmt"
+      "Sjöarna tar upp all plats",
+      "Sommaren är för varm"
      ],
      "form": "cause",
      "lvl": 2
@@ -1122,7 +1128,7 @@
     {
      "k": "term",
      "term": "befolkningstäthet",
-     "q": "Vad kallas det hur många människor som bor på varje kvadratkilometer?",
+     "q": "Vad kallas det hur tätt människor bor, alltså hur många som bor på varje kvadratkilometer?",
      "not": [
       "Befolkningsökning",
       "Folkräkning",
@@ -1204,8 +1210,7 @@
      "term": "migration",
      "q": "Vad kallas det när människor flyttar från ett land till ett annat?",
      "alias": [
-      "migrera",
-      "invandring"
+      "migrera"
      ],
      "not": [
       "Urbanisering",
@@ -1506,7 +1511,7 @@
     {
      "k": "term",
      "term": "fjäll",
-     "q": "Vilken naturtyp finns i nordvästra Sverige med höga berg och kalfjäll?",
+     "q": "Vilken naturtyp finns i nordvästra Sverige med höga berg där inga träd växer högst upp?",
      "alias": [
       "fjällen",
       "fjällvärlden"
@@ -1570,10 +1575,8 @@
        "q": "Vilket träd är ett barrträd?",
        "items": [
         "Gran",
-        "Tall",
-        "En"
-       ],
-       "odd": "Vilket träd är INTE ett barrträd?"
+        "Tall"
+       ]
       },
       {
        "q": "Vilket träd är ett lövträd?",
@@ -1581,7 +1584,8 @@
         "Ek",
         "Bok",
         "Björk"
-       ]
+       ],
+       "odd": "Vilket träd är INTE ett lövträd?"
       }
      ],
      "lvl": 2
@@ -1653,8 +1657,7 @@
      "q": "Vad kallas en blöt våtmark med mossa?",
      "alias": [
       "myrar",
-      "mosse",
-      "våtmark"
+      "mosse"
      ],
      "not": [
       "Slätt",
@@ -1694,8 +1697,8 @@
      "a": "Platt mark, bra jord och milt klimat",
      "not": [
       "Det finns mycket berg",
-      "Det är kallt hela året",
-      "Det finns ingen jord"
+      "Vintrarna är längst där",
+      "Marken är full av sten"
      ],
      "form": "cause",
      "lvl": 3
@@ -1779,7 +1782,7 @@
     {
      "k": "qa",
      "q": "Var i Sverige bryts mest järnmalm?",
-     "a": "Kiruna och Malmberget i Norrbotten",
+     "a": "Kiruna och Malmberget i Lappland (Norrbottens län)",
      "not": [
       "Skåne",
       "Gotland",
@@ -1804,7 +1807,7 @@
      "items": [
       "Järnmalm bryts i gruvan",
       "Malmen krossas och anrikas",
-      "Den skeppas med tåg till hamn och stålverk",
+      "Den fraktas med tåg till hamn och stålverk",
       "Malmen smälts i en masugn",
       "Det blir stål till bilar, broar och maskiner"
      ],
@@ -1833,12 +1836,12 @@
    "id": "fornybar",
    "skill": "geo_miljo",
    "name": "Förnybart och icke förnybart",
-   "explain": "Förnybara naturresurser kan bildas igen: skog, vind, vatten och sol. Icke förnybara tar slut när vi har använt dem: olja, kol och järnmalm.",
+   "explain": "Förnybara naturresurser tar inte slut eller växer upp igen: skog, vind, vatten och sol. Icke förnybara tar slut när vi har använt dem: olja, kol och järnmalm.",
    "facts": [
     {
      "k": "term",
      "term": "förnybar",
-     "q": "Vad kallas en naturresurs som kan bildas igen, till exempel skog och vind?",
+     "q": "Vad kallas en naturresurs som inte tar slut eller som växer upp igen, till exempel vind och skog?",
      "alias": [
       "förnybara",
       "förnyelsebar"
@@ -1959,7 +1962,7 @@
     },
     {
      "k": "qa",
-     "q": "Vad händer efter ett kalhygge om skogen ska bli förnybar?",
+     "q": "Vad gör man efter ett kalhygge för att det ska bli skog igen?",
      "a": "Man planterar nya träd som får växa i många år",
      "not": [
       "Man asfalterar marken",
@@ -2009,7 +2012,7 @@
        "items": [
         "Återvinna förpackningar",
         "Laga saker i stället för att köpa nytt",
-        "Släcka lampan när man går ut"
+        "Släcka lampan när man går ut ur rummet"
        ],
        "odd": "Vilket är INTE ett bra sätt att hushålla med resurser?"
       },

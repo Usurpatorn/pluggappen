@@ -14,7 +14,7 @@
  "templates": [
   "ak8"
  ],
- "rev": 1,
+ "rev": 2,
  "sources": [
   {
    "id": "lgr22",
@@ -575,9 +575,9 @@
     },
     {
      "k": "stmt",
-     "s": "Predikatet är ett verb.",
+     "s": "Predikatet består av verb.",
      "f": [
-      "Predikatet är ett substantiv."
+      "Predikatet består av substantiv."
      ]
     },
     {
@@ -760,16 +760,30 @@
      "lvl": 2
     },
     {
-     "k": "order",
-     "q": "Ta ut satsdelarna i ordning i meningen 'Igår köpte Sara en cykel.'",
-     "items": [
-      "Igår – adverbial",
-      "köpte – predikat",
-      "Sara – subjekt",
-      "en cykel – objekt"
+     "k": "qa",
+     "q": "Vilken satsdel är 'en cykel' i meningen 'Igår köpte Sara en cykel'?",
+     "a": "Objekt",
+     "not": [
+      "Subjekt",
+      "Predikat",
+      "Adverbial"
      ],
+     "form": "application",
      "lvl": 3,
-     "ch": true
+     "why": "Vad köpte Sara? – en cykel. Det som påverkas av handlingen är objekt."
+    },
+    {
+     "k": "qa",
+     "q": "Vilken satsdel är 'Igår' i meningen 'Igår köpte Sara en cykel'?",
+     "a": "Adverbial",
+     "not": [
+      "Subjekt",
+      "Objekt",
+      "Predikat"
+     ],
+     "form": "application",
+     "lvl": 3,
+     "why": "Igår svarar på när – tidsadverbial. Subjektet är Sara, även om det inte står först."
     },
     {
      "k": "qa",
@@ -869,8 +883,8 @@
    "facts": [
     {
      "k": "fix",
-     "bad": "Maja borstade hennes tänder.",
-     "good": "Maja borstade sina tänder.",
+     "bad": "Maja borstade hennes egna tänder.",
+     "good": "Maja borstade sina egna tänder.",
      "err": "hennes",
      "fix": "sina",
      "why": "Det är Majas egna tänder – då ska det vara sina.",
@@ -878,8 +892,8 @@
     },
     {
      "k": "fix",
-     "bad": "Leo kliade hans näsa.",
-     "good": "Leo kliade sin näsa.",
+     "bad": "Leo kliade hans egen näsa.",
+     "good": "Leo kliade sin egen näsa.",
      "err": "hans",
      "fix": "sin",
      "why": "Leos egen näsa – sin.",
@@ -887,10 +901,11 @@
     },
     {
      "k": "fix",
-     "bad": "Elsa packade hennes väska inför resan.",
-     "good": "Elsa packade sin väska inför resan.",
+     "bad": "Elsa packade hennes egen väska inför resan.",
+     "good": "Elsa packade sin egen väska inför resan.",
      "err": "hennes",
      "fix": "sin",
+     "why": "Det är Elsas egen väska – då ska det vara sin.",
      "lvl": 2
     },
     {
@@ -978,7 +993,7 @@
      ],
      "form": "mistake",
      "lvl": 3,
-     "why": "Efter 'brukar' kommer verbet direkt, utan att."
+     "why": "Efter 'brukar' kommer verbet direkt. I skrift skriver man brukar utan att."
     },
     {
      "k": "stmt",
@@ -990,15 +1005,15 @@
     {
      "k": "qa",
      "q": "Vilken mening är rätt?",
-     "a": "Vart tog nycklarna vägen?",
+     "a": "Vart flyttade familjen?",
      "not": [
-      "Var tog nycklarna vägen?",
-      "Vart ligger nycklarna?",
-      "Var tog nycklarna vägen till?"
+      "Var flyttade familjen?",
+      "Vart bor familjen?",
+      "Var flyttade familjen till för?"
      ],
      "form": "application",
      "lvl": 3,
-     "why": "'Ta vägen' handlar om riktning – vart."
+     "why": "Flytta handlar om riktning – vart. Bo handlar om plats – var."
     }
    ],
    "src": [
@@ -1175,7 +1190,7 @@
     {
      "k": "qa",
      "q": "Varför är 'Eftersom bussen var sen.' ingen fullständig mening?",
-     "a": "Det är bara en bisats – huvudsatsen saknas",
+     "a": "Den är bara en bisats – huvudsatsen saknas",
      "not": [
       "Den saknar subjekt",
       "Den är för kort",
@@ -1762,13 +1777,14 @@
         "Hon har fått en ny tröja"
        ],
        "form": "cause",
-       "lvl": 3
+       "lvl": 3,
+       "why": "Det står inte rakt ut – men hon ler precis när Noor frågar om hon kommer med."
       }
      ]
     },
     {
      "k": "read",
-     "text": "<p>Morfar hade aldrig varit bra på att säga förlåt. När Jonas kom in i köket låg det en ny fiskespö-hållare på bordet, en sådan som Jonas hade tjatat om hela sommaren. Bredvid låg en lapp: <i>Till fisketuren på lördag. /M</i></p><p>Jonas tänkte på grälet i bilen dagen innan. Han tog upp hållaren, vände på den och gick ut på trappan där morfar satt med kaffet.</p>",
+     "text": "<p>Morfar hade aldrig varit bra på att säga förlåt. När Jonas kom in i köket låg det en ny spöhållare på bordet, en sådan som Jonas hade tjatat om hela sommaren. Bredvid låg en lapp: <i>Till fisketuren på lördag. /M</i></p><p>Jonas tänkte på grälet i bilen dagen innan. Han tog upp hållaren, vände på den och gick ut på trappan där morfar satt med kaffet.</p>",
      "qs": [
       {
        "q": "Varför ligger hållaren på bordet?",
@@ -1779,7 +1795,8 @@
         "Morfar har glömt den där"
        ],
        "form": "explanation",
-       "lvl": 3
+       "lvl": 3,
+       "why": "Morfar är inte bra på att säga förlåt – presenten och lappen dagen efter grälet säger det åt honom."
       },
       {
        "q": "Vad hade hänt dagen innan?",
@@ -1799,7 +1816,8 @@
         "Jonas går och lägger sig"
        ],
        "form": "application",
-       "lvl": 2
+       "lvl": 2,
+       "why": "Han tar hållaren med sig ut till morfar – ett tecken på att han vill bli sams."
       }
      ]
     },
@@ -1825,7 +1843,8 @@
         "Han är rädd för snö"
        ],
        "form": "cause",
-       "lvl": 2
+       "lvl": 2,
+       "why": "Han stelnar precis när han ser cykeln han lovade att ställa in."
       },
       {
        "q": "Vad tänker Amir troligen göra med snöskyffeln?",
@@ -1836,7 +1855,8 @@
         "Ge den till pappa"
        ],
        "form": "application",
-       "lvl": 2
+       "lvl": 2,
+       "why": "Han tar skyffeln direkt efter att ha sett den begravda cykeln."
       },
       {
        "q": "Varför går Amir ut innan pappa hinner säga något mer?",
@@ -1847,7 +1867,8 @@
         "Han hör inte vad pappa säger"
        ],
        "form": "explanation",
-       "lvl": 3
+       "lvl": 3,
+       "why": "Han svarar inte pappa utan går ut direkt – han vill ställa till rätta innan han behöver förklara sig."
       }
      ]
     }

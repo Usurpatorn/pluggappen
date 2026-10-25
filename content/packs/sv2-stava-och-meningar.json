@@ -14,7 +14,7 @@
  "templates": [
   "ak2"
  ],
- "rev": 1,
+ "rev": 2,
  "sources": [
   {
    "id": "lgr22",
@@ -29,7 +29,7 @@
    "short": "Stavningsregler",
    "icon": "✍️",
    "group": "sv",
-   "read": "<p><b>Kort vokal → två konsonanter:</b> katt, boll, simma. Lång vokal → en: sol, bil.</p><p>Man skriver <b>ck</b>, inte kk: jacka, tack.</p><p><b>sj-ljudet</b> kan skrivas sj (sju), skj (skjorta) och stj (stjärna). <b>j-ljudet</b> kan skrivas j (jag), g (gilla), hj (hjälpa), lj (ljus) och dj (djur).</p>"
+   "read": "<p><b>Kort vokal → ofta två konsonanter:</b> katt, boll, simma. Lång vokal → en: sol, bil.</p><p>I vanliga ord skriver man <b>ck</b>, inte kk: jacka, tack.</p><p><b>sj-ljudet</b> kan skrivas sj (sju), skj (skjorta) och stj (stjärna). <b>j-ljudet</b> kan skrivas j (jag), g (gilla), hj (hjälpa), lj (ljus) och dj (djur).</p>"
   },
   {
    "id": "sv2_felet",
@@ -37,7 +37,7 @@
    "short": "Hitta felet",
    "icon": "🔍",
    "group": "sv",
-   "read": "<p>En mening börjar med <b>stor bokstav</b> och slutar med <b>punkt</b>. Namn skrivs med stor bokstav: Anna, Kalle.</p><p>Orden ska passa ihop: <b>ett</b> hus, <b>en</b> bil. Igår <b>sprang</b> jag. Två <b>katter</b>.</p>"
+   "read": "<p>En mening börjar med <b>stor bokstav</b> och slutar med <b>punkt</b> (eller ? och !). Namn skrivs med stor bokstav: Anna, Kalle.</p><p>Orden ska passa ihop: <b>ett</b> hus, <b>en</b> bil. Igår <b>sprang</b> jag. Två <b>katter</b>.</p>"
   }
  ],
  "kps": [
@@ -105,7 +105,7 @@
      "k": "group",
      "groups": [
       {
-       "q": "Vilket ord har två konsonanter?",
+       "q": "Vilket ord stavas med två likadana konsonanter, som tt eller ll?",
        "items": [
         "katt",
         "boll",
@@ -114,7 +114,7 @@
        ]
       },
       {
-       "q": "Vilket ord har bara en konsonant i mitten?",
+       "q": "Vilket ord har lång vokal och bara en konsonant efter vokalen?",
        "items": [
         "sol",
         "bil",
@@ -143,7 +143,7 @@
    "id": "stav2-ck",
    "skill": "sv2_stava",
    "name": "ck i stället för kk",
-   "explain": "När det låter kk skriver man ck: jacka, tack, socker. Man skriver aldrig kk.",
+   "explain": "När det låter kk skriver man ck: jacka, tack, socker. I vanliga ord skriver man inte kk.",
    "facts": [
     {
      "k": "fix",
@@ -192,9 +192,9 @@
     },
     {
      "k": "stmt",
-     "s": "Man skriver ck, inte kk.",
+     "s": "I vanliga ord skriver man ck, inte kk.",
      "f": [
-      "Man skriver kk, inte ck."
+      "I vanliga ord skriver man kk, inte ck."
      ]
     },
     {
@@ -228,7 +228,7 @@
      "not": [
       "skju",
       "stju",
-      "schu"
+      "chu"
      ]
     },
     {
@@ -237,7 +237,7 @@
      "a": "sjö",
      "not": [
       "skjö",
-      "schö",
+      "chö",
       "stjö"
      ]
     },
@@ -440,7 +440,7 @@
     },
     {
      "k": "stmt",
-     "s": "En mening slutar med punkt.",
+     "s": "En mening slutar med . eller ? eller !",
      "f": [
       "En mening slutar med stor bokstav."
      ]
@@ -537,7 +537,7 @@
    "id": "fel2-ordfoljd",
    "skill": "sv2_felet",
    "name": "Orden i rätt ordning",
-   "explain": "Orden i en mening står i en bestämd ordning. Ordet med stor bokstav kommer först och ordet med punkt sist.",
+   "explain": "Orden i en mening står i en bestämd ordning. Det ord som börjar meningen har stor bokstav, och det sista ordet har punkt.",
    "facts": [
     {
      "k": "order",
@@ -545,7 +545,8 @@
      "items": [
       "Vi",
       "äter",
-      "glass."
+      "glass",
+      "idag."
      ]
     },
     {
@@ -554,7 +555,8 @@
      "items": [
       "Hunden",
       "springer",
-      "fort."
+      "fort",
+      "hem."
      ]
     },
     {
@@ -591,9 +593,9 @@
     },
     {
      "k": "stmt",
-     "s": "Ordet med stor bokstav kommer först.",
+     "s": "Meningens första ord börjar med stor bokstav.",
      "f": [
-      "Ordet med punkt kommer först."
+      "Meningens första ord har punkt."
      ]
     }
    ],

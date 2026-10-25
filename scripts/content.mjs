@@ -25,7 +25,7 @@ else if (cmd === 'stats') {
 else if (cmd === 'bundle') {
   if (!a1 || !a2) { console.error('användning: bundle <mapp> <ut.json>'); process.exit(2); }
   const packs = fs.existsSync(path.join(a1, 'packs')) ? readPacks(path.join(a1, 'packs')) : []; const work = fs.existsSync(path.join(a1, 'work.json')) ? JSON.parse(fs.readFileSync(path.join(a1, 'work.json'), 'utf8')) : [];
-  const errs = packs.flatMap(p => PACKS.validate(p, { private: true })); if (errs.length) { console.error(errs.join('\n')); process.exit(1); }
+  const pubIds = new Set(readPacks(PUB).map(p => p.id)); const errs = [...packs.flatMap(p => PACKS.validate(p, { private: true })), ...packs.filter(p => pubIds.has(p.id)).map(p => `${p.id}: ett privat paket får inte ha ett inbyggt pakets id`)]; if (errs.length) { console.error(errs.join('\n')); process.exit(1); }
   if (packs.length) { const r = spawnSync(process.execPath, [path.join(ROOT, 'tests/test_packs.js'), '--dir', path.join(a1, 'packs')], { stdio: 'inherit' }); if (r.status) process.exit(r.status); }
   // Skoluppgifterna: samma regler som appen (FAMILY.cleanContent) + att varje kunskapspunkt finns i ett inbyggt eller ett av familjens paket
   // Privat termlista (namn m.m., gitignorerad / secret PRIVACY_TERMS) – samma som integritetstestet. Finns den inte: ingen namnkontroll.

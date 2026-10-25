@@ -14,7 +14,7 @@
  "templates": [
   "ak4"
  ],
- "rev": 1,
+ "rev": 2,
  "sources": [
   {
    "id": "lgr22",
@@ -208,7 +208,7 @@
    "id": "ok4-pron",
    "skill": "sv4_ordklasser",
    "name": "Pronomen",
-   "explain": "Pronomen är små ord som kan ersätta ett namn: jag, du, han, hon, den, det, vi, de. 'Lisa är trött' kan bli 'Hon är trött'.",
+   "explain": "Pronomen är små ord som kan ersätta ett namn eller ett substantiv: jag, du, han, hon, den, det, vi, de. 'Lisa är trött' kan bli 'Hon är trött'.",
    "facts": [
     {
      "k": "term",
@@ -279,12 +279,12 @@
     },
     {
      "k": "fix",
-     "bad": "Erik har en hund. Hon heter Ludde.",
-     "good": "Erik har en hund. Den heter Ludde.",
-     "err": "Hon",
+     "bad": "Erik har en ny cykel. Han är röd.",
+     "good": "Erik har en ny cykel. Den är röd.",
+     "err": "Han",
      "fix": "den",
      "cs": true,
-     "why": "Hunden ersätts med den.",
+     "why": "Cykeln är en sak – den.",
      "lvl": 3
     },
     {
@@ -353,7 +353,7 @@
       ],
       [
        "tyst",
-       "stilla"
+       "ljudlös"
       ]
      ],
      "rq": "Vilket ord betyder nästan samma sak som <b>{b}</b>?"
@@ -435,8 +435,8 @@
        "förlora"
       ],
       [
-       "början",
-       "slutet"
+       "börja",
+       "sluta"
       ]
      ],
      "recallB": true,
@@ -472,7 +472,7 @@
    "id": "ord4-sam",
    "skill": "sv4_ord",
    "name": "Sammansatta ord",
-   "explain": "Ett sammansatt ord är två ord som blivit ett: fot + boll = fotboll. Det sista ordet berättar vad det är: en snöboll är en boll, en skolväska är en väska. Sammansatta ord skrivs ihop.",
+   "explain": "Ett sammansatt ord är två ord som blivit ett: fot + boll = fotboll. Det sista ordet berättar vad det är: en snögubbe är en gubbe, en skolväska är en väska. Sammansatta ord skrivs ihop.",
    "facts": [
     {
      "k": "qa",
@@ -496,26 +496,27 @@
     },
     {
      "k": "pairs",
-     "q": "Vilket ord kan sättas ihop med <b>{a}</b>?",
+     "q": "Vilket ord kan sättas ihop med <b>{a}</b> till ett nytt ord?",
      "items": [
       [
-       "snö",
-       "boll → snöboll"
-      ],
-      [
        "tand",
-       "borste → tandborste"
+       "borste"
       ],
       [
-       "is",
-       "glass → isglass"
+       "sol",
+       "glasögon"
       ],
       [
        "mat",
-       "säck → matsäck"
+       "säck"
+      ],
+      [
+       "regn",
+       "jacka"
       ]
      ],
-     "lvl": 2
+     "lvl": 2,
+     "why": "Tandborste, solglasögon, matsäck och regnjacka."
     },
     {
      "k": "qa",
@@ -587,7 +588,7 @@
     },
     {
      "k": "pairs",
-     "q": "Vilket tecken passar efter: <i>{a}</i>?",
+     "q": "Vilket tecken ska stå sist i meningen <i>{a} __</i>",
      "items": [
       [
        "Vad heter din katt",
@@ -650,7 +651,7 @@
    "id": "men4-ordfoljd",
    "skill": "sv4_mening",
    "name": "Bygga meningar",
-   "explain": "Orden i en mening står i en viss ordning. Ordet med stor bokstav står först och ordet med punkt sist. En fråga börjar ofta med verbet eller ett frågeord: Har du en hund? Var bor du?",
+   "explain": "Orden i en mening står i en viss ordning. Meningens första ord har stor bokstav och det sista ordet har punkt, frågetecken eller utropstecken. En fråga börjar ofta med verbet eller ett frågeord: Har du en hund? Var bor du?",
    "facts": [
     {
      "k": "order",
@@ -690,7 +691,7 @@
      "q": "Gör om till en fråga: 'Du har en hund.'",
      "a": "Har du en hund?",
      "not": [
-      "Du har en hund?",
+      "Du en hund har?",
       "Hund du har en?",
       "En hund har du."
      ],
@@ -973,7 +974,7 @@
     },
     {
      "k": "order",
-     "q": "Sätt i ordning från minst till mest.",
+     "q": "Sätt i ordning från bra till bäst.",
      "items": [
       "bra",
       "bättre",
@@ -1081,7 +1082,7 @@
        ]
       },
       {
-       "q": "Vilket ord har lång vokal och en konsonant?",
+       "q": "Vilket ord har lång vokal och bara en konsonant efter vokalen?",
        "items": [
         "bil",
         "sol",
@@ -1313,7 +1314,8 @@
         "Hon hade ont i huvudet"
        ],
        "form": "cause",
-       "lvl": 2
+       "lvl": 2,
+       "why": "Det står inte rakt ut – men hon suckar precis när hon ser att regnet öser ner på fiskedagen."
       },
       {
        "q": "Hur känner sig Saga troligen i slutet?",
@@ -1324,7 +1326,8 @@
         "Rädd"
        ],
        "form": "application",
-       "lvl": 2
+       "lvl": 2,
+       "why": "Det står inte rakt ut – men morfar kommer med fiskespön, så turen blir av ändå."
       },
       {
        "q": "Vad menar morfar?",
@@ -1335,13 +1338,14 @@
         "Att det slutat regna"
        ],
        "form": "application",
-       "lvl": 3
+       "lvl": 3,
+       "why": "Fiskarna bryr sig inte om regnet – alltså kan de fiska ändå."
       }
      ]
     },
     {
      "k": "read",
-     "text": "<p><b>Regler i skolbiblioteket</b></p><p>Du får låna fem böcker åt gången. Lånetiden är tre veckor. Vill du ha boken längre kan du låna om den två gånger. Lämna tillbaka alla böcker innan sommarlovet!</p>",
+     "text": "<p><b>Regler i skolbiblioteket</b></p><p>Du får låna fem böcker åt gången. Lånetiden är tre veckor. Vill du ha boken längre kan du låna om den två gånger, tre veckor i taget. Lämna tillbaka alla böcker innan sommarlovet!</p>",
      "qs": [
       {
        "q": "Hur många böcker får du låna åt gången?",

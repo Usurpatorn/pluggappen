@@ -14,7 +14,7 @@
  "templates": [
   "ak2"
  ],
- "rev": 1,
+ "rev": 2,
  "sources": [
   {
    "id": "lgr22",
@@ -98,7 +98,7 @@
        "Hösten"
       ],
       [
-       "det är kallt och snö",
+       "det är kallt och snöar",
        "Vintern"
       ]
      ]
@@ -230,6 +230,7 @@
      ],
      "recallB": true,
      "exact": true,
+     "pq": "Vilket par är rätt: en månad och månaden efter?",
      "lvl": 2
     },
     {
@@ -398,7 +399,7 @@
    "id": "djurliv",
    "skill": "no_djur",
    "name": "Hur djur och växter lever",
-   "explain": "En näringskedja visar vem som äter vem: gräs → hare → räv. Växter behöver vatten, ljus och näring. På vintern sover björnen, flyttfåglar flyger söderut och haren byter till vit päls.",
+   "explain": "En näringskedja visar vem som äter vem: gräs → hare → räv. Växter behöver vatten, ljus och näring. På vintern sover björnen, flyttfåglarna har flugit söderut och skogsharen byter till vit päls.",
    "facts": [
     {
      "k": "order",
@@ -443,7 +444,7 @@
     },
     {
      "k": "pairs",
-     "q": "Vad gör {a} på vintern?",
+     "q": "Vad gör {a} när vintern kommer?",
      "items": [
       [
        "björnen",
@@ -454,14 +455,14 @@
        "Flyger söderut"
       ],
       [
-       "haren",
+       "skogsharen",
        "Byter till vit päls"
       ]
      ]
     },
     {
      "k": "qa",
-     "q": "Varför blir harens päls vit på vintern?",
+     "q": "Varför blir skogsharens päls vit på vintern?",
      "a": "För att inte synas i snön",
      "not": [
       "För att bli varmare",
@@ -685,19 +686,19 @@
    "facts": [
     {
      "k": "pairs",
-     "q": "Vad kallas vatten som är {a}?",
+     "q": "Vad blir det när {a}?",
      "items": [
       [
-       "fast",
+       "vatten fryser",
        "Is"
       ],
       [
-       "flytande",
-       "Vatten"
+       "vatten kokar",
+       "Ånga"
       ],
       [
-       "gas",
-       "Ånga"
+       "is smälter",
+       "Vatten"
       ]
      ],
      "recallB": true
@@ -1071,14 +1072,14 @@
        "items": [
         "Ett gem",
         "En järnspik",
-        "En nyckel"
+        "En järnskruv"
        ],
        "odd": "Vilken sak drar magneten INTE till sig?"
       },
       {
        "q": "Vilken sak drar magneten inte till sig?",
        "items": [
-        "En suddgummi",
+        "Ett suddgummi",
         "En träkloss",
         "En plastmugg"
        ]
@@ -1147,16 +1148,16 @@
    "id": "kraft-ljus-ljud",
    "skill": "no_material",
    "name": "Friktion, skuggor och ljud",
-   "explain": "Friktion gör att saker inte glider: på is är det lite friktion och halt. En skugga blir när något står i vägen för ljuset. Ljud blir när något vibrerar.",
+   "explain": "Friktion gör att saker inte glider: mellan skon och isen är det lite friktion, så det blir halt. En skugga blir när något står i vägen för ljuset. Ljud blir när något vibrerar.",
    "facts": [
     {
      "k": "qa",
      "q": "Varför är det halt på is?",
-     "a": "Isen har väldigt lite friktion",
+     "a": "Det är nästan ingen friktion mot skon",
      "not": [
       "Isen är varm",
-      "Isen är blöt inuti",
-      "Isen är för hård"
+      "Skorna är för nya",
+      "Det är för mörkt ute"
      ]
     },
     {
@@ -1327,7 +1328,7 @@
      "not": [
       "Asien",
       "Afrika",
-      "Amerika"
+      "Nordamerika"
      ]
     },
     {
@@ -1365,21 +1366,24 @@
      "lvl": 2
     },
     {
-     "k": "pairs",
-     "q": "Vilket land ligger {a} om Sverige?",
-     "items": [
-      [
-       "väster",
-       "Norge"
-      ],
-      [
-       "öster",
-       "Finland"
-      ],
-      [
-       "söder",
-       "Danmark"
-      ]
+     "k": "qa",
+     "q": "Vilket land ligger väster om Sverige?",
+     "a": "Norge",
+     "not": [
+      "Finland",
+      "Tyskland",
+      "Estland"
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Vilket land ligger öster om Sverige?",
+     "a": "Finland",
+     "not": [
+      "Norge",
+      "Danmark",
+      "Island"
      ],
      "lvl": 2
     }
@@ -1472,18 +1476,19 @@
     },
     {
      "k": "qa",
-     "q": "Vilken sida cyklar man på?",
+     "q": "Vilken sida av vägen cyklar man på?",
      "a": "Höger sida",
      "not": [
       "Vänster sida",
       "Mitt på vägen",
-      "På trottoaren"
-     ]
+      "Där det finns plats"
+     ],
+     "why": "Cykeln följer högertrafik. Små barn får cykla på trottoaren om det inte finns någon cykelbana."
     },
     {
      "k": "qa",
      "q": "Varför ska du ha reflexer i mörkret?",
-     "a": "Bilförare ser dig mycket tidigare",
+     "a": "De gör att bilförare ser dig mycket tidigare",
      "not": [
       "De är fina",
       "De värmer",
@@ -1631,7 +1636,7 @@
     {
      "k": "qa",
      "q": "Vad är barnkonventionen?",
-     "a": "Regler om alla barns rättigheter",
+     "a": "En lista med regler om alla barns rättigheter",
      "not": [
       "En sagobok",
       "En skola",
@@ -1738,19 +1743,19 @@
    "facts": [
     {
      "k": "pairs",
-     "q": "Vad firar man på {a}?",
+     "q": "Vad firas på {a}?",
      "items": [
       [
        "julen",
-       "Att Jesus föddes"
+       "Kristna firar att Jesus föddes"
       ],
       [
        "påsken",
-       "Att Jesus uppstod"
+       "Kristna firar att Jesus uppstod"
       ],
       [
        "midsommar",
-       "Sommaren"
+       "Att sommaren är här"
       ]
      ]
     },
@@ -1781,7 +1786,7 @@
      "not": [
       "En ny uppfinning",
       "En maträtt",
-      "En bok"
+      "Något man bara gör en gång"
      ]
     },
     {
@@ -1876,7 +1881,7 @@
      "k": "order",
      "q": "Sätt i ordning, äldst först.",
      "items": [
-      "hästdroska",
+      "häst och vagn",
       "ångtåg",
       "bil",
       "rymdraket"

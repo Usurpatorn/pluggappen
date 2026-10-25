@@ -64,12 +64,15 @@ const FAMILY = {
     // Källhänvisning (dokumentets etikett, sida, bild, frågenummer, avsnitt) – aldrig personnamn; samma fält som i paketen
     const src = (x) => { if (!x || typeof x !== 'object') return undefined; const o = {}; for (const k of ['ref', 'section', 'note']) if (typeof x[k] === 'string' && x[k]) o[k] = str(x[k], 80); for (const k of ['page', 'slide', 'q']) if (Number.isInteger(x[k]) || (typeof x[k] === 'string' && /^[0-9a-z.\-]{1,12}$/i.test(x[k]))) o[k] = x[k]; return Object.keys(o).length ? o : undefined; };
     const ids = (a, max, re) => (Array.isArray(a) ? a : []).filter(x => typeof x === 'string' && re.test(x)).slice(0, max);
-    const packs = (Array.isArray(c.packs) ? c.packs : []).slice(0, 60).map(pk => PACKS.cleanPack(pk)).filter(pk => pk && !PACKS.validate(pk, { private: true }).length);
-    const work = (Array.isArray(c.work) ? c.work : []).slice(0, 80).map(w => ({
+    const obj = (x) => x && typeof x === 'object' && !Array.isArray(x);   // granskning 2.1 (L9): en trasig post stoppar inte resten
+    // Ett privat paket får aldrig ta ett inbyggt pakets id (granskning M5: då försvann det inbyggda paketet vid nästa uppdatering)
+    const pub = new Set(Object.keys(PACKS.REG.packs).filter(id => !PACKS.REG.priv.has(id)));
+    const packs = (Array.isArray(c.packs) ? c.packs : []).slice(0, 60).filter(obj).map(pk => PACKS.cleanPack(pk)).filter(pk => pk && !pub.has(pk.id) && !PACKS.validate(pk, { private: true }).length);
+    const work = (Array.isArray(c.work) ? c.work : []).filter(obj).slice(0, 80).map(w => ({
       id: str(w.id, 40), kid: str(w.kid, 24), type: FAMILY.WORK_TYPES.includes(w.type) ? w.type : 'practice', title: str(w.title, 60), subject: str(w.subject, 30),
       date: /^\d{4}-\d{2}-\d{2}$/.test(w.date || '') ? w.date : '', packs: ids(w.packs, 20, /^[a-z0-9-]{2,48}$/), kps: ids(w.kps, 200, /^k:[a-z0-9-]{2,48}\/[a-z0-9-]{2,48}$/),
       skills: ids(w.skills, 60, /^[a-z0-9_]{2,40}$/), decks: ids(w.decks, 30, /^[A-Za-z0-9_-]{1,40}$/), priority: w.priority === 'high' ? 'high' : 'normal',
-      teacherQs: (Array.isArray(w.teacherQs) ? w.teacherQs : []).slice(0, 80).map(t => ({ n: str(String(t.n || ''), 12), q: str(t.q, 400), a: str(t.a, 200), alias: (Array.isArray(t.alias) ? t.alias : []).map(x => str(x, 80)).filter(Boolean).slice(0, 8), not: (Array.isArray(t.not) ? t.not : []).map(x => str(x, 200)).filter(Boolean).slice(0, 5), kps: ids(t.kps, 8, /^k:[a-z0-9-]{2,48}\/[a-z0-9-]{2,48}$/), typed: !!t.typed, src: src(t.src) })).filter(t => t.q),
+      teacherQs: (Array.isArray(w.teacherQs) ? w.teacherQs : []).filter(obj).slice(0, 80).map(t => ({ n: str(String(t.n || ''), 12), q: str(t.q, 400), a: str(t.a, 200), alias: (Array.isArray(t.alias) ? t.alias : []).map(x => str(x, 80)).filter(Boolean).slice(0, 8), not: (Array.isArray(t.not) ? t.not : []).map(x => str(x, 200)).filter(x => x && ![t.a, ...(Array.isArray(t.alias) ? t.alias : [])].some(a => typeof a === 'string' && a.trim().toLowerCase() === x.trim().toLowerCase())).slice(0, 5), kps: ids(t.kps, 8, /^k:[a-z0-9-]{2,48}\/[a-z0-9-]{2,48}$/), typed: !!t.typed, src: src(t.src) })).filter(t => t.q),
       src: src(w.src),
     })).filter(w => w.id && w.kid && w.title);
     return { v: 1, updatedAt: Number(c.updatedAt) || 0, packs, work };
@@ -77,14 +80,17 @@ const FAMILY = {
   applyContent(c) {
     const cl = FAMILY.cleanContent(c); FAMILY.content = cl;
     PACKS.clearPrivate(); for (const pk of (cl && cl.packs) || []) PACKS.register(pk, { private: true });
-    try { if (cl) localStorage.setItem(FAMILY.CONTENT_KEY, JSON.stringify(cl)); } catch (e) { /* ignore */ }
+    try { if (cl) localStorage.setItem(FAMILY.CONTENT_KEY, JSON.stringify({ ...cl, fam: FAMILY.famId() })); } catch (e) { /* ignore */ }
     buildKids(); if (typeof LE !== 'undefined') LE.C = {};
   },
-  loadContentLocal() { try { const raw = localStorage.getItem(FAMILY.CONTENT_KEY); if (raw) FAMILY.applyContent(JSON.parse(raw)); } catch (e) { /* ignore */ } },
+  // Granskning 2.1 (H4): den lokala kopian hör till EN familj – byter enheten familj (eller familjen raderas) används den aldrig igen
+  famId() { return typeof DB !== 'undefined' && DB.settings ? String(DB.settings.family || '') : ''; },
+  loadContentLocal() { try { const raw = localStorage.getItem(FAMILY.CONTENT_KEY); if (!raw) return; const c = JSON.parse(raw); if ((c.fam || '') !== FAMILY.famId()) return FAMILY.clearContent(); FAMILY.applyContent(c); } catch (e) { /* ignore */ } },
+  clearContent() { FAMILY.content = null; PACKS.clearPrivate(); try { localStorage.removeItem(FAMILY.CONTENT_KEY); } catch (e) { /* ignore */ } buildKids(); if (typeof LE !== 'undefined') LE.C = {}; },
   async pullContent() {
     if (!SYNC.active) return false;
     try {
-      const r = await SYNC.fetch(SYNC.url('_content'), { cache: 'no-store' }); if (!r.ok) return false;
+      const r = await SYNC.fetch(SYNC.url('_content'), { cache: 'no-store' }); if (r.status === 404) { if (FAMILY.content) { FAMILY.clearContent(); return true; } return false; } if (!r.ok) return false;
       const doc = await r.json(); const remote = JSON.parse(doc.fields?.json?.stringValue || 'null'); if (!remote) return false;
       if (!FAMILY.content || (remote.updatedAt || 0) !== (FAMILY.content.updatedAt || 0)) { FAMILY.applyContent(remote); return true; }
     } catch (e) { /* offline – behåll lokalt */ }

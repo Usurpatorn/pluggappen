@@ -38,7 +38,7 @@ function session(Lr, L, now, ctx, pol, log, seq, out, sessionNo) {
   out.n = n; out.depthQ = depthQ; return t;
 }
 // gate = false → 2.0-läget: inga fördjupande former alls (faktakoncepten har bara igenkänning och eget svar, som frågebankerna i 2.0)
-function run(key, { gate = true, days = 45, seed = 7, depth } = {}) {
+function run(key, { gate = true, days = Number(process.env.FORMS_DAYS) || 45, seed = 7, depth } = {}) {   // FORMS_DAYS: långkörning (t.ex. 120)
   const D0 = { ...E.CFG.depth }; if (depth) Object.assign(E.CFG.depth, depth); for (const d of Object.values(CAT)) if (d.subject !== 'matte') d.depth = gate;
   try {
     const prof = PROFILES[key]; const pol = E.POLICIES[prof.pol]; const Lr = learner(prof, seed); for (const id of IDS) { if (!Lr.m[id]) Lr.m[id] = { k: prof.k0, rate: prof.rate, S: prof.S0, last: null }; Lr.m[id].u = Math.min(0.9, (prof.u0 != null ? prof.u0 : 0.5) * Lr.m[id].k); }

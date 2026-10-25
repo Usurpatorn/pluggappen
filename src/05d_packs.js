@@ -135,12 +135,13 @@ const PACKS = (() => {
   const REG = { packs: {}, bySkill: {}, kp: {}, priv: new Set(), errors: [] };
   function register(pack, opts = {}) {
     const errs = validate(pack, opts); if (errs.length) { REG.errors.push(...errs.slice(0, 5)); return false; }
+    if (opts.private && REG.packs[pack.id] && !REG.priv.has(pack.id)) { REG.errors.push(`${pack.id}: privat paket får inte ha ett inbyggt pakets id`); return false; }
     REG.packs[pack.id] = pack; if (opts.private) REG.priv.add(pack.id); else REG.priv.delete(pack.id);
     rebuildIndex(); return true;
   }
   function clearPrivate() { for (const id of [...REG.priv]) delete REG.packs[id]; REG.priv.clear(); rebuildIndex(); }
   function rebuildIndex() {
-    REG.bySkill = {}; REG.kp = {}; VCACHE.clear();
+    REG.bySkill = {}; REG.kp = {}; VCACHE.clear(); RCACHE.clear();
     for (const pack of Object.values(REG.packs)) for (const kp of pack.kps) {
       const cid = cidOf(pack.id, kp.id); REG.kp[cid] = { pack, kp, cid };
       (REG.bySkill[kp.skill] = REG.bySkill[kp.skill] || []).push(cid);
@@ -164,7 +165,7 @@ const PACKS = (() => {
   function skillFor(kid, skillId) { return [...(kid.skills || []), ...(kid.v2skills || [])].find(s => s.id === skillId) || null; }
 
   /* ---------- Varianter: varje fakta → en eller flera frågeformer ---------- */
-  const VCACHE = new Map();
+  const VCACHE = new Map(); const RCACHE = new Map();
   const formOk = (f, form, pol) => (f.ages ? f.ages.includes(pol) : POLICY_FORMS[pol].has(form)) && !(f.not_forms || []).includes(form);
   const vLvl = (f, form) => Math.min(3, Math.max(f.lvl || 1, BASE_LVL[form] || 1));
   const shortTerm = (t, pol) => { const n = norm(t); return n.length >= 2 && n.length <= (pol === 'younger' ? 12 : 28) && n.split(' ').length <= 3 && !/\d/.test(n); };
@@ -237,7 +238,7 @@ const PACKS = (() => {
         if (f.recall !== false) add(f, 'recall', 'fx', () => typed(`${f.rq || 'Skriv ordet rätt'}: <i>${esc(f.bad)}</i><br><b>${esc(f.err)}</b> → ?`, [f.fix, ...(f.alias || [])], `Rätt: <b>${esc(f.good)}</b>${why ? '<br>' + why : ''}`, { exact: f.exact !== false, pool: [f.err] }));
         add(f, f.form || 'recognition', 'good', (r) => mc(f.gq || 'Vilken mening är rätt skriven?', f.good, [f.bad], badPool(f), why, r, { cs: f.cs }));
       } else if (f.k === 'read') {
-        f.qs.forEach((x, i) => add({ ...f, id: (f.id || fnv(f.text)) + '.' + i, lvl: x.lvl || f.lvl, ages: x.ages || f.ages }, x.form || 'recognition', 'rd', (r) => ({ ...mc(x.q, x.a, x.not, [], x.why || `Svaret står i texten.`, r), fig: `<div class="readbox">${f.title ? `<div style="font-weight:800;margin-bottom:4px">${esc(f.title)}</div>` : ''}${f.text}</div>`, speak: false })));
+        f.qs.forEach((x, i) => add({ ...f, id: (f.id || fnv(f.text)) + '.' + i, lvl: x.lvl || f.lvl, ages: x.ages || f.ages }, x.form || 'recognition', 'rd', (r) => ({ ...mc(x.q, x.a, x.not, [], x.why || (['cause', 'application', 'explanation'].includes(x.form) ? 'Det står inte rakt ut i texten – men ledtrådarna i texten visar det.' : 'Svaret står i texten.'), r), fig: `<div class="readbox">${f.title ? `<div style="font-weight:800;margin-bottom:4px">${esc(f.title)}</div>` : ''}${f.text}</div>`, speak: false })));
       }
     }
     for (const v of out) { v.speak = v.f.k !== 'read' && v.f.speak !== false; }
@@ -249,8 +250,11 @@ const PACKS = (() => {
     const bad = new Set([key(correct), ...(o.alias || []).map(key)]); const d = []; const want = o.exactD || 3;
     const tierList = Array.isArray(pool) && pool.length && Array.isArray(pool[0]) ? pool : [pool || []];   // pool kan vara nivåer (närmast först)
     for (const x of [...shuffle(authored || [], rnd), ...tierList.flatMap(t => shuffle(t, rnd))]) { const n = key(x); if (!n || bad.has(n)) continue; bad.add(n); d.push(x); if (d.length >= want) break; }
-    const choices = shuffle([correct, ...d], rnd);
-    return { type: 'choicetext', text, choices, answer: choices.indexOf(correct), steps: [why].filter(Boolean), hint: HINT.recognition, cs: o.cs ? true : undefined };
+    // Granskning 2.1: rätt svar fick inte avslöjas av skiftläget ("vätejoner" bland "Saltsyra", "Kolsyra") → första bokstaven versal på
+    // alla alternativ (utom när skiftläget är själva frågan, cs, eller ordet redan har versaler som "pH").
+    const cap = (x) => (o.cs || !/^[a-zåäöéü]/.test(x) || /^\S*[A-ZÅÄÖ0-9⁺⁻₀-₉]/.test(x) ? x : x[0].toUpperCase() + x.slice(1));
+    const all = [correct, ...d].map(cap); const choices = shuffle(all, rnd);
+    return { type: 'choicetext', text, choices, answer: choices.indexOf(all[0]), steps: [why].filter(Boolean), hint: HINT.recognition, cs: o.cs ? true : undefined };
   }
   function typed(text, accept, why, o = {}) {
     return { type: 'text', text, answer: accept.slice(), display: strip(accept[0]).trim(), steps: [why].filter(Boolean), hint: o.hint || HINT.recall, v2check: 'pack', accept: { exact: !!o.exact, pool: (o.pool || []).map(normT) } };
@@ -308,6 +312,13 @@ const PACKS = (() => {
     return null;
   }
   const polOfPack = (pack) => pack.policies[pack.policies.length - 1];
+  /* 2.1 (granskning): manuell övning ("Öva" på ett moment) med motor v2 använder paketets granskade frågor i stället för den gamla
+     frågebanken. v1-reserven (motor v1) är oförändrad. Bara flerval och ordning – samma säkra rättning som i passen. */
+  function practiceQuestion(kid, skill, lvl, polName, rnd = Math.random) {
+    const cids = kpsFor(skill.id, kid); if (!cids.length) return null;
+    for (let i = 0; i < 8; i++) { const cid = cids[Math.floor(rnd() * cids.length)]; const pol = POLICY_FORMS[polName] && REG.kp[cid].pack.policies.includes(polName) ? polName : polOfPack(REG.kp[cid].pack); const q = question(cid, { lvl: Math.min(3, lvl || 1), pol, rnd }); if (q && q.type !== 'text') return q; }
+    return null;
+  }
 
   /* ---------- Katalog för motorn ---------- */
   function catalogEntries(kid, skill, polName, itemId) {
@@ -317,8 +328,10 @@ const PACKS = (() => {
       const { pack, kp } = REG.kp[cid]; const vs = variants(cid, pol); if (!vs.length) continue;
       out[cid] = { id: cid, kind: 'kp', ref: skill.id, pack: pack.id, kp: kp.id, name: kp.name, full: kp.name, subject: skill.group || pack.subject, maxLvl: Math.max(1, ...vs.map(v => v.lvl)),
         recall: vs.some(v => v.form === 'recall'), depth: vs.some(v => DEPTH.has(v.form)), challenge: vs.some(v => v.ch), focus: !!skill.focus || (kid.focusCids || []).includes(cid), prereq: (kp.requires || []).map(r => cidOf(pack.id, r)), forms: [...new Set(vs.map(v => v.form))], ktype: typeOf(kp), intro: kp.intro !== false };
-      // Nya frågors id → kunskapspunkt (v1-"Öva" på samma moment loggas på momentet och leds hit)
-      for (const v of vs) { const q = v.build(seeded(7)); route[itemId(q)] = cid; }
+      // Nya frågors id → kunskapspunkt (v1-"Öva" på samma moment loggas på momentet och leds hit). Cachas per paketversion och policy
+      // (granskning 2.1, L8: att bygga alla varianter vid varje katalogbygge var för långsamt på telefoner).
+      const rk = cid + '|' + pol + '|' + pack.rev; let ids = RCACHE.get(rk); if (!ids) { ids = vs.map(v => itemId(v.build(seeded(7)))); RCACHE.set(rk, ids); }
+      for (const id of ids) route[id] = cid;
     }
     // Gamla frågebankens id → kunskapspunkt (migrering av befintliga bevis, se docs/CONCEPT_PACKS.md §Migrering). En gammal fråga kan
     // leda till en punkt i ett annat moment i samma paket (t.ex. SIV-frågan under Syror → Säkerhet i labbet).
@@ -338,28 +351,34 @@ const PACKS = (() => {
   /* 2.1 Innehållshälsa (bara förälder/felsökning): uppgifts-id → vilken fråga det är (text, form, källa) så att en flaggad fråga kan
      granskas av Claude. Söker paketens varianter (samma id som i passet) och gamla frågebankens rader. Cache per policy och paketversion. */
   const ITEMS = {};
-  function findItem(item, pol, itemId) {
-    const k = (pol || 'middle') + '#' + regKey(); let ix = ITEMS[k];
+  function findItem(item, pol, itemId, kid) {
+    const k = (pol || 'middle') + '#' + (kid ? kid.template + '/' + kid.id : '*') + '#' + regKey(); let ix = ITEMS[k];
     if (!ix) {
       ix = ITEMS[k] = new Map();
-      for (const [cid, ent] of Object.entries(REG.kp)) {
+      for (const [cid, ent] of Object.entries(REG.kp)) { if (kid && !forTarget(ent.pack, kid)) continue;
         for (const v of variants(cid, pol || 'middle')) { try { const q = v.build(seeded(7)); ix.set(itemId(q), { cid, pack: ent.pack.id, kp: ent.kp.id, text: String(q.text || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160), form: v.form, src: ent.kp.src || null }); } catch (e) { /* hoppa över */ } }
       }
-      for (const pack of Object.values(REG.packs)) for (const [kpId, type, text, ans] of pack.legacy || []) { const cid = cidOf(pack.id, kpId); if (!ix.has(legacyId(type, text, ans))) ix.set(legacyId(type, text, ans), { cid, pack: pack.id, kp: kpId, text: String(text).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160), form: 'legacy', src: null }); }
-      for (const old of Object.keys(ITEMS)) if (old !== k) delete ITEMS[old];
+      for (const pack of Object.values(REG.packs)) if (!kid || forTarget(pack, kid)) for (const [kpId, type, text, ans] of pack.legacy || []) { const cid = cidOf(pack.id, kpId); if (!ix.has(legacyId(type, text, ans))) ix.set(legacyId(type, text, ans), { cid, pack: pack.id, kp: kpId, text: String(text).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160), form: 'legacy', src: null }); }
+      for (const old of Object.keys(ITEMS)) if (!old.endsWith('#' + regKey())) delete ITEMS[old];   // gamla paketversioner bort, övriga barn kvar
     }
     return ix.get(item) || null;
   }
   // Familjens privata paket: tvätta all HTML (bara enkla taggar, inga attribut) och begränsa storleken innan validering
-  const cleanHtml = (v) => String(v).replace(/<\/?([a-z0-9]+)[^>]*>/gi, (m, t) => (ALLOWED_TAGS.test(t) ? (m[1] === '/' ? `</${t.toLowerCase()}>` : `<${t.toLowerCase()}>`) : '')).slice(0, 4000);
+  // Granskning 2.1 (H1): även en tagg utan avslutande ">" (t.ex. "<img src=x onerror=…") neutraliseras – varje "<" som inte inleder en
+  // tillåten, attributlös tagg blir &lt;.
+  const cleanHtml = (v) => String(v).replace(/<\/?([a-z0-9]+)[^>]*>/gi, (m, t) => (ALLOWED_TAGS.test(t) ? (m[1] === '/' ? `</${t.toLowerCase()}>` : `<${t.toLowerCase()}>`) : ''))
+    .replace(/<(?!\/?(?:b|i|br|sub|sup|p|em|strong|span|ul|ol|li|div)>)/g, '&lt;').slice(0, 4000);
+  // Fält som alltid är ren text (namn, ikoner, id:n): inga taggar alls
+  const PLAIN = new Set(['id', 'title', 'topic', 'name', 'short', 'icon', 'skill', 'subject', 'group', 'label', 'kind', 'ref', 'cls']);
+  const plain = (v) => String(v).replace(/[<>]/g, '').slice(0, 200);
   function cleanPack(pk) {
     if (!pk || typeof pk !== 'object') return null; let n = 0;
-    const walk = (x, depth) => { if (++n > 20000 || depth > 8) throw new Error('för stort'); if (typeof x === 'string') return cleanHtml(x); if (Array.isArray(x)) return x.slice(0, 400).map(y => walk(y, depth + 1)); if (x && typeof x === 'object') { const o = {}; for (const [k, v] of Object.entries(x)) if (/^[A-Za-z_][A-Za-z0-9_]{0,30}$/.test(k)) o[k] = walk(v, depth + 1); return o; } return typeof x === 'number' || typeof x === 'boolean' ? x : null; };
+    const walk = (x, depth, key) => { if (++n > 20000 || depth > 8) throw new Error('för stort'); if (typeof x === 'string') return PLAIN.has(key) ? plain(x) : cleanHtml(x); if (Array.isArray(x)) return x.slice(0, 400).map(y => walk(y, depth + 1, key)); if (x && typeof x === 'object') { const o = {}; for (const [k, v] of Object.entries(x)) if (/^[A-Za-z_][A-Za-z0-9_]{0,30}$/.test(k)) o[k] = walk(v, depth + 1, k); return o; } return typeof x === 'number' || typeof x === 'boolean' ? x : null; };
     try { return walk(pk, 0); } catch (e) { return null; }
   }
   // Hashar för cachning: ändras när paketen ändras (ny rev eller nya privata paket)
   const regKey = () => Object.values(REG.packs).map(p => p.id + '@' + p.rev).sort().join(',');
-  return { TYPES, typeOf, RECIPE, bandOf, key, buildVariant, cleanPack, cleanHtml, VERSION, FORMS, FCODE, DEPTH, BASE_LVL, POLICY_FORMS, TEXT, KINDS, validate, register, clearPrivate, REG, newSkillsFor, kpsFor, skillFor, variants, question, check, teach, info, findItem, mc, typed, catalogEntries, legacyId, cidOf, regKey, v1Question, seeded, norm, normT, strip, words, toks, shuffle, lev, ALLOWED_TAGS };
+  return { TYPES, typeOf, RECIPE, bandOf, key, buildVariant, cleanPack, cleanHtml, VERSION, FORMS, FCODE, DEPTH, BASE_LVL, POLICY_FORMS, TEXT, KINDS, validate, register, clearPrivate, REG, newSkillsFor, kpsFor, skillFor, variants, question, check, teach, info, findItem, mc, typed, practiceQuestion, catalogEntries, legacyId, cidOf, regKey, v1Question, seeded, norm, normT, strip, words, toks, shuffle, lev, ALLOWED_TAGS };
 })();
 // Inbyggda paket (PACK_DATA byggs in av scripts/build.sh från content/packs/*.json)
 if (typeof PACK_DATA !== 'undefined') for (const p of PACK_DATA) PACKS.register(p);

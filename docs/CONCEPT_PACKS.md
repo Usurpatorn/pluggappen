@@ -99,6 +99,15 @@ Typens signaturaktiviteter väger ×1,5. Variation har alltid ett skäl – aldr
 - `legacy`: gamla frågans id (`'i' + fnv(typ|text|svar)`) → kunskapspunkt. Omdirigeringen sker vid omspelning – loggen ändras
   aldrig, så 2.0.0 kan läsa samma data (rollback). En okänd gammal fråga stannar på momentet.
 - `rev` höjs vid ändring. Frågans id följer texten: en rättad fråga är en ny uppgift (Felboken släpper den gamla).
+- En olöst Felboks-post på ett vilande moment (från 2.0) håller kvar bevisen på momentet tills posten är löst – annars kunde Revansch
+  aldrig verifiera den. Därefter leds bevisen till kunskapspunkterna igen.
+- Kompaktering: bevis på vilande moment bakas inte in i basen (basen räknas med 2.1-katalogen). Loggen får då växa till 900 bevis
+  (`LOG_HARD_PIN`) innan allt bakas in som förut. Gräns: efter ungefär tre månaders daglig användning ser en återställd 2.0 de äldsta
+  bevisen från 2.0-tiden som kunskapspunkter (okända för 2.0) i stället för på momentet. Omvänt: kompakterar 2.0 efter en rollback ligger de
+  bevisen kvar på momentet, och kunskapspunkterna börjar om – ingen uppblåst kunskap, men UPPTÄCK kan visas för sådant barnet kan.
+- Ett privat paket får aldrig ha ett inbyggt pakets id (avvisas av appen och av `content.mjs bundle`).
+- Med motor v2 kommer även manuell övning ("Öva") på ett moment med paket från paketets granskade frågor. v1-reserven använder den gamla
+  frågebanken oförändrad.
 
 ## 8. Skoluppgifter och lärarens frågor (bara privat, `_content.work`)
 ```json

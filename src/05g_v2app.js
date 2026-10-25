@@ -446,7 +446,7 @@ const V2 = {
         <div class="muted" style="font-size:.85rem">Signaler – inte domar. Ingenting ändras automatiskt: ge texten nedan till Claude, som granskar frågan och släpper en rättad version.</div>
         ${h.items.slice(0, 12).map(x => `<div style="font-size:.9rem;border-top:1px solid var(--line);padding-top:6px"><b>${esc(x.name)}</b>${x.text ? ` · <span class="muted">${esc(x.text)}</span>` : ''}<div style="font-size:.8rem">${x.flags.map(f => `<span class="pill" style="font-size:.72rem;margin:2px 4px 0 0">${esc(LE.HEALTH_TXT[f])}</span>`).join('')} <span class="muted">${x.ok}/${x.n} rätt</span></div></div>`).join('')}
         ${h.items.length > 12 ? `<div class="muted" style="font-size:.85rem">+ ${h.items.length - 12} till</div>` : ''}
-        <details><summary style="cursor:pointer;font-weight:700">Text till Claude</summary><textarea readonly rows="6" style="width:100%;font-size:.75rem;margin-top:6px">${esc(LE.healthText(kid))}</textarea></details>
+        <details><summary style="cursor:pointer;font-weight:700">Text till Claude</summary><textarea readonly rows="6" style="width:100%;font-size:.75rem;margin-top:6px">${esc(LE.healthText(kid, h))}</textarea></details>
       </div>`;
     }, 'healthCard', '');
   },

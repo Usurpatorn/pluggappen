@@ -47,6 +47,14 @@ const checkQ = (q, ctx, pol, correctByText) => {
     ok(q.answer >= 0 && q.answer < q.choices.length, `${ctx}: svarsindex utanför`);
     for (const c of q.choices) { ok(c.length <= lim.choice, `${ctx}: alternativet "${c.slice(0, 40)}…" är ${c.length} tecken (max ${lim.choice})`); ok(tagOk(c), `${ctx}: HTML i alternativ`); }
     const amb = correctByText.get(norm(q.text)) || new Set();
+    // Granskning 2.1: rätt svar får inte gå att se utan kunskap – inte på skiftläget och inte som "udda" första ord när alla felalternativ
+    // börjar likadant ("Gör den basisk / Gör den neutral / Joner som …"). en/ett räknas som samma ord (genus avslöjar inget).
+    if (!q.ordered && !q.cs && q.choices.length >= 3) {
+      const letter = q.choices.filter(c => /^\p{L}/u.test(strip(c).trim())); const up = (c) => /^\p{Lu}/u.test(strip(c).trim());
+      if (letter.length === q.choices.length) ok(new Set(q.choices.map(up)).size === 1 || q.choices.filter(c => up(c) === up(q.choices[q.answer])).length > 1, `${ctx}: skiftläget avslöjar svaret: ${q.choices.join(' | ')}`);
+      const fw = (c) => { const w = strip(c).trim().split(/\s+/)[0].toLowerCase(); return w === 'ett' ? 'en' : w; }; const ds = q.choices.filter((_, i) => i !== q.answer);
+      if (ds.length >= 3 && !q.choices.every(c => / – /.test(c))) ok(!(ds.every(d => fw(d) === fw(ds[0])) && fw(q.choices[q.answer]) !== fw(ds[0])), `${ctx}: rätt svar är det enda som inte börjar som de andra: ${q.choices.join(' | ')}`);
+    }
     q.choices.forEach((c, i) => { if (i !== q.answer && !q.ordered && !q.cs) ok(!amb.has(norm(c)), `${ctx}: tvetydigt – "${c}" är rätt svar på samma fråga i en annan variant: ${strip(q.text).slice(0, 80)}`); });
   } else if (q.type === 'text') {
     ok(Array.isArray(q.answer) && q.answer.length && q.answer.every(a => normT(a)), `${ctx}: godkända svar saknas`);
