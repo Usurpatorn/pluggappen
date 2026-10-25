@@ -7,7 +7,7 @@
 const LE2 = (() => {
   'use strict';
   const DAY = 86400000;
-  const RULES = '3H.1';
+  const RULES = '3H.2';
   // Lokala dygn: förfallodagar ligger på lokala dygnsgränser.
   const tzOff = (t) => new Date(t).getTimezoneOffset() * 60000;
   const dayIdx = (t) => Math.floor((t - tzOff(t)) / DAY);
@@ -77,7 +77,9 @@ const LE2 = (() => {
   function cstate(L, id) { return L.c[id] || (L.c[id] = newConcept()); }
   function newLE() { return { v: 2, c: {}, clock: { last: 0, server: 0 } }; }
   function diag(L) { return L.d || (L.d = { ret: [0, 0], retDue: [0, 0], retEarly: [0, 0], wrong: 0, fastWrong: 0, fw: [0, 0], sw: [0, 0], mcAdv: 0, freeAdv: 0, lapses: 0, fbOpened: 0, fbVerified: 0, newSeen: 0, ch: [0, 0], rescues: 0 }); }
-  function engineNow(L, deviceNow) { const t = Math.max(deviceNow, L.clock.last || 0, L.clock.server || 0); L.clock.last = t; return t; }
+  // Granskning H3: motorn räknar med HÄNDELSENS egen tid (samma live som vid omspelning). Förut max(enhet, senaste, server) –
+  // ett pass med klockan framställd förgiftade då alla senare beräkningar (live ≠ omspelning, belöningar varje dag). clock.last = högvattenmärke.
+  function engineNow(L, deviceNow) { L.clock.last = Math.max(deviceNow, L.clock.last || 0); return deviceNow; }
   const isRecallCapable = (def, c) => def.recall === true || (def.recall == null && !!c.kf) || (def.kinds || []).some(k => k !== 'mc');
 
   /* Registrera ett svar. Deterministisk. Returnerar { diff, reasons, rewards, weight }. */
@@ -89,8 +91,8 @@ const LE2 = (() => {
     if (ev.mode === 'challenge') {
       const ch = c.ch || (c.ch = { n: 0, ok: 0, run: 0, d: 0 }); ch.n++; ch.d = today; D.ch[0]++;
       if (ev.ok && ev.help === 'none') { ch.ok++; ch.run++; D.ch[1]++; rewards.push('CHALLENGE'); reasons.push('utmaning klarad → fördjupning'); } else { ch.run = 0; reasons.push('utmaning inte klarad → ingen påverkan på grundkunskapen'); }
+      // Granskning L10: Utmaningen skrivs inte i c.ev (styr uppvärmning och fördröjda träffar). lastSeen uppdateras: konceptet HAR övats på djupet.
       c.lastSeen = now; if (ev.item) c.items = [...c.items.filter(x => x !== ev.item), ev.item].slice(-6);
-      c.ev = [...c.ev, [Math.round(now / 1000), ev.ok ? 1 : 0, KCODE[ev.kind] || 'f', HCODE[ev.help || 'none'] || 'n', 'c']].slice(-12);
       return { diff: { before, after: before }, reasons, rewards, weight: 0 };
     }
     const w = evidenceWeight(ev); const independent = ev.ok && ev.help === 'none';
@@ -130,7 +132,9 @@ const LE2 = (() => {
       if (countsForLevel) c.failRun++;
       if (ev.ctx !== 'retry' && ev.help !== 'rescue') {
         const old = c.st; const early = c.lastOk && elapsedD < CFG.early * I;
-        if (ev.ctx === 'exam' && old >= 3) { c.st = old - CFG.lapse.examDrop; c.lap++; D.lapses++; reasons.push(`fel i Testa mig → stadium ${old} → ${c.st} (ett provfel skriver inte över långtidsbevis)`); }
+        if (ev.ctx === 'exam' && c.exDay === today) reasons.push('fel i Testa mig igen samma dygn → ingen ytterligare sänkning');   // granskning M4
+        else if (ev.ctx === 'exam' && old >= 3) { c.st = old - CFG.lapse.examDrop; c.lap++; D.lapses++; c.exDay = today; reasons.push(`fel i Testa mig → stadium ${old} → ${c.st} (ett provfel skriver inte över långtidsbevis)`); }
+        else if (ev.ctx === 'exam' && old >= 1) { c.st = Math.max(1, old - 1); c.exDay = today; reasons.push(`fel i Testa mig → stadium ${old} → ${c.st}`); }
         else if (ev.restart && old >= 2) { c.st = old - CFG.lapse.softDrop; reasons.push(`återstart efter uppehåll: rostigt, inte glömt → stadium ${old} → ${c.st}`); }
         else if (early && old >= 2) { c.st = old - CFG.lapse.softDrop; reasons.push(`fel vid tidig repetition → stadium ${old} → ${c.st} (mjuk sänkning)`); }
         else if (old >= 3) { c.st = Math.max(1, old - CFG.lapse.drop); c.lap++; D.lapses++; reasons.push(`glömt från stadium ${old} → ${c.st}`); }
@@ -192,7 +196,7 @@ const LE2 = (() => {
   const PHASES = ['new', 'introduced', 'learning', 'retry', 'corrected', 'awaiting', 'verified', 'consolidating', 'stable', 'weakening', 'reopened'];
   function phase(c, now, pol, L) {
     if (!c || c.n === 0) return 'new';
-    const today = dayIdx(now); const fb = c.fb;
+    const today = dayIdx(now); const fb = fbS(c, now) ? c.fb : null;
     if (fb && fb.s === 'open' && fb.reopened) return 'reopened';
     if (fb && fb.s === 'open') return fb.wd === today ? 'retry' : 'learning';
     if (fb && fb.s === 'corrected') return fb.wd === today ? 'corrected' : 'awaiting';
@@ -205,6 +209,7 @@ const LE2 = (() => {
     return c.fs && today - dayIdx(c.fs * 1000) <= 1 ? 'introduced' : 'learning';
   }
   const fbLive = (c, today) => c.fb && !(today !== Infinity && today - c.fb.wd > CFG.fb.expireDays);
+  const fbS = (c, now) => (c && fbLive(c, now == null ? Infinity : dayIdx(now)) ? c.fb.s : null);   // granskning L5: utgångna poster räknas inte
   const fbVisibleState = (c, today) => fbLive(c, today) && (c.fb.s === 'open' || c.fb.s === 'corrected' || (c.fb.s === 'awaiting' && today > c.fb.wd));
   function felbokVisible(L, now) { const today = now == null ? Infinity : dayIdx(now); return Object.entries(L.c).filter(([, c]) => fbVisibleState(c, today)).map(([id]) => id); }
   function felbokDisplay(L, pol, now) { const all = felbokVisible(L, now).sort((a, b) => (L.c[a].fb.at - L.c[b].fb.at) || (a < b ? -1 : 1)); const cap = DECISIONS.O8_felbokDisplay[pol.name] || 5; return { shown: all.slice(0, cap), more: Math.max(0, all.length - cap), total: all.length }; }
@@ -214,14 +219,14 @@ const LE2 = (() => {
   function childLabel(c, now, pol, L) {
     if (!c || c.n === 0) return 'Nytt';
     const overdue = c.due && now > c.due + intervalDays(c.st, pol, L) * DAY;
-    if (c.fb && c.fb.s === 'open') return 'Tränar';
+    if (fbS(c, now) === 'open') return 'Tränar';
     if (overdue && c.st >= 2) return 'Behöver repetition';
     if (c.st >= 4) return 'Säker'; if (c.st >= 2) return 'På väg'; return 'Tränar';
   }
   function delayedOks(c, sinceMs) { return c.ev.filter((e, i) => e[1] === 1 && e[3] === 'n' && (e[4] === 'f' || e[4] === 'e') && e[0] * 1000 >= sinceMs && i > 0 && (e[0] - c.ev[i - 1][0]) >= 86400 * 0.9).length; }
   function readiness(c, now) {
     if (!c || c.n < 3) return 'För lite underlag';
-    if (c.fb && (c.fb.s === 'open' || c.fb.s === 'awaiting')) return 'Öva lite mer';
+    if (['open', 'awaiting'].includes(fbS(c, now))) return 'Öva lite mer';
     if (c.st >= 3 || (c.st === 2 && delayedOks(c, now - 7 * DAY) >= 1)) return 'Bra koll';
     return 'Öva lite mer';
   }
@@ -232,7 +237,7 @@ const LE2 = (() => {
       if (c.n < 4) { if (c.n > 0) thin.push(name); continue; }
       const d30 = delayedOks(c, now - 30 * DAY);
       if (c.st >= 4 || (c.st >= 3 && d30 >= 2)) strong.push(name);
-      else if ((c.fb && c.fb.s === 'open' && c.fb.wrong >= 2 && dayIdx(now) - dayIdx(c.fb.at) >= 1) || c.lap >= 1 && c.st <= 2 || rescueCount(c, now) >= CFG.rescue.insightCount) weak.push(name);
+      else if ((fbS(c, now) === 'open' && c.fb.wrong >= 2 && dayIdx(now) - dayIdx(c.fb.at) >= 1) || c.lap >= 1 && c.st <= 2 || rescueCount(c, now) >= CFG.rescue.insightCount) weak.push(name);
     }
     return { strong, weak, thin };
   }
@@ -251,7 +256,7 @@ const LE2 = (() => {
   const W = CFG.W;
   function examUrgency(daysLeft) { const X = CFG.exam; if (daysLeft == null || daysLeft < 0 || daysLeft > X.horizon) return 0; return Math.pow(Math.min(1, (X.horizon - daysLeft) / X.ramp), X.power); }
   function conf(c) { return !c || c.n === 0 ? 0 : Math.min(1, c.st / 4); }
-  function examReady(L, exam) { return exam.concepts.length > 0 && exam.concepts.every(cid => { const c = L.c[cid]; return c && c.n >= 3 && c.st >= 3 && !(c.fb && c.fb.s !== 'resolved' && c.fb.s !== 'verified'); }); }
+  function examReady(L, exam, now) { return exam.concepts.length > 0 && exam.concepts.every(cid => { const c = L.c[cid]; const s = fbS(c, now); return c && c.n >= 3 && c.st >= 3 && !(s && s !== 'resolved' && s !== 'verified'); }); }
   const fbOpenCount = (L, now) => Object.values(L.c).filter(c => fbLive(c, dayIdx(now)) && (c.fb.s === 'open' || c.fb.s === 'awaiting')).length;
   function priority(L, cat, cid, now, ctx, pol) {
     const c = L.c[cid]; const def = cat[cid]; const comps = {}; const today = dayIdx(now);
@@ -298,7 +303,7 @@ const LE2 = (() => {
   }
   // K-14: hur mycket "pågående inlärning" (stadium ≤1) barnet bär just nu, och när kom senast något nytt?
   // Pågående, ännu inte säker inlärning: stadium ≤1, eller stadium 2 som är förfallen, eller öppen Felbok.
-  function learningLoad(L, cat, now) { return Object.entries(L.c).filter(([id, c]) => c.n > 0 && (!cat[id] || cat[id].kind !== 'deck') && (c.st <= 1 || (c.st === 2 && now != null && c.due <= now) || (c.fb && (c.fb.s === 'open' || c.fb.s === 'awaiting')))).length; }
+  function learningLoad(L, cat, now) { return Object.entries(L.c).filter(([id, c]) => c.n > 0 && (!cat[id] || cat[id].kind !== 'deck') && (c.st <= 1 || (c.st === 2 && now != null && c.due <= now) || ['open', 'awaiting'].includes(fbS(c, now)))).length; }
   function lastNewAt(L) { return Math.max(0, ...Object.values(L.c).map(c => (c.fs || 0) * 1000)); }
   function dueBacklog(L, cat, now) { return Object.entries(L.c).filter(([id, c]) => cat[id] && cat[id].kind !== 'deck' && cat[id].active !== false && c.n > 0 && c.due && c.due <= now).length; }
   function challengeEligible(L, cat, cid) { const c = L.c[cid]; const d = cat[cid]; if (!c || !d || d.challenge === false || d.kind === 'deck') return false; return c.st >= CFG.challenge.ceilingStage || (c.st >= CFG.challenge.minStage && c.lvl >= (d.maxLvl || 3)); }
@@ -332,11 +337,6 @@ const LE2 = (() => {
     }
     // Återkomst efter uppehåll: börja alltid med något barnet troligen klarar (starkaste konceptet, en nivå lättare)
     if (restart && !slots.length) { const r = ranked.filter(x => L.c[x.cid] && L.c[x.cid].n > 0 && L.c[x.cid].st >= 1 && cat[x.cid].kind !== 'deck').sort((a, b) => L.c[b.cid].st - L.c[a.cid].st || (a.cid < b.cid ? -1 : 1))[0]; if (r) { take(r, 'warmup'); slots[slots.length - 1].lvlDelta = -1; } }
-    // Provets sista tre dygn (och provet inte klart): minst halva passet till provets koncept – innan något annat fyller passet.
-    if (examDays <= 3 && (ctx.exams || []).some(e => Math.ceil((e.at - now) / DAY) <= 3 && !e.ready)) {
-      const want = Math.ceil((n - (n >= S.bossMinItems ? 1 : 0)) * CFG.exam.minShareLast3); let have = slots.filter(x => x.parts && x.parts.exam > 0).length;
-      for (const r of ranked.filter(x => x.parts.exam > 0)) { if (have >= want) break; if (canUse(r.cid, 2)) { take(r, r.parts.fb > 0 ? 'revansch' : r.parts.due > 0 ? 'remember' : 'focus'); have++; } }
-    }
     // Ny inlärning bestäms FÖRST (K-14): annars kan repetitioner och Revansch fylla passet så att nytt aldrig får plats.
     const bossReserve = n >= S.bossMinItems ? 1 : 0; const openFb = Object.values(L.c).filter(c => fbLive(c, dayIdx(now)) && (c.fb.s === 'open' || c.fb.s === 'awaiting')).length;
     const load = learningLoad(L, cat, now); const cap = B.loadCap[pol.name] || 9; const sinceNew = (L.sessN || 0) - (L.newSess || 0);
@@ -345,7 +345,13 @@ const LE2 = (() => {
     const starved = load < 2 * cap ? sinceNew >= B.starveSessions : sinceNew >= B.starveSessionsHard * (load >= 3 * cap ? 1.5 : 1);
     // provets sista dygn: inget nytt; tre dygn före: bara om svält; provvecka: ett nytt koncept på en plats
     const maxNew = examDays <= 1 ? 0 : examDays <= 3 ? (starved ? 1 : 0) : overloaded ? (starved ? 1 : 0) : examDays <= CFG.exam.weekDays ? 1 : pol.maxNew;
-    let newTaken = 0;
+    let newTaken = 0; const isNewC = (cid) => !(L.c[cid] && L.c[cid].n > 0);
+    // Provets sista tre dygn (och provet inte klart): minst halva passet till provets koncept – innan något annat fyller passet.
+    // Granskning M8: aldrig osedda koncept här utöver maxNew (provkvällen: inget nytt alls).
+    if (examDays <= 3 && (ctx.exams || []).some(e => Math.ceil((e.at - now) / DAY) <= 3 && !e.ready)) {
+      const want = Math.ceil((n - bossReserve) * CFG.exam.minShareLast3); let have = slots.filter(x => x.parts && x.parts.exam > 0).length;
+      for (const r of ranked.filter(x => x.parts.exam > 0)) { if (have >= want) break; const nw = isNewC(r.cid); if (nw && (newTaken >= maxNew || newGuard.has(r.cid))) continue; if (canUse(r.cid, 2)) { take(r, r.parts.fb > 0 ? 'revansch' : r.parts.due > 0 ? 'remember' : 'focus'); have++; if (nw) { newGuard.add(r.cid); newTaken++; } } }
+    }
     // Ämnesrättvisa (K-14): ett ämne med något att öva som inte övats på en vecka får sin bästa uppgift tidigt i passet (nytt bara inom maxNew).
     for (const sj of Object.keys(ctx.subjWait || {}).filter(x => ctx.subjWait[x] >= CFG.subjectWaitDays).sort()) {
       if (slots.some(x => subjOf(x.cid) === sj)) continue;
@@ -389,6 +395,8 @@ const LE2 = (() => {
         if (slots.length < n - bossReserve) { slots.push(challenge); subjects.add(subjOf(challenge.cid)); } else if (pi >= 0) slots[pi] = challenge; else challenge = null;
       }
     }
+    // Granskning L2 (prövat och förkastat): att trimma planen till exakt n försämrade K-14 (svaga koncept väntade längre). Planen får vara
+    // högst ett par uppgifter över n; passköraren stoppar alltid vid policyns maxItems (yngre 10, mellan 12, äldre 14).
     // 6) Bossen: väljs när den ska spelas (bland koncept som gått bra i passet) – aldrig ett just misslyckat koncept
     if (bossReserve && slots.length < n) { const bossC = slots.filter(s => s.role === 'focus' || s.role === 'remember').map(s => s.cid).find(cid => !(L.c[cid] && L.c[cid].fb && L.c[cid].fb.s === 'open')); slots.push({ cid: bossC || (slots[0] && slots[0].cid), role: 'boss', why: WHY_TEXT.boss, P: 0, parts: {}, dynamic: true, examC: examDays <= CFG.exam.examFirstDays ? (ctx.exams || []).flatMap(e => e.concepts) : [] }); }
     // Ingen utfyllnad med lågt värde: hellre ett kortare pass (lärande per minut) – men ett andra försök på dagens fokus/nya koncept får fylla
@@ -430,7 +438,7 @@ const LE2 = (() => {
       if (c.n < 4) { if (c.n > 0) out.thin.push(id); continue; }
       const failedToday = c.failDays && c.failDays.includes(today);
       if (c.st >= 4 || (c.st >= 3 && delayedOks(c, now - 30 * DAY) >= 2)) { (failedToday ? out.temporary : out.strengths).push(id); }
-      else if ((c.fb && (c.fb.s === 'open' || c.fb.s === 'awaiting')) || (c.lap >= 1 && c.st <= 2) || phase(c, now, pol, L) === 'weakening') out.practise.push(id);
+      else if (['open', 'awaiting'].includes(fbS(c, now)) || (c.lap >= 1 && c.st <= 2) || phase(c, now, pol, L) === 'weakening') out.practise.push(id);
       if (c.due && c.due <= now && c.st >= 1) out.due.push(id);
       if (rescueCount(c, now) >= CFG.rescue.insightCount) out.rescue.push(id);
       if (c.ch && c.ch.n) out.depth.push(id);
@@ -455,19 +463,20 @@ const LE2 = (() => {
   function encodeEv(e) {
     const base = [Math.round(e.t / 1000), e.dev, e.seq, e.cid, e.ok ? 1 : 0, KCODE[e.kind] || 'f', e.k || 0, HCODE[e.help || 'none'] || 'n', XCODE[e.ctx || 'first'] || 'f', e.item || '', e.fast ? 1 : 0, e.sess || '', e.lvl || 1, e.restart ? 1 : 0];
     if (e.mode === 'challenge') { base[7] = 'r'; base[8] = 'r'; }
-    if (e.mode || e.role || e.stretch) base.push(MCODE[e.mode] || '', e.role || '', e.stretch ? 1 : 0, e.mode === 'challenge' ? (HCODE[e.help || 'none'] || 'n') : '');
+    if (e.mode || e.role || e.stretch || e.onlyVariant) base.push(MCODE[e.mode] || '', e.role || '', e.stretch ? 1 : 0, e.mode === 'challenge' ? (HCODE[e.help || 'none'] || 'n') : '');
+    if (e.onlyVariant) base.push(1);   // 18: frågebanken saknade en annan uppgift (Felboken får verifiera med samma fråga efter några dygn)
     return base;
   }
   function decodeEv(a) {
     const e = { t: a[0] * 1000, dev: a[1], seq: a[2], cid: a[3], ok: !!a[4], kind: KDEC[a[5]] || 'free', k: a[6], help: HDEC[a[7]] || 'none', ctx: XDEC[a[8]] || 'first', item: a[9], fast: !!a[10], sess: a[11], lvl: a[12], restart: !!a[13] };
-    if (a.length > 14) { if (a[14]) e.mode = MDEC[a[14]]; if (a[15]) e.role = a[15]; if (a[16]) e.stretch = true; if (e.mode === 'challenge') { e.help = HDEC[a[17]] || 'none'; e.ctx = 'first'; } }
+    if (a.length > 14) { if (a[14]) e.mode = MDEC[a[14]]; if (a[15]) e.role = a[15]; if (a[16]) e.stretch = true; if (e.mode === 'challenge') { e.help = HDEC[a[17]] || 'none'; e.ctx = 'first'; } if (a[18]) e.onlyVariant = true; }
     return e;
   }
   const evKey = (e) => Array.isArray(e) ? e[1] + ':' + e[2] : e.dev + ':' + e.seq;
   const evT = (e) => Array.isArray(e) ? e[0] * 1000 : e.t;
   const evOrder = (x, y) => evT(x) - evT(y) || (evKey(x).split(':')[0] < evKey(y).split(':')[0] ? -1 : evKey(x).split(':')[0] > evKey(y).split(':')[0] ? 1 : (Array.isArray(x) ? x[2] - y[2] : x.seq - y.seq));
   function mergeLog(a, b) { const m = new Map(); for (const e of [...(a || []), ...(b || [])]) { const k = evKey(e); const o = m.get(k); if (!o || stable(e) < stable(o)) m.set(k, e); } return [...m.values()].sort(evOrder); }
-  function replay(log, cat, pol, base) { const L = base ? JSON.parse(JSON.stringify(base)) : newLE(); for (const raw of log) { const e = Array.isArray(raw) ? decodeEv(raw) : raw; if (!cat[e.cid]) cat = { ...cat, [e.cid]: { id: e.cid, subject: 'okänt', active: false } }; apply(L, cat, e, pol); } return L; }
+  function replay(log, cat, pol, base) { const L = base ? JSON.parse(JSON.stringify(base)) : newLE(); for (const raw of (log || []).slice().sort(evOrder)) { const e = Array.isArray(raw) ? decodeEv(raw) : raw; if (!cat[e.cid]) cat = { ...cat, [e.cid]: { id: e.cid, subject: 'okänt', active: false } }; apply(L, cat, e, pol); } return L; }
   function stable(o) { if (Array.isArray(o)) return '[' + o.map(stable).join(',') + ']'; if (o && typeof o === 'object') return '{' + Object.keys(o).sort().map(k => JSON.stringify(k) + ':' + stable(o[k])).join(',') + '}'; return JSON.stringify(o); }
   function hash(s) { let h = 0x811c9dc5; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193); } return (h >>> 0).toString(36); }
 
@@ -487,10 +496,14 @@ const LE2 = (() => {
   }
   function mergeLE(a, b) {
     if (!a || !a.v) return b && b.v ? b : (a || b || null); if (!b || !b.v) return a;
+    if (a.v !== b.v) return a.v > b.v ? a : b;   // granskning M9: blanda aldrig versioner – den senare versionen lämnas orörd
     const rank = (x) => [-(x.folded || 0), x.t0 || 0, hash(stable(x.base || {}))];
     const ra = rank(a), rb = rank(b); const cmp = ra[0] - rb[0] || ra[1] - rb[1] || (ra[2] < rb[2] ? -1 : ra[2] > rb[2] ? 1 : 0);
     const pick = cmp <= 0 ? a : b; const other = pick === a ? b : a;
-    const log = mergeLog(a.log, b.log).filter(e => evT(e) > (pick.t0 || 0));
+    // Granskning M10: händelser som redan är inbakade i den valda basen tas bort via enhetsvisa vattenmärken (fw); sent anlända
+    // offlinehändelser som är äldre än basen men inte inbakade behålls. Äldre baser utan fw: tidsgränsen t0 (bara om något är inbakat).
+    const fw = pick.fw; const evDev = (e) => Array.isArray(e) ? e[1] : e.dev, evSeq = (e) => Array.isArray(e) ? e[2] : e.seq;
+    const log = mergeLog(a.log, b.log).filter(e => fw ? evSeq(e) > (fw[evDev(e)] || 0) : !((pick.folded || 0) > 0 && evT(e) <= (pick.t0 || 0)));
     const seqs = { ...(other.seqs || {}) }; for (const [d, n] of Object.entries(pick.seqs || {})) seqs[d] = Math.max(seqs[d] || 0, n);
     const sh = new Map(); for (const r of [...(other.shadow || []), ...(pick.shadow || [])]) { const o = sh.get(r.id); sh.set(r.id, !o || (r.done && !o.done) || ((r.a || []).length > (o.a || []).length) ? r : o); }
     const shadow = [...sh.values()].sort((x, y) => x.t - y.t || (x.id < y.id ? -1 : 1)).slice(-SHADOW_MAX);
@@ -507,6 +520,7 @@ const LE2 = (() => {
     if (cut <= 0) return false;
     while (cut < log.length && evT(log[cut]) === evT(log[cut - 1])) cut++;
     const folded = log.slice(0, cut); const base = replay(folded, cat, pol, le.base);
+    const fw = { ...(le.fw || {}) }; for (const e of folded) { const d = Array.isArray(e) ? e[1] : e.dev, q = Array.isArray(e) ? e[2] : e.seq; fw[d] = Math.max(fw[d] || 0, q); } le.fw = fw;
     le.base = base; le.t0 = evT(folded[folded.length - 1]); le.folded = (le.folded || 0) + folded.length; le.log = log.slice(cut);
     return true;
   }

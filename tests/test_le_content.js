@@ -36,6 +36,9 @@ setTimeout(() => {
     ok(RECALL.convert({ type: 'choicetext', text: 'Vad betyder blå färg på en karta?', choices: ['Vatten', 'Skog', 'Åker', 'Berg'], answer: 0 }) !== null, 'enkel faktafråga görs om');
     const tq = RECALL.convert({ type: 'choicetext', text: 'Vilken karta visar landskapet som det ser ut?', choices: ['Topografisk karta', 'Tematisk karta', 'Sjökort', 'Jordglob'], answer: 0 });
     ok(tq && RECALL.check(tq, 'topografisk').status === 'correct' && RECALL.check(tq, 'topografsk').status === 'correct' && RECALL.check(tq, 'tematisk').status === 'wrong' && RECALL.check(tq, 'karta').status === 'wrong', 'kärnord: "topografisk" räcker, "karta" eller felalternativets kärnord gör det inte');
+    // Granskning M5: svar med alternativ görs inte om; tal måste vara hela svaret
+    ok(RECALL.convert({ type: 'choicetext', text: 'Vad är det kemiska namnet på vanligt koksalt?', choices: ['Natriumklorid, NaCl', 'Kaliumklorid', 'Natriumkarbonat'], answer: 0 }) === null, 'M5: "Natriumklorid, NaCl" görs inte om till eget svar');
+    { const nq = RECALL.convert({ type: 'choicetext', text: 'Hur många ytor har en kub?', choices: ['6', '8', '4', '12'], answer: 0 }); ok(nq && RECALL.check(nq, '6').status === 'correct' && RECALL.check(nq, '6 eller 8').status === 'wrong' && RECALL.check(nq, '6/10').status === 'wrong' && RECALL.check(nq, ' 6 ').status === 'correct', 'M5: "6 eller 8" och "6/10" är fel, "6" är rätt'); }
     // 3E: uppgifts-id innehåller rätt svar → samma frågetext med olika svar ger olika id
     ok(LECAT.itemId({ type: 'choicetext', text: 'Vilket ord är rätt stavat?', choices: ['hoppa', 'hopa'], answer: 0 }) !== LECAT.itemId({ type: 'choicetext', text: 'Vilket ord är rätt stavat?', choices: ['kasta', 'kassta'], answer: 0 }), 'uppgifts-id skiljer på olika rätta svar');
     /* ---------- 2. CHG ---------- */
@@ -91,12 +94,18 @@ setTimeout(() => {
     T.click(T.$('[data-kid="k8"]')); PA.V2.start(k8, 'kor'); const S = PA.S; const C = S.v2.C;
     const chSkills = ['forenkla', 'ekvation', 'multin', 'kemi_syror', 'talfoljd', 'problemekv'].filter(id => k8.skills.some(s => s.id === id));
     const before = JSON.stringify(chSkills.map(id => { const c = C.L.c['s:' + id]; return c ? [c.st, c.lvl, c.due, c.fb] : null; }));
+    const v1Before = JSON.stringify(chSkills.map(id => p.skills[id] || null)); const v1Fb = (p.mistakes || []).length;
     S.queue.length = 0; S.i = 0; S.v2.R.queue = chSkills.flatMap(id => [0, 1].map(() => ({ cid: 's:' + id, role: 'challenge', mode: 'challenge', why: 'fördjupning' }))); S.v2.R.i = 0; S.v2.R.maxItems = 99;
     PA.V2.advance(); PA.rerender(); const D = v2tools(w, T); D.run(false, 40);
     const chEv = p.le.log.filter(e => e[14] === 'c'); ok(chEv.length === chSkills.length * 2, `utmaningar spelade i appen: ${chEv.length}`);
     ok(chEv.every(e => e[4] === 1), 'alla utmaningar klarade med rätt svar via gränssnittet (spot/kombinera/skapa/ekvation/ordna/falskt)');
     const after = JSON.stringify(chSkills.map(id => { const c = PA.LE.state(k8).L.c['s:' + id]; return c ? [c.st, c.lvl, c.due, c.fb] : null; }));
     ok(before === after, 'utmaningar ändrar inte stadium, nivå, förfallodag eller Felbok');
+    ok(JSON.stringify(chSkills.map(id => p.skills[id] || null)) === v1Before && (p.mistakes || []).length === v1Fb, 'M6: utmaningar ändrar inte heller v1:s mastery, nivå eller v1-Felboken (rollback)');
+    // M6: en MISSLYCKAD utmaning rör inte v1 heller
+    { PA.V2.start(k8, 'kor'); const S2 = PA.S; S2.queue.length = 0; S2.i = 0; S2.v2.R.queue = [{ cid: 's:forenkla', role: 'challenge', mode: 'challenge', why: 'fördjupning' }]; S2.v2.R.i = 0; PA.V2.advance(); PA.rerender();
+      const sk0 = JSON.stringify(p.skills.forenkla || null), mi0 = (p.mistakes || []).length; v2tools(w, T).run(true, 3);
+      ok(JSON.stringify(p.skills.forenkla || null) === sk0 && (p.mistakes || []).length === mi0, 'M6: misslyckad utmaning sänker inte v1-mastery och hamnar inte i v1-Felboken'); }
     ok(p.le.rw && p.le.rw.filter(k => k.startsWith('CH:')).length === 1, 'CHALLENGE-belöning högst en gång per pass');
     ok(PA.LE.errors.length === 0, 'inga fel: ' + JSON.stringify(PA.LE.errors));
   } catch (e) { fails++; console.log('EXC', e.stack); }

@@ -89,7 +89,7 @@ const V2 = {
       const e = p.exams.find(x => x.id === extra.examId); if (!e) return [];
       const cids = (e.skillIds || []).map(LECAT.skillCid).filter(cid => cat[cid]); const per = cids.length <= 4 ? 2 : 1; const plan = [];
       for (let r = 0; r < per; r++) for (const cid of cids) plan.push({ cid, role: 'testa', why: 'Testa mig' });
-      for (const id2 of (e.deckIds || [])) { const d = deckById(p, id2); if (d && !d.noSpell && cat[LECAT.deckCid(id2)]) plan.push({ cid: LECAT.deckCid(id2), role: 'testa', why: 'Testa mig' }); }
+      for (const id2 of (e.deckIds || [])) { const d = deckById(p, id2); if (d && !d.noSpell && cat[LECAT.deckCid(id2)]) for (let r = 0; r < Math.min(4, d.words.length); r++) plan.push({ cid: LECAT.deckCid(id2), role: 'testa', why: 'Testa mig' }); }   // granskning M3: ett glosförhör = flera ord
       const out = plan.slice(0, 12); out.maxItems = out.length; return out;
     }
     if (mode === 'readclose') { const cid = LECAT.skillCid(extra.skillId); const plan = [0, 1, 2].map(() => ({ cid, role: 'readclose', why: 'läst, stängt – minns du?' })); plan.maxItems = 3; return plan; }
@@ -126,7 +126,8 @@ const V2 = {
   },
   pickItem(kid, skill, lvl, avoid, gen) {
     let q = null;
-    for (let j = 0; j < 20; j++) { q = gen(); if (!avoid.has(LECAT.itemId(q))) break; }   // små faktabanker: fler försök innan en tidigare uppgift används igen
+    let fresh = false; for (let j = 0; j < 20; j++) { q = gen(); if (!avoid.has(LECAT.itemId(q))) { fresh = true; break; } }   // små faktabanker: fler försök innan en tidigare uppgift används igen
+    if (!fresh && q) q = { ...q, onlyVariant: true };   // granskning L7: banken har inget annat – Felboken får verifiera med samma fråga efter några dygn
     return q;
   },
   materialize(spec) {
@@ -136,8 +137,9 @@ const V2 = {
       const now = Date.now(); const byDue = d.words.filter(w => p.words[w.id] && p.words[w.id].due <= now && !V.seen.has(w.id)).sort((a, b) => p.words[a.id].due - p.words[b.id].due);
       const fresh = d.words.filter(w => !p.words[w.id] && !V.seen.has(w.id)); const known = d.words.filter(w => p.words[w.id] && !V.seen.has(w.id));
       const w = V.exam ? R.pick(d.words) : byDue[0] || fresh[0] || (known.length ? R.pick(known) : R.pick(d.words)); V.seen.add(w.id);
-      const box = wordState(p, w.id).box; const kind = V.exam ? 'type' : d.noSpell || box < 2 ? (d.lang === 'sv' ? 'pickRev' : 'pick') : 'type';
-      const out = []; if (!V.exam && !p.words[w.id]) out.push({ kind: 'intro', deck: d, word: w, title: 'Nytt ord', cat: 'word', spec });
+      const isNewWord = !p.words[w.id];   // granskning M7: kontrollera FÖRE wordState (som skapar posten)
+      const box = isNewWord ? 0 : wordState(p, w.id).box; const kind = V.exam ? 'type' : d.noSpell || box < 2 ? (d.lang === 'sv' ? 'pickRev' : 'pick') : 'type';
+      const out = []; if (!V.exam && isNewWord) out.push({ kind: 'intro', deck: d, word: w, title: 'Nytt ord', cat: 'word', spec });
       out.push({ ...makeWordExercise(d, w, kind), deck: d, cat: 'word', spec, _slotEnd: true }); return out;
     }
     const skill = V2.skillOf(kid, spec.cid); if (!skill) return [];
@@ -176,7 +178,7 @@ const V2 = {
     if (!item || !item.spec || S.v2.exam) return '';
     const s = item.spec; const key = item.cat === 'learn' ? (s.role === 'rescue' ? 'rescue' : 'teach') : s.mode === 'challenge' ? 'challenge' : s.role;
     const [txt, ic] = V2.ROLE_CHIP[key] || ['', '']; if (!txt) return '';
-    return `<div class="row" style="justify-content:center"><span class="pill acc" style="font-weight:800;letter-spacing:.04em">${ic} ${txt}</span></div>`;
+    return `<div class="row" style="justify-content:center"><span class="pill acc" style="font-weight:800;letter-spacing:.04em"><span aria-hidden="true">${ic}</span> ${txt}</span></div>`;
   },
   teachBody(item) {
     const ex = item.ex; const rescue = item.spec.role === 'rescue'; const s = item.skill;
@@ -186,12 +188,16 @@ const V2 = {
       <button class="btn big wide" data-v2="teachok">${rescue ? 'Nu provar vi tillsammans →' : 'Jag är redo – nu provar jag →'}</button>`;
   },
   afterRender(item) {
+    const fb0 = document.getElementById('fb'); if (fb0) { fb0.setAttribute('aria-live', 'polite'); fb0.setAttribute('role', 'status'); }   // granskning L13
+    if (item && item.cat === 'learn') { setTimeout(() => document.querySelector('[data-v2="teachok"]')?.focus({ preventScroll: true }), 50); return; }
     if (!item || item.cat !== 'math' || !item.spec || S.v2.exam) return;
     const h = item.spec.help; const fb = document.getElementById('fb'); if (!fb) return;
     if (h === 'rescue') { fb.innerHTML = `<div class="hint">🤝 Vi gör den tillsammans. ${item.hint ? safeHtml(item.hint) : ''}${item.steps && item.steps[0] ? `<br><b>Första steget:</b> ${safeHtml(item.steps[0])}` : ''}</div>`; document.getElementById('hintBtn')?.remove(); }
     else if (h === 'hint' && item.hint) { fb.innerHTML = `<div class="hint">💡 ${safeHtml(item.hint)}</div>`; document.getElementById('hintBtn')?.remove(); }
   },
   teachDone() { const item = S.queue[S.i]; if (!item || item.cat !== 'learn') return; LER.answered(S.v2.R, S.v2.C.L, item.spec, true); S.results.push(null); nextQuestion(); },
+  // Granskning M6: Utmaningen ger XP men ändrar aldrig v1:s mastery/nivå eller v1-Felboken (som rollback bygger på)
+  challengeXp(correct) { const p = prof(S.kid.id); const xp = correct ? 14 : 2; p.xp += xp; bumpDay(p, correct, xp); if (correct) questEvent(p, 'correct', { skillId: null }); save(); return xp; },
   check(q, raw) { return q.v2check === 'recall' ? RECALL.check(q, raw) : q.v2check === 'create' ? CHG.check(q, raw) : checkAnswer(q, raw); },
   /* ---------- Svar → bevis ---------- */
   kindOf(q) { return q.type === 'choicetext' || q.choices ? 'mc' : q.type === 'order' ? 'order' : q.type === 'open' ? 'open' : 'free'; },
@@ -202,8 +208,8 @@ const V2 = {
       const help = V.exam ? 'none' : spec.help === 'rescue' ? 'rescue' : S.revealed ? 'solution' : (S.usedHelp || spec.help === 'hint') ? 'hint' : 'none';
       const dev = LE.dev(); const seq = ((p.le.seqs || {})[dev] || 0) + 1; p.le.seqs = { ...(p.le.seqs || {}), [dev]: seq };
       const ev = { t: V.start + 1000 * (++V.k), dev, seq, cid: spec.cid, ok: !!correct, kind, k: kind === 'mc' ? ((q.choices || []).length || 3) : 0, help, ctx: spec.ctx || 'first', item: V2.iid(q), fast, sess: V.id, lvl: q.level || spec.lvl || 1, restart: V.restart,
-        role: spec.code || undefined, stretch: !!spec.stretch, mode: spec.mode === 'challenge' ? 'challenge' : V.exam ? 'testa' : V.mode === 'readclose' ? 'readclose' : undefined };
-      p.le.log.push(LE2.encodeEv(ev)); const res = LE2.apply(C.L, C.cat, ev, C.pol); C.n = p.le.log.length;
+        role: spec.code || undefined, stretch: !!spec.stretch, onlyVariant: !!q.onlyVariant, mode: spec.mode === 'challenge' ? 'challenge' : V.exam ? 'testa' : V.mode === 'readclose' ? 'readclose' : undefined };
+      const last = C.L.clock.last || 0; p.le.log.push(LE2.encodeEv(ev)); const res = LE2.apply(C.L, C.cat, ev, C.pol); C.n = p.le.log.length; LE.rebuildIfLate(p, C, ev.t, last);
       if (res.diff && res.diff.after && res.diff.after.st > res.diff.before.st) V.stageUps.add(spec.cid);
       // Förklaring för föräldern (bara i minnet, sparas aldrig): vad ändrades och varför
       (V2.lastReasons[kid.id] = V2.lastReasons[kid.id] || []).push({ cid: spec.cid, ok: !!correct, role: spec.role, reasons: (res.reasons || []).slice(0, 3) }); if (V2.lastReasons[kid.id].length > 30) V2.lastReasons[kid.id].shift();
@@ -220,7 +226,7 @@ const V2 = {
   grant(p, list, cid) {
     const V = S.v2; const day = LE2.dayIdx(V.start); const out = [];
     for (const rw of list) {
-      const key = rw === 'REMEMBERED' ? `REM:${day}:${cid}` : rw === 'COMEBACK' ? `CB:${day}:${cid}` : rw === 'CHALLENGE' ? `CH:${day}` : rw === 'MASTERY' ? `MA:${cid}` : rw === 'FOCUS' ? `FO:${day}` : rw === 'CONSISTENCY' ? `CO:${LE2.dayIdx(new Date(weekKey() + 'T12:00:00').getTime())}` : null;
+      const key = rw === 'REMEMBERED' ? `REM:${day}:${cid}` : rw === 'COMEBACK' ? `CB:${day}:${cid}` : rw === 'CHALLENGE' ? `CH:${day}` : rw === 'MASTERY' ? `MA:${cid}` : rw === 'FOCUS' ? `FO:${day}` : rw === 'CONSISTENCY' ? `CO:${7 * Math.floor((day + 3) / 7) - 3}` : null;   // måndagen i passets vecka (dygn räknat från 1970-01-01, en torsdag)
       if (!key || !LE2.rewardOnce(p.le, key)) continue;
       const a = LE2.CFG.reward[rw] || {}; if (a.xp) { p.xp += a.xp; S.xp += a.xp; } if (a.gems) p.gems += a.gems;
       out.push({ k: rw, xp: a.xp || 0, gems: a.gems || 0 });
@@ -243,7 +249,7 @@ const V2 = {
   finish() {
     const V = S.v2; const kid = S.kid; const p = prof(kid.id); const C = V.C; const sum = LER.summary(V.R);
     V2.safe(() => {
-      p.sessions++; if (sum.n >= 5 && sum.ok === sum.n) { p.perfect = (p.perfect || 0) + 1; questEvent(p, 'perfect', {}); }
+      p.sessions++; p.sprintsSinceBreak = (p.sprintsSinceBreak || 0) + 1; if (sum.n >= 5 && sum.ok === sum.n) { p.perfect = (p.perfect || 0) + 1; questEvent(p, 'perfect', {}); }
       const focusOk = V.R.log.some(x => x[1] === 'F' && x[2] === 1); const extra = [];
       if (focusOk) extra.push('FOCUS'); if (V2.weekDays(p) >= LE2.CFG.reward.CONSISTENCY.days) extra.push('CONSISTENCY');
       if (!V.exam) V.rewards.push(...V2.grant(p, extra, null));
@@ -309,7 +315,7 @@ const V2 = {
     if (!kid) return;
     // Ett oväntat fel i v2 får aldrig stoppa barnet: logga och kör v1:s Kör! i stället
     const ok = V2.safe(() => { V2.act(a, el, kid); return true; }, 'click:' + a, false);
-    if (!ok) { S = null; state.screen = 'home'; return startSession(kid, recommendSprint(kid).opts); }
+    if (!ok) { S = null; if (a === 'kor' || a === 'extra') { state.screen = 'home'; return startSession(kid, recommendSprint(kid).opts); } toast('Det gick inte att öppna just nu'); return go('home'); }
   },
   act(a, el, kid) {
     if (a === 'kor' || a === 'extra') return V2.start(kid, 'kor');
@@ -365,7 +371,7 @@ const V2 = {
   engineCard(kid) {
     const p = prof(kid.id); const on = p.settings.engine === 'v2'; const ask = state.v2ask === kid.id;
     return `<div class="card stack" style="gap:8px;border:2px solid ${on ? 'var(--good)' : 'var(--line)'}"><div class="eyebrow">Motor för ${esc(kid.name)}</div>
-      <div class="toggle"><div><div class="tl">${on ? 'Learning Engine v2 (test)' : 'v1 (standard)'}</div><div class="td">${on ? 'Smart Kör!, Felboken 2.0, Testa mig och Rescue. v1:s data uppdateras samtidigt – du kan byta tillbaka när som helst.' : 'Barnet får v1 som förut. v2 räknar i skuggläge.'}</div></div><div class="seg"><button class="${on ? '' : 'on'}" data-v2="engine" data-val="v1">v1</button><button class="${on ? 'on' : ''}" data-v2="engineAsk" data-val="v2">v2</button></div></div>
+      <div class="toggle"><div><div class="tl">${on ? 'Learning Engine v2 (test)' : 'v1 (standard)'}</div><div class="td">${on ? 'Smart Kör!, Felboken 2.0, Testa mig och Rescue. v1:s data uppdateras samtidigt – du kan byta tillbaka när som helst.' : 'Barnet får v1 som förut. v2 räknar i skuggläge.'}</div></div><div class="seg" role="group" aria-label="Motor"><button class="${on ? '' : 'on'}" aria-pressed="${!on}" data-v2="engine" data-val="v1">v1</button><button class="${on ? 'on' : ''}" aria-pressed="${on}" data-v2="engineAsk" data-val="v2">v2</button></div></div>
       ${ask && !on ? `<div class="feedback warn"><span>⚠️</span><div><div class="big">Slå på v2 för ${esc(kid.name)}?</div><div class="sub">Gäller bara ${esc(kid.name)}, på alla enheter efter synk. v1 finns kvar och kan väljas igen direkt.</div><div class="row" style="margin-top:8px;gap:8px"><button class="btn" data-v2="engine" data-val="v2">Ja, slå på v2</button><button class="btn ghost" data-v2="engine" data-val="cancel">Avbryt</button></div></div></div>` : ''}
       <button class="btn ghost" data-v2="preview">👀 Förhandsvisa v2 som ${esc(kid.name)} (ändrar ingenting)</button>
     </div>`;
@@ -373,17 +379,18 @@ const V2 = {
   parentClick(a, el) {
     const kid = kidById(state.tab); if (!kid) return;
     if (a === 'engineAsk') { state.v2ask = kid.id; return VIEWS.parent(); }
-    if (a === 'engine') { const v = el.dataset.val; state.v2ask = null; if (v === 'v2' || v === 'v1') { const p = prof(kid.id); if (v === 'v2') p.settings.engine = 'v2'; else delete p.settings.engine; LE.invalidate(kid.id); save(); toast(v === 'v2' ? `v2 på för ${kid.name}` : `${kid.name} kör v1`); } return VIEWS.parent(); }
+    if (a === 'engine') { const v = el.dataset.val; state.v2ask = null; if (v === 'v2' || v === 'v1') { const p = prof(kid.id); p.settings.engine = v; p.settings.engineAt = Date.now(); LE.invalidate(kid.id); save(); toast(v === 'v2' ? `v2 på för ${kid.name}` : `${kid.name} kör v1`); } return VIEWS.parent(); }
     if (a === 'preview') return V2.startPreview(kid);
   },
   // Förälderns förhandsvisning: hela barnflödet med v2 på en kopia. Inget sparas, inget synkas; allt återställs när den avslutas.
   startPreview(kid) {
+    flushSave(); if (typeof SYNC !== 'undefined' && SYNC.pending) SYNC.pending.delete(kid.id);   // granskning H2: riktiga läget sparat, ingen väntande uppladdning
     V2.sandbox = { kidId: kid.id, snap: JSON.stringify(DB.profiles[kid.id]), tab: state.tab };
     LE.invalidate(kid.id); state.kid = kid.id; go('home');
   },
   restoreSandbox() {
     const sb = V2.sandbox; if (!sb) return null; V2.sandbox = null; if (S && S.timer) clearInterval(S.timer); S = null;
-    DB.profiles[sb.kidId] = JSON.parse(sb.snap); LE.invalidate(sb.kidId); state.tab = sb.tab; return sb;
+    DB.profiles[sb.kidId] = JSON.parse(sb.snap); LE.invalidate(sb.kidId); delete V2.lastReasons[sb.kidId]; state.tab = sb.tab; return sb;
   },
   endPreview() { const sb = V2.restoreSandbox(); state.kid = null; if (sb) state.tab = sb.tab; go(sb ? 'parent' : 'start'); },
   previewBar() { return V2.sandbox ? `<div class="card row" style="gap:8px;background:var(--warn-soft,#fff3d6);border:2px solid var(--warn)"><div class="grow" style="font-size:.9rem"><b>Förhandsvisning av v2</b> – inget sparas.</div><button class="btn ghost" data-v2="endPreview" style="min-height:36px">Avsluta</button></div>` : ''; },

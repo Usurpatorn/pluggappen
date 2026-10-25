@@ -21,6 +21,9 @@ const RECALL = (() => {
     if (!q || q.type !== 'choicetext' || !Array.isArray(q.choices) || typeof q.answer !== 'number') return null;
     const correct = q.choices[q.answer]; if (typeof correct !== 'string') return null;
     if (NEEDS_OPTIONS.test(strip(q.text))) return null;
+    // Granskning M5: svar med alternativ eller förklaring ("Natriumklorid, NaCl", "x (y)", "a/b", "a eller b") görs inte om –
+    // annars krävdes alla delar och ett rätt svar ("natriumklorid") underkändes.
+    if (/[,(/;]|\beller\b/i.test(correct)) return null;
     const c = norm(correct); const words = c.split(' ');
     if (!c || c.length > 28 || words.length > 3) return null;
     const numeric = /^-?\d+([.,]\d+)?$/.test(c);
@@ -37,7 +40,7 @@ const RECALL = (() => {
   function check(q, raw) {
     const s = norm(raw); if (!s) return { status: 'empty' };
     const A = q.accept; if (!A) return { status: s === norm(q.display) ? 'correct' : 'wrong' };
-    if (A.numeric) { const n = parseFloat(s.replace(',', '.')); return Number.isFinite(n) ? { status: Math.abs(n - parseFloat(A.c.replace(',', '.'))) < 1e-9 ? 'correct' : 'wrong' } : { status: 'invalid', msg: 'Skriv ett tal.' }; }
+    if (A.numeric) { const t = s.replace(/\s+/g, ''); if (!/^-?\d+([.,]\d+)?$/.test(t)) return /\d/.test(t) ? { status: 'wrong' } : { status: 'invalid', msg: 'Skriv ett tal.' }; return { status: Math.abs(parseFloat(t.replace(',', '.')) - parseFloat(A.c.replace(',', '.'))) < 1e-9 ? 'correct' : 'wrong' }; }   // granskning M5: hela svaret måste vara ett tal ("7 eller 14" är fel)
     if (s === A.c) return { status: 'correct' };
     const d0 = lev(s, A.c); const dMin = Math.min(Infinity, ...A.distract.map(d => lev(s, d)));
     if (d0 <= tolOf(A.c) && d0 < dMin) return { status: 'correct', note: `Rätt stavat: <b>${q.display.replace(/[<>&]/g, '')}</b>` };

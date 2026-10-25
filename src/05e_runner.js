@@ -73,6 +73,8 @@ const LER = (() => {
       if (trig === 'ease') {
         R.eased = true;
         const strong = Object.entries(L.c).filter(([id, c]) => c.st >= 2 && R.cat[id] && R.cat[id].kind !== 'deck' && !(R.byC[id] && R.byC[id].fails)).sort((a, b) => b[1].st - a[1].st || (a[0] < b[0] ? -1 : 1)).slice(0, 2);
+        // Granskning L6 (prövat, förkastat): att räkna de lättare uppgifterna som upprepning sänkte hållbarheten kraftigt i simuleringen (H −8 p).
+        // De är äkta hämtningar av redan säkra koncept; stadiet höjs ändå bara efter fördröjning, så medvetna fel ger ingen genväg.
         R.queue.splice(R.i + 1, 0, ...strong.map(([id]) => ({ cid: id, role: 'easy', why: 'lättare läge – bygga självförtroende', lvlDelta: -1 })));
         out.push({ type: 'ease' });
       } else if (trig === 'rescue') {

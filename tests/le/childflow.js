@@ -4,9 +4,9 @@ const { JSDOM } = require('jsdom'); const fs = require('fs'); const path = requi
 const FIX = require('../test_fixture_family.json');
 function rng(seed) { let a = seed >>> 0; return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 const T_FIXED = Date.UTC(2026, 9, 25, 15, 0, 0);
-function mkWin({ seed = 0, fixedClock = false, storage = null, file } = {}) {
+function mkWin({ seed = 0, fixedClock = false, storage = null, file, url = 'https://example.org/' } = {}) {
   const html = fs.readFileSync(file || path.join(__dirname, '../../dist/pluggappen.html'), 'utf8');
-  const dom = new JSDOM(`<!doctype html><html><head><meta charset="utf-8"></head><body>${html}</body></html>`, { runScripts: 'dangerously', pretendToBeVisual: true, url: 'https://example.org/', beforeParse(win) {
+  const dom = new JSDOM(`<!doctype html><html><head><meta charset="utf-8"></head><body>${html}</body></html>`, { runScripts: 'dangerously', pretendToBeVisual: true, url, beforeParse(win) {
     win.scrollTo = () => {}; win.matchMedia = () => ({ matches: false, addEventListener() {} }); win.HTMLCanvasElement.prototype.getContext = () => null;
     if (seed) win.Math.random = rng(seed);
     if (fixedClock) { const RD = win.Date; let now = T_FIXED; class FD extends RD { constructor(...a) { if (a.length) super(...a); else super(now); } static now() { return now; } } win.Date = FD; win.__advance = (ms) => { now += ms; }; }

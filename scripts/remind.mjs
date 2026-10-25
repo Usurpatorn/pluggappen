@@ -54,7 +54,8 @@ for (const s of subs) {
   } else {
     const p = profiles[s.kid]; const name = KIDS[s.kid] || s.kid;
     if (slot === 'afternoon' && dow >= 1 && dow <= 5 && !goalDone(p)) msgs.push({ title: `Dags för din sprint, ${name}!`, body: p && p.streak ? `Du har ${p.streak} dagar i rad. Fem uppgifter räcker för idag.` : 'Fem snabba uppgifter så är dagens mål på väg.', tag: 'daily', url: `./#${s.kid}-kor` });
-    if (slot === 'evening' && !practicedToday(p) && p && p.streak > 0) msgs.push({ title: `Streaken går ut ikväll`, body: `${p.streak} dagar i rad – en kort sprint räddar den.`, tag: 'streak', url: `./#${s.kid}-kor` });
+    // v2-barn: ingen streak-förlust-påminnelse (inga skuldbudskap, granskning L11)
+    if (slot === 'evening' && !practicedToday(p) && p && p.streak > 0 && !(p.settings && p.settings.engine === 'v2')) msgs.push({ title: `Streaken går ut ikväll`, body: `${p.streak} dagar i rad – en kort sprint räddar den.`, tag: 'streak', url: `./#${s.kid}-kor` });
   }
   for (const m of msgs) {
     try { await webpush.sendNotification(s.sub, JSON.stringify(m), { TTL: 3600 * 6 }); sent++; say('skickade till', s.kid, m.tag); }

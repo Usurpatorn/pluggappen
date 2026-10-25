@@ -17,7 +17,7 @@ function family(T) { T.PA().FAMILY.apply(FIX); T.PA().load(); T.PA().rerender();
 function goHome(T) { for (let i = 0; i < 3 && !T.$('[data-subj]'); i++) { const b = T.$('[data-go="home"]'); if (!b) break; T.click(b); } }
 function openKid(T, id) { const { $, click } = T; toStart(T); click($(`[data-kid="${id}"]`)); if ($('[data-pet]')) click($('[data-pet]')); }
 
-setTimeout(() => {
+setTimeout(async () => {
   try {
     const { w, T } = boot(Number(process.env.SEED) || 777); const { $, click, PA } = T; family(T);
     const D = v2tools(w, T);
@@ -116,18 +116,24 @@ setTimeout(() => {
       const ma = rw.filter(k => k.startsWith('MA:')); ok(ma.length === new Set(ma).size, 'MASTERY högst en gång per koncept'); }
     unlockParent(w, T); click($('[data-tab="k8"]')); click($('[data-sub="v2"]'));
     /* ---------- 10. Rollback till v1 ---------- */
-    const k8v1skills = JSON.stringify(k8.skills); click($('[data-v2="engine"][data-val="v1"]')); ok(!PA().DB.profiles.k8.settings.engine, 'rollback: tillbaka till v1 med ett tryck');
+    const k8v1skills = JSON.stringify(k8.skills); click($('[data-v2="engine"][data-val="v1"]')); ok(PA().DB.profiles.k8.settings.engine === 'v1' && PA().DB.profiles.k8.settings.engineAt > 0, 'rollback: tillbaka till v1 med ett tryck (sparas som v1 + tidsstämpel, så synk inte kan slå på v2 igen)');
     openKid(T, 'k8'); ok($('[data-rec]') && !$('[data-v2="kor"]') && /frys/.test(txt(T)), 'rollback: v1-startsidan igen');
     ok(JSON.stringify(PA().DB.profiles.k8.skills) === k8v1skills && Object.values(PA().DB.profiles.k8.skills).some(s => s.att > 0), 'rollback: v1-data finns kvar och innehåller v2-passens övning');
     ok(PA().DB.profiles.k8.le.log.length === k8.le.log.length, 'rollback: v2-bevisen finns kvar (kan slås på igen)');
     click($('[data-rec]')); T.run(); ok(PA().LE.errors.length === 0, 'rollback: v1-pass fungerar med v2-data kvar');
     /* ---------- 11. Förhandsvisning (k2, v1) – ändrar ingenting ---------- */
     unlockParent(w, T); click($('[data-tab="k2"]')); click($('[data-sub="v2"]'));
-    const snapK2 = JSON.stringify(PA().DB.profiles.k2); const lsBefore = w.localStorage.getItem('pluggappen.v1');
+    PA().flushSave(); const snapK2 = JSON.stringify(PA().DB.profiles.k2); const lsBefore = w.localStorage.getItem('pluggappen.v1');
     click($('[data-v2="preview"]')); if ($('[data-pet]')) click($('[data-pet]')); ok(/Förhandsvisning av v2/.test(txt(T)) && $('[data-v2="kor"]'), 'förhandsvisning: v2-startsida med tydlig banner');
     click($('[data-v2="kor"]')); D.run(false); ok(/Bra jobbat/.test(txt(T)) && /Förhandsvisning/.test(txt(T)), 'förhandsvisning: helt pass går att köra');
+    // Granskning H2: en synk av ETT ANNAT barn (som skriver hela DB till lagringen) eller en direkt flushSave under förhandsvisningen får inte läcka den
+    PA().flushSave(); { const ls = JSON.parse(w.localStorage.getItem('pluggappen.v1')); ok(JSON.stringify(ls.profiles.k2) === snapK2, 'förhandsvisning + flushSave: lagringen har barnets riktiga profil'); }
+    { const realPull = PA().SYNC.pull; const k8c = JSON.parse(JSON.stringify(PA().DB.profiles.k8)); k8c.xp += 1; PA().SYNC.pull = async () => ({ profile: k8c, updatedAt: Date.now() + 5000 });
+      await PA().SYNC.refresh('k8'); PA().SYNC.pull = realPull; const ls = JSON.parse(w.localStorage.getItem('pluggappen.v1'));
+      ok(JSON.stringify(ls.profiles.k2) === snapK2 && ls.profiles.k8.syncedAt > 0, 'förhandsvisning + synk av ett annat barn: lagringen har barnets riktiga profil (omladdning mitt i förhandsvisningen läcker inget)'); }
+    ok(PA().LE.dev().endsWith('~p'), 'förhandsvisningen använder ett eget enhets-id (inga löpnummerkrockar)');
     click($('[data-v2="endPreview"]')); ok(JSON.stringify(PA().DB.profiles.k2) === snapK2, 'förhandsvisning: barnets data exakt som före');
-    ok(w.localStorage.getItem('pluggappen.v1') === lsBefore, 'förhandsvisning: inget sparat i lagringen');
+    ok(JSON.stringify(JSON.parse(w.localStorage.getItem('pluggappen.v1')).profiles.k2) === JSON.stringify(JSON.parse(lsBefore).profiles.k2), 'förhandsvisning: inget av förhandsvisningen sparat i lagringen');
     ok(!PA().DB.profiles.k2.settings.engine && !PA().V2.sandbox, 'förhandsvisning: avslutad, k2 kör fortfarande v1');
     /* ---------- 11b. Säkerhetsnät ---------- */
     { const p4 = PA().DB.profiles.k4; const errs0 = PA().LE.errors.length;
@@ -144,6 +150,22 @@ setTimeout(() => {
       const realLe = p4.le; p4.le = { v: 3, future: true }; PA().LE.invalidate('k4'); openKid(T, 'k4');
       ok($('[data-rec]') && !$('[data-v2="kor"]'), 'okänd le-version: barnet får v1'); click($('[data-rec]')); T.run(); goHome(T);
       ok(p4.le.v === 3 && p4.le.future === true, 'okänd le-version lämnas orörd'); p4.le = realLe; PA().LE.invalidate('k4'); PA().LE.errors.length = errs0; }
+    /* ---------- 11c. Granskningens fynd: synk av motorval, Testa mig-glosor, nya ord ---------- */
+    { const mp = PA().mergeProfiles; const base = JSON.parse(JSON.stringify(PA().DB.profiles.k4)); base.kidId = 'k4';
+      const child = { ...base, settings: { ...base.settings, engine: 'v2', engineAt: 1000 } }, parent = { ...base, settings: { ...base.settings, engine: 'v1', engineAt: 2000 } };
+      ok(mp(child, parent).settings.engine === 'v1' && mp(parent, child).settings.engine === 'v1', 'H1: förälderns senare "v1" vinner över en barnenhets osynkade "v2" (båda riktningar)');
+      const pol1 = { ...base, settings: { ...base.settings, lePolicy: 'older', lePolicyAt: 3000 } }, pol2 = { ...base, settings: { ...base.settings, lePolicy: 'auto', lePolicyAt: 4000 } };
+      ok(mp(pol1, pol2).settings.lePolicy === 'auto' && mp(pol2, pol1).settings.lePolicy === 'auto', 'H1: policyöverstyrning följer senaste ändringen');
+      const legacy = { ...base, settings: { ...base.settings } }; delete legacy.settings.engine; ok(mp(legacy, parent).settings.engine === 'v1' && mp({ ...base, settings: { ...base.settings, engine: 'v2' } }, legacy).settings.engine === 'v2', 'H1: utan tidsstämpel gäller tidigare regel (lokalt vinner)'); }
+    { // M3: glosförhör i Testa mig = flera ord, utan ledtrådsknapp, utan omedelbar återkoppling
+      openKid(T, 'k4'); const tb = $('[data-v2="testa"]'); if (tb) { click(tb); const S0 = PA().S; const words = S0.v2.plan.filter(x => x.cid.startsWith('d:')).length;
+        ok(words >= 3, `M3: glosförhöret i Testa mig har flera ord (${words})`); let hint = 0, n = 0;
+        while (PA().S && PA().S.v2 && $('#qcard') && n++ < 20) { if ($('#hintBtn')) hint++; D.answer(n % 2 === 0); }
+        ok(hint === 0 && D.log.feedbackInExam === 0, 'M3: ingen ledtråd och ingen återkoppling under Testa mig (även glosor)'); goHome(T); } }
+    { // M7: ett nytt ord introduceras med ett intro-kort innan det övas
+      openKid(T, 'k4'); click($('[data-v2="kor"]') || $('[data-v2="extra"]')); const S1 = PA().S; const p4 = PA().DB.profiles.k4; const dk = Object.keys(S1.v2.C.cat).find(c => c.startsWith('d:') && (PA().V2.deckOf(p4, c) || { words: [] }).words.some(w => !p4.words[w.id]));
+      if (dk) { const items = PA().V2.materialize({ cid: dk, kind: 'deck', role: 'focus' }); ok(items.length === 2 && items[0].kind === 'intro' && items[1]._slotEnd, 'M7: nytt ord → intro-kort + övning'); } else ok(false, 'M7: inget deck med nya ord att testa');
+      D.run(false); goHome(T); }
     /* ---------- 12. Inga fria svarstexter, ingen svarstid ---------- */
     const allLe = JSON.stringify(['k2', 'k4', 'k8'].map(id => PA().DB.profiles[id].le));
     ok(!/zzqx|987654|vet inte/.test(allLe), 'inga fria svarstexter i le');
@@ -166,13 +188,19 @@ function flushAndReload(w0, T0, D0) {
       openKid(T, 'k4'); ok(midRescue && $('[data-v2="kor"]') && PB().LE.errors.length === 0, 'omladdning mitt i ett pass (Rescue): startsidan fungerar');
       const n0 = PB().DB.profiles.k4.le.log.length; click($('[data-v2="kor"]')); D.run(false); ok(/Bra jobbat/.test(T.$('#app').textContent), 'omladdning: nytt pass går att köra');
       ok(PB().DB.profiles.k4.le.log.length > n0, 'omladdning: bevisen från före omladdningen finns kvar och nya läggs till');
-      // fel klocka: enheten går 3 dygn bakåt – motorns tid ska vara monoton och inget fel uppstå
-      const lastT = Math.max(...PB().DB.profiles.k4.le.log.map(e => e[0])); w.__advance(-3 * DAY);
-      click($('[data-go="home"]')); click($('[data-v2="kor"]')); D.run(false);
-      const newEv = PB().DB.profiles.k4.le.log.filter(e => e[0] > lastT); ok(newEv.length > 0 && PB().LE.errors.length === 0, 'klockan bakåt: pass fungerar, bevisens tid fortsätter framåt (monoton)');
-      { const kid = PB().KIDS.find(k => k.id === 'k4'); const le = PB().DB.profiles.k4.le; const C = PB().LE.state(kid); const L2 = PB().LE2;
-        const sorted = L2.replay(L2.mergeLog(le.log, []), C.cat, C.pol, le.base); ok(L2.stable(sorted) === L2.stable(L2.replay(le.log, C.cat, C.pol, le.base)), 'klockan bakåt: loggens ordning = tidsordning (samma tillstånd efter synk-sortering)'); }
-      w.__advance(3 * DAY);
+      // Granskning H3: fel klocka. Live-tillståndet ska alltid vara lika med omspelning i tidsordning (det en omladdning/synk ger).
+      const L2 = PB().LE2; const liveEqReplay = () => { const V = PB().S.v2; const le = PB().DB.profiles.k4.le; return L2.stable(V.C.L.c) === L2.stable(L2.replay(le.log, V.C.cat, V.C.pol, le.base).c); };
+      w.__advance(-3 * DAY); goHome(T); click($('[data-v2="kor"]')); D.run(false);
+      ok(liveEqReplay() && PB().LE.errors.length === 0, 'klockan 3 dygn bakåt: pass fungerar, live-tillstånd = omspelning i tidsordning');
+      w.__advance(3 * DAY + 3600000);
+      // klockan 10 dygn FRAM för ett pass, sedan rätt igen: inga belöningar varje dag efteråt, nästa pass stämplas med riktig tid
+      w.__advance(10 * DAY); goHome(T); click($('[data-v2="kor"]')); D.run(false); w.__advance(-10 * DAY);
+      const futureCids = new Set(PB().DB.profiles.k4.le.shadow.filter(x => x.e === 2).slice(-1)[0].v1);
+      const remBefore = new Set((PB().DB.profiles.k4.le.rw || []).filter(k => k.startsWith('REM:'))); let realOk = true;
+      for (let d = 0; d < 3; d++) { w.__advance(DAY); goHome(T); click($('[data-v2="kor"]') || $('[data-v2="extra"]')); D.run(false); const r = PB().DB.profiles.k4.le.shadow.filter(x => x.e === 2).slice(-1)[0]; if (Math.abs(r.t * 1000 - w.Date.now()) > 7 * 3600000) { realOk = false; console.log("stamp", (r.t * 1000 - w.Date.now()) / 3600000); } if (!liveEqReplay()) { realOk = false; console.log('live≠replay day', d); } }
+      const farmed = (PB().DB.profiles.k4.le.rw || []).filter(k => k.startsWith('REM:') && !remBefore.has(k) && futureCids.has(k.split(':').slice(2).join(':')));
+      ok(realOk, 'efter ett pass med klockan 10 dygn fram: senare pass stämplas med riktig tid och live = omspelning');
+      ok(farmed.length === 0, `efter ett pass med klockan fram: inget "Du kom ihåg!" för koncept från framtidspasset innan den tiden passerats (${farmed.join(', ')})`);
       twoDevices(w, T);
     } catch (e) { fails++; console.log('EXC', e.stack); finish(); }
   }, 50);

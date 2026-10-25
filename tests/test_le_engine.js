@@ -62,7 +62,14 @@ const st = (o) => E.stable(o);
   const seqAll = [...base, ...extraA, ...extraB].sort((x, y) => x.t - y.t || (x.dev < y.dev ? -1 : 1) || x.seq - y.seq); ok(sAB === st(E.replay(seqAll, CAT, pol).c), 'merged == sequential history');
   ok(E.replay(mAB, CAT, pol).c.g1.fb.s === 'open', 'later failure on B wins over earlier resolution on A');
   const L = E.newLE(); E.recordEvidence(L, CAT, 'm1', { ok: true, kind: 'free', help: 'none', ctx: 'first', item: 'a' }, T0, pol, { id: 'x' }); const d1 = L.c.m1.due; E.recordEvidence(L, CAT, 'm1', { ok: true, kind: 'free', help: 'none', ctx: 'first', item: 'b' }, T0 - 30 * DAY, pol, { id: 'y' });
-  ok(L.clock.last === T0 && L.c.m1.due >= d1, 'clock moved back: engine time does not go backwards'); ok(L.c.m1.st === 1, 'clock rollback cannot farm advancement');
+  // Granskning H3: motorn räknar med händelsens egen tid; klockan är ett högvattenmärke. Appen bygger om tillståndet i tidsordning när en händelse kommer i otakt.
+  ok(L.clock.last === T0, 'clock moved back: the high-water mark does not go backwards'); ok(L.c.m1.st === 1, 'clock rollback cannot farm advancement');
+  { const evs = [{ t: T0, dev: 'A', seq: 1, cid: 'm1', ok: true, kind: 'free', help: 'none', ctx: 'first', item: 'a', sess: 's1' }, { t: T0 + 40 * DAY, dev: 'A', seq: 2, cid: 'm1', ok: true, kind: 'free', help: 'none', ctx: 'first', item: 'b', sess: 's2' }];
+    for (let d = 1; d <= 6; d++) evs.push({ t: T0 + d * DAY, dev: 'A', seq: 2 + d, cid: 'm1', ok: true, kind: 'free', help: 'none', ctx: 'first', item: 'c' + d, sess: 's' + (2 + d) });
+    const live = E.newLE(); let rem = 0; for (const e of evs) rem += E.apply(live, CAT, e, pol).rewards.filter(r => r === 'REMEMBERED').length;
+    const replayed = E.replay(evs, CAT, pol);
+    ok(rem <= 2, `one session with the clock 40 days ahead cannot farm REMEMBERED on later real days (${rem})`);
+    ok(st(E.replay(evs.slice().reverse(), CAT, pol).c) === st(replayed.c), 'replay is order-independent (always in time order)'); }
   console.log('A5. synk: kommutativ, idempotent, = sekventiell historik, klockskydd'); }
 { // A6 (anpassad till produktionens migrering: ett koncept per moment)
   const p = { xp: 1200, gems: 40, streak: 5, skills: { plus20: { att: 40, cor: 36, m: 92, lvl: 3, last: T0 - 2 * DAY }, minus20: { att: 6, cor: 4, m: 55, lvl: 2, last: T0 - DAY }, tal100: { att: 2, cor: 0, m: 0, lvl: 1, last: T0 } }, words: { w1: { box: 4, due: T0 + DAY } }, mistakes: [{ id: 'm_1', cat: 'math', skillId: 'minus20', at: T0 - DAY, q: { text: '13 − 7' } }], badges: ['first'] };
@@ -223,5 +230,32 @@ const fresh2 = (cid, st, extra = {}) => { const L = E.newLE(); const c = E.cstat
   const R2 = LER.create(L, cat, [{ cid: 'm1', role: 'focus' }, { cid: 'm1', role: 'focus' }], E.POLICIES.older); let s = LER.peek(R2, L); LER.answered(R2, L, s, false); s = LER.peek(R2, L); LER.answered(R2, L, s, false);
   for (let g = 0; g < 6; g++) { s = LER.peek(R2, L); if (!s) break; const evs = LER.answered(R2, L, s, false); if (evs.some(e => e.type === 'defer')) { ok(!R2.queue.slice(R2.i).some(x => x.cid === 'm1'), 'failure after Rescue defers the concept (no endless loop)'); break; } }
   const R3 = LER.create(L, cat, [{ cid: 'm1', role: 'focus' }, { cid: 'm1', role: 'focus' }, { cid: 'm1', role: 'focus' }], E.POLICIES.middle, { mode: 'exam' }); let n3 = 0; for (let g = 0; g < 10; g++) { const x = LER.peek(R3, L); if (!x) break; ok(x.help === 'none' && x.ctx === 'exam', 'Testa mig: no hints, exam context'); LER.answered(R3, L, x, false); n3++; } ok(n3 === 3, 'Testa mig: no retries or Rescue inserted'); }
+/* ---------- Regressionstester för fynd i den oberoende granskningen ---------- */
+const evq = (cid, ok, t, seq, extra = {}) => ({ cid, ok, kind: 'free', k: 0, help: 'none', ctx: 'first', item: cid + '#' + seq, dev: 'R', seq, t, sess: 'R:' + Math.floor(t / DAY), lvl: 1, ...extra });
+// M4: Testa mig sänker ett koncept högst en gång per dygn
+{ const L = E.newLE(); const c = E.cstate(L, 'm1'); c.st = 4; c.n = 6; c.lastOk = T0 - 10 * DAY; c.due = T0;
+  E.apply(L, CAT, evq('m1', false, T0, 1, { ctx: 'exam', mode: 'testa' }), pol); E.apply(L, CAT, evq('m1', false, T0 + 1000, 2, { ctx: 'exam', mode: 'testa' }), pol); E.apply(L, CAT, evq('m1', false, T0 + 60000, 3, { ctx: 'exam', mode: 'testa', sess: 'R:x' }), pol);
+  ok(L.c.m1.st === 3, `M4: två fel på samma koncept i Testa mig (och en omkörning samma dygn) sänker bara ett steg (4 → ${L.c.m1.st})`); }
+// M8: provkvällen – inga osedda koncept i planen
+{ const L = E.newLE(); const cat = {}; for (let i = 0; i < 8; i++) cat['x' + i] = { id: 'x' + i, kind: 'skill', subject: 'math', maxLvl: 3, prereq: [] };
+  for (let i = 0; i < 2; i++) { const c = E.cstate(L, 'x' + i); c.st = 1; c.n = 2; c.lastOk = T0 - 2 * DAY; c.due = T0; }
+  const plan = E.planSession(L, cat, T0, { exams: [{ at: T0 + DAY - 3600000, concepts: Object.keys(cat) }], subjectCount: 1 }, pol, { n: 8 });
+  ok(plan.maxNew === 0 && plan.every(s => L.c[s.cid] && L.c[s.cid].n > 0), `M8: provkvällen (maxNew 0) planeras inga osedda koncept (${plan.map(s => s.cid).join(',')})`); }
+// M9: sammanslagning blandar aldrig versioner
+{ const v2 = { v: 2, base: E.newLE(), t0: 0, log: [E.encodeEv(evq('m1', true, T0, 1))] }, v3 = { v: 3, future: { x: 1 }, log: 'annat format' };
+  ok(E.mergeLE(v2, v3) === v3 && E.mergeLE(v3, v2) === v3 && v3.log === 'annat format', 'M9: v2 + okänd v3 → v3 lämnas orörd, i båda ordningarna'); }
+// M10: sent anlända offlinebevis från en annan enhet försvinner inte när den första enheten har packat sin logg
+{ const base = E.newLE(); const A = { v: 2, ev: 2, base, t0: 0, folded: 0, log: [], seqs: {} };
+  for (let i = 1; i <= 360; i++) A.log.push(E.encodeEv({ ...evq('m' + (1 + i % 3), i % 4 > 0, T0 + i * 3600000, i), dev: 'A' }));
+  const B = { ...JSON.parse(JSON.stringify(A)), log: [...A.log.slice(0, 10), E.encodeEv({ ...evq('m2', true, T0 + 5 * 3600000 + 1, 1), dev: 'B' })] };
+  ok(E.compact(A, CAT, pol, T0 + 40 * DAY) && A.fw && A.fw.A > 0, 'M10: packning sparar enhetsvisa vattenmärken');
+  const m = E.mergeLE(A, B); ok(m.log.some(e => e[1] === 'B'), 'M10: B:s gamla offlinebevis (äldre än basen) finns kvar efter sammanslagning');
+  ok(!m.log.some(e => e[1] === 'A' && e[2] <= A.fw.A), 'M10: redan inbakade A-bevis dubbleras inte'); }
+// L5: utgångna Felboken-poster räknas inte i beredskap, last eller insikter
+{ const L = E.newLE(); const c = E.cstate(L, 'm1'); c.st = 3; c.n = 8; c.lastOk = T0 - 40 * DAY; c.due = T0 + 5 * DAY; c.fb = { s: 'open', at: T0 - 45 * DAY, wd: E.dayIdx(T0 - 45 * DAY), wrong: 1, items: [] };
+  ok(E.readiness(c, T0) !== 'Öva lite mer' && E.learningLoad(L, CAT, T0) === 0 && !E.felbokVisible(L, T0).length, 'L5: en Felboken-post äldre än 30 dygn räknas inte någonstans'); }
+// L7: "bara samma fråga finns" sparas i bevisloggen och överlever omspelning
+{ const e = evq('m1', true, T0, 1, { onlyVariant: true, mode: 'readclose' }); const d = E.decodeEv(E.encodeEv(e)); ok(d.onlyVariant === true && d.mode === 'readclose', 'L7: onlyVariant och läge kodas och avkodas');
+  const d2 = E.decodeEv(E.encodeEv(evq('m1', true, T0, 2, { onlyVariant: true }))); ok(d2.onlyVariant === true, 'L7: onlyVariant utan läge kodas också'); }
 console.log(`Del 3: ${checks - n3B} kontroller (Fas 3C–3H)`);
 console.log(`\n${checks} kontroller, ${fails} fel`); console.log(fails ? 'LE ENGINE TEST FAILED' : 'LE ENGINE TEST OK'); process.exit(fails ? 1 : 0);
