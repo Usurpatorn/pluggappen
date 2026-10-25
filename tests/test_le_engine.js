@@ -189,6 +189,16 @@ const fresh2 = (cid, st, extra = {}) => { const L = E.newLE(); const c = E.cstat
 // C6. Belöningar en gång (omstart, två enheter efter synk)
 { const le = { v: 2, log: [], rw: [] }; ok(E.rewardOnce(le, 'FOCUS:100') && !E.rewardOnce(le, 'FOCUS:100'), 'same reward key only once');
   const a = { v: 2, base: {}, t0: 0, log: [], rw: ['FOCUS:100'] }, b = { v: 2, base: {}, t0: 0, log: [], rw: ['COMEBACK:m1:100'] }; const m = E.mergeLE(a, b); ok(m.rw.length === 2 && E.stable(E.mergeLE(b, a).rw) === E.stable(m.rw), 'reward markers merge as a union (commutative)'); }
+// Regression (egen granskning): markörer gallrades förut på ANTAL (60, lexikografiskt) → en veckomarkör kunde falla bort mitt i veckan
+// när många REM-markörer tillkom, och samma belöning kunde ges igen. Nu: gallring på ålder (21 dygn från nyaste markören), MA behålls.
+{ const le = { v: 2, log: [], rw: [] }; ok(E.rewardOnce(le, 'CO:2000') && E.rewardOnce(le, 'FO:2001') && E.rewardOnce(le, 'MA:s:x'), 'week, day and mastery markers set');
+  for (let d = 2001; d <= 2006; d++) for (let c = 0; c < 40; c++) E.rewardOnce(le, `REM:${d}:s:c${c}`);
+  ok(!E.rewardOnce(le, 'CO:2000') && !E.rewardOnce(le, 'FO:2001') && !E.rewardOnce(le, 'MA:s:x'), 'after 240 newer markers the week/day/mastery markers still block a second award');
+  for (let d = 2007; d <= 2030; d++) E.rewardOnce(le, `FO:${d}`);
+  ok(!le.rw.includes('CO:2000') && le.rw.includes('MA:s:x') && le.rw.length <= E.RW_MAX, 'markers older than 21 days are pruned; mastery markers are kept; size bounded');
+  ok(!E.rewardOnce(le, 'FO:2001'), 'a marker older than the window is never awarded again (offline device with an old clock)');
+  const a = { v: 2, base: {}, t0: 0, log: [], rw: le.rw.slice(0, 10) }, b = { v: 2, base: {}, t0: 0, log: [], rw: le.rw.slice(5) };
+  ok(E.stable(E.mergeLE(a, b).rw) === E.stable(E.mergeLE(b, a).rw) && E.mergeLE(a, b).rw.length === le.rw.length, 'pruned merge is commutative and loses nothing still valid'); }
 // C7. Planering: nytt får plats först, väntat-länge garanteras, provets sista dygn, ämnesrättvisa, ingen utfyllnad med lågt värde
 { const cat = {}; for (let i = 1; i <= 12; i++) cat['a' + i] = { id: 'a' + i, subject: 'math', recall: true, maxLvl: 3 }; for (let i = 1; i <= 4; i++) cat['b' + i] = { id: 'b' + i, subject: 'sv', recall: true, maxLvl: 2 };
   const L = E.newLE(); for (let i = 1; i <= 12; i++) { const c = E.cstate(L, 'a' + i); Object.assign(c, { n: 4, st: 1, due: T0 - (i * 2) * DAY, lastSeen: T0 - DAY, lastOk: T0 - 3 * DAY, ev: [[0, 1, 'f', 'n', 'f']] }); } L.clock.last = T0; L.sessN = 20; L.newSess = 0;

@@ -220,7 +220,7 @@ const V2 = {
   grant(p, list, cid) {
     const V = S.v2; const day = LE2.dayIdx(V.start); const out = [];
     for (const rw of list) {
-      const key = rw === 'REMEMBERED' ? `REM:${day}:${cid}` : rw === 'COMEBACK' ? `CB:${day}:${cid}` : rw === 'CHALLENGE' ? `CH:${day}` : rw === 'MASTERY' ? `MA:${cid}` : rw === 'FOCUS' ? `FO:${day}` : rw === 'CONSISTENCY' ? `CO:${weekKey()}` : null;
+      const key = rw === 'REMEMBERED' ? `REM:${day}:${cid}` : rw === 'COMEBACK' ? `CB:${day}:${cid}` : rw === 'CHALLENGE' ? `CH:${day}` : rw === 'MASTERY' ? `MA:${cid}` : rw === 'FOCUS' ? `FO:${day}` : rw === 'CONSISTENCY' ? `CO:${LE2.dayIdx(new Date(weekKey() + 'T12:00:00').getTime())}` : null;
       if (!key || !LE2.rewardOnce(p.le, key)) continue;
       const a = LE2.CFG.reward[rw] || {}; if (a.xp) { p.xp += a.xp; S.xp += a.xp; } if (a.gems) p.gems += a.gems;
       out.push({ k: rw, xp: a.xp || 0, gems: a.gems || 0 });

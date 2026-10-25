@@ -474,7 +474,17 @@ const LE2 = (() => {
   /* Sammanslagning av två enheters le (kommutativ, idempotent). Bas: flest inbakade händelser vinner; lika → tidigast t0; lika → hash.
      Loggarna förenas på dev:seq (vid krock på samma nyckel väljs deterministiskt). Skuggposter och v2-passposter förenas på id.
      Belöningsmarkörer (rw) förenas som union – samma belöning delas aldrig ut två gånger efter synk. */
-  const SHADOW_MAX = 40, LOG_SOFT = 300, LOG_HARD = 450, FOLD_AGE = 14 * DAY, RW_MAX = 60;
+  const SHADOW_MAX = 40, LOG_SOFT = 300, LOG_HARD = 450, FOLD_AGE = 14 * DAY, RW_MAX = 400, RW_DAYS = 21;
+  /* Belöningsmarkörer "TYP:dygn[:nyckel]" (MA:koncept saknar dygn och behålls alltid – en per koncept). Gallras efter ÅLDER, inte antal:
+     en dags- eller veckomarkör får aldrig falla bort medan den gäller (annars kunde samma belöning delas ut igen). Deterministiskt: åldern
+     räknas från den nyaste markörens dygn, inte från klockan, så två enheter gallrar likadant. */
+  const rwDay = (k) => { const m = /^[A-Z]+:(\d+)(?::|$)/.exec(k); return m ? Number(m[1]) : null; };
+  function pruneRw(list) {
+    const u = [...new Set(list || [])]; const days = u.map(rwDay).filter(d => d != null); const top = days.length ? Math.max(...days) : 0;
+    const keep = u.filter(k => { const d = rwDay(k); return d == null || d >= top - RW_DAYS; });
+    keep.sort((a, b) => ((rwDay(a) == null ? -1 : rwDay(a)) - (rwDay(b) == null ? -1 : rwDay(b))) || (a < b ? -1 : a > b ? 1 : 0));
+    return keep.slice(-RW_MAX);
+  }
   function mergeLE(a, b) {
     if (!a || !a.v) return b && b.v ? b : (a || b || null); if (!b || !b.v) return a;
     const rank = (x) => [-(x.folded || 0), x.t0 || 0, hash(stable(x.base || {}))];
@@ -484,7 +494,7 @@ const LE2 = (() => {
     const seqs = { ...(other.seqs || {}) }; for (const [d, n] of Object.entries(pick.seqs || {})) seqs[d] = Math.max(seqs[d] || 0, n);
     const sh = new Map(); for (const r of [...(other.shadow || []), ...(pick.shadow || [])]) { const o = sh.get(r.id); sh.set(r.id, !o || (r.done && !o.done) || ((r.a || []).length > (o.a || []).length) ? r : o); }
     const shadow = [...sh.values()].sort((x, y) => x.t - y.t || (x.id < y.id ? -1 : 1)).slice(-SHADOW_MAX);
-    const rw = [...new Set([...(a.rw || []), ...(b.rw || [])])].sort().slice(-RW_MAX);
+    const rw = pruneRw([...(a.rw || []), ...(b.rw || [])]);
     const out = { ...other, ...pick, log, seqs, shadow, srv: Math.max(a.srv || 0, b.srv || 0) || undefined };
     if (rw.length) out.rw = rw; else delete out.rw;
     return out;
@@ -501,7 +511,7 @@ const LE2 = (() => {
     return true;
   }
   // Belöningsmarkörer: "typ:dygn:nyckel". En markör per belöning → samma belöning två gånger (omstart, två enheter efter synk) ger inget.
-  function rewardOnce(le, key) { le.rw = le.rw || []; if (le.rw.includes(key)) return false; le.rw = [...le.rw, key].slice(-RW_MAX); return true; }
+  function rewardOnce(le, key) { le.rw = le.rw || []; if (le.rw.includes(key)) return false; const d = rwDay(key); const top = Math.max(-1, ...le.rw.map(rwDay).filter(x => x != null)); if (d != null && d < top - RW_DAYS) return false; le.rw = pruneRw([...le.rw, key]); return true; }
 
   /* ---------- Migrering v1 → le (deterministisk, idempotent, v1 orört) ---------- */
   function migrateV1(p, cat, mapping, now, pol) {
@@ -522,6 +532,6 @@ const LE2 = (() => {
   return { DAY, RULES, CFG, dayIdx, dayStart, DECISIONS, POLICIES, STAGE_DAYS, intervalDays, calibrate, evidenceWeight, newConcept, cstate, newLE, engineNow, recordEvidence, apply,
     PHASES, phase, felbokVisible, felbokDisplay, felbokRecentWins, felbokChild, childLabel, readiness, parentInsights, delayedOks, rescueCount, W, WHY_TEXT, examUrgency, examReady, examStatus, insights, priority, rankAll, withCtx,
     learningLoad, lastNewAt, dueBacklog, fbOpenCount, challengeEligible, planSession, pickBoss, rescueTrigger, formatFor, isRecallCapable,
-    encodeEv, decodeEv, mergeLog, replay, mergeLE, compact, rewardOnce, migrateV1, stable, hash, SHADOW_MAX, LOG_SOFT, LOG_HARD, RW_MAX };
+    encodeEv, decodeEv, mergeLog, replay, mergeLE, compact, rewardOnce, pruneRw, rwDay, migrateV1, stable, hash, SHADOW_MAX, LOG_SOFT, LOG_HARD, RW_MAX, RW_DAYS };
 })();
 if (typeof module !== 'undefined') module.exports = LE2;

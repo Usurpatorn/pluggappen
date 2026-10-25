@@ -22,6 +22,7 @@ const suites = [
   ['Motor v2: barnupplevelse i appen (per barn, av som standard)', 'test_le_v2ui.js'],
   ['Motor v2: eget svar + Utmaningar (deterministisk rättning)', 'test_le_content.js'],
   ['Motor v2: migrering på 300 syntetiska profiler', 'test_le_migration.js'],
+  ['Nödrollback: v2-data i publicerade 1.2.0 och tillbaka', 'test_le_downgrade.js'],
   ['Skuggläge: barnen får v1, fångst, föräldravy, täckning', 'test_le_shadow.js'],
   ['Skuggläge: flera enheter, Felboken-synk', 'test_le_sync.js'],
 ];
