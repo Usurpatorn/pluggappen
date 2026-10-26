@@ -205,11 +205,15 @@ const V2 = {
       if (V.exam) { const tq = V2.teacherQ(kid, spec.cid); if (tq) { V.seen.add(V2.iid(tq)); return [{ ...tq, skill, cat: 'math', level: tq.level, spec, _slotEnd: true }]; } }
       const fmt = V.exam ? 'any' : spec.role === 'readclose' ? 'recall' : spec.format === 'recall' || spec.format === 'depth' ? spec.format : 'any';
       const stage = V.exam ? null : { n: c ? c.n : 0, st: c ? c.st : 0 };   // Learning Recipe: stadiet styr aktiviteten (inte i Testa mig)
-      let q = PACKS.question(spec.cid, { lvl: spec.lvl, format: fmt, pol: pol.name, avoid, rnd: Math.random, challenge: spec.mode === 'challenge', itemId: LECAT.itemId, stage, exam: V.exam, vary: V.exam ? null : EXP.vary(V, spec) });
+      const ask = () => PACKS.question(spec.cid, { lvl: spec.lvl, format: fmt, pol: pol.name, avoid, rnd: Math.random, challenge: spec.mode === 'challenge', itemId: LECAT.itemId, stage, exam: V.exam, vary: V.exam ? null : EXP.vary(V, spec) });
+      let q = ask();
+      // v3 (UX-granskning): samma faktum ska inte komma tillbaka samma dag i en annan form (t.ex. först flerval, sedan som Boss i eget svar).
+      // Bara valet av variant – formatet och nivån som motorn bad om gäller. Finns ingen annan variant: samma faktum hellre än ingen uppgift.
+      if (V.exp && !V.exam) { const dk = EXP.dayFacts(kid); for (let t = 0; t < 4 && q && q.fk && dk.has(q.fk); t++) { avoid.add(LECAT.itemId(q)); const q2 = ask(); if (!q2 || q2.onlyVariant) break; q = q2; } if (q && q.fk) dk.add(q.fk); }
       if (!q && spec.mode === 'challenge') q = PACKS.question(spec.cid, { lvl: 3, format: 'depth', pol: pol.name, avoid, rnd: Math.random, itemId: LECAT.itemId });
       if (!q) return [];
       q = { ...q, skill, cat: 'math', level: q.level || spec.lvl };
-      if (V.exp === 'explore' && !V.exam && spec.format !== 'recall' && EXP.buildable(q) && !(q.accept && q.accept.exact)) q.build = true;   // v3: bygg ordet med brickor (samma rättning) – aldrig när motorn ber om eget svar eller stavningen är själva frågan
+      if (V.exp === 'explore' && !V.exam && spec.format !== 'recall' && EXP.buildable(q)) q.build = true;   // v3: bygg ordet med brickor (samma rättning, loggas som flerval) – aldrig när motorn ber om eget svar. UX: även stavningsord (brickorna kräver rätt stavning; 7-åringar slipper tangentbordet)
       V.seen.add(V2.iid(q)); return [{ ...q, spec, _slotEnd: true }];
     }
     let q;
@@ -275,7 +279,7 @@ const V2 = {
   speakBtn(q, p) {
     if (!V2.canSpeak(q)) return '';
     if (S.v2.C.pol.name === 'younger') return `<button class="btn ghost" data-speak="${esc(V2.sayText(q))}" data-lang="sv" style="min-height:${S.v2.exp ? 48 : 36}px;padding:0 12px" aria-label="Läs upp frågan">🔊 Läs upp</button>`;
-    return p.settings.tts ? `<button class="icon-btn" data-speak="${esc(q.text.replace(/<[^>]+>/g, ''))}" data-lang="sv" data-highlight="1" style="width:36px;height:36px" aria-label="Läs upp">${ICON.speaker}</button>` : '';
+    return p.settings.tts ? `<button class="icon-btn" data-speak="${esc(q.text.replace(/<[^>]+>/g, ''))}" data-lang="sv" data-highlight="1" style="width:${S.v2.exp ? 44 : 36}px;height:${S.v2.exp ? 44 : 36}px" aria-label="Läs upp">${ICON.speaker}</button>` : '';
   },
   /* ---------- Visning under passet ---------- */
   total() { if (S.v2.exp && !S.v2.exam) return Math.max(S.v2.planN || 1, EXP.done() + 1); const pr = LER.progress(S.v2.R); return Math.max(S.queue.length, S.i + Math.max(1, pr.left)); },
@@ -284,12 +288,12 @@ const V2 = {
   // Anropas efter svaret (passköraren har redan gått vidare): finns det något kvar i planen är det "Nästa", inte "Visa resultat"
   // (granskning v3: Bossen kom efter en knapp som sa "Visa resultat")
   hasNext() { const pr = LER.progress(S.v2.R); return S.i + 1 < S.queue.length || pr.left > 0; },
-  title(item) { return S.v2.exam ? 'Testa mig' : S.v2.mode === 'mission' ? 'Inför ' + esc((LE.exams(S.kid, prof(S.kid.id)).find(e => e.id === S.v2.extra.examId) || {}).title || 'provet') : S.v2.mode === 'revansch' ? 'Revansch' : S.v2.mode === 'readclose' ? 'Minns du?' : item.cat === 'word' ? esc(item.deck.name) : item.skill ? esc(item.skill.short || item.skill.name) : 'Kör!'; },
+  title(item) { return S.v2.exam ? 'Testa mig' : S.v2.mode === 'mission' ? 'Inför ' + esc((LE.exams(S.kid, prof(S.kid.id)).find(e => e.id === S.v2.extra.examId) || {}).title || 'provet') : S.v2.mode === 'revansch' ? 'Revansch' : S.v2.mode === 'readclose' ? 'Minns du?' : item.cat === 'word' ? esc(item.deck.name) : item.skill && S.v2.exp === 'explore' ? ({ math: 'Matte', sv: 'Svenska', en: 'Engelska', no: 'NO', so: 'SO' })[item.skill.group || 'math'] || 'Äventyret' : item.skill ? esc(item.skill.short || item.skill.name) : 'Kör!'; },   // Explore: ämnet, inte momentets interna namn (UX)
   topRight() { const pr = LER.progress(S.v2.R); if (S.v2.exp && !S.v2.exam) return `<span class="left-count">${Math.max(0, V2.total() - EXP.done())} kvar</span>`; return S.v2.exam ? `<span class="pill">Inga ledtrådar · svar efteråt</span>` : `<span class="left-count">${Math.max(0, pr.left)} kvar</span>`; },
   progressBar() { const tot = V2.total();
     if (S.v2.exp && !S.v2.exam) { const d = EXP.done();   // v3: planerade platser; ingen röd historik för fel svar
       if (S.v2.exp === 'explore') return `<div class="trail" role="progressbar" aria-valuemin="0" aria-valuemax="${tot}" aria-valuenow="${d}" aria-label="Äventyret">${Array.from({ length: tot }, (_, i) => `<span class="dot ${i < d ? 'ok' : i === d ? 'cur' : ''}" aria-hidden="true">${i === tot - 1 ? '👑' : ''}</span>`).join('')}</div>`;
-      return `<div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="${tot}" aria-valuenow="${d}">${Array.from({ length: tot }, (_, i) => `<i class="${i < d ? 'ok' : i === d ? 'cur' : ''}"></i>`).join('')}</div>`; } return `<div class="progress">${Array.from({ length: tot }, (_, i) => `<i class="${i < S.i ? (S.v2.exam ? 'ok' : S.results[i] === false ? 'no' : 'ok') : i === S.i ? 'cur' : ''}"></i>`).join('')}</div>`; },
+      return `<div class="progress v3" role="progressbar" aria-valuemin="0" aria-valuemax="${tot}" aria-valuenow="${d}">${Array.from({ length: tot }, (_, i) => `<i class="${i < d ? 'done' : i === d ? 'cur' : ''}"></i>`).join('')}</div>`; } return `<div class="progress">${Array.from({ length: tot }, (_, i) => `<i class="${i < S.i ? (S.v2.exam ? 'ok' : S.results[i] === false ? 'no' : 'ok') : i === S.i ? 'cur' : ''}"></i>`).join('')}</div>`; },
   chip(item) {
     if (item && item.teacher && S.v2.exam) return `<div class="row" style="justify-content:center"><span class="pill acc" style="font-weight:800;letter-spacing:.04em"><span aria-hidden="true">📝</span> LÄRARENS FRÅGA${item.teacher.n ? ' ' + esc(item.teacher.n) : ''}</span></div>`;
     const xc = S.v2.exp ? EXP.chipFor(item) : null; if (xc) return `<div class="row" style="justify-content:center"><span class="pill acc" style="font-weight:800;letter-spacing:.04em"><span aria-hidden="true">${xc[1]}</span> ${xc[0]}</span></div>`;
@@ -434,7 +438,7 @@ const V2 = {
     beep(won.length ? 'badge' : 'win');
     render(`${topbar('Testa mig', 'home')}
     <div class="stack" style="margin-top:6px">
-      <div class="card pad-lg summary-hero stack" style="gap:6px;text-align:center"><div class="eyebrow">Testa mig · ${fmtTime(Date.now() - S.startedAt)}</div><div class="big">${ok}/${n}</div>
+      <div class="card pad-lg summary-hero stack" style="gap:6px;text-align:center"><div class="eyebrow">Testa mig${S.v2.exp ? '' : ` · ${fmtTime(Date.now() - S.startedAt)}`}</div><div class="big">${ok}/${n}</div>
         <p style="font-weight:700">${V.exp ? (ok === n ? 'Alla svar stämde den här gången.' : 'Bra att du testade – nu vet Kör! vad som ska övas.') : ok === n ? 'Allt rätt – du har koll!' : ok / Math.max(1, n) >= 0.7 ? 'Bra! Kolla igenom de du missade.' : 'Bra att du testade – nu vet vi vad Kör! ska öva på.'}</p></div>
       ${V.exp ? EXP.examReport(S.kid, V) : ''}
       <div class="card"><div class="eyebrow" style="margin-bottom:8px">Svar och förklaringar</div>

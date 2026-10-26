@@ -339,6 +339,9 @@ const PACKS = (() => {
       // tryck i meningen, bygg ordet). Bara presentationen: formatet (eget svar/djup) och nivån som motorn bad om gäller fortfarande.
       if (opts.vary && opts.vary.choiceRun >= 2) { const act = pool.filter(v => v.ui !== 'choice'); if (act.length) pool = act; }
       // Explore-Bossen (en utmaning i sig): en aktivitet på högst en nivå över, om en sådan finns – annars som vanligt
+      // Grow/Achieve-Bossen (sträckuppgiften): helst en djupare form – tillämpa, orsak, förklara, hitta felet – på högst en nivå över,
+      // om motorn inte bad om fritt minne. Bara valet av variant; motorns bevisregler är desamma (UX-granskning: Bossen var ofta en kopia).
+      if (opts.vary && opts.vary.depthBoss && opts.format !== 'recall') { const dp = all0.filter(v => DEPTH.has(v.form) && v.lvl <= L + 1); if (dp.length) pool = dp; }
       if (opts.vary && opts.vary.stretch) { const act = all0.filter(v => v.ui !== 'choice' && v.ui !== 'type' && v.lvl <= L + 1 && (opts.format !== 'recall' || v.form === 'recall') && (opts.format !== 'depth' || DEPTH.has(v.form))); if (act.length) pool = act; }
     }
     const iid = opts.itemId || ((q) => q.text);
@@ -360,7 +363,7 @@ const PACKS = (() => {
     if (!q) return null;
     if (q.type === 'choicetext' && (!Array.isArray(q.choices) || q.choices.length < 3 || q.answer < 0)) return null;   // för få felalternativ → varianten används inte (CI rapporterar)
     const skill = ent.kp.skill;
-    return { ...q, ui: q.ui || v.ui, level: v.lvl, form: v.form, fcode: FCODE[v.form], kp: ent.cid, packId: ent.pack.id, packRev: ent.pack.rev, kpSkill: skill, speak: v.speak && q.speak !== false && (ent.pack.skills.find(s => s.id === skill) || {}).readAloud !== false, challenge: v.ch || undefined, hint: q.hint || HINT[v.form] };
+    return { ...q, ui: q.ui || v.ui, level: v.lvl, form: v.form, fcode: FCODE[v.form], kp: ent.cid, packId: ent.pack.id, packRev: ent.pack.rev, kpSkill: skill, speak: v.speak && q.speak !== false && (ent.pack.skills.find(s => s.id === skill) || {}).readAloud !== false, challenge: v.ch || undefined, hint: q.hint || HINT[v.form], fk: v.key.split('|').slice(0, 2).join('|') };   // fk: faktumet (v3 undviker samma faktum två gånger samma dag)
   }
   // För CI: bygg en bestämd variant färdig (samma väg som i ett pass)
   function buildVariant(cid, v, rnd, pol) { const ent = REG.kp[cid]; return ent ? finish(ent, v, v.build(rnd), pol) : null; }

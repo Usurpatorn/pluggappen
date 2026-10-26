@@ -35,6 +35,7 @@ const EXP = {
   // FLOW ger ingen XP för koncept som redan övats tidigare idag (granskning M6) – extrablocket ska inte löna sig för upprepning
   flowXp(q, xp) { try { if (!S.v2 || S.v2.mode !== 'flow' || !q.spec || !xp) return xp; const c = S.v2.C.L.c[q.spec.cid]; if (c && c.lastSeen && LE2.dayIdx(c.lastSeen) === LE2.dayIdx(LE.now()) && c.lastSeen < S.v2.start) { const p = prof(S.kid.id); p.xp = Math.max(0, p.xp - xp); const d = todayKey(); for (const day of [p.days && p.days[d], p.since && p.since.days && p.since.days[d]]) if (day) day.xp = Math.max(0, (day.xp || 0) - xp); return 0; } } catch (e) { /* ignore */ } return xp; },
   // Ny inlärning idag (första beviset på konceptet idag) – FLOW får aldrig ta in mer nytt än policyns gräns per dygn
+  dayFacts(kid) { const d = LE2.dayIdx(LE.now()); const m = EXP._df || (EXP._df = {}); if (!m[kid.id] || m[kid.id].d !== d) m[kid.id] = { d, s: new Set() }; return m[kid.id].s; },   // bara i minnet
   newToday(C, now) { const d = LE2.dayIdx(now); return Object.entries(C.L.c).filter(([id, c]) => c.fs && LE2.dayIdx(c.fs * 1000) === d && C.cat[id] && C.cat[id].kind !== 'deck').length; },
   flowPlan(kid, C, now, id) {
     const p = prof(kid.id); const newCap = V2.newCapToday(C, now, p);
@@ -64,8 +65,14 @@ const EXP = {
     const st = []; for (const s of plan) { const k = EXP.stationOf(s, C); if (!st.includes(k)) st.push(k); }
     // Achieve: dela upp i det som hör till nästa prov och det som också övas idag (med momentens fulla namn)
     const g = EXP.goalOf(kid).now; const inExam = new Set(g ? LE.examCids(C, g.e) : []); const ex = [], also = [];
-    for (const s0 of plan) { if (['boss', 'remember', 'warmup', 'revansch'].includes(s0.role)) continue; const d = C.cat[s0.cid] || {}; const nm = d.kind === 'kp' ? (PACKS.skillFor(kid, d.ref) || {}).name || EXP.nameOf(kid, C, s0.cid) : d.kind === 'skill' ? ((V2.skillOf(kid, s0.cid) || {}).name || d.name) : EXP.nameOf(kid, C, s0.cid); const arr = inExam.has(s0.cid) ? ex : also; if (nm && !ex.includes(nm) && !also.includes(nm)) arr.push(nm); }
-    if (plan.some(x => x.role === 'remember' || x.role === 'warmup')) also.push('Repetition'); if (plan.some(x => x.role === 'revansch')) also.push('Revansch');
+    const fullName = (cid) => { const d = C.cat[cid] || {}; return d.kind === 'kp' ? (PACKS.skillFor(kid, d.ref) || {}).name || EXP.nameOf(kid, C, cid) : d.kind === 'skill' ? ((V2.skillOf(kid, cid) || {}).name || d.name) : EXP.nameOf(kid, C, cid); };
+    // UX-granskning: provets moment syns även när de kommer som repetition, Revansch eller Boss ("Repetition: Parenteser") – annars sa
+    // rubriken "algebra" medan listan bara visade annat
+    const PFX = { remember: 'Repetition', warmup: 'Repetition', revansch: 'Revansch', boss: 'Boss' };
+    for (const s0 of plan) { const nm = fullName(s0.cid); if (!nm) continue; const exam = inExam.has(s0.cid);
+      if (PFX[s0.role]) { if (exam) { const t = PFX[s0.role] + ': ' + nm; if (!ex.includes(t) && !ex.includes(nm)) ex.push(t); } continue; }
+      const arr = exam ? ex : also; if (!ex.includes(nm) && !also.includes(nm)) arr.push(nm); }
+    if (plan.some(x => (x.role === 'remember' || x.role === 'warmup') && !inExam.has(x.cid))) also.push('Repetition'); if (plan.some(x => x.role === 'revansch' && !inExam.has(x.cid))) also.push('Revansch');
     return { n: plan.length, mins: EXP.mins(plan, kid), list, exList: ex.slice(0, 4), alsoList: also.slice(0, 3), stations: st, light: !!plan.light, plan, C };
   },
   // Framsteg med betydelse (Grow/Achieve): motorns barnetiketter för koncept som barnet har övat. Inga procent.
@@ -116,12 +123,13 @@ const EXP = {
   /* Hotfix 2.1.1-principen i v3: en provmärkt knapp startar ett pass som verkligen innehåller provets områden. examShare räknar hur
      stor del av en plan som hör till provet; missionBtn erbjuder provets egen träning (bara provets koncept) – eller säger ärligt att
      provets områden inte är inlagda ännu. Inget tyst utbyte mot annat innehåll. */
-  examShare(kid, m, plan) { if (!m) return { cids: [], n: 0, of: 0 }; const cids = V2.examCidsActive(kid, m.e); return { cids, ...V2.missionShare(plan || [], cids) }; },
+  // v3: andelen räknas över ALLA platser (även Bossen) – samma antal som passets räknare "Uppgift 1 av N" (UX-granskning). Klassisk: som 2.1.1.
+  examShare(kid, m, plan) { if (!m) return { cids: [], n: 0, of: 0 }; const cids = V2.examCidsActive(kid, m.e); const set = new Set(cids); const pl = plan || []; return { cids, n: pl.filter(s => set.has(s.cid)).length, of: pl.length }; },
   mostly(sh) { return sh.n > 0 && sh.n * 2 >= sh.of; },   // "MOT PROVET" på FLOW-knappen bara när minst hälften av extrapasset hör till provet (granskning)
   shareText(sh) { return sh.n === sh.of ? 'Allt inför provet' : `${sh.n} av ${sh.of} uppgifter inför provet`; },
   missionBtn(kid, m, cls = 'btn big wide secondary') {
     if (!m) return ''; const cids = V2.examCidsActive(kid, m.e);
-    if (!cids.length) return `<div class="muted" style="font-size:.95rem">${EXP.isExam(m.e) ? 'Provets' : 'Uppgiftens'} områden är inte inlagda i appen ännu. Be en förälder lägga in dem – Kör! övar annat under tiden.</div>`;
+    if (!cids.length) return `<div class="muted" style="font-size:.95rem">${EXP.isExam(m.e) ? 'Provets' : 'Uppgiftens'} områden är inte inlagda i appen ännu – Kör! övar annat under tiden.</div>`;   // UX: ingen uppgift till barnet (föräldern ser luckan i sin vy)
     const mp = EXP.safe(() => V2.plan(kid, 'mission', LE.state(kid), LE.now(), null, { examId: m.e.id }), 'missionPeek', []);
     const lbl = EXP.isExam(m.e) ? 'Öva inför provet' : 'Öva på ' + m.e.title;
     return mp.length ? `<button class="${cls}" data-v2="mission" data-exam="${esc(m.e.id)}">${esc(lbl)} · cirka ${EXP.mins(mp, kid)} min</button>`
@@ -186,7 +194,7 @@ const EXP = {
   done() { let n = 0; for (let i = 0; i < S.i; i++) { const x = S.queue[i]; if (x && x._slotEnd && !EXP.isExtra(x)) n++; } return n; },
   uiOf(item) { if (!item) return 'none'; if (item.cat === 'word') return 'word:' + item.kind; if (item.cat === 'learn') return 'learn'; if (item.paper) return 'paper'; if (item.build) return 'build'; if (item.type === 'sort' || item.type === 'match' || item.type === 'order') return item.type; if (item.ui === 'tap') return 'tap'; if (item.type === 'choicetext' || item.choices) return 'choice'; return item.type === 'text' ? 'type' : item.type || 'type'; },
   // Hur många textval i rad (Explore: aldrig fler än två när kunskapen finns som aktivitet)
-  vary(V, spec) { if (!V.exp || V.exp === 'achieve') return null; const q = S.queue.filter(x => x.cat !== 'learn'); let run = 0; for (let i = q.length - 1; i >= 0; i--) { const u = EXP.uiOf(q[i]); if (u === 'choice' || u === 'word:pick' || u === 'word:listen') run++; else break; } const last = q.length ? EXP.uiOf(q[q.length - 1]) : null; return { choiceRun: V.exp === 'explore' ? run : Math.max(0, run - 1), last, boost: V.exp === 'explore' ? 2.5 : 1.5, stretch: V.exp === 'explore' && !!spec && spec.role === 'boss' }; },   // Explore-Bossen: gärna en aktivitet (Bossen får vara en nivå svårare)   // Grow: högst tre textval i rad
+  vary(V, spec) { if (!V.exp) return null; if (V.exp === 'achieve') return spec && spec.role === 'boss' ? { choiceRun: 0, boost: 1, depthBoss: true } : null; const q = S.queue.filter(x => x.cat !== 'learn'); let run = 0; for (let i = q.length - 1; i >= 0; i--) { const u = EXP.uiOf(q[i]); if (u === 'choice' || u === 'word:pick' || u === 'word:listen') run++; else break; } const last = q.length ? EXP.uiOf(q[q.length - 1]) : null; return { choiceRun: V.exp === 'explore' ? run : Math.max(0, run - 1), last, boost: V.exp === 'explore' ? 2.5 : 1.5, stretch: V.exp === 'explore' && !!spec && spec.role === 'boss', depthBoss: V.exp === 'grow' && !!spec && spec.role === 'boss' }; },   // Explore-Bossen: gärna en aktivitet (Bossen får vara en nivå svårare)   // Grow: högst tre textval i rad
   // Bygg ordet (Explore): eget svar med bokstavsbrickor i stället för tangentbord – för korta, enkla ord. Rättas med samma funktion.
   buildable(q) { if (q.type !== 'text' || !Array.isArray(q.answer)) return false; const w = String(q.display || q.answer[0] || '').trim(); return /^[a-zåäöéü]{2,9}$/i.test(w); },
   /* ---------- Papper och penna (Learning Recipe för matematik) ----------
@@ -227,7 +235,8 @@ const EXP = {
   },
   paperNote(q) { return `<div class="paper-note" role="note"><span aria-hidden="true">✏️</span><div><b>Räkna på papper.</b> Skriv uträkningen på ditt papper${S.v2 && S.v2.exam ? '' : ' – i lugn och ro'}. Skriv bara svaret här.</div></div>`; },
   paperFeedback(q, correct, raw) {
-    const steps = (q.steps || []).map((s, i) => `<li>${safeHtml(s)}</li>`).join('');
+    // UX: alternativ ("Eller …"), kontroll och svar får inget eget stegnummer – numren stämmer med knapparna "Steg N"
+    const ALT = /^\s*(<[^>]+>\s*)*(Eller|Kontroll|Svar)/i; const steps = (q.steps || []).map((s, i) => ALT.test(String(s)) ? `<li style="list-style:none;margin-left:-1em" class="muted">${safeHtml(s)}</li>` : `<li value="${i + 1}">${safeHtml(s)}</li>`).join('');
     if (correct) return `<div class="feedback ok"><span style="font-size:1.4rem">✅</span><div><div class="big">Ditt svar stämmer.</div><div class="sub">Svar: <b>${esc(answerDisplay(q))}</b>. Jämför gärna din uträkning med lösningen.</div></div></div><details class="steps"><summary><b>Visa lösningen steg för steg</b></summary><ol>${steps}</ol></details>`;
     const pick = (q.steps || []).length >= 2 ? `<div class="selfcheck" role="group" aria-label="I vilket steg skilde det sig?"><div style="font-weight:700">I vilket steg skilde det sig? <span class="muted" style="font-weight:400">(frivilligt)</span></div><div class="row row-wrap" style="gap:8px;margin-top:6px">${q.steps.map((st, i) => /^\s*(<[^>]+>\s*)*(Eller|Kontroll|Svar)/i.test(String(st)) ? '' : `<button class="btn ghost sc" data-sc="${i + 1}">Steg ${i + 1}</button>`).join('')}<button class="btn ghost sc" data-sc="0">Vet inte</button></div></div>` : '';
     return `<div class="feedback no"><span style="font-size:1.4rem">✏️</span><div><div class="big">Svaret stämmer inte.</div><div class="sub">Rätt svar: <b>${esc(answerDisplay(q))}</b>${raw ? ` · Du skrev: ${esc(raw)}` : ''}</div></div></div><div class="steps"><div class="eyebrow">Jämför med din uträkning</div><ol>${steps}</ol></div>${pick}`;
@@ -312,6 +321,8 @@ const EXP = {
     const kinds = []; for (const r of V.rewards) if (EXP.DELIGHT[r.k] && !kinds.includes(r.k)) kinds.push(r.k);
     const delights = kinds.slice(0, 3).map(k => `<div class="delight">${esc(EXP.DELIGHT[k])}</div>`).join('');
     const trail = e === 'explore' ? `<div class="trail done" aria-label="Det här gjorde du">${S.queue.slice(0, S.i + 1).map(x => `<span class="dot ok" aria-hidden="true">${(EXP.ACT[EXP.uiOf(x)] || EXP.ACT[x.paper ? 'paper' : ''] || [0, x.cat === 'learn' ? '🔎' : x.spec && x.spec.role === 'boss' ? '👑' : '⭐'])[1]}</span>`).join('')}</div>` : '';
+    // UX: Explore-hemmet visade 👑 – blev passet kortare (motorns Rescue/uppskjutning) sägs det, i stället för att kronan bara försvinner
+    const bossLater = e === 'explore' && V.plan.some(x => x.role === 'boss') && !S.queue.some(x => x.spec && x.spec.role === 'boss') ? '<div class="muted">👑 Bossen väntar nästa gång.</div>' : '';
     const back = e === 'explore' ? [] : EXP.comeBack(kid, V);
     const gems = V.rewards.reduce((a, r) => a + r.gems, 0);
     const canMore = !corePending && EXP.canFlow(kid); const rested = EXP.flowsToday(p) >= EXP.FLOW_MAX;
@@ -322,7 +333,7 @@ const EXP = {
         <div style="font-size:2rem" aria-hidden="true">${e === 'explore' ? '🗺️' : '✅'}</div>
         <div class="klar-title">${esc(title)}</div>
         ${e === 'achieve' && V.mode === 'kor' ? '<div>Appen håller koll på resten.</div>' : ''}
-        ${trail}
+        ${trail}${bossLater}
         ${e !== 'explore' ? `<div style="font-weight:700">${sum.ok} av ${sum.n} rätt</div>` : ''}
         ${(() => { const up = [...V.stageUps].filter(cid => ((V.C.L.c[cid] || {}).st || 0) >= 2).length; return up && e !== 'explore' ? `<div>${up === 1 ? 'Ett område' : `${up} områden`} sitter bättre nu</div>` : ''; })()}
         ${delights}${gems && e === 'grow' ? `<div>+${gems} 💎</div>` : ''}

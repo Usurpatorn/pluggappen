@@ -296,7 +296,7 @@ function confetti(n = 120) {
   })();
 }
 function toast(msg) { const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 2500); }
-function xpPop(n) { if (typeof S !== 'undefined' && S && S.v2 && S.v2.exp === 'achieve') return;   /* v3 Achieve: inga XP-flygare – kompetensen är belöningen */ const d = document.createElement('div'); d.className = 'xp-pop'; d.textContent = `+${n} XP`; document.body.appendChild(d); setTimeout(() => d.remove(), 1100); }
+function xpPop(n) { if (typeof S !== 'undefined' && S && S.v2 && (S.v2.exp === 'achieve' || S.v2.exp === 'explore')) return;   /* Explore: inga poäng (UX: flygarna täckte texten) */   /* v3 Achieve: inga XP-flygare – kompetensen är belöningen */ const d = document.createElement('div'); d.className = 'xp-pop'; d.textContent = `+${n} XP`; document.body.appendChild(d); setTimeout(() => d.remove(), 1100); }
 
 /* ========= Sync code (move progress between phone and tablet) ========= */
 function encodeProfile(kidId) {
@@ -521,12 +521,12 @@ function homeV3(kid, p, o) {
   ${topbar(esc(kid.name), 'start', `${p.gems ? `<button class="pill" data-go="shop" style="min-height:36px"><span class="gem">${ICON.gem} ${p.gems}</span></button>` : ''}<button class="icon-btn" data-go="sync" aria-label="Synka enheter" title="Synka telefon och iPad">${ICON.sync}</button><button class="icon-btn" data-act="sound" aria-label="Ljud">${DB.settings.sound ? ICON.speaker : ICON.mute}</button>`)}
   <div class="stack" style="margin-top:6px">
     ${EXP.home(kid)}
-    ${V2.felbokCard(kid)}
+    ${EXP.coreDone(p) ? '' : V2.felbokCard(kid)}
     ${e === 'grow' ? EXP.goalDetail(kid, EXP.goalOf(kid).now) : ''}
     ${ident}
     ${PUSH.card(kid.id, 'kid')}
     <details class="card more-fold"><summary><b>Öva på egen hand</b> <span class="muted" style="font-size:.85rem">välj ämne och moment</span></summary>${o.subjectsHtml}</details>
-    <details class="card quests-fold"><summary><b>${LBL(kid).quests}</b> <span class="muted" style="font-size:.85rem">${o.quests.filter(q => q.claimed).length}/${o.quests.length} klara</span></summary>${o.quests.map(q => `<div class="quest ${q.done ? 'done' : ''}"><div class="qi">${q.done ? '✅' : q.icon}</div><div class="grow"><div class="qt">${esc(q.text)}</div><div class="qp">${q.claimed ? 'Klart' : `${Math.min(q.progress, q.target)}/${q.target}`}</div></div>${q.done && !q.claimed ? `<button class="btn claim" data-claim="${q.id}">Hämta</button>` : ''}</div>`).join('')}</details>
+    <details class="card quests-fold"><summary><b>${LBL(kid).quests}</b> ${EXP.coreDone(p) ? '' : `<span class="muted" style="font-size:.85rem">${o.quests.filter(q => q.claimed).length}/${o.quests.length} klara</span>`}</summary>${o.quests.map(q => `<div class="quest ${q.done ? 'done' : ''}"><div class="qi">${q.done ? '✅' : q.icon}</div><div class="grow"><div class="qt">${esc(q.text)}</div><div class="qp">${q.claimed ? 'Klart' : `${Math.min(q.progress, q.target)}/${q.target}`}</div></div>${q.done && !q.claimed ? `<button class="btn claim" data-claim="${q.id}">Hämta</button>` : ''}</div>`).join('')}</details>
     ${kid.note && kid.note.lines.length ? `<div class="card teacher"><div class="eyebrow">${esc(kid.note.title || 'Kommentar från skolan')}</div><ul style="margin-top:6px">${kid.note.lines.map(l => `<li>${esc(l)}</li>`).join('')}</ul></div>` : ''}
     <details class="card more-fold"><summary><b>Märken</b> <span class="muted" style="font-size:.85rem">${badges}/${BADGES.length}</span></summary><div class="badge-row" style="margin-top:8px">${BADGES.map(b => `<span class="badge ${p.badges.includes(b.id) ? '' : 'off'}"><span class="e">${b.e}</span>${b.name}</span>`).join('')}</div></details>
   </div>`);
@@ -770,8 +770,8 @@ function mathBody(q, kid, isTest) {
     ? `<div class="choices" id="choices">${q.choices.map(c => `<button class="choice" data-choice="${c}">${T.n(c)}</button>`).join('')}</div>`
     : q.type === 'expr'
       ? `<input class="answer-input" id="ans" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="t.ex. ${q.variable === 'n' ? '3n + 1' : vars.length > 1 ? `6${vars[0]}${vars[1]} + 9${vars[0]}` : '6x + 15'}" aria-label="Ditt svar">
-         <div class="keys" style="margin-top:8px">
-           ${['7', '8', '9', '4', '5', '6', '1', '2', '3', '0'].map(k => `<button class="key" data-key="${k}">${k}</button>`).join('')}
+         <div class="keys" style="margin-top:8px${S.v2 && S.v2.exp ? ';grid-template-columns:repeat(5,1fr)' : ''}">
+           ${(S.v2 && S.v2.exp ? ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'] : ['7', '8', '9', '4', '5', '6', '1', '2', '3', '0']).map(k => `<button class="key" data-key="${k}">${k}</button>`).join('')}${S.v2 && S.v2.exp ? '</div><div class="keys" style="margin-top:6px;grid-template-columns:repeat(4,1fr)">' : ''}
            ${vars.map(v => `<button class="key acc" data-key="${v}">${v}</button>`).join('')}${vars.length === 1 ? `<button class="key acc" data-key="${q.variable}²">${q.variable}²</button>` : ''}
            ${q.eq ? '<button class="key" data-key=" = ">=</button>' : ''}<button class="key" data-key=" + ">+</button><button class="key" data-key=" − ">−</button><button class="key" data-key="(">(</button><button class="key" data-key=")">)</button><button class="key wide" data-key="⌫">⌫</button>
          </div>`
