@@ -87,7 +87,11 @@ else if (['deploy', 'fetch', 'publish', 'verify', 'restore'].includes(cmd)) {
     const pre = expect === 'none' ? 'currentDocument.exists=false' : expect ? `currentDocument.updateTime=${encodeURIComponent(expect)}` : '';
     const mask = ['json', 'updatedAt', 'kid'].map(f => `updateMask.fieldPaths=${f}`).join('&');
     const r = await fetch(`${url}?${mask}${pre ? '&' + pre : ''}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', ...auth }, body: JSON.stringify({ fields: { json: { stringValue: body }, updatedAt: { integerValue: String(parsed.updatedAt || Date.now()) }, kid: { stringValue: 'content' } } }) });
-    if (r.status === 400 || r.status === 409 || r.status === 412) { console.error(`stoppat: dokumentet har ändrats sedan backupen (HTTP ${r.status}) – inget skrevs. Kör om publiceringen.`); process.exit(3); }
+    if (r.status === 400 || r.status === 409 || r.status === 412) {
+      // Felets typ och meddelande (utan familjekod) – så att ett annat fel än konflikt inte döljs som "ändrat sedan backupen"
+      let why = ''; try { const e = (await r.json()).error || {}; why = `${e.status || ''} ${String(e.message || '').split(fam).join('<familj>').split(encodeURIComponent(fam)).join('<familj>').slice(0, 200)}`.trim(); } catch (e) { /* ingen kropp */ }
+      const conflict = r.status !== 400 || /FAILED_PRECONDITION|precondition|does not match|already exists|ALREADY_EXISTS/i.test(why);
+      console.error(conflict ? `stoppat: dokumentet har ändrats sedan backupen (HTTP ${r.status}${why ? ': ' + why : ''}) – inget skrevs. Kör om publiceringen.` : `skrivningen avvisades (HTTP ${r.status}: ${why}) – inget skrevs`); process.exit(conflict ? 3 : 1); }
     if (!r.ok) { console.error('skrivningen misslyckades: HTTP ' + r.status); process.exit(1); }
     const d = await r.json(); console.log(`skrivet: ${body.length} byte, sha256 ${sha(body).slice(0, 16)}, updateTime ${d.updateTime}`);
   }
