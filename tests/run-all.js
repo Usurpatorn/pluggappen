@@ -39,6 +39,7 @@ const suites = [
   ['2.1.1 Startknappar och sammanhang: datumgränser 28/21 dygn, två prov, kemi, manuella glosor, saknat privat innehåll, v1, profilbyte', 'test_cta_paths.js'],
   ['Experience v3: Explore/Grow/Achieve, aktiviteter, KLAR → FLOW, papper, golden cases, rollback', 'test_exp_v3.js'],
   ['Experience v3: golden case A (algebra) och B (kemi) – syntetiska skoluppgifter, 34 dygn i appen', 'test_golden_cases.js'],
+  ['Experience v3: löfte → utförande för varje primär knapp (Explore/Grow/Achieve/Klassisk × tio tillstånd)', 'test_promise_exec.js'],
 ];
 let failed = 0; const rows = [];
 for (const [name, file, opts = {}] of suites) {
