@@ -339,9 +339,9 @@ const PACKS = (() => {
       // tryck i meningen, bygg ordet). Bara presentationen: formatet (eget svar/djup) och nivån som motorn bad om gäller fortfarande.
       if (opts.vary && opts.vary.choiceRun >= 2) { const act = pool.filter(v => v.ui !== 'choice'); if (act.length) pool = act; }
       // Explore-Bossen (en utmaning i sig): en aktivitet på högst en nivå över, om en sådan finns – annars som vanligt
-      // Grow/Achieve-Bossen (sträckuppgiften): helst en djupare form – tillämpa, orsak, förklara, hitta felet – på högst en nivå över,
+      // Grow/Achieve-Bossen (sträckuppgiften): helst en djupare form – tillämpa, orsak, förklara, hitta felet – på den nivå motorn bad om,
       // om motorn inte bad om fritt minne. Bara valet av variant; motorns bevisregler är desamma (UX-granskning: Bossen var ofta en kopia).
-      if (opts.vary && opts.vary.depthBoss && opts.format !== 'recall') { const dp = all0.filter(v => DEPTH.has(v.form) && v.lvl <= L + 1); if (dp.length) pool = dp; }
+      if (opts.vary && opts.vary.depthBoss && opts.format !== 'recall') { const dp = all0.filter(v => DEPTH.has(v.form) && v.lvl <= L); if (dp.length) pool = dp; }   // aldrig över nivån motorn bad om (verifieringspass)
       if (opts.vary && opts.vary.stretch) { const act = all0.filter(v => v.ui !== 'choice' && v.ui !== 'type' && v.lvl <= L + 1 && (opts.format !== 'recall' || v.form === 'recall') && (opts.format !== 'depth' || DEPTH.has(v.form))); if (act.length) pool = act; }
     }
     const iid = opts.itemId || ((q) => q.text);
