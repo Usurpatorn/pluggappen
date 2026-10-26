@@ -2,7 +2,7 @@
    - inget familjeinnehåll byggs in (bara de inbyggda paketen; familjens data kommer via den vanliga inloggade synken)
    - egen lagring: allt appen sparar får prefixet "pluggappen-preview:" – produktionens data på samma enhet rörs aldrig
    - ingen service worker och inga push-påminnelser; bygg-id:t säger "testversion"
-   - serverad på fel adress (t.ex. ur produktionens offline-cache) startar den inte
+   - serverad på fel adress (t.ex. ur produktionens offline-cache) startar den inte; kan lagringen inte hållas skild startar den inte heller
    - de vanliga byggena (index.html, pluggappen.html) är byte för byte desamma som utan PREVIEW */
 'use strict';
 const { execFileSync } = require('child_process'); const fs = require('fs'); const path = require('path'); const crypto = require('crypto');
@@ -27,6 +27,11 @@ try {
   w.PA.flushSave(); const keys = Object.keys(w.localStorage);
   ok(keys.includes('pluggappen-preview:pluggappen.v1') && keys.filter(k => !k.startsWith('pluggappen-preview:')).every(k => k === 'pluggappen.v1'), `allt som sparas har prefixet (${keys.join(', ')})`);
   ok(w.localStorage.getItem('pluggappen.v1') === '{"marker":"prod"}', 'produktionens data på samma enhet är orörd');
+  // skuggningen av lagringen misslyckas (t.ex. en webbläsare som vägrar) → testversionen startar inte alls (stänger, inte öppen)
+  { const broken = html.replace(/<script>const localStorage = [\s\S]*?<\/script>/, '<script>throw new Error("ingen skuggning");</script>');
+    ok(broken !== html, 'testet hittar lagringsskuggningen');
+    const dom = new JSDOM(broken, { runScripts: 'dangerously', pretendToBeVisual: true, url: 'https://example.org/pluggappen/preview/', beforeParse(w) { w.scrollTo = () => {}; w.matchMedia = () => ({ matches: false, addEventListener() {} }); w.HTMLCanvasElement.prototype.getContext = () => null; w.localStorage.setItem('pluggappen.v1', '{"marker":"prod"}'); w.addEventListener('error', (e) => e.preventDefault()); } });
+    const w3 = dom.window; ok(w3.PLUGG_STOP === true && Object.keys(w3.localStorage).every(k => k === 'pluggappen.v1') && w3.localStorage.getItem('pluggappen.v1') === '{"marker":"prod"}', 'utan egen lagring startar testversionen inte och rör inte produktionens data'); }
   const w2 = boot('https://example.org/pluggappen/');
   ok(w2.PLUGG_STOP === true && !(w2.document.querySelector('#app') && w2.document.querySelector('#app').children.length), 'på fel adress startar testversionen inte');
 } catch (e) { fails++; console.log('EXC', e.stack); }

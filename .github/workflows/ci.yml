@@ -59,7 +59,6 @@ jobs:
         run: |
           git fetch -q origin main || true
           node scripts/privacy-history.mjs
-          node scripts/privacy-history.mjs --all --report
       - name: Publicerad index.html måste vara byggd från källorna
         if: ${{ vars.PAGES_ACTIONS != 'true' }}
         run: |

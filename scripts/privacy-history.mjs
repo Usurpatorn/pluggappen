@@ -5,7 +5,7 @@
 //
 //   node scripts/privacy-history.mjs                 grenens egna commits (från merge-basen mot origin/main) – underkänner vid träff
 //   node scripts/privacy-history.mjs --all           hela historiken som når HEAD – underkänner vid träff
-//   node scripts/privacy-history.mjs --all --report  hela historiken – bara antal (underkänner inte)
+//   node scripts/privacy-history.mjs --all --report  hela historiken – bara antal (underkänner inte; bara lokalt – i CI hamnar även ett antal i en publik logg)
 //
 // Kräver full historik (actions/checkout med fetch-depth: 0). Utan historik: hoppar över och säger det.
 import { execFileSync } from 'node:child_process';
