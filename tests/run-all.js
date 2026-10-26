@@ -36,6 +36,7 @@ const suites = [
   ['2.1 Innehållsgranskningens sakfel får aldrig komma tillbaka', 'test_content_facts.js'],
   ['2.1 Learning Recipes: aktivitet efter stadium, ingen uppblåst behärskning', 'test_recipes.js'],
   ['2.1.1 Hotfix: provrubriken på Kör! = passet; Öva inför provet; ärlig text utan kopplingar; Äldres första kurs', 'test_exam_cta.js'],
+  ['2.1.1 Startknappar och sammanhang: datumgränser 28/21 dygn, två prov, kemi, manuella glosor, saknat privat innehåll, v1, profilbyte', 'test_cta_paths.js'],
   ['Experience v3: Explore/Grow/Achieve, aktiviteter, KLAR → FLOW, papper, golden cases, rollback', 'test_exp_v3.js'],
   ['Experience v3: golden case A (algebra) och B (kemi) – syntetiska skoluppgifter, 34 dygn i appen', 'test_golden_cases.js'],
 ];
