@@ -166,12 +166,21 @@ jobs:
         if: ${{ needs.preview.result == 'success' }}
         env:
           PREVIEW_REF: ${{ vars.PREVIEW_REF }}
+        # Varje kontroll avgör för sig. Faller någon läggs testadressen inte ut – men produktionen publiceras ändå.
         run: |
-          test "$(find preview-in -type f | wc -l)" = "1" && test -f preview-in/index.html
-          grep -q 'window.PLUGG_PREVIEW = true' preview-in/index.html && grep -q '· testversion' preview-in/index.html && grep -q 'window.PLUGG_PUSH_KEY = null' preview-in/index.html
-          if grep -q 'serviceWorker.register' preview-in/index.html; then echo 'testsidan registrerar en service worker'; exit 1; fi
-          mkdir -p dist/preview && cp preview-in/index.html dist/preview/index.html
-          echo "### Testadress: <sajten>/preview/ (gren: $PREVIEW_REF)" >> "$GITHUB_STEP_SUMMARY"
+          ok=1
+          [ "$(find preview-in -type f | wc -l)" = "1" ] || ok=0
+          [ -f preview-in/index.html ] || ok=0
+          grep -q 'window.PLUGG_PREVIEW = true' preview-in/index.html || ok=0
+          grep -q '· testversion' preview-in/index.html || ok=0
+          grep -q 'window.PLUGG_PUSH_KEY = null' preview-in/index.html || ok=0
+          if grep -q 'serviceWorker.register' preview-in/index.html; then ok=0; fi
+          if [ "$ok" = "1" ]; then
+            mkdir -p dist/preview && cp preview-in/index.html dist/preview/index.html
+            echo "### Testadress: <sajten>/preview/ (gren: $PREVIEW_REF)" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::warning::Testadressen klarade inte kontrollen och lades inte ut. Produktionen publiceras som vanligt."
+          fi
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
