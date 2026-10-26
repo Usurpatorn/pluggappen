@@ -14,7 +14,7 @@
  "templates": [
   "ak2"
  ],
- "rev": 3,
+ "rev": 4,
  "sources": [
   {
    "id": "lgr22",
@@ -133,6 +133,30 @@
      "f": [
       "Kort vokal ger alltid bara en konsonant."
      ]
+    },
+    {
+     "k": "pick",
+     "text": "Vi har en boll.",
+     "ask": "Tryck på ordet med två likadana konsonanter.",
+     "a": "boll"
+    },
+    {
+     "k": "pick",
+     "text": "Jag kan simma.",
+     "ask": "Tryck på ordet med två likadana konsonanter.",
+     "a": "simma"
+    },
+    {
+     "k": "pick",
+     "text": "Kan du hoppa?",
+     "ask": "Tryck på ordet med två likadana konsonanter.",
+     "a": "hoppa"
+    },
+    {
+     "k": "pick",
+     "text": "Min mössa är röd.",
+     "ask": "Tryck på ordet med två likadana konsonanter.",
+     "a": "mössa"
     }
    ],
    "src": [
@@ -209,6 +233,24 @@
       "jacca"
      ],
      "exact": true
+    },
+    {
+     "k": "pick",
+     "text": "Hon har en röd jacka.",
+     "ask": "Tryck på ordet som stavas med ck.",
+     "a": "jacka"
+    },
+    {
+     "k": "pick",
+     "text": "Klockan är tre.",
+     "ask": "Tryck på ordet som stavas med ck.",
+     "a": "Klockan"
+    },
+    {
+     "k": "pick",
+     "text": "Jag vill ha socker.",
+     "ask": "Tryck på ordet som stavas med ck.",
+     "a": "socker"
     }
    ],
    "src": [
@@ -298,6 +340,44 @@
      "f": [
       "Sj-ljudet stavas alltid sj."
      ]
+    },
+    {
+     "k": "pick",
+     "text": "Vi badar i sjön.",
+     "ask": "Tryck på ordet med sj-ljud.",
+     "a": "sjön"
+    },
+    {
+     "k": "pick",
+     "text": "Han har en blå skjorta.",
+     "ask": "Tryck på ordet med sj-ljud.",
+     "a": "skjorta"
+    },
+    {
+     "k": "pick",
+     "text": "Titta på stjärnan!",
+     "ask": "Tryck på ordet med sj-ljud.",
+     "a": "stjärnan"
+    },
+    {
+     "k": "pairs",
+     "q": "Hur stavas sj-ljudet i <b>{a}</b>?",
+     "items": [
+      [
+       "sju",
+       "sj"
+      ],
+      [
+       "skjorta",
+       "skj"
+      ],
+      [
+       "stjärna",
+       "stj"
+      ]
+     ],
+     "mq": "Para ihop ordet med hur sj-ljudet stavas.",
+     "why": "Sj-ljudet kan skrivas sj (sju), skj (skjorta) och stj (stjärna)."
     }
    ],
    "src": [
@@ -363,6 +443,34 @@
      "f": [
       "J-ljudet i ljus stavas med dj."
      ]
+    },
+    {
+     "k": "pairs",
+     "q": "Hur stavas j-ljudet i <b>{a}</b>?",
+     "items": [
+      [
+       "jag",
+       "j"
+      ],
+      [
+       "gilla",
+       "g"
+      ],
+      [
+       "hjälpa",
+       "hj"
+      ],
+      [
+       "ljus",
+       "lj"
+      ],
+      [
+       "djur",
+       "dj"
+      ]
+     ],
+     "mq": "Para ihop ordet med hur j-ljudet stavas.",
+     "why": "J-ljudet kan skrivas j (jag), g (gilla), hj (hjälpa), lj (ljus) och dj (djur)."
     }
    ],
    "src": [
@@ -446,6 +554,31 @@
      "f": [
       "En mening slutar med stor bokstav."
      ]
+    },
+    {
+     "k": "group",
+     "sq": "Vilka ord ska skrivas med stor bokstav? Sortera.",
+     "groups": [
+      {
+       "q": "Vilket ord är ett namn och ska ha stor bokstav?",
+       "label": "Stor bokstav",
+       "items": [
+        "anna",
+        "kalle",
+        "umeå"
+       ]
+      },
+      {
+       "q": "Vilket ord ska skrivas med liten bokstav?",
+       "label": "Liten bokstav",
+       "items": [
+        "hund",
+        "katt",
+        "park"
+       ]
+      }
+     ],
+     "why": "Namn på personer och platser skrivs med stor bokstav: Anna, Kalle, Umeå."
     }
    ],
    "src": [
@@ -601,6 +734,31 @@
      "f": [
       "Meningens första ord har punkt."
      ]
+    },
+    {
+     "k": "group",
+     "sq": "Står orden i rätt ordning? Sortera.",
+     "groups": [
+      {
+       "q": "Vilken mening har orden i rätt ordning?",
+       "label": "Rätt ordning",
+       "items": [
+        "Jag har en röd boll.",
+        "Vi äter glass idag.",
+        "Hunden springer fort hem."
+       ]
+      },
+      {
+       "q": "Vilken mening har orden i fel ordning?",
+       "label": "Fel ordning",
+       "items": [
+        "Jag en har röd boll.",
+        "Har jag boll en röd.",
+        "Vi glass äter idag."
+       ]
+      }
+     ],
+     "why": "I en mening står orden i en bestämd ordning: Jag har en röd boll."
     }
    ],
    "src": [

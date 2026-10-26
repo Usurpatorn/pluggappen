@@ -335,9 +335,9 @@ const PACKS = (() => {
       if (opts.format === 'recall') { const r = all0.filter(v => v.form === 'recall'); if (r.length) pool = r; }
       else if (opts.format === 'depth') { const r = all0.filter(v => DEPTH.has(v.form)); if (r.length) pool = r; }
       const L = Math.max(1, Math.min(3, opts.lvl || 1)); const lv = pool.filter(v => v.lvl <= L); pool = lv.length ? lv : pool.filter(v => v.lvl === Math.min(...pool.map(x => x.lvl)));
-      // Experience v3 (Explore): aldrig fler än två textval i rad när kunskapen också finns som en aktivitet (sortera, para ihop, ordna,
+      // Experience v3: aldrig fler än två textval i rad (Explore: aldrig två i rad, actAfter 1) när kunskapen också finns som en aktivitet (sortera, para ihop, ordna,
       // tryck i meningen, bygg ordet). Bara presentationen: formatet (eget svar/djup) och nivån som motorn bad om gäller fortfarande.
-      if (opts.vary && opts.vary.choiceRun >= 2) { const act = pool.filter(v => v.ui !== 'choice'); if (act.length) pool = act; }
+      if (opts.vary && opts.vary.choiceRun >= (opts.vary.actAfter || 2)) { const act = pool.filter(v => v.ui !== 'choice'); if (act.length) pool = act; }
       // Explore-Bossen (en utmaning i sig): en aktivitet på högst en nivå över, om en sådan finns – annars som vanligt
       // Grow/Achieve-Bossen (sträckuppgiften): helst en djupare form – tillämpa, orsak, förklara, hitta felet – på den nivå motorn bad om,
       // om motorn inte bad om fritt minne. Bara valet av variant; motorns bevisregler är desamma (UX-granskning: Bossen var ofta en kopia).

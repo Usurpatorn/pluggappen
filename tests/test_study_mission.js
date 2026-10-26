@@ -84,7 +84,7 @@ setTimeout(() => { try {
   openKid(T, 'k8'); T.click(T.$('[data-v2="kor"]') || T.$('[data-v2="extra"]'));
   let rep = null; n = 0;
   while (PA.S && PA.S.v2 && T.$('#qcard') && n++ < 40) {
-    const it = PA.S.queue[PA.S.i]; const isQ = it.cat === 'math' && (it.choices || ['choicetext', 'num', 'text', 'order'].includes(it.type));
+    const it = PA.S.queue[PA.S.i]; const isQ = it.cat === 'math' && (it.choices || ['choicetext', 'num', 'text', 'order'].includes(it.type)) && String((it.spec && it.spec.cid) || '').startsWith('k:');   // en paketfråga: bara den har en text att visa (en räknegenerators uppgift sparas utan text, ingen fritext)
     if (isQ) {
       if (!rep) { // svara och markera
         const before = PA.S.i; if (it.type === 'choicetext' || it.choices) T.click(T.$(`[data-choice="${it.answer}"]`)); else if (it.type === 'order') { it.items.forEach((_, i) => T.click(T.$(`[data-otile="${i}"]`))); T.click(T.$('#submit')); } else { T.$('#ans').value = it.type === 'num' ? String(it.answer) : (it.answer && it.answer[0]) || ''; T.click(T.$('#submit')); }
