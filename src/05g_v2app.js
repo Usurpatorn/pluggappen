@@ -49,6 +49,8 @@ const V2 = {
   missionInfo(kid) { const m = V2.mission(kid); if (!m) return null; return { m, cids: V2.examCidsActive(kid, m.e) }; },
   examCidsActive(kid, e) { const C = LE.state(kid); const cat = LE.activeCat(C, prof(kid.id)); return LE.examCids(C, e).filter(cid => cat[cid] && cat[cid].active !== false).concat((e.deckIds || []).map(LECAT.deckCid).filter(cid => cat[cid])); },
   // Hur många av passets uppgifter (utom Bossen) som hör till provet
+  // Provträningen följer dygnets gräns för nytt: bara det som är kvar av policyns maxNew efter dagens tidigare pass
+  newCapToday(C, now) { const d = LE2.dayIdx(now); const n = Object.entries(C.L.c).filter(([id, c]) => c.fs && LE2.dayIdx(c.fs * 1000) === d && C.cat[id] && C.cat[id].kind !== 'deck').length; return Math.max(0, C.pol.maxNew - n); },
   missionShare(plan, cids) { const set = new Set(cids); const slots = plan.filter(s => s.role !== 'boss'); return { n: slots.filter(s => set.has(s.cid)).length, of: slots.length }; },
   /* 2.2: uppdraget = närmaste prov/läxa/glosförhör med datum inom MISSION_DAYS (familjens skoluppgifter eller förälderns prov) */
   MISSION_DAYS: 28,
@@ -131,7 +133,7 @@ const V2 = {
       const out = plan.slice(0, 12); out.maxItems = out.length; return out;
     }
     // Hotfix 2.1.1: "Öva inför provet" – samma motor och samma regler (förfallet, nytt inom dygnets gräns, Revansch), men bara provets koncept
-    if (mode === 'mission') { const e = LE.exams(kid, p).find(x => x.id === extra.examId); if (!e) return []; const cids = V2.examCidsActive(kid, e); if (!cids.length) return []; const plan = LE.plan(kid, V2.n(kid, C), now, id, { only: cids }).plan; plan.examId = e.id; return plan; }
+    if (mode === 'mission') { const e = LE.exams(kid, p).find(x => x.id === extra.examId); if (!e) return []; const cids = V2.examCidsActive(kid, e); if (!cids.length) return []; const plan = LE.plan(kid, V2.n(kid, C), now, id, { only: cids, newCap: V2.newCapToday(C, now) }).plan; plan.examId = e.id; return plan; }
     if (mode === 'readclose') { const cids = LE.cidsOfSkill(C, extra.skillId); if (!cids.length) return []; const start = Math.floor(Math.random() * cids.length); const plan = [0, 1, 2].map(i => ({ cid: cids[(start + i) % cids.length], role: 'readclose', why: 'läst, stängt – minns du?' })); plan.maxItems = 3; return plan; }
     return LE.plan(kid, V2.n(kid, C), now, id).plan;
   },
