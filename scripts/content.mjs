@@ -44,6 +44,13 @@ else if (cmd === 'bundle') {
       if (t.a && !t.typed && (t.not || []).length < 2) werr.push(`${at} fråga ${t.n}: flerval behöver minst två felaktiga alternativ i not (eller typed: true för kort eget svar)`);
       if (t.typed && String(t.a || '').trim().split(/\s+/).length > 3) werr.push(`${at} fråga ${t.n}: eget svar får vara högst tre ord`);
     }
+    // Experience v3: målområden, lärarens betoning och luckor. Ingen påhittad omfattning: målområden och betoning måste ligga inom
+    // skoluppgiftens egna moment och kunskapspunkter. Luckor (saknade PDF:er, okänt provformat, ogranskade filmer) ska stå kvar synligt.
+    const scopeS = new Set(w.skills || []), scopeK = new Set(w.kps || []);
+    for (const g of w.goals || []) { if (!g || !g.id || !g.name) { werr.push(`${at}: målområde behöver id och name`); continue; } if (!(g.skills || []).length && !(g.kps || []).length) werr.push(`${at} målområde ${g.id}: skills eller kps krävs`);
+      for (const s of g.skills || []) if (!scopeS.has(s)) werr.push(`${at} målområde ${g.id}: momentet ${s} ingår inte i skoluppgiften`); for (const k of g.kps || []) if (!scopeK.has(k)) werr.push(`${at} målområde ${g.id}: ${k} ingår inte i skoluppgiften`); }
+    if (w.focus) { for (const s of w.focus.skills || []) if (!scopeS.has(s)) werr.push(`${at}: betonat moment ${s} ingår inte i skoluppgiften`); for (const k of w.focus.kps || []) if (!scopeK.has(k)) werr.push(`${at}: betonad punkt ${k} ingår inte i skoluppgiften`); }
+    for (const m of w.missing || []) if (!m || !m.label) werr.push(`${at}: en lucka (missing) behöver label`);
     const txt = JSON.stringify({ ...w, kid: '' }).toLowerCase(); for (const term of PRIV) if (txt.includes(term)) werr.push(`${at}: innehåller ett namn från den privata termlistan – ta bort det (källhänvisningar utan personnamn)`);
   }
   if (werr.length) { console.error(werr.join('\n')); process.exit(1); }

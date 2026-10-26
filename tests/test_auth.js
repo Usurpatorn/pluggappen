@@ -27,7 +27,7 @@ function rules(method, path, uid, body) {
     if (method === 'DELETE') return isMember && (id === uid || isParent) ? 200 : 403;
   }
   if (coll === 'profiles') {
-    if (method === 'GET') return isMember || legacy ? 200 : 403;
+    if (method === 'GET') return isMember || (legacy && id !== '_content') ? 200 : 403;   // _content: aldrig via övergångsvägen
     if (method === 'PATCH') { const ok = Object.keys(body.fields).every(k => ['json', 'updatedAt', 'kid'].includes(k)); return id !== '_content' && (isMember || legacy) && ok ? 200 : 403; }   // _content: bara servicekontot
     if (method === 'DELETE') return isParent ? 200 : 403;
   }
@@ -79,6 +79,7 @@ let fails = 0; const check = (c, m) => { console.log((c ? 'ok   ' : 'FAIL ') + m
     check(wB.status === 403, `_content: barnenhet (medlem) får inte skriva (${wB.status})`);
     const rB = await B.PA.AUTH.fetch(B.PA.AUTH.doc('profiles/_content')); check(rB.ok, '_content: medlem får läsa');
     check(rules('PATCH', 'families/legacy-fam-001/profiles/_content', null, JSON.parse(body)) === 403, '_content: gammal klient under övergången får inte skriva');
+    check(rules('GET', 'families/legacy-fam-001/profiles/_content', null) === 403 && rules('GET', 'families/legacy-fam-001/profiles/k2', null) === 200, '_content: gammal klient under övergången får inte läsa (vanliga profiler: oförändrat)');
     check(rules('PATCH', 'families/legacy-fam-001/profiles/_content', 'uid1', JSON.parse(body)) === 403, '_content: inte heller enheten som skapade familjen');
     check(rules('PATCH', 'families/legacy-fam-001/profiles/k2', null, { fields: { json: {}, updatedAt: {} } }) === 200, 'vanliga profiler: övergångsvägen oförändrad');
     check(fieldStr(cloud['families/legacy-fam-001/profiles/_content'], 'json').includes('"work":[]'), '_content oförändrat efter försöken');

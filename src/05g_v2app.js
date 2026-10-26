@@ -186,6 +186,8 @@ const V2 = {
       V.seen.add(V2.iid(q)); return [{ ...q, spec, _slotEnd: true }];
     }
     let q;
+    // v3-rytm: Hitta felet / Baklänges som fördjupning (registreras som Utmaning – ändrar aldrig grundkunskapens stadium)
+    const rk = EXP.rhythmKind(V, spec, skill, c); if (rk) { const rq = EXP.rhythmItem(rk, skill, spec.lvl); if (rq) { V.seen.add(V2.iid(rq)); return [{ ...rq, skill, cat: 'math', level: rq.level || spec.lvl, rhythm: rk, spec: { ...spec, mode: 'challenge', rhythm: rk }, _slotEnd: true }]; } }
     if (spec.mode === 'challenge') q = CHG.make(skill, spec.lvl, (c && c.ch && c.ch.n) || 0, { young: pol.name === 'younger' });   // annars: vanlig uppgift på högsta nivån, märkt UTMANING
     // Fria textsvar (nyckelordsrättning) används aldrig i v2 – rättningen är inte tillräckligt säker för att styra stadier och Felboken (3E).
     const genNoOpen = () => { let q1 = null; for (let lv = spec.lvl; lv >= 1 && (!q1 || q1.type === 'open'); lv--) for (let j = 0; j < 4 && (!q1 || q1.type === 'open'); j++) q1 = makeQuestion(kid, skill, lv, { noOpen: true, v2: true }); return q1; };
@@ -203,6 +205,8 @@ const V2 = {
     else if (wantRecall && q.choices && (q.type === 'num' || q.type === 'expr')) q = { ...q, choices: undefined };
     // v3 papper och penna: appen väljer uppgiften, barnet räknar på papper och skriver bara svaret (rättas som vanligt)
     if (EXP.paperFor(V, q, spec, skill)) q = { ...q, choices: undefined, paper: true };
+    // v3 Explore: efter två textval i rad blir ett taluppdrag "skriv talet" med sifferknappar i stället för fler knappar att välja bland
+    else if (V.exp === 'explore' && !V.exam && q.type === 'num' && q.choices && !['warmup', 'rescue', 'easy'].includes(spec.role) && spec.help !== 'rescue' && (EXP.vary(V) || {}).choiceRun >= 2) q = { ...q, choices: undefined, keypad: true };
     V.seen.add(V2.iid(q));
     return [{ ...q, spec, _slotEnd: true }];
   },

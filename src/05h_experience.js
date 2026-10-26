@@ -82,7 +82,8 @@ const EXP = {
     const m = V2.mission(kid); const label = LBL(kid).go.toUpperCase();
     if (EXP.coreDone(p)) return EXP.doneCard(kid, p, m ? 'DAGENS MISSION KLAR' : 'RUNDAN KLAR!', 'Du är klar för idag.', 'EN RUNDA TILL');
     const s = EXP.summary(kid); const pr = EXP.progress(kid); const C = s.C; const fb = LE2.felbokChild(C.L, C.pol, LE.now()); const todo = fb.items.filter(x => x.state === 'todo').length;
-    const prog = pr['Säker'] + pr['På väg'] + pr['Tränar'] > 0 ? `<div class="progress-states" aria-label="Så långt har du kommit"><span><b>${pr['Säker']}</b> säkra</span><span><b>${pr['På väg']}</b> på väg</span><span><b>${pr['Tränar'] + pr['Behöver repetition']}</b> tränar</span></div>` : '';
+    const parts = [[pr['Säker'], 'säkra'], [pr['På väg'], 'på väg'], [pr['Tränar'] + pr['Behöver repetition'], 'tränar']].filter(x => x[0] > 0);   // bara lägen som finns – ingen "0 säkra"
+    const prog = parts.length ? `<div class="progress-states" aria-label="Så långt har du kommit">${parts.map(([n, t]) => `<span><b>${n}</b> ${t}</span>`).join('')}</div>` : '';
     return `<section class="card pad-lg mission grow stack" aria-label="Dagens runda"><div class="eyebrow">${m ? `DAGENS MISSION · ${esc(m.e.title.toUpperCase())} · ${esc(fmtDate(m.e.date).toUpperCase())}` : 'DAGENS RUNDA'}</div>
       <div class="mission-title">${s.n} uppgifter · cirka ${s.mins} min</div>
       ${s.list.length ? `<div class="muted" style="font-size:.95rem">Idag: ${s.list.map(esc).join(' · ')}</div>` : ''}${prog}
@@ -90,8 +91,9 @@ const EXP = {
       ${todo ? `<button class="link" data-v2="revansch" style="align-self:center">Hellre revansch först? · ${todo} ${todo === 1 ? 'sak' : 'saker'}</button>` : ''}</section>`;
   },
   goalOf(kid) {
-    const p = prof(kid.id); const list = LE.exams(kid, p).map(e => ({ e, d: daysUntil(e.date) })).filter(x => x.d >= 0 && x.d <= V2.MISSION_DAYS).sort((a, b) => a.d - b.d || (b.e.priority === 'high') - (a.e.priority === 'high') || (a.e.id < b.e.id ? -1 : 1));
-    return { now: list[0] || null, next: list[1] || null };
+    const p = prof(kid.id); const all = LE.exams(kid, p).map(e => ({ e, d: daysUntil(e.date) })).filter(x => x.d >= 0).sort((a, b) => a.d - b.d || (b.e.priority === 'high') - (a.e.priority === 'high') || (a.e.id < b.e.id ? -1 : 1));
+    const now = all.find(x => x.d <= V2.MISSION_DAYS) || null;   // nästa mål: inom uppdragets horisont (samma som Study Mission)
+    return { now, next: now ? all.find(x => x !== now && x.d <= 60) || null : null };   // "Sedan:" – bara en rad, aldrig en andra plan
   },
   isExam(e) { return e && (e.kind === 'exam' || /prov|förhör|test/i.test(e.title || '')); },
   achieveHome(kid, p) {
@@ -101,8 +103,9 @@ const EXP = {
     const s = EXP.summary(kid);
     const head = m ? `<div class="eyebrow">NÄSTA MÅL</div><div class="goal-title">${esc(m.e.title.toUpperCase())}</div><div class="goal-date">${esc(fmtDate(m.e.date).toUpperCase())} · ${m.d === 0 ? 'idag' : m.d === 1 ? 'imorgon' : `om ${m.d} dagar`}</div>`
       : `<div class="eyebrow">DAGENS PLAN</div>${s.list[0] ? `<div class="goal-title">${esc(s.list[0].toUpperCase())}</div>` : ''}`;
+    const list = m ? s.list : s.list.slice(1);   // utan prov: dagens starkaste mål är rubriken, resten listas under
     return `<section class="card pad-lg mission achieve stack" aria-label="Dagens plan">${head}
-      ${s.list.length ? `<div class="train"><div class="eyebrow">DET HÄR TRÄNAR VI IDAG</div><ul>${s.list.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
+      ${list.length ? `<div class="train"><div class="eyebrow">${m ? 'DET HÄR TRÄNAR VI IDAG' : 'OCKSÅ IDAG'}</div><ul>${list.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
       <div class="muted">cirka ${s.mins} min</div>
       ${EXP.go(kid, LBL(kid).go.toUpperCase())}${sedan}</section>` + EXP.goalDetail(kid, m);
   },
@@ -130,20 +133,21 @@ const EXP = {
     }, 'welcome', '');
   },
   /* ---------- Under passet ---------- */
-  ACT: { sort: ['SORTERA', '🗂️'], match: ['PARA IHOP', '🔗'], order: ['ORDNA', '🔢'], tap: ['TRYCK PÅ ORDET', '👆'], build: ['BYGG ORDET', '🧱'], paper: ['RÄKNA PÅ PAPPER', '✏️'], exampaper: ['PROVLÄGE · PAPPER', '✏️'], bosspaper: ['BOSS · PAPPER', '👑'] },
+  ACT: { num: ['SKRIV TALET', '✍️'], sort: ['SORTERA', '🗂️'], match: ['PARA IHOP', '🔗'], order: ['ORDNA', '🔢'], tap: ['TRYCK PÅ ORDET', '👆'], build: ['BYGG ORDET', '🧱'], paper: ['RÄKNA PÅ PAPPER', '✏️'], exampaper: ['PROVLÄGE · PAPPER', '✏️'], bosspaper: ['BOSS · PAPPER', '👑'] },
   // Upplevelsens etikett för uppgiften. Explore: aktiviteten. Achieve/Grow: rytmen UPPTÄCK · GÖR · HITTA FELET · MINNS · PROVLÄGE · BOSS.
   chipFor(item) {
     const V = S.v2; if (!V.exp || !item || item.cat === 'learn') return null;
     if (item.paper) return V.exam ? EXP.ACT.exampaper : item.spec && item.spec.role === 'boss' ? EXP.ACT.bosspaper : V.exp === 'explore' ? EXP.ACT.paper : ['GÖR · RÄKNA PÅ PAPPER', '✏️'];
+    if (item.rhythm) return item.rhythm === 'spot' ? ['HITTA FELET', '🔍'] : ['BAKLÄNGES', '↩️'];
     if (V.exam || !item.spec) return null;
     const role = item.spec.role;
     if (['boss', 'revansch', 'remember', 'rescue'].includes(role) || item.spec.mode === 'challenge') return null;   // rollens egen etikett (MINNS, REVANSCH, BOSSEN …)
-    const ui = EXP.uiOf(item); if (EXP.ACT[ui]) return EXP.ACT[ui];
+    const ui = EXP.uiOf(item); if (ui === 'num' && V.exp !== 'explore') return null; if (EXP.ACT[ui]) return EXP.ACT[ui];
     return null;
   },
   uiOf(item) { if (!item) return 'none'; if (item.cat === 'word') return 'word:' + item.kind; if (item.cat === 'learn') return 'learn'; if (item.paper) return 'paper'; if (item.build) return 'build'; if (item.type === 'sort' || item.type === 'match' || item.type === 'order') return item.type; if (item.ui === 'tap') return 'tap'; if (item.type === 'choicetext' || item.choices) return 'choice'; return item.type === 'text' ? 'type' : item.type || 'type'; },
   // Hur många textval i rad (Explore: aldrig fler än två när kunskapen finns som aktivitet)
-  vary(V) { if (!V.exp || V.exp === 'achieve') return null; const q = S.queue.filter(x => x.cat !== 'learn'); let run = 0; for (let i = q.length - 1; i >= 0; i--) { const u = EXP.uiOf(q[i]); if (u === 'choice' || u === 'word:pick' || u === 'word:listen') run++; else break; } const last = q.length ? EXP.uiOf(q[q.length - 1]) : null; return { choiceRun: V.exp === 'explore' ? run : 0, last, boost: V.exp === 'explore' ? 2.5 : 1.5 }; },
+  vary(V) { if (!V.exp || V.exp === 'achieve') return null; const q = S.queue.filter(x => x.cat !== 'learn'); let run = 0; for (let i = q.length - 1; i >= 0; i--) { const u = EXP.uiOf(q[i]); if (u === 'choice' || u === 'word:pick' || u === 'word:listen') run++; else break; } const last = q.length ? EXP.uiOf(q[q.length - 1]) : null; return { choiceRun: V.exp === 'explore' ? run : Math.max(0, run - 1), last, boost: V.exp === 'explore' ? 2.5 : 1.5 }; },   // Grow: högst tre textval i rad
   // Bygg ordet (Explore): eget svar med bokstavsbrickor i stället för tangentbord – för korta, enkla ord. Rättas med samma funktion.
   buildable(q) { if (q.type !== 'text' || !Array.isArray(q.answer)) return false; const w = String(q.display || q.answer[0] || '').trim(); return /^[a-zåäöéü]{2,9}$/i.test(w); },
   /* ---------- Papper och penna (Learning Recipe för matematik) ----------
@@ -159,6 +163,23 @@ const EXP = {
     const last = S.queue.filter(x => x.cat !== 'learn').slice(-1)[0];
     if (last && last.paper && spec.role !== 'boss') return false;
     return done < Math.ceil((V.plan.length || 6) / 2);
+  },
+  /* Rytmen i Achieve/Grow-matte (brief §13): UPPTÄCK (löst exempel) · GÖR (papper) · HITTA FELET (digital analys) · BAKLÄNGES · MINNS.
+     Hitta felet och Baklänges använder Utmaningslagrets befintliga generatorer och registreras som Utmaning: fördjupning som aldrig ändrar
+     stadium, förfallodag eller Felboken (samma regel som 3H). Högst en av varje per pass, bara på moment som redan börjar sitta (stadium ≥ 2). */
+  rhythmKind(V, spec, skill, c) {
+    if (!V.exp || V.exp === 'explore' || V.exam || V.mode === 'revansch' || V.mode === 'readclose') return null;
+    if (!skill || (skill.group || 'math') !== 'math' || typeof skill.gen !== 'function' || !c || c.st < 2) return null;
+    if (spec.mode === 'challenge' || !['practice', 'focus'].includes(spec.role) || spec.help === 'rescue' || spec.help === 'hint') return null;
+    const done = new Set(S.queue.filter(x => x.rhythm).map(x => x.rhythm)); const last = S.queue.filter(x => x.cat !== 'learn').slice(-1)[0];
+    if (!done.has('spot') && last && last.paper) return 'spot';   // efter ett pappersproblem: analysera en annans lösning digitalt
+    if (!done.has('reverse') && S.queue.filter(x => x.cat === 'math').length >= 2 && last && !last.paper && !last.rhythm) return 'reverse';   // baklänges: när passet är igång
+    return null;
+  },
+  rhythmItem(kind, skill, lvl) {
+    const want = kind === 'spot' ? ['spot'] : ['create', 'equation'];
+    for (const k of kind === 'spot' ? [0] : /ekv/.test(skill.id) ? [3, 2] : [2]) { const q = CHG.make(skill, lvl, k); if (q && want.includes(q.challenge)) return q; }
+    return null;
   },
   paperNote(q) { return `<div class="paper-note" role="note"><span aria-hidden="true">✏️</span><div><b>Räkna på papper.</b> Skriv uträkningen på ditt papper${S.v2 && S.v2.exam ? '' : ' – i lugn och ro'}. Skriv bara svaret här.</div></div>`; },
   paperFeedback(q, correct, raw) {
@@ -176,7 +197,7 @@ const EXP = {
   scList(kid) { const p = prof(kid.id); const C = LE.state(kid); return ((p.v3 && p.v3.sc) || []).slice(-8).reverse().map(x => ({ day: x[0], name: V2.cname(kid, C, x[1]), step: x[3], of: x[4] })); },
   /* ---------- Aktiviteter: sortera, para ihop, tryck i meningen, bygg ordet ---------- */
   body(q) {
-    if (q.type === 'sort') { S.sort = { sel: null, placed: {} }; return `<div class="sortbox"><div class="sort-pool" id="sortPool">${q.items.map((t, i) => `<button class="stile" data-sitem="${i}">${esc(t)}</button>`).join('')}</div><div class="sort-bins">${q.bins.map((b, i) => `<button class="sbin" data-sbin="${i}" aria-label="Lägg i ${esc(b)}"><span class="sbin-h">${esc(b)}</span><span class="sbin-items" id="sbin${i}"></span></button>`).join('')}</div><p class="muted tip">Tryck på ett kort och sedan på rätt grupp.</p></div>`; }
+    if (q.type === 'sort') { S.sort = { sel: null, placed: {} }; return `<div class="sortbox"><div class="sort-pool" id="sortPool">${q.items.map((t, i) => `<button class="stile" data-sitem="${i}" aria-pressed="false">${esc(t)}</button>`).join('')}</div><div class="sort-bins">${q.bins.map((b, i) => `<div class="sbin" data-sbin="${i}"><button class="sbin-h" data-sbin="${i}" aria-label="Lägg i ${esc(b)}">${esc(b)}</button><div class="sbin-items" id="sbin${i}" role="list" aria-label="${esc(b)}"></div></div>`).join('')}</div><p class="muted tip">Tryck på ett kort och sedan på rätt grupp. Fel grupp? Tryck på kortet igen.</p></div>`; }
     if (q.type === 'match') { const L = R.shuffle(q.pairs.map((x, i) => ({ i, t: x[0] }))); const Rr = R.shuffle(q.pairs.map((x, i) => ({ i, t: x[1] }))); S.match2 = { sel: null, done: new Set(), mistakes: 0 }; return `<div class="match-grid v3">${[['l', L], ['r', Rr]].map(([side, arr]) => `<div class="match-col">${arr.map(x => `<button class="mtile" data-m2="${side}" data-mi="${x.i}">${esc(x.t)}</button>`).join('')}</div>`).join('')}</div><p class="muted tip">Tryck på ett kort till vänster och sedan på det som hör ihop.</p>`; }
     return '';
   },
@@ -192,8 +213,10 @@ const EXP = {
     const t = e.target;
     if (q.type === 'sort' && S.sort) {
       const it = t.closest('[data-sitem]'); const bin = t.closest('[data-sbin]'); const X = S.sort;
-      if (it) { document.querySelectorAll('.stile.sel').forEach(x => x.classList.remove('sel')); X.sel = Number(it.dataset.sitem); it.classList.add('sel'); return true; }
-      if (bin && X.sel != null) { const b = Number(bin.dataset.sbin); X.placed[X.sel] = b; const el = document.querySelector(`[data-sitem="${X.sel}"]`); if (el) { el.classList.remove('sel'); el.classList.add('placed'); el.dataset.bin = b; document.getElementById('sbin' + b).appendChild(el); } X.sel = null; beep('tick'); const sb = document.getElementById('submit'); if (sb) sb.disabled = Object.keys(X.placed).length !== q.items.length; return true; }
+      if (it) { if (it.classList.contains('placed')) { const pool = document.getElementById('sortPool'); delete X.placed[it.dataset.sitem]; it.classList.remove('placed'); delete it.dataset.bin; if (pool) pool.appendChild(it); pool && pool.classList.remove('empty'); const sb0 = document.getElementById('submit'); if (sb0) sb0.disabled = true; }   // ångra: tryck på ett placerat kort så går det tillbaka
+        document.querySelectorAll('.stile.sel').forEach(x => { x.classList.remove('sel'); x.setAttribute('aria-pressed', 'false'); }); X.sel = Number(it.dataset.sitem); it.classList.add('sel'); it.setAttribute('aria-pressed', 'true'); return true; }
+      if (bin && X.sel != null) { const b = Number(bin.dataset.sbin); X.placed[X.sel] = b; const el = document.querySelector(`[data-sitem="${X.sel}"]`); if (el) { el.classList.remove('sel'); el.setAttribute('aria-pressed', 'false'); el.classList.add('placed'); el.dataset.bin = b; document.getElementById('sbin' + b).appendChild(el); } X.sel = null; beep('tick');
+        const pool = document.getElementById('sortPool'); if (pool) pool.classList.toggle('empty', !pool.querySelector('.stile')); const sb = document.getElementById('submit'); if (sb) sb.disabled = Object.keys(X.placed).length !== q.items.length; return true; }
       if (bin) { toast('Tryck först på ett kort'); return true; }
     }
     if (q.type === 'match' && S.match2) {
@@ -218,7 +241,7 @@ const EXP = {
   // Visa rätt/fel på korten efter svaret (sortera) – barnet ser direkt var varje kort hörde hemma
   reveal(q, res) {
     if (q.type === 'sort') document.querySelectorAll('.stile').forEach(el => { const t = q.items[Number(el.dataset.sitem)]; el.disabled = true; el.classList.add(q.answer[t] === q.bins[Number(el.dataset.bin)] ? 'ok' : 'no'); });
-    document.querySelectorAll('.sbin, .mtile, .ltile, #undoBuild').forEach(b => { b.disabled = true; });
+    document.querySelectorAll('.sbin-h, .mtile, .ltile, #undoBuild').forEach(b => { b.disabled = true; }); document.querySelectorAll('#qcard .tip').forEach(x => x.remove());
     if (q.type === 'match' && res) return `<div class="sub">${res.mistakes ? `Alla par klara – ${res.mistakes === 1 ? 'ett försök' : res.mistakes + ' försök'} blev fel på vägen.` : 'Alla par rätt direkt!'}</div>`;
     return '';
   },
@@ -253,7 +276,7 @@ const EXP = {
         ${e === 'achieve' && !flow ? '<div>Appen håller koll på resten.</div>' : ''}
         ${trail}
         ${e !== 'explore' ? `<div style="font-weight:700">${sum.ok} av ${sum.n} rätt</div>` : ''}
-        ${V.stageUps.size && e !== 'explore' ? `<div>${V.stageUps.size === 1 ? 'Ett område' : `${V.stageUps.size} områden`} blev säkrare</div>` : ''}
+        ${(() => { const up = [...V.stageUps].filter(cid => ((V.C.L.c[cid] || {}).st || 0) >= 2).length; return up && e !== 'explore' ? `<div>${up === 1 ? 'Ett område' : `${up} områden`} sitter bättre nu</div>` : ''; })()}
         ${delights}${gems ? `<div>+${gems} 💎</div>` : ''}
       </section>
       ${back.length ? `<div class="card stack" style="gap:4px"><div class="eyebrow">Det här behöver komma tillbaka</div>${back.map(b => `<div>${esc(b.name)} – kommer tillbaka ${esc(b.when)}.</div>`).join('')}</div>` : ''}

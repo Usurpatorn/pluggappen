@@ -270,6 +270,20 @@ const PACKS = (() => {
         f.qs.forEach((x, i) => add({ ...f, id: (f.id || fnv(f.text)) + '.' + i, lvl: x.lvl || f.lvl, ages: x.ages || f.ages }, x.form || 'recognition', 'rd', (r) => ({ ...mc(x.q, x.a, x.not, [], x.why || (['cause', 'application', 'explanation'].includes(x.form) ? 'Det står inte rakt ut i texten – men ledtrådarna i texten visar det.' : 'Svaret står i texten.'), r), fig: `<div class="readbox">${f.title ? `<div style="font-weight:800;margin-bottom:4px">${esc(f.title)}</div>` : ''}${f.text}</div>`, speak: false })));
       }
     }
+    // Experience v3 – STÄMMER ELLER INTE? Sortera påståenden ur kunskapspunktens egna stmt-fakta (två sanna, två falska per omgång).
+    // Samma granskade påståenden som flervalsfrågorna "Vilket stämmer?"/"Vilket är fel?" – nu som en aktivitet. Form: hitta felet.
+    { const st = kp.facts.filter(f => f.k === 'stmt' && formOk(f, 'mistake', pol) && strip(f.s).length <= TEXT[pol].choice && f.f.some(x => strip(x).length <= TEXT[pol].choice));
+      if (st.length >= 2 && kp.tf !== false) {
+        const f0 = { k: 'stmt', id: kp.id + '.tf', lvl: Math.min(3, Math.max(...st.map(f => f.lvl || 1))), why: kp.explain };
+        const rounds = Math.min(4, Math.ceil(st.length / 2));
+        for (let r0 = 0; r0 < rounds; r0++) add({ ...f0, id: f0.id + r0 }, 'mistake', 'tf', (r) => {
+          const tr = [st[(r0 * 2) % st.length], st[(r0 * 2 + 1) % st.length]]; const fa = [st[(r0 * 2 + 1) % st.length], st[(r0 * 2) % st.length]].map(f => f.f.find(x => strip(x).length <= TEXT[pol].choice));
+          const items = [...tr.map(f => ({ t: f.s, b: 'Stämmer' })), ...fa.map(t => ({ t, b: 'Stämmer inte' }))].filter((x, i, a) => x.t && a.findIndex(y => norm(y.t) === norm(x.t)) === i);
+          if (items.filter(x => x.b === 'Stämmer inte').length < 1) return null;
+          const answer = {}; for (const x of items) answer[x.t] = x.b;
+          return { type: 'sort', text: 'Stämmer det? Sortera.', bins: ['Stämmer', 'Stämmer inte'], items: shuffle(items.map(x => x.t), r), answer, k: 2, steps: [`<b>Stämmer:</b> ${tr.map(f => esc(f.s)).join(' · ')}`, kp.explain].filter(Boolean), hint: 'Läs ett påstående i taget. Stämmer det med det du har lärt dig?', v2check: 'pack' };
+        }, { ui: 'sort', lvl: f0.lvl });
+      } }
     for (const v of out) { v.speak = v.f.k !== 'read' && v.f.speak !== false; if (!v.ui) v.ui = v.form === 'recall' ? 'type' : v.f.k === 'num' ? 'num' : 'choice'; }
     VCACHE.set(key, out); return out;
   }

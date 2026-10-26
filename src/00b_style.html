@@ -213,14 +213,16 @@
 /* Aktiviteter – allt med tryck, inga dragningar. Tryckytor minst 48 px. */
 .sortbox { display: grid; gap: 12px; }
 .sort-pool { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; min-height: 52px; }
+.sort-pool.empty { display: none; }
+.stile:focus-visible, .sbin-h:focus-visible, .tapword:focus-visible, .mtile:focus-visible, .station:focus-visible { outline: 3px solid var(--acc); outline-offset: 2px; }
 .stile { min-height: 52px; min-width: 64px; padding: 8px 14px; border-radius: 12px; background: var(--card); border: 1.5px solid var(--line); box-shadow: var(--shadow); font-family: var(--display); font-weight: 700; font-size: 1.05rem; }
 .stile.sel { border-color: var(--acc); background: var(--acc-soft); outline: 3px solid var(--acc-glow); }
 .stile.placed { min-height: 44px; font-size: .95rem; box-shadow: none; }
 .stile.ok { border-color: var(--good); background: var(--good-soft); }
 .stile.no { border-color: var(--bad); background: var(--bad-soft); }
 .sort-bins { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
-.sbin { min-height: 96px; padding: 10px; border-radius: 16px; border: 2px dashed var(--acc); background: color-mix(in srgb, var(--acc-soft) 45%, var(--card)); display: flex; flex-direction: column; align-items: stretch; gap: 6px; text-align: center; }
-.sbin-h { font-family: var(--display); font-weight: 800; color: var(--acc-ink); font-size: 1.05rem; }
+.sbin { min-height: 96px; padding: 10px; border-radius: 16px; border: 2px dashed var(--acc); background: color-mix(in srgb, var(--acc-soft) 45%, var(--card)); display: flex; flex-direction: column; align-items: stretch; gap: 6px; text-align: center; cursor: pointer; }
+.sbin-h { min-height: 48px; border-radius: 12px; background: transparent; font-family: var(--display); font-weight: 800; color: var(--acc-ink); font-size: 1.05rem; }
 .sbin-items { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
 .tip { font-size: .9rem; text-align: center; margin: 0; }
 .match-grid.v3 .mtile { min-height: 56px; }
