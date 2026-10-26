@@ -22,13 +22,13 @@ skolmaterial ──► Claude: Concept Packs + work.json ──► PR i privata 
 |---|---|---|---|
 | GitHub | Privat repo `Usurpatorn/pluggappen-content` | – | Familjens innehåll och dess historik. Aldrig i app-repot. |
 | GitHub (privata repot) | Miljö `production`, bara grenen `main` får använda den | – | Google litar bara på jobb i den miljön. |
-| GitHub (privata repot) | Skydd av `main`: kräver PR + grön "Kvalitetsgrind" | – | Inget når appen utan kontroll och din merge. |
+| GitHub (privata repot) | Ägarspärr i publicera-/rollback-workflowen | `pull-requests: read` | Grenskydd verkställs inte i privata repon på gratisplanen. Workflowen kontrollerar därför själv att ändringen är en PR som ägaren har mergat (rollback/manuell körning: bara ägaren). |
 | GitHub (privata repot) | Secrets `FAMILY_CODE`, `PRIVACY_TERMS` | – | Var innehållet ska skrivas; namnkontroll. |
-| GitHub (privata repot) | Variabler `WIF_PROVIDER`, `WIF_SERVICE_ACCOUNT`, `PUBLISH_ENABLED=false` | – | Inloggning utan nyckel; spärr tills grinden är stängd. |
+| GitHub (privata repot) | Miljövariabler `WIF_PROVIDER`, `WIF_SERVICE_ACCOUNT`; **repovariabel** `PUBLISH_ENABLED` | – | Inloggning utan nyckel; spärr tills grinden är stängd. Spärren måste ligga på repo-nivå – jobbets villkor ser inte miljövariabler. |
 | GitHub | Claude-appens åtkomst till det privata repot | läsa/skriva innehåll, öppna PR | Claude arbetar via PR – aldrig direkt på `main`, aldrig någon nyckel. |
 | Google Cloud | Workload Identity-pool `github` + provider `pluggappen-content` | litar på GitHubs OIDC-token, villkor: repot `Usurpatorn/pluggappen-content`, grenen `main` | Byter GitHubs token mot ett kortlivat Google-token (10 min). |
 | Google Cloud | Tjänstekonto `content-publisher` | `roles/datastore.user` på projektet | Läsa/skriva Firestore. **Obs:** rollen gäller hela projektets Firestore, inte bara `_content` – Google har ingen dokumentnivå i IAM. Begränsningen ligger i att bara den här workflowen kan använda kontot. |
-| Google Cloud | Bindning på tjänstekontot | `roles/iam.workloadIdentityUser` för exakt `repo:Usurpatorn/pluggappen-content:environment:production` | Bara jobb i miljön production i det privata repot kan låna kontot. |
+| Google Cloud | Bindning på tjänstekontot | `roles/iam.workloadIdentityUser` för exakt `repo:Usurpatorn@10485475/pluggappen-content@1434576026:environment:production` | Bara jobb i miljön production i det privata repot kan låna kontot. GitHub skickar `sub` med fasta id-nummer för konto och repo (skyddar mot att någon tar över namnet). |
 | Google Cloud | API:erna IAM Credentials och Security Token Service | – | Behövs för tokenbytet. |
 | – | **Ingen** nyckelfil skapas för `content-publisher` | – | Inget som kan läcka. |
 
@@ -56,24 +56,31 @@ gcloud iam service-accounts create content-publisher --project $PROJECT --displa
 gcloud projects add-iam-policy-binding $PROJECT --member "serviceAccount:content-publisher@$PROJECT.iam.gserviceaccount.com" --role roles/datastore.user --condition None
 gcloud iam service-accounts add-iam-policy-binding content-publisher@$PROJECT.iam.gserviceaccount.com --project $PROJECT \
   --role roles/iam.workloadIdentityUser \
-  --member "principal://iam.googleapis.com/projects/$NUM/locations/global/workloadIdentityPools/github/subject/repo:$REPO:environment:production"
+  --member "principal://iam.googleapis.com/projects/$NUM/locations/global/workloadIdentityPools/github/subject/repo:Usurpatorn@10485475/pluggappen-content@1434576026:environment:production"
 echo "WIF_PROVIDER = projects/$NUM/locations/global/workloadIdentityPools/github/providers/pluggappen-content"
 echo "WIF_SERVICE_ACCOUNT = content-publisher@$PROJECT.iam.gserviceaccount.com"
 ```
 Spara de två sista raderna (de är inte hemliga). Skapa **ingen** nyckel för `content-publisher`.
 
+> **Identiteten (`sub`).** GitHub skickar `repo:<ägare>@<ägar-id>/<repo>@<repo-id>:environment:production`, inte bara namnen. Ger
+> inloggningen `iam.serviceAccounts.getAccessToken denied` trots att bindningen finns: läs av `sub` i workflowen och bind exakt det värdet.
+
 ### 3. Inställningar i det privata repot (GitHub → pluggappen-content → Settings)
 1. **Environments** → New environment `production` → *Deployment branches and tags*: **Selected branches** → `main`.
-   (Valfritt extra steg: *Required reviewers* = du. Då kräver varje publicering ett klick på "Approve" efter mergen.)
+   (*Required reviewers* finns inte för privata repon på gratisplanen – din merge är godkännandet, och ägarspärren ser till det.)
 2. **Secrets and variables → Actions → Secrets:** `FAMILY_CODE` (samma värde som i app-repot), `PRIVACY_TERMS` (samma som i app-repot).
-3. **Variables:** `WIF_PROVIDER` och `WIF_SERVICE_ACCOUNT` (från steg 2), `PUBLISH_ENABLED` = `false`.
-4. **Branches → Add rule** för `main`: *Require a pull request before merging* och *Require status checks* → **Kvalitetsgrind**.
+3. **Miljövariabler** (i `production`): `WIF_PROVIDER` och `WIF_SERVICE_ACCOUNT` (från steg 2).
+4. **Repovariabel** (Settings → Secrets and variables → Actions → *Variables* → *Repository variables*): `PUBLISH_ENABLED` = `false`.
+   Den måste ligga på repo-nivå: jobbets villkor (`if`) läses innan jobbet går in i miljön och ser inte miljövariabler.
+5. Grenskydd för `main` verkställs inte i privata repon på gratisplanen. I stället har publicera- och rollback-workflowen en
+   **ägarspärr**: bara en PR som repots ägare har mergat publiceras, och bara ägaren kan starta rollback eller en manuell körning.
 
 ### 4. Slå på publiceringen – först när grinden är stängd
 Förutsättningar (från säkerhetsarbetet): produktionsreglerna publicerade och verifierade i Rules Playground, den exponerade
 adminnyckeln borttagen, PR med reglerna mergad. Då: sätt `PUBLISH_ENABLED` = `true`. Den första riktiga publiceringen
-föregås av en provpublicering med ett tomt innehåll (`{ v: 1, packs: [], work: [] }`) som Claude lägger som PR – den visar att
-inloggning, backup, konfliktskydd och återläsning fungerar mot produktion utan att något skolmaterial lämnar repot.
+föregås av en provpublicering med ett tomt innehåll (`{ v: 1, packs: [], work: [] }`) – repot börjar tomt, så det räcker att
+köra *Publicera till appen* manuellt. Den visar att inloggning, backup, konfliktskydd och återläsning fungerar mot produktion
+utan att något skolmaterial lämnar repot.
 
 ## Det löpande arbetet
 1. Du ger Claude materialet (foto, PDF, PowerPoint, länk) och säger vilket barn och vilket prov det gäller.
