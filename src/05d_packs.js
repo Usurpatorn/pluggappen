@@ -329,12 +329,13 @@ const PACKS = (() => {
     if (opts.exam) pool = pool.filter(v => v.ui !== 'match');
     if (opts.noInteractive) pool = pool.filter(v => v.ui !== 'sort' && v.ui !== 'match');
     if (!pool.length) return null;
-    const all0 = pool;
+    const all0 = pool; let base = pool;
     if (opts.challenge) { const ch = pool.filter(v => v.ch); if (!ch.length) return null; pool = ch; }
     else {
       if (opts.format === 'recall') { const r = all0.filter(v => v.form === 'recall'); if (r.length) pool = r; }
       else if (opts.format === 'depth') { const r = all0.filter(v => DEPTH.has(v.form)); if (r.length) pool = r; }
       const L = Math.max(1, Math.min(3, opts.lvl || 1)); const lv = pool.filter(v => v.lvl <= L); pool = lv.length ? lv : pool.filter(v => v.lvl === Math.min(...pool.map(x => x.lvl)));
+      base = pool;   // formatet och nivån motorn bad om – v3-valen nedan smalnar bara av inom den (reserven nedan går hit först)
       // Experience v3: aldrig fler än två textval i rad (Explore: aldrig två i rad, actAfter 1) när kunskapen också finns som en aktivitet (sortera, para ihop, ordna,
       // tryck i meningen, bygg ordet). Bara presentationen: formatet (eget svar/djup) och nivån som motorn bad om gäller fortfarande.
       if (opts.vary && opts.vary.choiceRun >= (opts.vary.actAfter || 2)) { const act = pool.filter(v => v.ui !== 'choice'); if (act.length) pool = act; }
@@ -354,7 +355,9 @@ const PACKS = (() => {
     const order = weightedOrder(pool, wOf, rnd);
     for (const v of order) { const q = built(v); if (q && !(opts.avoid && opts.avoid.has(iid(q)))) return q; }
     // Allt i det önskade formatet är nyligen använt (t.ex. Felbokens frågor): en ANNAN fråga om samma kunskap går före samma fråga igen
-    if (!opts.challenge && pool !== all0) for (const v of weightedOrder(all0.filter(v => !pool.includes(v)), wOf, rnd)) { const q = built(v); if (q && !(opts.avoid && opts.avoid.has(iid(q)))) return q; }
+    // v3 (slutverifieringen): först en annan variant på motorns nivå och i motorns format (före Explore-/Boss-valen), sedan resten
+    if (!opts.challenge && pool !== base) for (const v of weightedOrder(base.filter(v => !pool.includes(v)), wOf, rnd)) { const q = built(v); if (q && !(opts.avoid && opts.avoid.has(iid(q)))) return q; }
+    if (!opts.challenge && pool !== all0) for (const v of weightedOrder(all0.filter(v => !pool.includes(v) && !base.includes(v)), wOf, rnd)) { const q = built(v); if (q && !(opts.avoid && opts.avoid.has(iid(q)))) return q; }
     const q = built(order[0]); return q ? { ...q, onlyVariant: true } : null;
   }
   // Viktad ordning utan återläggning (deterministisk givet rnd): första elementet är det receptet helst vill ha

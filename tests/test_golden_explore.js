@@ -21,7 +21,7 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms)); const DAY = 86400000;
     const kid = () => PA().KIDS.find(k => k.id === 'k2');
     const open = () => { toStart(T); click($('[data-kid="k2"]')); if ($('[data-pet]')) click($('[data-pet]')); };
     ok(PA().EXP.of(kid()) === 'explore', 'Yngre får Explore som standard');
-    const all = []; const perCore = []; let opp = 0, succ = 0, maxChoiceRun = 0, repeats = 0, items = 0, speakable = 0, withSpeak = 0, drag = 0, klar = 0, flows = 0, sameAsShown = 0, cores = 0;
+    const all = []; const perCore = []; let above = 0, opp = 0, succ = 0, maxChoiceRun = 0, repeats = 0, items = 0, speakable = 0, withSpeak = 0, drag = 0, klar = 0, flows = 0, sameAsShown = 0, cores = 0;
     for (let d = 0; d < 21; d++) {
       open(); const go = $('.go-btn[data-v2="kor"]'); if (!go) { w.__advance(DAY); continue; }
       const peek = PA().V2.peekPlan(kid()).plan.map(s => s.cid); click(go); cores++;
@@ -36,6 +36,8 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms)); const DAY = 86400000;
         const dk = PA().EXP.dayFacts(kid()); const recent = new Set((((S.v2.C.L.c[cid] || {}).items) || []).slice(-4));
         const fresh = (v) => { const fk = v.key.split('|').slice(0, 2).join('|'); if (dk.has(fk) && fk !== it.fk) return false; const q = PA().PACKS.buildVariant(cid, v, () => 0.5, 'younger'); return !q || !recent.has(PA().LECAT.itemId(q)); };
         const hasAct = !!cid && cid.startsWith('k:') && it.cat !== 'learn' && PA().PACKS.variants(cid, 'younger').some(v => v.ui && !['choice', 'type'].includes(v.ui) && v.lvl <= L + (it.spec.role === 'boss' ? 1 : 0) && (fmt !== 'recall' || v.form === 'recall') && (fmt !== 'depth' || PA().PACKS.DEPTH.has(v.form)) && fresh(v));
+        // nivån: en uppgift över motorns nivå bara när det inte finns någon oanvänd variant på nivån i rätt format (motorns reserv)
+        if (cid && cid.startsWith('k:') && it.cat !== 'learn' && it.spec.role !== 'boss' && !it.onlyVariant && (it.level || 1) > L && PA().PACKS.variants(cid, 'younger').some(v => v.lvl <= L && (fmt !== 'recall' || v.form === 'recall') && (fmt !== 'depth' || PA().PACKS.DEPTH.has(v.form)) && fresh(v))) { above++; if (process.env.DBG) console.log('ABOVE', cid, it.level, L, it.spec.role, fmt, it.form); }
         if (run >= 1 && hasAct) { opp++; if (ui !== 'choice') succ++; else if (process.env.DBG) console.log('VIOL', d, cid, it.spec.role); }
         if (ui === 'choice' || ui === 'word:pick' || ui === 'word:listen') { run++; maxChoiceRun = Math.max(maxChoiceRun, run); } else run = 0;
         const key = (it.word ? `ord:${it.word.id}:${it.kind}:${it.rev ? 1 : 0}` : '') + (it.text || '') + '|' + (Array.isArray(it.choices) && typeof it.answer === 'number' ? JSON.stringify(it.choices[it.answer]) : JSON.stringify(it.answer || ''));   // rätt svar som text (samma identitet som uppgiftens id), inte bara platsen bland alternativen
@@ -64,6 +66,7 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms)); const DAY = 86400000;
     ok(Object.keys(dist).filter(k => !['choice', 'learn', 'word:pick', 'word:listen'].includes(k)).length >= 3, 'minst tre olika praktiska aktivitetstyper förekommer under perioden');
     ok(choiceShare < 0.6, `textval är inte huvudsaken (${Math.round(choiceShare * 100)} % < 60 %)`);
     ok(opp > 0 && succ / opp >= 0.8, `variationsregeln (Explore): efter ett textval blir det en aktivitet när momentet har en ledig som passar nivå och format (${succ} av ${opp})`);
+    ok(above === 0, `aktiviteterna följer nivån motorn bad om (utom Bossen): ${above} uppgifter över nivån`);
     ok(repeats === 0, `ingen uppgift exakt likadan två gånger i samma pass (${repeats})`);
     ok(speakable === 0 || withSpeak / speakable >= 0.9, `uppläsning finns på uppgifter med text (${withSpeak}/${speakable})`);
     ok(drag === 0, 'inga dragmoment');
