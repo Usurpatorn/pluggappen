@@ -948,6 +948,7 @@ function submitMath() {
   S.answered = true; const isTest = S.mode === 'test';
   const v2ch = !!(S.v2 && q.spec && q.spec.mode === 'challenge'); const v2help = !!(S.v2 && q.spec && q.spec.help && q.spec.help !== 'none');
   let xp = v2ch ? V2.challengeXp(correct) : recordAnswer(S.kid.id, q.skill.id, correct, q.level, S.usedHelp || isTest || v2help);   // granskning M6/L6
+  if (S.v2 && S.v2.exp) xp = EXP.flowXp(q, xp);
   LE.observe(S, q, correct); // Fas 3B: skuggläge – loggar bevis, påverkar inte v1
   if (S.mode === 'felbok') { const p = prof(S.kid.id); if (correct) { clearMistake(p, q.mistakeId); save(); } }
   else if (!correct && !v2ch) { noteMistake(prof(S.kid.id), q); save(); }

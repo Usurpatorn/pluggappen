@@ -31,7 +31,9 @@ const EXP = {
   today() { return LE2.dayIdx(LE.now()); },
   recsToday(p, m) { const d0 = EXP.today(); return V2.v2recs(p).filter(r => r.done && (!m || r.m === m) && LE2.dayIdx(r.t * 1000) === d0); },
   coreDone(p) { return EXP.recsToday(p, 'kor').length > 0; },
-  flowsToday(p) { return EXP.recsToday(p, 'flow').length; },
+  flowsToday(p) { const d0 = EXP.today(); return V2.v2recs(p).filter(r => r.m === 'flow' && LE2.dayIdx(r.t * 1000) === d0).length; },   // påbörjade räknas (granskning L1)
+  // FLOW ger ingen XP för koncept som redan övats tidigare idag (granskning M6) – extrablocket ska inte löna sig för upprepning
+  flowXp(q, xp) { try { if (!S.v2 || S.v2.mode !== 'flow' || !q.spec || !xp) return xp; const c = S.v2.C.L.c[q.spec.cid]; if (c && c.lastSeen && LE2.dayIdx(c.lastSeen) === LE2.dayIdx(LE.now()) && c.lastSeen < S.v2.start) { const p = prof(S.kid.id); p.xp = Math.max(0, p.xp - xp); return 0; } } catch (e) { /* ignore */ } return xp; },
   // Ny inlärning idag (första beviset på konceptet idag) – FLOW får aldrig ta in mer nytt än policyns gräns per dygn
   newToday(C, now) { const d = LE2.dayIdx(now); return Object.entries(C.L.c).filter(([id, c]) => c.fs && LE2.dayIdx(c.fs * 1000) === d && C.cat[id] && C.cat[id].kind !== 'deck').length; },
   flowPlan(kid, C, now, id) {
@@ -186,9 +188,12 @@ const EXP = {
   rhythmKind(V, spec, skill, c) {
     if (!V.exp || V.exp === 'explore' || V.exam || V.mode === 'revansch' || V.mode === 'readclose') return null;
     if (!skill || (skill.group || 'math') !== 'math' || typeof skill.gen !== 'function' || !c || c.st < 2) return null;
-    if (spec.mode === 'challenge' || !['practice', 'focus'].includes(spec.role) || spec.help === 'rescue' || spec.help === 'hint') return null;
+    // I FLOW får även en repetition av något som redan hämtats tidigare idag bli analys (ingen fördröjd hämtning går förlorad – den är gjord)
+    const doneToday = c.lastSeen && LE2.dayIdx(c.lastSeen) === LE2.dayIdx(LE.now()) && c.lastSeen < V.start;
+    // Bossen är passets sträckuppgift: att analysera en lösning eller räkna baklänges är just en sådan (ingen hämtning ersätts)
+    if (spec.mode === 'challenge' || !(['practice', 'focus', 'boss'].includes(spec.role) || (V.mode === 'flow' && spec.role === 'remember' && doneToday)) || spec.help === 'rescue' || spec.help === 'hint') return null;
     const done = new Set(S.queue.filter(x => x.rhythm).map(x => x.rhythm)); const last = S.queue.filter(x => x.cat !== 'learn').slice(-1)[0];
-    if (!done.has('spot') && last && last.paper) return 'spot';   // efter ett pappersproblem: analysera en annans lösning digitalt
+    if (!done.has('spot') && S.queue.some(x => x.paper) && last && !last.rhythm) return 'spot';   // efter ett pappersproblem i passet: analysera en annans lösning digitalt
     if (!done.has('reverse') && S.queue.filter(x => x.cat === 'math').length >= 2 && last && !last.paper && !last.rhythm) return 'reverse';   // baklänges: när passet är igång
     return null;
   },
