@@ -212,7 +212,7 @@ const LE2 = (() => {
   const KDEC = inv(KCODE), HDEC = inv(HCODE), XDEC = inv(XCODE), MDEC = inv(MCODE);
 
   function apply(L, cat, e, pol) {
-    if (e.sess && L.lastSess !== e.sess) { if (L.lastSess) calibrate(L); L.lastSess = e.sess; L.sessN = (L.sessN || 0) + 1; }
+    if (e.sess && L.lastSess !== e.sess) { if (L.lastSess) calibrate(L); L.lastSess = e.sess; if (!/m$/.test(String(e.sess))) L.sessN = (L.sessN || 0) + 1; }   // 2.1.1: provträning (id …m) är inget eget pass för svältskyddet
     // 3I: ett vilande moment (Concept Pack) leder beviset till kunskapspunkten frågan prövar. Loggen ändras aldrig (rollback läser originalet).
     // Granskning 2.1 (H2): har det vilande momentet en olöst Felboks-post (från 2.0) stannar beviset där tills posten är löst – annars kunde
     // Revansch aldrig verifiera den. Deterministiskt: beror bara på tillståndet vid omspelningen.
