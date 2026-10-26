@@ -48,6 +48,9 @@ for (const [name, file, opts = {}] of suites) {
   if (!ok) failed++;
   rows.push([name, `${ok ? 'OK ' : 'FEL'} ${((Date.now() - t0) / 1000).toFixed(1)}s  ${summary.slice(0, 90)}`]);
   if (!ok) { console.log(`\n===== ${name} (${file}) =====\n` + lines.slice(-40).join('\n') + '\n'); }
+  // CI: en annotering per fallen svit (läsbar via API:t även när loggarna inte är det). Bara svitens namn och sista rad – testerna skriver
+  // aldrig ut privata termer (test_privacy anger "privat term #n").
+  if (!ok && process.env.GITHUB_ACTIONS) { const fl = lines.filter(l => /FAIL|fel|Error/.test(l)).slice(0, 3).map(l => l.slice(0, 160)); console.log(`::error title=${file} föll::${[summary.slice(0, 160), ...fl].join(' | ').replace(/[\r\n%]/g, ' ')}`); }
 }
 const w = Math.max(...rows.map(r => r[0].length));
 console.log('\nTestsvit – resultat'); for (const [n, s] of rows) console.log(`  ${n.padEnd(w)}  ${s}`);
