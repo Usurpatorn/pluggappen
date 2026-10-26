@@ -36,12 +36,20 @@ const V2 = {
       const p = prof(kid.id); if (!LE.canStart(kid, p)) return `<button class="go-btn" data-v2="kor"><div><div class="t">${LBL(kid).go}</div><div class="s">Hämtar det senaste …</div></div><div class="arrow">${ICON.arrow}</div></button>`;
       const { plan } = V2.peekPlan(kid);
       if (plan.light && V2.doneToday(p)) return `<div class="card pad-lg stack" style="gap:6px;text-align:center"><div style="font-size:1.6rem">✅</div><div style="font-weight:800;font-family:var(--display);font-size:1.15rem">Bra jobbat. Du är klar för idag.</div><button class="link" data-v2="extra" style="align-self:center">Öva extra</button></div>`;
-      const n = plan.length; const m = V2.mission(kid);
-      // 2.2 Study Mission: samma Smart Kör!-pass – bara rubriken visar uppdraget (provet närmast) och dagens tid. Ingen egen schemaläggning.
-      if (m) return `<button class="go-btn mission" data-v2="kor"><div><div class="s" style="font-weight:800;letter-spacing:.06em">${esc(m.e.title.toUpperCase())} · ${esc(fmtDate(m.e.date).toUpperCase())}</div><div class="t">IDAG ${V2.mins(n)} minuter</div><div class="s" style="font-weight:800;letter-spacing:.04em">${esc(LBL(kid).go.toUpperCase())}</div></div><div class="arrow">${ICON.arrow}</div></button>`;
+      const n = plan.length; const mi = V2.missionInfo(kid); const m = mi && mi.m;
+      // 2.2 Study Mission: samma Smart Kör!-pass – rubriken visar uppdraget (provet närmast) och dagens tid. Ingen egen schemaläggning.
+      // Hotfix 2.1.1: rubriken får bara nämna provet när passet faktiskt innehåller provets områden – och säger hur stor del
+      // ("3 av 5 inför provet"). Annars den vanliga Kör!-rubriken; provträningen startas uttryckligen på provkortet.
+      const k = m ? V2.missionShare(plan, mi.cids) : null;
+      if (m && k.n > 0) return `<button class="go-btn mission" data-v2="kor"><div><div class="s" style="font-weight:800;letter-spacing:.06em">${esc(m.e.title.toUpperCase())} · ${esc(fmtDate(m.e.date).toUpperCase())}</div><div class="t">IDAG ${V2.mins(n)} minuter</div><div class="s">${k.n === k.of ? 'Allt inför provet' : `${k.n} av ${k.of} uppgifter inför provet`} · ${esc(LBL(kid).go.toUpperCase())}</div></div><div class="arrow">${ICON.arrow}</div></button>`;
       return `<button class="go-btn" data-v2="kor"><div><div class="t">${LBL(kid).go}</div><div class="s">${n} uppgifter · cirka ${V2.mins(n)} minuter</div></div><div class="arrow">${ICON.arrow}</div></button>`;
     }, 'korBtn', `<button class="go-btn" data-v2="kor"><div><div class="t">${LBL(kid).go}</div></div><div class="arrow">${ICON.arrow}</div></button>`);
   },
+  /* Hotfix 2.1.1: uppdragets prov och de av provets koncept som finns i barnets katalog (tomt = provet saknar kopplingar) */
+  missionInfo(kid) { const m = V2.mission(kid); if (!m) return null; return { m, cids: V2.examCidsActive(kid, m.e) }; },
+  examCidsActive(kid, e) { const C = LE.state(kid); const cat = LE.activeCat(C, prof(kid.id)); return LE.examCids(C, e).filter(cid => cat[cid] && cat[cid].active !== false).concat((e.deckIds || []).map(LECAT.deckCid).filter(cid => cat[cid])); },
+  // Hur många av passets uppgifter (utom Bossen) som hör till provet
+  missionShare(plan, cids) { const set = new Set(cids); const slots = plan.filter(s => s.role !== 'boss'); return { n: slots.filter(s => set.has(s.cid)).length, of: slots.length }; },
   /* 2.2: uppdraget = närmaste prov/läxa/glosförhör med datum inom MISSION_DAYS (familjens skoluppgifter eller förälderns prov) */
   MISSION_DAYS: 28,
   mission(kid) {
@@ -80,15 +88,18 @@ const V2 = {
   examCards(kid) {
     return V2.safe(() => {
       const p = prof(kid.id); if (!p.le || !LE.canStart(kid, p)) return '';
-      const C = LE.state(kid); const now = LE.now(); const { plan } = V2.peekPlan(kid);
+      const C = LE.state(kid); const now = LE.now();
       return LE.exams(kid, p).filter(e => daysUntil(e.date) >= 0).sort((a, b) => a.date.localeCompare(b.date)).map(e => {
         const days = daysUntil(e.date); const st = V2.examStatus(kid, e, C, now); const shown = st.per.slice(0, 6);
+        // Hotfix 2.1.1: knappen startar provets egen träning (bara provets koncept) – och finns bara när provet har kopplade områden
+        const cids = V2.examCidsActive(kid, e); const mp = cids.length ? V2.safe(() => V2.plan(kid, 'mission', C, now, null, { examId: e.id }), 'missionPeek', []) : [];
         const msg = st.ready ? 'Du har bra koll. Korta pass räcker – och vila gärna dagen före.' : days <= 1 ? 'Lugnt och kort idag. Det viktiga sitter redan bättre än du tror.' : 'Kör! väljer det som gör mest nytta inför provet.';
         return `<div class="card pad-lg exam stack" style="gap:12px">
         <div class="row"><div class="grow"><div class="eyebrow">${esc(e.title)} · ${fmtDate(e.date)}</div><div class="days">${days > 0 ? days : 'Idag'}</div><div style="opacity:.85">${days > 1 ? 'dagar kvar' : days === 1 ? 'dag kvar' : 'Lycka till!'}</div></div></div>
         ${st.per.length && st.per.every(x => x.ready === 'För lite underlag') ? `<div style="font-size:.95rem;opacity:.9">${st.per.length} områden på provet. Kör några pass så ser du här vad som sitter.</div>` : `<div class="stack" style="gap:6px">${shown.map(x => `<div class="row" style="justify-content:space-between;gap:8px"><span style="font-weight:700">${esc(x.name)}</span><span class="pill ${V2.READY_CLS[x.ready]}" style="font-size:.75rem">${V2.READY_TXT[x.ready]}</span></div>`).join('')}${st.per.length > shown.length ? `<div style="opacity:.8;font-size:.85rem">+ ${st.per.length - shown.length} till</div>` : ''}</div>`}
         <div style="font-size:.9rem;opacity:.9">${msg}</div>
-        <div class="row"><button class="btn grow" data-v2="kor">IDAG ${plan.length} frågor · cirka ${V2.mins(plan.length)} minuter</button><button class="btn ghost" data-v2="testa" data-exam="${esc(e.id)}">Testa mig</button></div>
+        ${cids.length ? `<div class="row"><button class="btn grow" data-v2="mission" data-exam="${esc(e.id)}">Öva inför provet · cirka ${V2.mins(Math.max(1, mp.length))} minuter</button><button class="btn ghost" data-v2="testa" data-exam="${esc(e.id)}">Testa mig</button></div>`
+          : `<div style="font-size:.9rem;opacity:.9">Provets områden är inte inlagda i appen ännu, så det finns inget att öva just för det här provet. Be en vuxen lägga in vad provet handlar om.</div>`}
       </div>`; }).join('');
     }, 'examCards', '');
   },
@@ -119,6 +130,8 @@ const V2 = {
       for (const id2 of (e.deckIds || [])) { const d = deckById(p, id2); if (d && !d.noSpell && cat[LECAT.deckCid(id2)]) for (let r = 0; r < Math.min(4, d.words.length); r++) plan.push({ cid: LECAT.deckCid(id2), role: 'testa', why: 'Testa mig' }); }   // granskning M3: ett glosförhör = flera ord
       const out = plan.slice(0, 12); out.maxItems = out.length; return out;
     }
+    // Hotfix 2.1.1: "Öva inför provet" – samma motor och samma regler (förfallet, nytt inom dygnets gräns, Revansch), men bara provets koncept
+    if (mode === 'mission') { const e = LE.exams(kid, p).find(x => x.id === extra.examId); if (!e) return []; const cids = V2.examCidsActive(kid, e); if (!cids.length) return []; const plan = LE.plan(kid, V2.n(kid, C), now, id, { only: cids }).plan; plan.examId = e.id; return plan; }
     if (mode === 'readclose') { const cids = LE.cidsOfSkill(C, extra.skillId); if (!cids.length) return []; const start = Math.floor(Math.random() * cids.length); const plan = [0, 1, 2].map(i => ({ cid: cids[(start + i) % cids.length], role: 'readclose', why: 'läst, stängt – minns du?' })); plan.maxItems = 3; return plan; }
     return LE.plan(kid, V2.n(kid, C), now, id).plan;
   },
@@ -243,7 +256,7 @@ const V2 = {
   /* ---------- Visning under passet ---------- */
   total() { const pr = LER.progress(S.v2.R); return Math.max(S.queue.length, S.i + Math.max(1, pr.left)); },
   hasNext() { const pr = LER.progress(S.v2.R); return S.i + 1 < S.queue.length || pr.left > 1 || (pr.left === 1 && !(S.queue[S.i] && S.queue[S.i]._slotEnd)); },
-  title(item) { return S.v2.exam ? 'Testa mig' : S.v2.mode === 'revansch' ? 'Revansch' : S.v2.mode === 'readclose' ? 'Minns du?' : item.cat === 'word' ? esc(item.deck.name) : item.skill ? esc(item.skill.short || item.skill.name) : 'Kör!'; },
+  title(item) { return S.v2.exam ? 'Testa mig' : S.v2.mode === 'mission' ? 'Inför ' + esc((LE.exams(S.kid, prof(S.kid.id)).find(e => e.id === S.v2.extra.examId) || {}).title || 'provet') : S.v2.mode === 'revansch' ? 'Revansch' : S.v2.mode === 'readclose' ? 'Minns du?' : item.cat === 'word' ? esc(item.deck.name) : item.skill ? esc(item.skill.short || item.skill.name) : 'Kör!'; },
   topRight() { const pr = LER.progress(S.v2.R); return S.v2.exam ? `<span class="pill">Inga ledtrådar · svar efteråt</span>` : `<span class="left-count">${Math.max(0, pr.left)} kvar</span>`; },
   progressBar() { const tot = V2.total(); return `<div class="progress">${Array.from({ length: tot }, (_, i) => `<i class="${i < S.i ? (S.v2.exam ? 'ok' : S.results[i] === false ? 'no' : 'ok') : i === S.i ? 'cur' : ''}"></i>`).join('')}</div>`; },
   chip(item) {
@@ -408,6 +421,7 @@ const V2 = {
     if (a === 'felbok') return V2.felbokView(kid);
     if (a === 'revansch') return V2.start(kid, 'revansch');
     if (a === 'testa') return V2.start(kid, 'exam', { examId: el.dataset.exam });
+    if (a === 'mission') return V2.start(kid, 'mission', { examId: el.dataset.exam });
     if (a === 'rc') return V2.start(kid, 'readclose', { skillId: el.dataset.skill });
   },
   /* ---------- Förälder ---------- */

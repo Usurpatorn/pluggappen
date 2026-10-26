@@ -84,9 +84,9 @@ const LE = {
   },
   // Avaktiverade glosdeck ska inte planeras (v1 visar dem inte heller)
   activeCat(C, p) { const on = new Set((p.enabledDecks || []).map(LECAT.deckCid)); const out = {}; for (const [id, d] of Object.entries(C.cat)) if (d.kind !== 'deck' || on.has(id)) out[id] = d; return out; },
-  plan(kid, n, now, exclId) {
+  plan(kid, n, now, exclId, opts = {}) {
     const p = prof(kid.id); const C = LE.state(kid); const ctx = LE.ctx(kid, p, C, now, exclId);
-    const plan = LE2.planSession(C.L, LE.activeCat(C, p), now, ctx, C.pol, { n, sessionNo: C.L.sessN || 0 });   // granskning L1: Utmaning var annat pass
+    const plan = LE2.planSession(C.L, LE.activeCat(C, p), now, ctx, C.pol, { ...opts, n, sessionNo: C.L.sessN || 0 });   // opts.only: provets egen träning (hotfix 2.1.1)   // granskning L1: Utmaning var annat pass
     return { plan, ctx, C };
   },
   whyKey(s) { if (s.role === 'boss') return 'boss'; const top = Object.entries(s.parts || {}).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1])[0]; return top ? top[0] : 'maintenance'; },
