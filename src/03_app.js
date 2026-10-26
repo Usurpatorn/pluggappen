@@ -770,8 +770,8 @@ function mathBody(q, kid, isTest) {
     ? `<div class="choices" id="choices">${q.choices.map(c => `<button class="choice" data-choice="${c}">${T.n(c)}</button>`).join('')}</div>`
     : q.type === 'expr'
       ? `<input class="answer-input" id="ans" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="t.ex. ${q.variable === 'n' ? '3n + 1' : vars.length > 1 ? `6${vars[0]}${vars[1]} + 9${vars[0]}` : '6x + 15'}" aria-label="Ditt svar">
-         <div class="keys" style="margin-top:8px${S.v2 && S.v2.exp ? ';grid-template-columns:repeat(5,1fr)' : ''}">
-           ${(S.v2 && S.v2.exp ? ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'] : ['7', '8', '9', '4', '5', '6', '1', '2', '3', '0']).map(k => `<button class="key" data-key="${k}">${k}</button>`).join('')}${S.v2 && S.v2.exp ? '</div><div class="keys" style="margin-top:6px;grid-template-columns:repeat(4,1fr)">' : ''}
+         <div class="keys" style="margin-top:8px;grid-template-columns:repeat(5,1fr)">
+           ${['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'].map(k => `<button class="key" data-key="${k}">${k}</button>`).join('')}</div><div class="keys" style="margin-top:6px;grid-template-columns:repeat(4,1fr)">
            ${vars.map(v => `<button class="key acc" data-key="${v}">${v}</button>`).join('')}${vars.length === 1 ? `<button class="key acc" data-key="${q.variable}²">${q.variable}²</button>` : ''}
            ${q.eq ? '<button class="key" data-key=" = ">=</button>' : ''}<button class="key" data-key=" + ">+</button><button class="key" data-key=" − ">−</button><button class="key" data-key="(">(</button><button class="key" data-key=")">)</button><button class="key wide" data-key="⌫">⌫</button>
          </div>`
