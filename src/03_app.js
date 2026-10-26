@@ -1398,5 +1398,5 @@ function boot(snap) {
   else if (h === 'foralder') go('parent');
   else go('start');
 }
-window.claude?.hot?.ready ? window.claude.hot.ready(boot) : boot(window.claude?.hot?.data ?? null);
+if (!window.PLUGG_STOP) window.claude?.hot?.ready ? window.claude.hot.ready(boot) : boot(window.claude?.hot?.data ?? null);   // PLUGG_STOP: testversionen på fel adress (se scripts/build.sh)
 window.PA = { LE, LE2, LECAT, LER, V2, EXP, RECALL, CHG, PACKS, checkAnswer, answerDisplay, makeQuestion, mergeProfiles, get S() { return S; }, get DB() { return DB; }, get B() { return B; }, Poly, KIDS, TEMPLATES, FAMILY, AUTH, deleteKidData, deleteFamilyData, buildKids, load, flushSave, rerender: () => VIEWS[state.screen] && VIEWS[state.screen](), BUILTIN_DECKS, SYNC, save, setKid: (id) => { state.kid = id; }, version: '3.0' };

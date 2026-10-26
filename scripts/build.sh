@@ -29,6 +29,24 @@ js_bundle() { for f in $JS; do [ "$f" = "05d_packs.js" ] && pack_data; grep -v "
 } > "$DIST/index.html"
 
 js_bundle > "$DIST/bundle.js"
+# Testadress för en förhandsversion (PREVIEW=1, bara i deploy-jobbet): dist/preview/index.html. Samma kod och samma inbyggda innehåll –
+# inget familjeinnehåll byggs in (det kommer bara via den vanliga inloggade synken). Skillnader mot den publicerade appen:
+# egen lagring (prefix, så att produktionens data på samma enhet aldrig rörs), ingen service worker, inga push-påminnelser,
+# och bygg-id:t säger att det är en testversion. Produktionens service worker kan råka spara testsidan som sin offline-kopia:
+# testsidan lägger då tillbaka produktionens sida i cachen, och visas den ändå på fel adress startar den inte.
+if [ "${PREVIEW:-}" = "1" ]; then
+  mkdir -p "$DIST/preview"
+  {
+    echo '<!doctype html><html lang="sv"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex"><meta name="theme-color" content="#fbfaf6"><link rel="icon" href="../icon-v2.png"><style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui}img{max-width:100%}[hidden]{display:none!important}</style><title>Pluggapp (testversion)</title></head><body>'
+    echo "<script>window.PLUGG_BUILD = '$BUILD_ID · testversion'; window.PLUGG_PREVIEW = true;</script>"
+    echo '<script>const localStorage = (function () { var s = null; try { s = window.localStorage; } catch (e) { s = null; } var P = "pluggappen-preview:"; return { getItem: function (k) { try { return s ? s.getItem(P + k) : null; } catch (e) { return null; } }, setItem: function (k, v) { if (s) s.setItem(P + k, v); }, removeItem: function (k) { try { if (s) s.removeItem(P + k); } catch (e) { /* ignore */ } } }; })();</script>'
+    echo '<script>window.PLUGG_SYNC = { projectId: "pluggappen", apiKey: "AIzaSyBexTJ4xs1dL0EytcH2N74pY84PuJQZVYQ" }; window.PLUGG_PUSH_KEY = null;'
+    echo 'if (!/\/preview\/(index\.html)?$/.test(location.pathname)) { window.PLUGG_STOP = true; document.addEventListener("DOMContentLoaded", function () { document.body.innerHTML = "<p style=\"font:16px system-ui;padding:24px\">Öppna Pluggappen igen när enheten är online.</p>"; }); }'
+    echo 'else if (window.caches && navigator.onLine !== false) { window.addEventListener("load", function () { var prod = new URL("../index.html", location.href).href; caches.keys().then(function (ks) { return Promise.all(ks.map(function (k) { return caches.open(k).then(function (c) { return c.match(prod).then(function (r) { if (!r) return; return r.clone().text().then(function (t) { if (t.indexOf("PLUGG_PREVIEW") < 0) return; return fetch(prod, { cache: "no-store" }).then(function (f) { if (f.ok) return c.put(prod, f); }); }); }); }); })); }).catch(function () {}); }); }</script>'
+    cat 00_head.html 00b_style.html 99_body.html; echo '<script>'; js_bundle; echo '</script></body></html>'
+  } > "$DIST/preview/index.html"
+  echo "PREVIEW OK  $BUILD_ID · testversion  $(wc -c < "$DIST/preview/index.html") bytes"
+fi
 node --check "$DIST/bundle.js"
 # Statiska filer som följer med till publiceringen
 cp "$ROOT/sw.js" "$ROOT/icon.png" "$ROOT/icon-v2.png" "$DIST/"; touch "$DIST/.nojekyll"
