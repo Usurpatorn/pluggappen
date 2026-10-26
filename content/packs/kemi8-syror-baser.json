@@ -14,7 +14,7 @@
  "templates": [
   "ak8"
  ],
- "rev": 4,
+ "rev": 5,
  "sources": [
   {
    "id": "lgr22",
@@ -171,6 +171,61 @@
      "form": "explanation",
      "lvl": 3,
      "why": "Det är mängden vätejoner per liter som avgör surheten. pH är ett mått på den."
+    },
+    {
+     "k": "group",
+     "sq": "Sortera egenskaperna: syra eller bas?",
+     "groups": [
+      {
+       "q": "Vilken egenskap har en syra?",
+       "label": "Syra",
+       "items": [
+        "Har pH under 7",
+        "Avger vätejoner i vatten",
+        "Löser upp kalk",
+        "Bildar vätgas med zink"
+       ],
+       "odd": "Vilken egenskap har INTE en syra?"
+      },
+      {
+       "q": "Vilken egenskap har en bas?",
+       "label": "Bas",
+       "items": [
+        "Har pH över 7",
+        "Ger hydroxidjoner i vatten",
+        "Löser upp fett",
+        "Känns hal och tvålig"
+       ],
+       "odd": "Vilken egenskap har INTE en bas?"
+      }
+     ],
+     "why": "Syror: vätejoner, pH under 7, löser kalk och bildar vätgas med oädla metaller. Baser: hydroxidjoner, pH över 7, löser fett och känns hala."
+    },
+    {
+     "k": "qa",
+     "q": "Du mäter pH i en okänd vätska och får pH 3. Vad kan du säga om vätskan?",
+     "a": "Att den är sur",
+     "not": [
+      "Att den är basisk",
+      "Att den är neutral",
+      "Att den är ett salt"
+     ],
+     "form": "application",
+     "lvl": 2,
+     "why": "Under 7 är surt. Använd pH-papper eller indikator – aldrig smak eller känsel."
+    },
+    {
+     "k": "qa",
+     "q": "Kranen i badrummet har vita kalkfläckar. Vilken vätska löser bäst upp kalken?",
+     "a": "Ättika",
+     "not": [
+      "Ammoniak",
+      "Koksaltlösning",
+      "Rent vatten"
+     ],
+     "form": "application",
+     "lvl": 2,
+     "why": "Syror löser upp kalk. Ättika är en syra; ammoniak är en bas och koksaltlösning och rent vatten är neutrala."
     }
    ],
    "mistakes": [
@@ -506,6 +561,61 @@
      "form": "application",
      "lvl": 2,
      "why": "Över 7 är basiskt. Testa alltid med indikator eller pH-papper – aldrig genom att känna eller smaka."
+    },
+    {
+     "k": "group",
+     "sq": "Sortera ämnena: ger de en sur eller en basisk lösning?",
+     "groups": [
+      {
+       "q": "Vilket ämne ger en sur lösning i vatten?",
+       "label": "Sur lösning",
+       "items": [
+        "Saltsyra",
+        "Ättiksyra",
+        "Citronsyra",
+        "Svavelsyra"
+       ],
+       "odd": "Vilket ämne ger INTE en sur lösning?"
+      },
+      {
+       "q": "Vilket ämne ger en basisk lösning i vatten?",
+       "label": "Basisk lösning",
+       "items": [
+        "Natriumhydroxid",
+        "Ammoniak",
+        "Kalciumhydroxid",
+        "Kaliumhydroxid"
+       ],
+       "odd": "Vilket ämne ger INTE en basisk lösning?"
+      }
+     ],
+     "why": "Syror ger vätejoner och en sur lösning. Hydroxiderna och ammoniak ger en basisk lösning."
+    },
+    {
+     "k": "qa",
+     "q": "Du ska diska en fet stekpanna. Vilken sorts lösning löser bäst upp fettet?",
+     "a": "En basisk lösning",
+     "not": [
+      "En sur lösning",
+      "Rent vatten",
+      "Saltvatten"
+     ],
+     "form": "application",
+     "lvl": 2,
+     "why": "Baser löser upp fett. Därför är många rengöringsmedel basiska."
+    },
+    {
+     "k": "qa",
+     "q": "I labbet får du en vätska på fingrarna som känns hal och tvålig. Vad är troligast, och vad gör du?",
+     "a": "Det är en bas – skölj genast med mycket vatten",
+     "not": [
+      "Det är en syra – torka av med papper",
+      "Det är en bas – låt det torka in",
+      "Det är bara vatten – gör ingenting"
+     ],
+     "form": "application",
+     "lvl": 2,
+     "why": "Baser känns hala eftersom de börjar lösa upp fettet i huden. Skölj med mycket vatten och säg till läraren."
     }
    ],
    "mistakes": [
@@ -849,6 +959,19 @@
      "form": "application",
      "lvl": 2,
      "why": "Under 7 är surt. Bara den sura vätskan (pH 3) löser upp kalken – därför avkalkar man med t.ex. citronsyra eller ättika."
+    },
+    {
+     "k": "qa",
+     "q": "Två rengöringsmedel har pH 9 och pH 12. Vilket är mest basiskt?",
+     "a": "Det med pH 12",
+     "not": [
+      "Det med pH 9",
+      "De är lika basiska",
+      "Inget av dem är basiskt"
+     ],
+     "form": "application",
+     "lvl": 2,
+     "why": "Över 7 är basiskt – ju högre pH, desto mer basiskt."
     }
    ],
    "mistakes": [
@@ -1004,6 +1127,79 @@
      "form": "application",
      "lvl": 2,
      "why": "Fenolftalein blir rosa först när lösningen är tydligt basisk (ungefär pH 8 och uppåt). I sura och neutrala lösningar är den färglös."
+    },
+    {
+     "k": "group",
+     "sq": "Sortera färgerna: vad visar de om lösningen?",
+     "groups": [
+      {
+       "q": "Vilket resultat visar att lösningen är sur?",
+       "label": "Sur",
+       "items": [
+        "BTB blir gul",
+        "Lackmus blir röd",
+        "Rödkålssaft blir röd"
+       ]
+      },
+      {
+       "q": "Vilket resultat visar att lösningen är neutral?",
+       "label": "Neutral",
+       "items": [
+        "BTB blir grön",
+        "Rödkålssaft blir lila"
+       ]
+      },
+      {
+       "q": "Vilket resultat visar att lösningen är basisk?",
+       "label": "Basisk",
+       "items": [
+        "BTB blir blå",
+        "Lackmus blir blå",
+        "Fenolftalein blir rosa"
+       ]
+      }
+     ],
+     "why": "BTB: gul – grön – blå. Lackmus: röd i sur, blå i basisk. Rödkål: röd i sur, lila i neutral. Fenolftalein: rosa i basisk."
+    },
+    {
+     "k": "qa",
+     "q": "Du testar en vätska med lackmuspapper och papperet blir rött. Vad vet du då?",
+     "a": "Att vätskan är sur",
+     "not": [
+      "Att vätskan är basisk",
+      "Att vätskan är neutral",
+      "Att vätskan är ett salt"
+     ],
+     "form": "application",
+     "lvl": 2,
+     "why": "Lackmus blir röd i sur och blå i basisk lösning."
+    },
+    {
+     "k": "qa",
+     "q": "Du droppar BTB i saltsyra. Varför blir lösningen gul?",
+     "a": "Saltsyran gör lösningen sur, och BTB är gul i sur lösning",
+     "not": [
+      "BTB är en stark syra",
+      "Saltsyran är gul från början",
+      "Lösningen blir basisk av BTB"
+     ],
+     "form": "cause",
+     "lvl": 2,
+     "why": "Saltsyra är en syra, så lösningen är sur. BTB byter färg efter pH: gul i sur, grön i neutral, blå i basisk lösning."
+    },
+    {
+     "k": "stmt",
+     "s": "BTB är gul i en sur lösning.",
+     "f": [
+      "BTB är blå i en sur lösning."
+     ]
+    },
+    {
+     "k": "stmt",
+     "s": "Lackmus blir blå i en basisk lösning.",
+     "f": [
+      "Lackmus blir röd i en basisk lösning."
+     ]
     }
    ],
    "requires": [
@@ -1127,6 +1323,19 @@
      "form": "application",
      "lvl": 2,
      "why": "Ättiksyra är en svag syra: bara en liten del av molekylerna avger vätejoner. Saltsyra är en stark syra och mycket frätande. Båda löser kalk, så välj den som är säkrast."
+    },
+    {
+     "k": "qa",
+     "q": "Varför är ättika mycket mindre frätande än saltsyra?",
+     "a": "Ättiksyra är en svag syra – bara en liten del av molekylerna avger vätejoner",
+     "not": [
+      "Ättiksyra innehåller inget väte",
+      "Ättiksyra är en bas med pH över 7",
+      "Ättiksyra avger hydroxidjoner i stället för vätejoner"
+     ],
+     "form": "cause",
+     "lvl": 2,
+     "why": "En stark syra som saltsyra avger vätejoner från nästan alla molekyler. En svag syra som ättiksyra gör det bara från en liten del."
     }
    ],
    "mistakes": [
@@ -1385,6 +1594,43 @@
       "Vid en neutralisation blir lösningen alltid sur."
      ],
      "lvl": 2
+    },
+    {
+     "k": "group",
+     "sq": "Saltsyra och natriumhydroxid neutraliserar varandra. Sortera: före eller efter reaktionen?",
+     "groups": [
+      {
+       "q": "Saltsyra neutraliseras med natriumhydroxid. Vilket ämne fanns FÖRE reaktionen?",
+       "label": "Före reaktionen",
+       "items": [
+        "Saltsyra",
+        "Natriumhydroxid"
+       ]
+      },
+      {
+       "q": "Saltsyra neutraliseras med natriumhydroxid. Vilket ämne BILDAS?",
+       "label": "Efter reaktionen",
+       "items": [
+        "Natriumklorid",
+        "Vatten"
+       ]
+      }
+     ],
+     "lvl": 2,
+     "why": "Syra + bas → salt + vatten: saltsyra + natriumhydroxid → natriumklorid + vatten."
+    },
+    {
+     "k": "qa",
+     "q": "Du neutraliserar en syra med BTB i bägaren, men droppar i för mycket bas så att lösningen blir blå. Vad droppar du i för att få grönt igen?",
+     "a": "Lite syra",
+     "not": [
+      "Mer bas",
+      "Mer BTB",
+      "Rent salt"
+     ],
+     "form": "application",
+     "lvl": 2,
+     "why": "Blå BTB betyder basisk lösning. Lite syra neutraliserar överskottet av bas tills färgen blir grön (neutral)."
     }
    ],
    "requires": [
@@ -1942,6 +2188,19 @@
       "Blod (pH 7,4)"
      ],
      "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "En läsk har pH 3. Kan den skada tandemaljen?",
+     "a": "Ja – pH 3 är under cirka 5,5, där emaljen börjar lösas upp",
+     "not": [
+      "Nej – bara pH under 2 skadar emaljen",
+      "Nej – läsk är neutral",
+      "Ja – men bara om läsken är kall"
+     ],
+     "form": "application",
+     "lvl": 2,
+     "why": "Tandemaljen börjar lösas upp under pH cirka 5,5. Läsk har pH 2–3."
     }
    ],
    "src": [
