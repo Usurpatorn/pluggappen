@@ -1,6 +1,7 @@
 /* Experience v3 – acceptansgrind "löfte → utförande" (den riktiga appen, jsdom, riktiga klick, fast klocka, syntetisk familj).
    För VARJE primär knapp på startsidan och på KLAR-skärmen, i alla tre upplevelser + Klassisk, i tillstånden:
-   ny profil · inget prov · CORE klar · FLOW · ett prov · två prov · saknad koppling · saknat innehåll · återkommande · v1-reserv
+   ny profil · inget prov · CORE klar · FLOW · ett prov · prov utanför motorns 21 dygn · två prov · saknad koppling · saknat innehåll ·
+   återkommande · v1-reserv · profilbyte (testadressens egen lagring prövas i test_preview.js)
    kontrolleras:
    1. vad skärmen lovar (knappens text, kortets rubrik, "cirka N min", provets namn, "N av M uppgifter inför provet")
    2. vilket sammanhang klicket skickar (läge, prov-id, barn)
@@ -102,6 +103,15 @@ async function run(kidId, exp) {
   // 8. Återkommande efter uppehåll
   setExams([]); w.__advance(6 * DAY);
   state('återkommande', { only: ['kor'], home: (h) => { const plan = PA().V2.peekPlan(kid()).plan; if (/Jag har justerat planen/.test(h)) ok(!!(plan.restart || plan.light || plan.some(s => s.role === 'warmup')), `${tag} återkommande: "Jag har justerat planen" bara när motorn har justerat`); } });
+  // 8b. Revansch: fel som hamnat i Felboken – knappen startar ett Revansch-pass med Felbokens saker (bara när hemmet erbjuder det)
+  for (let d = 0; d < 3 && !$('[data-v2="revansch"]'); d++) { open(); const go = $('.go-btn[data-v2="kor"]'); if (go) { click(go); D.run(() => rnd() < 0.6); } w.__advance(DAY); open(); }
+  if ($('[data-v2="revansch"]')) { const fbBefore = PA().LE2.felbokChild(PA().LE.state(kid()).L, PA().LE.state(kid()).pol, PA().LE.now()).items.filter(x => x.state === 'todo').map(x => x.cid);
+    const el = $('[data-v2="revansch"]'); click(el); const V = PA().S && PA().S.v2;
+    ok(V && V.mode === 'revansch', `${tag} revansch: knappen startar ett Revansch-pass`);
+    ok(V && V.plan.length > 0 && V.plan.every(s => fbBefore.includes(s.cid) || s.role !== 'revansch'), `${tag} revansch: Revansch-platserna är Felbokens saker`);
+    ROWS.push({ state: 'revansch', exp: tag, promise: norm(el.textContent).slice(0, 60), mode: V && V.mode, exam: '', n: V ? V.plan.length : 0, played: 0 });
+    D.run(() => false); }
+  else if (exp !== 'explore') ROWS.push({ state: 'revansch', exp: tag, promise: '(erbjuds inte på hemmet i det här tillståndet)', mode: '-', exam: '', n: 0, played: 0 });
   // 9. v1-reserv (förälderns val): ingen v3-presentation, ett v1-pass startar
   setEngine(w, T, kidId, 'v1'); open(); { const h = norm($('#app').textContent); ok(!$('section.mission') && !$('[data-v2]'), `${tag} v1: ingen v3/v2-presentation`);
     const go = $('.go-btn'); if (go) { const nU = (norm(go.textContent).match(/(\d+) uppgifter/) || [])[1]; click(go); if (nU) ok(+nU === PA().S.queue.length, `${tag} v1: "${nU} uppgifter" = v1-passets längd (${PA().S.queue.length})`); ok(PA().S && !PA().S.v2 && PA().S.queue.length > 0, `${tag} v1: v1-pass startar`); ROWS.push({ state: 'v1-reserv', exp: tag, promise: norm(go.textContent).slice(0, 60), mode: 'v1', exam: '', n: PA().S.queue.length, played: 0 }); toStart(T); } void h; }
@@ -112,6 +122,16 @@ async function run(kidId, exp) {
 (async () => {
   try {
     for (const [k, e] of [['k2', 'explore'], ['k4', 'grow'], ['k8', 'achieve'], ['k8', 'classic']]) await run(k, e);
+    // 10. Profilbyte: ett påbörjat pass hos ett barn följer aldrig med till syskonet – syskonets knapp startar syskonets egen plan
+    { const w = mkWin({ seed: 91, fixedClock: true }); await sleep(40); const T = tools(w); const PA = T.PA; const { $, click } = T; PA().FAMILY.apply(FIX); PA().load(); PA().rerender();
+      const openK = (id) => { toStart(T); click($(`[data-kid="${id}"]`)); if ($('[data-pet]')) click($('[data-pet]')); };
+      openK('k8'); click($('.go-btn[data-v2="kor"]')); const v2tool = v2tools(w, T); v2tool.answer(() => false); w.__advance(4000);   // ett svar, sedan byte mitt i passet
+      openK('k2'); const kid2 = PA().KIDS.find(k => k.id === 'k2'); const cat2 = PA().LE.state(kid2).cat; const home2 = norm($('#app').textContent);
+      const peek = PA().V2.peekPlan(kid2).plan.map(s => s.cid); click($('.go-btn[data-v2="kor"]'));
+      ok(PA().S && PA().S.kid.id === 'k2' && JSON.stringify(PA().S.v2.plan.map(s => s.cid)) === JSON.stringify(peek), 'profilbyte: syskonets KÖR startar syskonets visade plan');
+      ok(PA().S.v2.plan.every(s => cat2[s.cid]), 'profilbyte: varje plats hör till syskonets katalog');
+      ok(!/Åttan/.test(home2), 'profilbyte: syskonets startsida visar inte det andra barnets namn');
+      ROWS.push({ state: 'profilbyte', exp: 'explore/k2', promise: 'KÖR efter byte från k8', mode: PA().S.v2.mode, exam: '', n: PA().S.v2.plan.length, played: 0 }); }
     console.log('  Löfte → utförande:');
     for (const r of ROWS) console.log(`   ${r.exp.padEnd(16)} ${r.state.padEnd(16)} "${r.promise}" → ${r.mode}${r.exam ? ' ' + r.exam : ''} · ${r.n} platser${r.share ? ' · prov ' + r.share : ''} · ${r.played} spelade`);
   } catch (e) { fails++; console.log('EXC', e.stack); }

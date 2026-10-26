@@ -236,8 +236,8 @@ const V2 = {
     else if (wantRecall && q.choices && (q.type === 'num' || q.type === 'expr')) q = { ...q, choices: undefined };
     // v3 papper och penna: appen väljer uppgiften, barnet räknar på papper och skriver bara svaret (rättas som vanligt)
     if (EXP.paperFor(V, q, spec, skill)) q = { ...q, choices: undefined, paper: true };
-    // v3 Explore: efter två textval i rad blir ett taluppdrag "skriv talet" med sifferknappar i stället för fler knappar att välja bland
-    else if (V.exp === 'explore' && !V.exam && q.type === 'num' && q.choices && !['warmup', 'rescue', 'easy'].includes(spec.role) && spec.help !== 'rescue' && (EXP.vary(V) || {}).choiceRun >= 2) q = { ...q, choices: undefined, keypad: true };
+    // v3 Explore: efter ett textval (som för paketens aktiviteter) blir ett taluppdrag "skriv talet" med sifferknappar i stället för fler knappar att välja bland
+    else if (V.exp === 'explore' && !V.exam && q.type === 'num' && q.choices && !['warmup', 'rescue', 'easy'].includes(spec.role) && spec.help !== 'rescue' && (EXP.vary(V) || {}).choiceRun >= 1) q = { ...q, choices: undefined, keypad: true };
     V.seen.add(V2.iid(q));
     return [{ ...q, spec, _slotEnd: true }];
   },
@@ -367,7 +367,7 @@ const V2 = {
   },
   // Kort rad i svarsrutan: belöning eller Rescue. Inga felräknare.
   feedbackExtra(evs, before, q) {
-    const add = S.v2.rewards.slice(before); const parts = add.map(r => `${V2.REWARD_TXT[r.k]} ${r.xp ? `+${r.xp} XP` : ''}${r.gems ? `+${r.gems} 💎` : ''}`);
+    const add = S.v2.rewards.slice(before); const pts = !(S.v2.exp === 'explore' || S.v2.exp === 'achieve'); const parts = add.map(r => pts ? `${V2.REWARD_TXT[r.k]} ${r.xp ? `+${r.xp} XP` : ''}${r.gems ? `+${r.gems} 💎` : ''}` : V2.REWARD_TXT[r.k]);   // v3 Explore/Achieve: inga poäng i svarsrutan (Explore: inga poäng; Achieve: kompetensen är belöningen) – XP räknas som förut
     if ((evs || []).some(e => e.type === 'rescue' || e.type === 'defer')) S.v2.calm = true;   // v3 lugn presentation: motorns egen signal, ingen egen algoritm
     if ((evs || []).some(e => e.type === 'rescue')) parts.push('🤝 Vi tar det tillsammans – nästa kort hjälper dig.');
     if ((evs || []).some(e => e.type === 'defer')) parts.push('Vi sparar den här till ett annat pass. Bra kämpat!');

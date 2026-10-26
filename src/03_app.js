@@ -919,7 +919,7 @@ function onMath(e, q) {
 }
 function showSteps(q, reveal) {
   const el = document.getElementById('fb');
-  const stepsHtml = `<div class="steps"><div class="eyebrow">Så här löser du den</div><ol>${q.steps.map(s => `<li>${safeHtml(s)}</li>`).join('')}</ol>${reveal && !S.answered ? `<p style="margin-top:10px" class="muted">Svaret är <b>${esc(answerDisplay(q))}</b>. Skriv in det så går vi vidare – nästa gång klarar du det själv!</p>` : ''}</div>`;
+  const stepsHtml = `<div class="steps"><div class="eyebrow">${S.v2 && S.v2.exp && q.kp ? 'Så här är det' : 'Så här löser du den'}</div><ol>${q.steps.map(s => `<li>${safeHtml(s)}</li>`).join('')}</ol>${reveal && !S.answered ? `<p style="margin-top:10px" class="muted">Svaret är <b>${esc(answerDisplay(q))}</b>. Skriv in det så går vi vidare – nästa gång klarar du det själv!</p>` : ''}</div>`;
   const existing = el.querySelector('.steps'); if (existing) existing.remove();
   el.insertAdjacentHTML('beforeend', stepsHtml);
   if (reveal) { S.revealed = true; const b = document.getElementById('explainBtn'); if (b) b.disabled = true; }
@@ -986,6 +986,8 @@ function submitMath() {
   if (S.v2) V2.feedbackExtra(v2evs, v2rw, q);
   document.getElementById('actions').innerHTML = `<button class="btn grow" id="next">${(S.v2 ? V2.hasNext() : S.i + 1 < S.queue.length) ? 'Nästa →' : 'Visa resultat'}</button>${!correct && !isTest && !q.paper && !(S.v2 && S.v2.exp && document.querySelector('#fb .steps')) ? `<button class="btn ghost" id="stepsBtn2">Visa lösning</button>` : ''}`;
   document.getElementById('stepsBtn2')?.addEventListener('click', () => showSteps(q, false));
+  // v3 (kvalitetspasset, liten skärm): efter svaret behövs inte sifferknapparna – de göms så att svaret, lösningen och Nästa syns
+  if (S.v2 && S.v2.exp) { document.querySelectorAll('#qcard .keys').forEach(k => { k.hidden = true; }); document.getElementById('fb')?.scrollIntoView?.({ block: 'nearest' }); }
   document.getElementById('next').focus({ preventScroll: true });
 }
 function nextQuestion() {
