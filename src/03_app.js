@@ -987,7 +987,7 @@ function submitMath() {
   document.getElementById('actions').innerHTML = `<button class="btn grow" id="next">${(S.v2 ? V2.hasNext() : S.i + 1 < S.queue.length) ? 'Nästa →' : 'Visa resultat'}</button>${!correct && !isTest && !q.paper && !(S.v2 && S.v2.exp && document.querySelector('#fb .steps')) ? `<button class="btn ghost" id="stepsBtn2">Visa lösning</button>` : ''}`;
   document.getElementById('stepsBtn2')?.addEventListener('click', () => showSteps(q, false));
   // v3 (kvalitetspasset, liten skärm): efter svaret behövs inte sifferknapparna – de göms så att svaret, lösningen och Nästa syns
-  if (S.v2 && S.v2.exp) { document.querySelectorAll('#qcard .keys').forEach(k => { k.hidden = true; }); document.getElementById('fb')?.scrollIntoView?.({ block: 'nearest' }); }
+  if (S.v2 && S.v2.exp) { document.querySelectorAll('#qcard .keys').forEach(k => { k.hidden = true; k.style.display = 'none'; }); document.getElementById('fb')?.scrollIntoView?.({ block: 'nearest' }); }
   document.getElementById('next').focus({ preventScroll: true });
 }
 function nextQuestion() {
