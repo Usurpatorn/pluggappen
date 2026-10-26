@@ -3,7 +3,7 @@
    EXPLORE (aktiviteter, variation, tryck, uppläsning, rättning, id:n) · FLOW (ett tryck, ingen autostart, ingen skuld, ingen
    uppblåst behärskning samma dygn, dygnets gräns för nytt, synk av passposter) · PAPPER (bara svaret rättas, ärlig text, lösning,
    självkontroll påverkar inte bevis, ingen kamera) · ÄRLIGT SPRÅK · GOLDEN CASES (lärarens betoning, luckor, målområden) ·
-   UPPLEVELSEVAL (förälder, synk, Klassisk) · ROLLBACK (2.1.0, 2.0.0, v1 per barn). */
+   UPPLEVELSEVAL (förälder, synk, Klassisk) · ROLLBACK (2.1.1, 2.1.0, 2.0.0, v1 per barn). */
 'use strict';
 process.env.TZ = 'Europe/Stockholm';
 const fs = require('fs'); const path = require('path'); const zlib = require('zlib'); const os = require('os');
@@ -234,8 +234,8 @@ function runLog(T, D, wrongFn = () => false) {
       ok(ev0.length === 14, 'bevis utan papper oförändrade (14 fält)');
     }
 
-    /* ================= 5. ROLLBACK: 2.1.0 och 2.0.0 med Experience v3-data ================= */
-    for (const ver of ['pluggappen-2.1.0', 'pluggappen-2.0.0']) {
+    /* ================= 5. ROLLBACK: 2.1.1 (nuvarande produktion), 2.1.0 och 2.0.0 med Experience v3-data ================= */
+    for (const ver of ['pluggappen-2.1.1', 'pluggappen-2.1.0', 'pluggappen-2.0.0']) {
       const file = gunzip(ver); const st = global.__v3store; const p0 = JSON.parse(st['pluggappen.v3'] || st[Object.keys(st).find(k => /pluggappen\.v\d/.test(k))]).profiles.k8;
       const { w, T, D } = await boot(71, { file, storage: st }); const PA = T.PA;
       ok(new RegExp(ver.split('-')[1].replace(/\./g, '\\.')).test(w.PLUGG_BUILD || ''), `${ver} laddad (${w.PLUGG_BUILD})`);
