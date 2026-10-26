@@ -93,14 +93,15 @@ const EXP = {
   },
   growHome(kid, p) {
     const m = V2.mission(kid); const label = LBL(kid).go.toUpperCase();
-    if (EXP.coreDone(p)) return EXP.doneCard(kid, p, m ? 'DAGENS MISSION KLAR' : 'RUNDAN KLAR!', 'Du är klar för idag.', 'EN RUNDA TILL');
-    const s = EXP.summary(kid); const pr = EXP.progress(kid); const C = s.C; const fb = LE2.felbokChild(C.L, C.pol, LE.now()); const todo = fb.items.filter(x => x.state === 'todo').length;
+    if (EXP.coreDone(p)) return EXP.doneCard(kid, p, 'RUNDAN KLAR!', 'Du är klar för idag.', 'EN RUNDA TILL');
+    const s = EXP.summary(kid); const sh = EXP.examShare(kid, m, s.plan); const ex = m && sh.n > 0; const pr = EXP.progress(kid); const C = s.C; const fb = LE2.felbokChild(C.L, C.pol, LE.now()); const todo = fb.items.filter(x => x.state === 'todo').length;
     const parts = [[pr['Säker'], 'säkra'], [pr['På väg'], 'på väg'], [pr['Tränar'] + pr['Behöver repetition'], 'tränar']].filter(x => x[0] > 0);   // bara lägen som finns – ingen "0 säkra"
     const prog = parts.length ? `<div class="progress-states" aria-label="Så långt har du kommit">${parts.map(([n, t]) => `<span><b>${n}</b> ${t}</span>`).join('')}</div>` : '';
-    return `<section class="card pad-lg mission grow stack" aria-label="Dagens runda"><div class="eyebrow">${m ? `DAGENS MISSION · ${esc(m.e.title.toUpperCase())} · ${esc(fmtDate(m.e.date).toUpperCase())}` : 'DAGENS RUNDA'}</div>
-      <div class="mission-title">${s.n} uppgifter · cirka ${s.mins} min</div>
+    return `<section class="card pad-lg mission grow stack" aria-label="Dagens runda"><div class="eyebrow">${ex ? `DAGENS MISSION · ${esc(m.e.title.toUpperCase())} · ${esc(fmtDate(m.e.date).toUpperCase())}` : 'DAGENS RUNDA'}</div>
+      <div class="mission-title">${s.n} uppgifter · cirka ${s.mins} min</div>${ex ? `<div class="muted" style="font-size:.95rem">${esc(EXP.shareText(sh))}</div>` : ''}
       ${s.list.length ? `<div class="muted" style="font-size:.95rem">Idag: ${s.list.map(esc).join(' · ')}</div>` : ''}${prog}
       ${EXP.go(kid, label)}
+      ${m && !ex ? `<div class="muted" style="font-size:.95rem">Nästa prov: <b>${esc(m.e.title)}</b> · ${esc(fmtDate(m.e.date))}. Dagens runda övar annat.</div>${EXP.missionBtn(kid, m, 'btn wide secondary')}` : ''}
       ${todo ? `<button class="link" data-v2="revansch" style="align-self:center">Hellre revansch först? · ${todo} ${todo === 1 ? 'sak' : 'saker'}</button>` : ''}</section>`;
   },
   goalOf(kid) {
@@ -109,19 +110,32 @@ const EXP = {
     return { now, next: now ? all.find(x => x !== now && x.d <= 60) || null : null };   // "Sedan:" – bara en rad, aldrig en andra plan
   },
   isExam(e) { return e && (e.kind === 'exam' || /prov|förhör|test/i.test(e.title || '')); },
+  /* Hotfix 2.1.1-principen i v3: en provmärkt knapp startar ett pass som verkligen innehåller provets områden. examShare räknar hur
+     stor del av en plan som hör till provet; missionBtn erbjuder provets egen träning (bara provets koncept) – eller säger ärligt att
+     provets områden inte är inlagda ännu. Inget tyst utbyte mot annat innehåll. */
+  examShare(kid, m, plan) { if (!m) return { cids: [], n: 0, of: 0 }; const cids = V2.examCidsActive(kid, m.e); return { cids, ...V2.missionShare(plan || [], cids) }; },
+  shareText(sh) { return sh.n === sh.of ? 'Allt inför provet' : `${sh.n} av ${sh.of} uppgifter inför provet`; },
+  missionBtn(kid, m, cls = 'btn big wide secondary') {
+    if (!m) return ''; const cids = V2.examCidsActive(kid, m.e);
+    if (!cids.length) return `<div class="muted" style="font-size:.95rem">Provets områden är inte inlagda i appen ännu. Be en förälder lägga in dem – Kör! övar annat under tiden.</div>`;
+    const mp = EXP.safe(() => V2.plan(kid, 'mission', LE.state(kid), LE.now(), null, { examId: m.e.id }), 'missionPeek', []);
+    return mp.length ? `<button class="${cls}" data-v2="mission" data-exam="${esc(m.e.id)}">Öva inför provet · cirka ${EXP.mins(mp, kid)} min</button>` : '';
+  },
   achieveHome(kid, p) {
     const g = EXP.goalOf(kid); const m = g.now;
     const sedan = g.next ? `<div class="then">Sedan: <b>${esc(g.next.e.title.toUpperCase())}</b> · ${esc(fmtDate(g.next.e.date).toUpperCase())}</div>` : '';
-    if (EXP.coreDone(p)) return EXP.doneCard(kid, p, 'DAGENS PLAN KLAR', 'Appen håller koll på resten.', m && EXP.isExam(m.e) ? 'FORTSÄTT MOT PROVET' : 'FORTSÄTT') + EXP.goalDetail(kid, m);
-    const s = EXP.summary(kid);
-    const head = m ? `<div class="eyebrow">NÄSTA MÅL</div><div class="goal-title">${esc(m.e.title.toUpperCase())}</div><div class="goal-date">${esc(fmtDate(m.e.date).toUpperCase())} · ${m.d === 0 ? 'idag' : m.d === 1 ? 'imorgon' : `om ${m.d} dagar`}</div>`
+    if (EXP.coreDone(p)) { const fsh = EXP.examShare(kid, m, EXP.peekFlow(kid)); return EXP.doneCard(kid, p, 'DAGENS PLAN KLAR', 'Appen håller koll på resten.', m && EXP.isExam(m.e) && fsh.n > 0 ? 'FORTSÄTT MOT PROVET' : 'FORTSÄTT') + EXP.goalDetail(kid, m); }
+    const s = EXP.summary(kid); const sh = EXP.examShare(kid, m, s.plan); const ex = m && sh.n > 0;   // provrubrik bara när dagens pass innehåller provet
+    const when = m ? `${esc(fmtDate(m.e.date).toUpperCase())} · ${m.d === 0 ? 'idag' : m.d === 1 ? 'imorgon' : `om ${m.d} dagar`}` : '';
+    const head = ex ? `<div class="eyebrow">NÄSTA MÅL</div><div class="goal-title">${esc(m.e.title.toUpperCase())}</div><div class="goal-date">${when}</div>`
       : `<div class="eyebrow">DAGENS PLAN</div>${s.list[0] ? `<div class="goal-title">${esc(s.list[0].toUpperCase())}</div>` : ''}`;
-    const main = m ? s.exList : s.list.slice(1); const also = m ? s.alsoList : [];   // utan prov: dagens starkaste mål är rubriken
+    const main = ex ? s.exList : s.list.slice(1); const also = ex ? s.alsoList : [];   // utan prov i passet: dagens starkaste mål är rubriken
+    const nextGoal = m && !ex ? `<div class="then">Nästa mål: <b>${esc(m.e.title.toUpperCase())}</b> · ${when}. Dagens pass övar annat.</div>${EXP.missionBtn(kid, m)}` : '';
     return `<section class="card pad-lg mission achieve stack" aria-label="Dagens plan">${head}
-      ${main.length ? `<div class="train"><div class="eyebrow">${m ? 'DET HÄR TRÄNAR VI IDAG' : 'OCKSÅ IDAG'}</div><ul>${main.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
+      ${main.length ? `<div class="train"><div class="eyebrow">${ex ? 'DET HÄR TRÄNAR VI IDAG' : 'OCKSÅ IDAG'}</div><ul>${main.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
       ${also.length ? `<div class="muted" style="font-size:.95rem">${main.length ? 'Också idag' : 'Idag'}: ${also.map(esc).join(' · ')}</div>` : ''}
-      <div class="muted">cirka ${s.mins} min</div>
-      ${EXP.go(kid, LBL(kid).go.toUpperCase())}${sedan}</section>` + EXP.goalDetail(kid, m);
+      <div class="muted">${ex ? esc(EXP.shareText(sh)) + ' · ' : ''}cirka ${s.mins} min</div>
+      ${EXP.go(kid, LBL(kid).go.toUpperCase())}${nextGoal}${sedan}</section>` + EXP.goalDetail(kid, m);
   },
   // Läget per område – hopfällt, med motorns tre lägen (aldrig procent). Testa mig är en sekundär knapp här.
   goalDetail(kid, m) {
@@ -130,7 +144,7 @@ const EXP = {
     return `<details class="card goal-detail"><summary><b>Läget inför ${esc(m.e.title)}</b></summary>
       ${per.every(x => x.ready === 'För lite underlag') ? `<p class="muted" style="margin:8px 0">För lite underlag ännu. Kör några pass så syns det här vad som sitter.</p>` : `<div class="stack" style="gap:6px;margin-top:8px">${per.slice(0, 8).map(x => `<div class="row" style="justify-content:space-between;gap:8px"><span>${esc(x.name)}</span><span class="pill ${V2.READY_CLS[x.ready]}" style="font-size:.75rem">${V2.READY_TXT[x.ready]}</span></div>`).join('')}</div>`}
       <p class="muted" style="font-size:.85rem;margin:8px 0">Lägena bygger på hur det gått hittills – de säger inget om provresultatet.</p>
-      <button class="btn ghost wide" data-v2="testa" data-exam="${esc(m.e.id)}">Testa mig</button></details>`;
+      ${V2.examCidsActive(kid, m.e).length ? `<button class="btn ghost wide" data-v2="testa" data-exam="${esc(m.e.id)}">Testa mig</button>` : ''}</details>`;
   },
   /* Lärarens målområden (skoluppgiftens "goals", Golden case A/B): en rad per område med motorns läge (Bra koll / Öva lite mer / För lite
      underlag) över områdets koncept. Finns inga områden: null (då visas momenten som tidigare). */
@@ -281,8 +295,9 @@ const EXP = {
   finish(kid, V, sum, won, extraCards) {
     const e = V.exp; const p = prof(kid.id); const flow = V.mode === 'flow';
     const g = e === 'achieve' ? EXP.goalOf(kid).now : null;
-    const title = e === 'explore' ? 'ÄVENTYRET KLART!' : e === 'grow' ? (flow ? 'EXTRARUNDAN KLAR!' : 'RUNDAN KLAR!') : flow ? 'EXTRAPASSET KLART' : 'DAGENS PLAN KLAR';
-    const flowLabel = e === 'explore' ? 'ETT ÄVENTYR TILL' : e === 'grow' ? 'EN RUNDA TILL' : g && EXP.isExam(g.e) ? 'FORTSÄTT MOT PROVET' : 'FORTSÄTT';
+    const mission = V.mode === 'mission';   // provets egen träning (2.1.1) är inte dagens plan
+    const title = e === 'explore' ? 'ÄVENTYRET KLART!' : mission ? 'PROVTRÄNINGEN KLAR' : e === 'grow' ? (flow ? 'EXTRARUNDAN KLAR!' : 'RUNDAN KLAR!') : flow ? 'EXTRAPASSET KLART' : 'DAGENS PLAN KLAR';
+    const flowLabel = e === 'explore' ? 'ETT ÄVENTYR TILL' : e === 'grow' ? 'EN RUNDA TILL' : g && EXP.isExam(g.e) && EXP.examShare(kid, g, EXP.peekFlow(kid)).n > 0 ? 'FORTSÄTT MOT PROVET' : 'FORTSÄTT';
     const kinds = []; for (const r of V.rewards) if (EXP.DELIGHT[r.k] && !kinds.includes(r.k)) kinds.push(r.k);
     const delights = kinds.slice(0, 3).map(k => `<div class="delight">${esc(EXP.DELIGHT[k])}</div>`).join('');
     const trail = e === 'explore' ? `<div class="trail done" aria-label="Det här gjorde du">${S.queue.slice(0, S.i + 1).map(x => `<span class="dot ok" aria-hidden="true">${(EXP.ACT[EXP.uiOf(x)] || EXP.ACT[x.paper ? 'paper' : ''] || [0, x.cat === 'learn' ? '🔎' : x.spec && x.spec.role === 'boss' ? '👑' : '⭐'])[1]}</span>`).join('')}</div>` : '';

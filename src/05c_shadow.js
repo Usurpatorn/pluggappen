@@ -75,9 +75,14 @@ const LE = {
     const flat = recs.slice(-2).flatMap(r => [...new Set((r.v1 || []).map(cid => (C.cat[cid] || {}).subject || 'lang'))]);
     const share = {}; for (const s of flat) share[s] = (share[s] || 0) + 1 / flat.length;
     const decks = {}; const nextNew = {};
+    const tplDecks = ((typeof TEMPLATES !== 'undefined' && TEMPLATES[kid.template]) || {}).decks || []; const tplOrder = (deckId) => { const i = tplDecks.indexOf(deckId); return i < 0 ? 1000 : i; };
     for (const d of allDecks(p)) { const id = LECAT.deckCid(d.id); if (!C.cat[id]) continue; if (!(p.enabledDecks || []).includes(d.id)) { decks[id] = { due: 0, nw: 0 }; continue; } let due = 0, nw = 0, seen = 0; for (const w of d.words) { const s = p.words[w.id]; if (!s) nw++; else { seen++; if (s.due <= now) due++; } } decks[id] = { due, nw, seen, level: d.level || 1, lang: d.lang };
       // Nya ord: bara EN kurs per språk räknas som "nytt" – den påbörjade, annars den med lägst nivå (som v1:s språkflöde). Annars översvämmas planen av orörda kurser.
-      if (nw > 0) { const cur = nextNew[d.lang]; const better = !cur || (seen > 0) - (cur.seen > 0) > 0 || ((seen > 0) === (cur.seen > 0) && ((d.level || 1) < cur.level || ((d.level || 1) === cur.level && id < cur.id))); if (better) nextNew[d.lang] = { id, seen, level: d.level || 1 }; } }
+      // Hotfix 2.1.1: Äldre börjar inte på den lättaste kursen bara för att historik saknas. Utan påbörjad kurs följer Äldre kursmallens
+      // egen ordning (åk 8: "Irregular verbs"/"Vocabulary builder" före "Animals"; spanska från början av sin progression). Yngre och
+      // Mellan: oförändrat (lägst nivå först). En påbörjad kurs går alltid först.
+      const lv = d.level || 1; const ord = C.pol && C.pol.name === 'older' ? tplOrder(d.id) : null;
+      if (nw > 0) { const cur = nextNew[d.lang]; const better = !cur || (seen > 0) - (cur.seen > 0) > 0 || ((seen > 0) === (cur.seen > 0) && (ord != null ? (ord < cur.ord || (ord === cur.ord && id < cur.id)) : (lv < cur.level || (lv === cur.level && id < cur.id)))); if (better) nextNew[d.lang] = { id, seen, level: lv, ord }; } }
     const keepNew = new Set(Object.values(nextNew).map(x => x.id)); for (const [id, ds] of Object.entries(decks)) if (!keepNew.has(id)) ds.nw = 0;
     const today = LE2.dayIdx(now); const last = recs.length ? recs[recs.length - 1].t * 1000 : null;
     return { exams, recentSubjectShare: share, subjectCount: new Set(Object.values(C.cat).filter(c => ((c.kind === 'skill' || c.kind === 'kp') && c.active !== false) || (decks[c.id] && (decks[c.id].due || decks[c.id].nw))).map(c => c.subject)).size, dueDoneToday: C.L.dd && C.L.dd.d === today ? C.L.dd.n : 0, lastSessionAt: last, decks };
@@ -86,7 +91,7 @@ const LE = {
   activeCat(C, p) { const on = new Set((p.enabledDecks || []).map(LECAT.deckCid)); const out = {}; for (const [id, d] of Object.entries(C.cat)) if (d.kind !== 'deck' || on.has(id)) out[id] = d; return out; },
   plan(kid, n, now, exclId, opts = {}) {
     const p = prof(kid.id); const C = LE.state(kid); const ctx = LE.ctx(kid, p, C, now, exclId);
-    const plan = LE2.planSession(C.L, LE.activeCat(C, p), now, ctx, C.pol, { ...opts, n, sessionNo: C.L.sessN || 0 });   // granskning L1: Utmaning var annat pass · v3: opts.newCap (FLOW)
+    const plan = LE2.planSession(C.L, LE.activeCat(C, p), now, ctx, C.pol, { ...opts, n, sessionNo: C.L.sessN || 0 });   // granskning L1: Utmaning var annat pass · opts.newCap (FLOW, provträning) · opts.only (provträning, 2.1.1)
     return { plan, ctx, C };
   },
   whyKey(s) { if (s.role === 'boss') return 'boss'; const top = Object.entries(s.parts || {}).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1])[0]; return top ? top[0] : 'maintenance'; },

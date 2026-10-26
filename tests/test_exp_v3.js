@@ -175,7 +175,8 @@ function runLog(T, D, wrongFn = () => false) {
           D.answer(() => rnd() < 0.15); w.__advance(4000);
         }
         ok(/DAGENS PLAN KLAR/.test(txt(T)) && /Appen håller koll på resten/.test(txt(T)), `dag ${d + 1}: DAGENS PLAN KLAR · Appen håller koll på resten.`);
-        ok(/FORTSÄTT MOT PROVET/.test(txt(T)) || /vilar nu|Allt för idag/.test(txt(T)), `dag ${d + 1}: FORTSÄTT MOT PROVET erbjuds`);
+        { const k8 = PA().KIDS.find(k => k.id === 'k8'); const g = PA().EXP.goalOf(k8).now; const fsh = PA().EXP.examShare(k8, g, PA().EXP.peekFlow(k8));   // 2.1.1-principen: provetiketten bara när extrapasset innehåller provet
+          ok(/vilar nu|Allt för idag/.test(txt(T)) || (fsh.n > 0 ? /FORTSÄTT MOT PROVET/.test(txt(T)) : /FORTSÄTT ·/.test(txt(T)) && !/MOT PROVET/.test(txt(T))), `dag ${d + 1}: FORTSÄTT${fsh.n > 0 ? ' MOT PROVET' : ''} erbjuds (extrapasset: ${fsh.n} av ${fsh.of} inför provet)`); }
         if (!ex) ex = txt(T);
         w.__advance(DAY);
       }
