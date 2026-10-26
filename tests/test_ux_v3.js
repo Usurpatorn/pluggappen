@@ -83,6 +83,13 @@ const norm = (s) => String(s || '').replace(/\s+/g, ' ').trim();
           w.__advance(DAY); } }
       console.log(`  N kvar: ${ends} pass, ${extras} extra uppgifter (${easy} lätta), ${steps} steg kontrollerade, ${drops} gånger kortade motorns tak passet (räknaren minskade mer än en), ${bossSkip} Boss senare, ${savedN} pass med uppgifter sparade till nästa gång`);
       ok(extras > 0 && easy >= 0 && ends > 20, 'tillräckligt många pass och extra uppgifter prövades'); }
+    /* 9. Tillgänglighet (kvalitetspasset, axe i Chromium gav 0 fel efter rättningen): förloppet har ett namn, KLAR-spåret och
+       svårighetsprickarna har en roll till sin etikett */
+    { const w = mkWin({ seed: 5, fixedClock: true }); await sleep(40); const T = tools(w); const PA = T.PA; PA().FAMILY.apply(FIX); PA().load(); PA().rerender(); const D = v2tools(w, T);
+      openKid(T, 'k4'); T.click(T.$('.go-btn[data-v2="kor"]')); let g = 0, pb = 0, dots = 0;
+      while (PA().S && PA().S.v2 && T.$('#qcard') && g++ < 30) { const p = T.$('.progress.v3'); if (p) { pb++; ok(/Passet: \d+ av \d+/.test(p.getAttribute('aria-label') || ''), 'förloppet har ett namn'); } const ld = T.$('#qcard .lvl-dots[aria-label]'); if (ld) { dots++; ok(ld.getAttribute('role') === 'img', 'svårighetsprickarna har role=img'); } D.answer(() => false); w.__advance(4000); }
+      ok(pb > 0, 'förloppet prövades');
+      openKid(T, 'k2'); T.click(T.$('.go-btn[data-v2="kor"]')); D.run(() => false); const tr = T.$('.trail.done'); ok(!tr || (tr.getAttribute('role') === 'img' && /Det här gjorde du: \d+/.test(tr.getAttribute('aria-label'))), 'KLAR-spåret har role=img och ett namn'); }
   } catch (e) { fails++; console.log('EXC', e.stack); }
   console.log(`\n${checks} kontroller, ${fails} fel`); console.log(fails ? 'UX V3 TEST FAILED' : 'UX V3 TEST OK'); process.exit(fails ? 1 : 0);
 })();
