@@ -35,6 +35,12 @@ function runLog(T, D, wrongFn = () => false) {
   while (T.PA().S && T.PA().S.v2 && T.$('#qcard') && guard++ < 60) {
     const S = T.PA().S; const it = S.queue[S.i]; const screen = txt(T);
     ok(!DISHONEST.test(screen) && !GUILT.test(screen), 'ärligt språk under passet: ' + (screen.match(DISHONEST) || screen.match(GUILT) || [''])[0]);
+    if (it.type === 'sort' && !global.__undoTested) {   // ångra en placering: tryck på kortet igen → tillbaka bland korten, Svara låst igen
+      global.__undoTested = true; const $ = T.$; T.click($('[data-sitem="0"]')); T.click($('[data-sbin="0"]'));
+      const placed = !!$('#sbin0 [data-sitem="0"]'); T.click($('[data-sitem="0"]'));
+      ok(placed && !!$('#sortPool [data-sitem="0"]') && $('#submit').disabled && $('[data-sitem="0"]').getAttribute('aria-pressed') === 'true', 'sortera: ett placerat kort kan tas tillbaka med ett tryck');
+      T.click($('[data-sitem="0"]'));
+    }
     log.push({ ui: T.PA().EXP.uiOf(it), cid: it.spec && it.spec.cid, role: it.spec && it.spec.role, lvl: it.spec && it.spec.lvl, format: it.spec && it.spec.format, mode: it.spec && it.spec.mode, kp: it.kp, paper: !!it.paper, type: it.type, item: it });
     D.answer(wrongFn); T.w && T.w.__advance && T.w.__advance(4000);
   }
@@ -77,7 +83,7 @@ function runLog(T, D, wrongFn = () => false) {
       // tryck: inga dragbara element, aktiviteterna har tryckytor ≥ 44 px i CSS
       const css = [...w.document.querySelectorAll('style')].map(s => s.textContent).join('\n');
       const minH = (sel) => { const m = css.match(new RegExp('(^|\\n)' + sel.replace('.', '\\.') + ' \\{[^}]*min-height: (\\d+)px')); return m ? Number(m[2]) : 0; };
-      for (const sel of ['.stile', '.sbin', '.tapword', '.mtile', '.station', '.v3go']) ok(minH(sel) >= 36 && (sel === '.station' || minH(sel) >= 44), `tryckyta ${sel} ≥ 44 px (${minH(sel)})`);
+      for (const sel of ['.stile', '.sbin', '.sbin-h', '.tapword', '.mtile', '.station', '.v3go']) ok(minH(sel) >= 36 && (sel === '.station' || minH(sel) >= 44), `tryckyta ${sel} ≥ 44 px (${minH(sel)})`);
       ok(!/draggable="true"|ondrag|dragstart/i.test(fs.readFileSync(path.join(__dirname, '../src/05h_experience.js'), 'utf8')), 'ingen aktivitet kräver dragning');
       // uppläsning: Yngre har Läs upp på sortering, men aldrig på läsförståelse
       const C = PA().LE.state(kid); const sortQ = PA().PACKS.question('k:naso2-var-varld/arstider', { lvl: 2, format: 'depth', pol: 'younger', rnd: rng(3), itemId: PA().LECAT.itemId });
@@ -204,7 +210,7 @@ function runLog(T, D, wrongFn = () => false) {
       // kemi (golden case B): pH-kunskapen finns som UPPTÄCK → SORTERA → MINNS → KOPPLA → ORSAK → ANVÄND → HITTA FELET → BOSS
       const vs = ['ph-skalan', 'indikatorer', 'neutralisation', 'syra-kanne', 'bas-kanne'].flatMap(k => PA().PACKS.variants('k:kemi8-syror-baser/' + k, 'older'));
       const has = (f) => vs.some(f); const kemi = { 'UPPTÄCK (förklaring)': !!PA().PACKS.teach('k:kemi8-syror-baser/ph-skalan', 'older'), SORTERA: has(v => v.ui === 'sort'), MINNS: has(v => v.form === 'recall'), KOPPLA: has(v => v.form === 'relationship' && v.ui !== 'sort'), 'ORSAK OCH EFFEKT': has(v => v.form === 'cause'), ANVÄND: has(v => v.form === 'application'), 'HITTA FELET': has(v => v.form === 'mistake'), 'BOSS (svårare)': has(v => v.ch) };
-      ok(Object.values(kemi).every(Boolean), 'kemi: hela kedjan finns i innehållet ' + JSON.stringify(kemi));
+      ok(global.__undoTested, 'ångra-testet kördes'); ok(Object.values(kemi).every(Boolean), 'kemi: hela kedjan finns i innehållet ' + JSON.stringify(kemi));
       const sortPh = vs.find(v => v.ui === 'sort' && v.f.groups && v.f.groups.some(g => g.label === 'Neutral')); ok(!!sortPh, 'kemi: SORTERA sur / neutral / basisk');
       ok(PA().LE.errors.length === 0, 'Achieve: inga fel i v2-lagret ' + JSON.stringify(PA().LE.errors.slice(0, 2)));
       // rollback: spara v3-data och öppna i 2.1.0 och 2.0.0

@@ -82,7 +82,8 @@ const EXP = {
     const m = V2.mission(kid); const label = LBL(kid).go.toUpperCase();
     if (EXP.coreDone(p)) return EXP.doneCard(kid, p, m ? 'DAGENS MISSION KLAR' : 'RUNDAN KLAR!', 'Du är klar för idag.', 'EN RUNDA TILL');
     const s = EXP.summary(kid); const pr = EXP.progress(kid); const C = s.C; const fb = LE2.felbokChild(C.L, C.pol, LE.now()); const todo = fb.items.filter(x => x.state === 'todo').length;
-    const prog = pr['Säker'] + pr['På väg'] + pr['Tränar'] > 0 ? `<div class="progress-states" aria-label="Så långt har du kommit"><span><b>${pr['Säker']}</b> säkra</span><span><b>${pr['På väg']}</b> på väg</span><span><b>${pr['Tränar'] + pr['Behöver repetition']}</b> tränar</span></div>` : '';
+    const parts = [[pr['Säker'], 'säkra'], [pr['På väg'], 'på väg'], [pr['Tränar'] + pr['Behöver repetition'], 'tränar']].filter(x => x[0] > 0);   // bara lägen som finns – ingen "0 säkra"
+    const prog = parts.length ? `<div class="progress-states" aria-label="Så långt har du kommit">${parts.map(([n, t]) => `<span><b>${n}</b> ${t}</span>`).join('')}</div>` : '';
     return `<section class="card pad-lg mission grow stack" aria-label="Dagens runda"><div class="eyebrow">${m ? `DAGENS MISSION · ${esc(m.e.title.toUpperCase())} · ${esc(fmtDate(m.e.date).toUpperCase())}` : 'DAGENS RUNDA'}</div>
       <div class="mission-title">${s.n} uppgifter · cirka ${s.mins} min</div>
       ${s.list.length ? `<div class="muted" style="font-size:.95rem">Idag: ${s.list.map(esc).join(' · ')}</div>` : ''}${prog}
@@ -146,7 +147,7 @@ const EXP = {
   },
   uiOf(item) { if (!item) return 'none'; if (item.cat === 'word') return 'word:' + item.kind; if (item.cat === 'learn') return 'learn'; if (item.paper) return 'paper'; if (item.build) return 'build'; if (item.type === 'sort' || item.type === 'match' || item.type === 'order') return item.type; if (item.ui === 'tap') return 'tap'; if (item.type === 'choicetext' || item.choices) return 'choice'; return item.type === 'text' ? 'type' : item.type || 'type'; },
   // Hur många textval i rad (Explore: aldrig fler än två när kunskapen finns som aktivitet)
-  vary(V) { if (!V.exp || V.exp === 'achieve') return null; const q = S.queue.filter(x => x.cat !== 'learn'); let run = 0; for (let i = q.length - 1; i >= 0; i--) { const u = EXP.uiOf(q[i]); if (u === 'choice' || u === 'word:pick' || u === 'word:listen') run++; else break; } const last = q.length ? EXP.uiOf(q[q.length - 1]) : null; return { choiceRun: V.exp === 'explore' ? run : 0, last, boost: V.exp === 'explore' ? 2.5 : 1.5 }; },
+  vary(V) { if (!V.exp || V.exp === 'achieve') return null; const q = S.queue.filter(x => x.cat !== 'learn'); let run = 0; for (let i = q.length - 1; i >= 0; i--) { const u = EXP.uiOf(q[i]); if (u === 'choice' || u === 'word:pick' || u === 'word:listen') run++; else break; } const last = q.length ? EXP.uiOf(q[q.length - 1]) : null; return { choiceRun: V.exp === 'explore' ? run : Math.max(0, run - 1), last, boost: V.exp === 'explore' ? 2.5 : 1.5 }; },   // Grow: högst tre textval i rad
   // Bygg ordet (Explore): eget svar med bokstavsbrickor i stället för tangentbord – för korta, enkla ord. Rättas med samma funktion.
   buildable(q) { if (q.type !== 'text' || !Array.isArray(q.answer)) return false; const w = String(q.display || q.answer[0] || '').trim(); return /^[a-zåäöéü]{2,9}$/i.test(w); },
   /* ---------- Papper och penna (Learning Recipe för matematik) ----------
@@ -196,7 +197,7 @@ const EXP = {
   scList(kid) { const p = prof(kid.id); const C = LE.state(kid); return ((p.v3 && p.v3.sc) || []).slice(-8).reverse().map(x => ({ day: x[0], name: V2.cname(kid, C, x[1]), step: x[3], of: x[4] })); },
   /* ---------- Aktiviteter: sortera, para ihop, tryck i meningen, bygg ordet ---------- */
   body(q) {
-    if (q.type === 'sort') { S.sort = { sel: null, placed: {} }; return `<div class="sortbox"><div class="sort-pool" id="sortPool">${q.items.map((t, i) => `<button class="stile" data-sitem="${i}">${esc(t)}</button>`).join('')}</div><div class="sort-bins">${q.bins.map((b, i) => `<button class="sbin" data-sbin="${i}" aria-label="Lägg i ${esc(b)}"><span class="sbin-h">${esc(b)}</span><span class="sbin-items" id="sbin${i}"></span></button>`).join('')}</div><p class="muted tip">Tryck på ett kort och sedan på rätt grupp.</p></div>`; }
+    if (q.type === 'sort') { S.sort = { sel: null, placed: {} }; return `<div class="sortbox"><div class="sort-pool" id="sortPool">${q.items.map((t, i) => `<button class="stile" data-sitem="${i}" aria-pressed="false">${esc(t)}</button>`).join('')}</div><div class="sort-bins">${q.bins.map((b, i) => `<div class="sbin" data-sbin="${i}"><button class="sbin-h" data-sbin="${i}" aria-label="Lägg i ${esc(b)}">${esc(b)}</button><div class="sbin-items" id="sbin${i}" role="list" aria-label="${esc(b)}"></div></div>`).join('')}</div><p class="muted tip">Tryck på ett kort och sedan på rätt grupp. Fel grupp? Tryck på kortet igen.</p></div>`; }
     if (q.type === 'match') { const L = R.shuffle(q.pairs.map((x, i) => ({ i, t: x[0] }))); const Rr = R.shuffle(q.pairs.map((x, i) => ({ i, t: x[1] }))); S.match2 = { sel: null, done: new Set(), mistakes: 0 }; return `<div class="match-grid v3">${[['l', L], ['r', Rr]].map(([side, arr]) => `<div class="match-col">${arr.map(x => `<button class="mtile" data-m2="${side}" data-mi="${x.i}">${esc(x.t)}</button>`).join('')}</div>`).join('')}</div><p class="muted tip">Tryck på ett kort till vänster och sedan på det som hör ihop.</p>`; }
     return '';
   },
@@ -212,8 +213,10 @@ const EXP = {
     const t = e.target;
     if (q.type === 'sort' && S.sort) {
       const it = t.closest('[data-sitem]'); const bin = t.closest('[data-sbin]'); const X = S.sort;
-      if (it) { document.querySelectorAll('.stile.sel').forEach(x => x.classList.remove('sel')); X.sel = Number(it.dataset.sitem); it.classList.add('sel'); return true; }
-      if (bin && X.sel != null) { const b = Number(bin.dataset.sbin); X.placed[X.sel] = b; const el = document.querySelector(`[data-sitem="${X.sel}"]`); if (el) { el.classList.remove('sel'); el.classList.add('placed'); el.dataset.bin = b; document.getElementById('sbin' + b).appendChild(el); } X.sel = null; beep('tick'); const sb = document.getElementById('submit'); if (sb) sb.disabled = Object.keys(X.placed).length !== q.items.length; return true; }
+      if (it) { if (it.classList.contains('placed')) { const pool = document.getElementById('sortPool'); delete X.placed[it.dataset.sitem]; it.classList.remove('placed'); delete it.dataset.bin; if (pool) pool.appendChild(it); pool && pool.classList.remove('empty'); const sb0 = document.getElementById('submit'); if (sb0) sb0.disabled = true; }   // ångra: tryck på ett placerat kort så går det tillbaka
+        document.querySelectorAll('.stile.sel').forEach(x => { x.classList.remove('sel'); x.setAttribute('aria-pressed', 'false'); }); X.sel = Number(it.dataset.sitem); it.classList.add('sel'); it.setAttribute('aria-pressed', 'true'); return true; }
+      if (bin && X.sel != null) { const b = Number(bin.dataset.sbin); X.placed[X.sel] = b; const el = document.querySelector(`[data-sitem="${X.sel}"]`); if (el) { el.classList.remove('sel'); el.setAttribute('aria-pressed', 'false'); el.classList.add('placed'); el.dataset.bin = b; document.getElementById('sbin' + b).appendChild(el); } X.sel = null; beep('tick');
+        const pool = document.getElementById('sortPool'); if (pool) pool.classList.toggle('empty', !pool.querySelector('.stile')); const sb = document.getElementById('submit'); if (sb) sb.disabled = Object.keys(X.placed).length !== q.items.length; return true; }
       if (bin) { toast('Tryck först på ett kort'); return true; }
     }
     if (q.type === 'match' && S.match2) {
@@ -238,7 +241,7 @@ const EXP = {
   // Visa rätt/fel på korten efter svaret (sortera) – barnet ser direkt var varje kort hörde hemma
   reveal(q, res) {
     if (q.type === 'sort') document.querySelectorAll('.stile').forEach(el => { const t = q.items[Number(el.dataset.sitem)]; el.disabled = true; el.classList.add(q.answer[t] === q.bins[Number(el.dataset.bin)] ? 'ok' : 'no'); });
-    document.querySelectorAll('.sbin, .mtile, .ltile, #undoBuild').forEach(b => { b.disabled = true; });
+    document.querySelectorAll('.sbin-h, .mtile, .ltile, #undoBuild').forEach(b => { b.disabled = true; }); document.querySelectorAll('#qcard .tip').forEach(x => x.remove());
     if (q.type === 'match' && res) return `<div class="sub">${res.mistakes ? `Alla par klara – ${res.mistakes === 1 ? 'ett försök' : res.mistakes + ' försök'} blev fel på vägen.` : 'Alla par rätt direkt!'}</div>`;
     return '';
   },
