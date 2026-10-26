@@ -383,7 +383,7 @@ const LE2 = (() => {
     const starved = load < 2 * cap ? sinceNew >= B.starveSessions : sinceNew >= B.starveSessionsHard * (load >= 3 * cap ? 1.5 : 1);
     // provets sista dygn: inget nytt; tre dygn före: bara om svält; provvecka: ett nytt koncept på en plats
     const maxNew0 = examDays <= 1 ? 0 : examDays <= 3 ? (starved ? 1 : 0) : overloaded ? (starved ? 1 : 0) : examDays <= CFG.exam.weekDays ? 1 : pol.maxNew;
-    // Experience v3 (FLOW): ett extrablock samma dygn får bara det som är kvar av dygnets gräns för ny inlärning (opts.newCap). CORE oförändrat.
+    // Experience v3 (FLOW) och 2.1.1 (provträning): ett extrablock samma dygn får bara det som är kvar av dygnets gräns för ny inlärning (opts.newCap). CORE oförändrat.
     const maxNew = opts.newCap != null ? Math.max(0, Math.min(maxNew0, opts.newCap)) : maxNew0;
     let newTaken = 0; const isNewC = (cid) => !(L.c[cid] && L.c[cid].n > 0);
     // Provets sista tre dygn (och provet inte klart): minst halva passet till provets koncept – innan något annat fyller passet.

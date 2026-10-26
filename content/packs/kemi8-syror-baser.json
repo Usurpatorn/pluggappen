@@ -14,7 +14,7 @@
  "templates": [
   "ak8"
  ],
- "rev": 3,
+ "rev": 4,
  "sources": [
   {
    "id": "lgr22",
@@ -836,6 +836,19 @@
       }
      ],
      "why": "pH under 7 = sur, pH 7 = neutral, pH över 7 = basisk. Salt och socker löst i vatten ändrar inte pH."
+    },
+    {
+     "k": "qa",
+     "q": "Kalkavlagringar löses upp av syror. Vilken vätska passar bäst för att ta bort kalk i en vattenkokare?",
+     "a": "Den med pH 3",
+     "not": [
+      "Den med pH 7",
+      "Den med pH 11",
+      "Alla fungerar lika bra"
+     ],
+     "form": "application",
+     "lvl": 2,
+     "why": "Under 7 är surt. Bara den sura vätskan (pH 3) löser upp kalken – därför avkalkar man med t.ex. citronsyra eller ättika."
     }
    ],
    "mistakes": [
@@ -978,6 +991,19 @@
      ],
      "form": "explanation",
      "lvl": 3
+    },
+    {
+     "k": "qa",
+     "q": "Du har bara fenolftalein och droppar det i en okänd lösning. Lösningen blir rosa. Vad vet du då?",
+     "a": "Lösningen är basisk",
+     "not": [
+      "Lösningen är sur",
+      "Lösningen är neutral",
+      "Lösningen innehåller socker"
+     ],
+     "form": "application",
+     "lvl": 2,
+     "why": "Fenolftalein blir rosa först när lösningen är tydligt basisk (ungefär pH 8 och uppåt). I sura och neutrala lösningar är den färglös."
     }
    ],
    "requires": [
@@ -1088,6 +1114,19 @@
      "form": "explanation",
      "lvl": 3,
      "ch": true
+    },
+    {
+     "k": "qa",
+     "q": "Du ska avkalka en kaffebryggare hemma. Du kan välja ättika (svag syra) eller koncentrerad saltsyra (stark syra). Vilken är rimligast?",
+     "a": "Ättikan – den löser kalk men är mycket mindre farlig",
+     "not": [
+      "Saltsyran – starkare är alltid bättre",
+      "Ingen av dem – syror löser inte kalk",
+      "Båda är lika farliga"
+     ],
+     "form": "application",
+     "lvl": 2,
+     "why": "Båda syrorna löser kalk, men en stark, koncentrerad syra är frätande. Välj den svagaste syra som räcker."
     }
    ],
    "mistakes": [

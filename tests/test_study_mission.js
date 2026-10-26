@@ -61,7 +61,9 @@ setTimeout(() => { try {
   openKid(T, 'k8');
   const m = PA.V2.mission(kid); ok(m && m.e.id === 'w:kemi-test-nov' && m.d === 26, 'uppdraget = närmaste provet inom 28 dygn (inte det passerade)');
   const go = T.$('.go-btn[data-v2="kor"]'); const goTxt = go ? go.textContent.replace(/\s+/g, ' ').trim() : '';
-  ok(/^KEMIPROV · 20 NOVEMBER\s*IDAG \d+ minuter\s*KÖR/.test(goTxt), 'startknappen: KEMIPROV · 20 NOVEMBER / IDAG N minuter / KÖR – ' + goTxt);
+  // 2.1.1: provrubriken bara när passet har provets områden – och då med andelen ("1 av 3 uppgifter inför provet"); annars vanligt Kör!
+  { const sh = PA.V2.missionShare(PA.V2.peekPlan(kid).plan, PA.V2.examCidsActive(kid, m.e));
+    ok(sh.n > 0 ? new RegExp(`^KEMIPROV · 20 NOVEMBER\\s*IDAG \\d+ minuter\\s*${sh.n === sh.of ? 'Allt inför provet' : sh.n + ' av ' + sh.of + ' uppgifter inför provet'} · KÖR`).test(goTxt) : /^Kör!?\s*\d+ uppgifter · cirka/.test(goTxt), 'startknappen: KEMIPROV · 20 NOVEMBER / IDAG N minuter / andel inför provet / KÖR – ' + goTxt); }
   ok(!/skuld|missat|ligger efter|\d+ dagar sedan/i.test(T.$('#app').textContent), 'inga skuld- eller eftersläpningstexter');
   ok(T.$('[data-v2="testa"][data-exam="w:kemi-test-nov"]'), 'provkortet med Testa mig finns för skoluppgiften');
   // ---- 4) Testa mig med lärarens frågor

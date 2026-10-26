@@ -77,7 +77,7 @@ setTimeout(async () => {
     /* ---------- 6. Testa mig (k8) ---------- */
     enableV2(w, T, 'k8'); openKid(T, 'k8'); const k8home = txt(T);
     ok(/BRA KOLL|ÖVA LITE MER|FÖR LITE UNDERLAG|Kör några pass så ser du/.test(k8home), 'provkort: beredskap (tre lägen, eller en lugn rad när underlag saknas)');
-    ok(/IDAG \d+ frågor · cirka \d+ minuter/.test(k8home), 'provkort: "IDAG N frågor · cirka M minuter"');
+    ok(/Öva inför provet · cirka \d+ minuter/.test(k8home), 'provkort: "Öva inför provet · cirka M minuter" (2.1.1: startar provets egen träning)');
     ok(!/E\/C\/A|Indikation/.test(k8home), 'barnet ser inget E/C/A');
     const tb = $('[data-v2="testa"][data-exam="alg12"]'); ok(!!tb, 'Testa mig-knapp'); click(tb);
     ok(PA().S.v2.exam && !$('#hintBtn') && !$('#explainBtn'), 'Testa mig: inga ledtrådar');
