@@ -94,7 +94,8 @@ const txt = (T, sel = '#app') => (T.$(sel) || { textContent: '' }).textContent.r
           ok(!/NÄSTA MÅL MATTETEST|DAGENS MISSION · MATTETEST/i.test(h) && /övar annat/.test(h), `${exp}: utan provet i passet lovar startkortet inte provet och säger det ärligt`);
           const mb = T3.$('.mission [data-v2="mission"]'); ok(mb && /Öva inför provet · cirka \d+ min/.test(mb.textContent), `${exp}: "Öva inför provet" erbjuds`);
           if (mb) { T3.click(mb); const S = P3().S; const cids = new Set(P3().V2.examCidsActive(kid3(id), pr.exams[0])); ok(S.v2.mode === 'mission' && S.v2.plan.length && S.v2.plan.every(x => cids.has(x.cid)), `${exp}: provträningen planerar bara provets koncept`); D3.run(() => false);
-            ok(/PROVTRÄNINGEN KLAR|ÄVENTYRET/.test(txt(T3)) || !/DAGENS PLAN KLAR/.test(txt(T3)), `${exp}: avslutet kallar inte provträningen för dagens plan`); }
+            ok(/PROVTRÄNINGEN KLAR|ÄVENTYRET/.test(txt(T3)) || !/DAGENS PLAN KLAR/.test(txt(T3)), `${exp}: avslutet kallar inte provträningen för dagens plan`);
+            ok(T3.$('[data-v2="kor"]') && /Till dagens plan/.test(txt(T3)) && !T3.$('[data-v2="flow"]'), `${exp}: efter provträning före dagens plan erbjuds dagens plan, inte FLOW`); }
         } else ok(new RegExp(P3().EXP.shareText(sh)).test(h), `${exp}: provrubriken anger andelen (${sh.n} av ${sh.of})`);
         // provveckan: dagens pass innehåller provets områden → provrubrik med andel, och KÖR startar exakt den planen
         pr.exams[0].skillIds = sk.slice(0, 3); pr.exams[0].date = iso3(w3.Date.now() + 3 * DAY); P3().save(); P3().LE.invalidate(id);
@@ -111,6 +112,38 @@ const txt = (T, sel = '#app') => (T.$(sel) || { textContent: '' }).textContent.r
         pr.exams = []; P3().save(); P3().LE.invalidate(id);
       }
       ok(P3().LE.errors.length === 0, 'v3: inga fel i v2-lagret ' + JSON.stringify(P3().LE.errors.slice(0, 2))); }
+    /* 6. Granskningens fynd (oberoende granskning av hotfixen): dygnets gräns, tom provträning, bara provets innehåll, svältskyddet, "klar för idag" */
+    { const w6 = mkWin({ seed: 31, fixedClock: true }); await sleep(40); const T6 = tools(w6); const P6 = T6.PA; P6().FAMILY.apply(FIX); P6().load(); if (typeof classic === 'function') classic(T6); P6().rerender(); const D6 = v2tools(w6, T6);
+      const open6 = () => { toStart(T6); T6.click(T6.$('[data-kid="k8"]')); if (T6.$('[data-pet]')) T6.click(T6.$('[data-pet]')); };
+      const k6 = () => P6().KIDS.find(k => k.id === 'k8'); const p6 = P6().DB.profiles.k8; const iso6 = (ms) => new Date(ms).toISOString().slice(0, 10);
+      const newToday = () => { const C = P6().LE.state(k6()); const d0 = P6().LE2.dayIdx(P6().LE.now()); return Object.entries(C.L.c).filter(([id, c]) => c.fs && P6().LE2.dayIdx(c.fs * 1000) === d0 && C.cat[id] && C.cat[id].kind !== 'deck').length; };
+      p6.exams = [{ id: 'g', title: 'Mattetest', date: iso6(w6.Date.now() + 20 * DAY), skillIds: ['ekvation', 'problemekv', 'andragrad'], deckIds: [] }]; P6().save(); P6().LE.invalidate('k8');
+      // a) provträning först, sedan Kör!: tillsammans aldrig mer nytt än dygnets gräns
+      open6(); const sessN0 = P6().LE.state(k6()).L.sessN || 0; const mb = T6.$('[data-v2="mission"]'); ok(!!mb, 'granskning: provträningen erbjuds');
+      if (mb) { T6.click(mb); const set = new Set(P6().V2.examCidsActive(k6(), p6.exams[0])); const seenC = []; let g = 0; while (P6().S && P6().S.v2 && T6.$('#qcard') && g++ < 60) { const it = P6().S.queue[P6().S.i]; if (it.spec && it.spec.cid) seenC.push(it.spec.cid); D6.answer(() => true); w6.__advance(4000); }
+        ok(seenC.length > 0 && seenC.every(c => set.has(c)), 'granskning: provträning med bara fel svar – lätta uppgifter, omförsök och Boss är ändå bara provets innehåll: ' + [...new Set(seenC.filter(c => !set.has(c)))].join(' '));
+        ok((P6().LE.state(k6()).L.sessN || 0) === sessN0, `granskning: provträningen räknas inte som eget pass för svältskyddet (${sessN0} → ${P6().LE.state(k6()).L.sessN || 0})`);
+        ok(!P6().V2.doneToday(p6), 'granskning: provträning är inte "dagens pass" (Klar för idag visas inte efter bara provträning)');
+        open6(); T6.click(T6.$('.go-btn[data-v2="kor"]')); D6.run(() => false); const pol = P6().LE.state(k6()).pol;
+        ok(newToday() <= pol.maxNew, `granskning: provträning + Kör! samma dag håller dygnets gräns för nytt (${newToday()} ≤ ${pol.maxNew})`); }
+      // b) kvällen före provet med opåbörjade områden: ingen provknapp som startar annat – ärlig text
+      w6.__advance(DAY); p6.exams = [{ id: 'h', title: 'Mattetest', date: iso6(w6.Date.now() + 1 * DAY), skillIds: ['talfoljd', 'multin'], deckIds: [] }]; P6().save(); P6().LE.invalidate('k8');
+      open6(); const mp = P6().V2.plan(k6(), 'mission', P6().LE.state(k6()), P6().LE.now(), null, { examId: 'h' }); const set2 = new Set(P6().V2.examCidsActive(k6(), p6.exams[0]));
+      console.log(`  kvällen före: provträningens plan ${JSON.stringify(mp.map(s => [s.cid, s.role]))}`);
+      ok(mp.every(s => set2.has(s.cid)) && (mp.length === 0 || mp.some(s => s.role !== 'boss')), 'granskning: provträningens plan innehåller bara provets koncept och aldrig bara en Boss');
+      if (!mp.length) ok(!T6.$('[data-v2="mission"]') && /inget att öva just för provet/.test(txt(T6)), 'granskning: tom provträning → ingen knapp, ärlig text');
+      ok(P6().LE.errors.length === 0, 'granskning: inga fel i v2-lagret ' + JSON.stringify(P6().LE.errors.slice(0, 2))); }
+    /* 7. Granskning: med historik (starka koncept i andra ämnen) – provträning med bara fel svar spelar ändå bara provets innehåll */
+    { const w7 = mkWin({ seed: 31, fixedClock: true }); await sleep(40); const T7 = tools(w7); const P7 = T7.PA; P7().FAMILY.apply(FIX); P7().load(); if (typeof classic === 'function') classic(T7); P7().rerender(); const D7 = v2tools(w7, T7);
+      const open7 = () => { toStart(T7); T7.click(T7.$('[data-kid="k8"]')); if (T7.$('[data-pet]')) T7.click(T7.$('[data-pet]')); };
+      const k7 = () => P7().KIDS.find(k => k.id === 'k8'); const p7 = P7().DB.profiles.k8; const r7 = rng(5);
+      for (let d = 0; d < 5; d++) { open7(); T7.click(T7.$('.go-btn[data-v2="kor"]')); D7.run(() => r7() < 0.1); w7.__advance(DAY); }
+      const notYet = ALG.filter(sk => !(P7().LE.state(k7()).L.c['s:' + sk] || {}).n);
+      p7.exams = [{ id: 'g', title: 'Mattetest', date: new Date(w7.Date.now() + 20 * DAY).toISOString().slice(0, 10), skillIds: notYet.slice(0, 3), deckIds: [] }]; P7().save(); P7().LE.invalidate('k8');
+      open7(); const mb = T7.$('[data-v2="mission"]'); ok(!!mb, 'granskning (historik): provträningen erbjuds');
+      if (mb) { T7.click(mb); const set = new Set(P7().V2.examCidsActive(k7(), p7.exams[0])); const seenC = []; let g = 0; while (P7().S && P7().S.v2 && T7.$('#qcard') && g++ < 60) { const it = P7().S.queue[P7().S.i]; if (it.spec && it.spec.cid) seenC.push(it.spec.cid); D7.answer(() => true); w7.__advance(4000); }
+        ok(seenC.length > 0 && seenC.every(c => set.has(c)), 'granskning (historik): provträning med bara fel svar – lätta uppgifter, omförsök och Boss är bara provets innehåll ' + [...new Set(seenC.filter(c => !set.has(c)))].join(' ')); }
+      ok(P7().LE.errors.length === 0, 'granskning (historik): inga fel i v2-lagret'); }
     ok(PA().LE.errors.length === 0, 'inga fel i v2-lagret ' + JSON.stringify(PA().LE.errors.slice(0, 2)));
   } catch (e) { fails++; console.log('EXC', e.stack); }
   console.log(`\n${checks} kontroller, ${fails} fel`); console.log(fails ? 'EXAM CTA TEST FAILED' : 'EXAM CTA TEST OK'); process.exit(fails ? 1 : 0);

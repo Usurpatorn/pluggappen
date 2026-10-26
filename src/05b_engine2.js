@@ -217,9 +217,9 @@ const LE2 = (() => {
   const KDEC = inv(KCODE), HDEC = inv(HCODE), XDEC = inv(XCODE), MDEC = inv(MCODE);
 
   function apply(L, cat, e, pol) {
-    // 3J (granskning H3): ett FLOW-pass (sessionsid som slutar på "f") räknas inte som ett pass i svält-skyddet – annars släppte
-    // tre extrapass om dagen in nytt varje dag trots överlast. Äldre versioner räknar det som ett vanligt pass (ofarligt).
-    if (e.sess && L.lastSess !== e.sess) { if (L.lastSess) calibrate(L); L.lastSess = e.sess; if (!/f$/.test(String(e.sess))) L.sessN = (L.sessN || 0) + 1; }
+    // 3J (granskning H3): ett FLOW-pass (id …f) och en provträning (id …m, 2.1.1) räknas inte som pass i svält-skyddet – annars släppte
+    // extrapass in nytt trots överlast. Äldre versioner räknar dem som vanliga pass (ofarligt).
+    if (e.sess && L.lastSess !== e.sess) { if (L.lastSess) calibrate(L); L.lastSess = e.sess; if (!/[fm]$/.test(String(e.sess))) L.sessN = (L.sessN || 0) + 1; }
     // 3I: ett vilande moment (Concept Pack) leder beviset till kunskapspunkten frågan prövar. Loggen ändras aldrig (rollback läser originalet).
     // Granskning 2.1 (H2): har det vilande momentet en olöst Felboks-post (från 2.0) stannar beviset där tills posten är löst – annars kunde
     // Revansch aldrig verifiera den. Deterministiskt: beror bara på tillståndet vid omspelningen.

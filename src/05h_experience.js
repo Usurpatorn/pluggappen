@@ -33,7 +33,7 @@ const EXP = {
   coreDone(p) { return EXP.recsToday(p, 'kor').length > 0; },
   flowsToday(p) { const d0 = EXP.today(); return V2.v2recs(p).filter(r => r.m === 'flow' && LE2.dayIdx(r.t * 1000) === d0).length; },   // påbörjade räknas (granskning L1)
   // FLOW ger ingen XP för koncept som redan övats tidigare idag (granskning M6) – extrablocket ska inte löna sig för upprepning
-  flowXp(q, xp) { try { if (!S.v2 || S.v2.mode !== 'flow' || !q.spec || !xp) return xp; const c = S.v2.C.L.c[q.spec.cid]; if (c && c.lastSeen && LE2.dayIdx(c.lastSeen) === LE2.dayIdx(LE.now()) && c.lastSeen < S.v2.start) { const p = prof(S.kid.id); p.xp = Math.max(0, p.xp - xp); return 0; } } catch (e) { /* ignore */ } return xp; },
+  flowXp(q, xp) { try { if (!S.v2 || S.v2.mode !== 'flow' || !q.spec || !xp) return xp; const c = S.v2.C.L.c[q.spec.cid]; if (c && c.lastSeen && LE2.dayIdx(c.lastSeen) === LE2.dayIdx(LE.now()) && c.lastSeen < S.v2.start) { const p = prof(S.kid.id); p.xp = Math.max(0, p.xp - xp); const d = todayKey(); for (const day of [p.days && p.days[d], p.since && p.since.days && p.since.days[d]]) if (day) day.xp = Math.max(0, (day.xp || 0) - xp); return 0; } } catch (e) { /* ignore */ } return xp; },
   // Ny inlärning idag (första beviset på konceptet idag) – FLOW får aldrig ta in mer nytt än policyns gräns per dygn
   newToday(C, now) { const d = LE2.dayIdx(now); return Object.entries(C.L.c).filter(([id, c]) => c.fs && LE2.dayIdx(c.fs * 1000) === d && C.cat[id] && C.cat[id].kind !== 'deck').length; },
   flowPlan(kid, C, now, id) {
@@ -101,7 +101,7 @@ const EXP = {
       <div class="mission-title">${s.n} uppgifter · cirka ${s.mins} min</div>${ex ? `<div class="muted" style="font-size:.95rem">${esc(EXP.shareText(sh))}</div>` : ''}
       ${s.list.length ? `<div class="muted" style="font-size:.95rem">Idag: ${s.list.map(esc).join(' · ')}</div>` : ''}${prog}
       ${EXP.go(kid, label)}
-      ${m && !ex ? `<div class="muted" style="font-size:.95rem">Nästa prov: <b>${esc(m.e.title)}</b> · ${esc(fmtDate(m.e.date))}. Dagens runda övar annat.</div>${EXP.missionBtn(kid, m, 'btn wide secondary')}` : ''}
+      ${m && !ex ? `<div class="muted" style="font-size:.95rem">${EXP.isExam(m.e) ? 'Nästa prov' : 'Nästa uppgift'}: <b>${esc(m.e.title)}</b> · ${esc(fmtDate(m.e.date))}. Dagens runda övar annat.</div>${EXP.missionBtn(kid, m, 'btn wide secondary')}` : ''}
       ${todo ? `<button class="link" data-v2="revansch" style="align-self:center">Hellre revansch först? · ${todo} ${todo === 1 ? 'sak' : 'saker'}</button>` : ''}</section>`;
   },
   goalOf(kid) {
@@ -117,9 +117,11 @@ const EXP = {
   shareText(sh) { return sh.n === sh.of ? 'Allt inför provet' : `${sh.n} av ${sh.of} uppgifter inför provet`; },
   missionBtn(kid, m, cls = 'btn big wide secondary') {
     if (!m) return ''; const cids = V2.examCidsActive(kid, m.e);
-    if (!cids.length) return `<div class="muted" style="font-size:.95rem">Provets områden är inte inlagda i appen ännu. Be en förälder lägga in dem – Kör! övar annat under tiden.</div>`;
+    if (!cids.length) return `<div class="muted" style="font-size:.95rem">${EXP.isExam(m.e) ? 'Provets' : 'Uppgiftens'} områden är inte inlagda i appen ännu. Be en förälder lägga in dem – Kör! övar annat under tiden.</div>`;
     const mp = EXP.safe(() => V2.plan(kid, 'mission', LE.state(kid), LE.now(), null, { examId: m.e.id }), 'missionPeek', []);
-    return mp.length ? `<button class="${cls}" data-v2="mission" data-exam="${esc(m.e.id)}">Öva inför provet · cirka ${EXP.mins(mp, kid)} min</button>` : '';
+    const lbl = EXP.isExam(m.e) ? 'Öva inför provet' : 'Öva på ' + m.e.title;
+    return mp.length ? `<button class="${cls}" data-v2="mission" data-exam="${esc(m.e.id)}">${esc(lbl)} · cirka ${EXP.mins(mp, kid)} min</button>`
+      : `<div class="muted" style="font-size:.95rem">Just nu finns inget att öva just för ${EXP.isExam(m.e) ? 'provet' : 'uppgiften'} – inget är förfallet och inget nytt tas in idag.</div>`;
   },
   achieveHome(kid, p) {
     const g = EXP.goalOf(kid); const m = g.now;
@@ -203,7 +205,7 @@ const EXP = {
     if (!V.exp || V.exp === 'explore' || V.exam || V.mode === 'revansch' || V.mode === 'readclose') return null;
     if (!skill || (skill.group || 'math') !== 'math' || typeof skill.gen !== 'function' || !c || c.st < 2) return null;
     // I FLOW får även en repetition av något som redan hämtats tidigare idag bli analys (ingen fördröjd hämtning går förlorad – den är gjord)
-    const doneToday = c.lastSeen && LE2.dayIdx(c.lastSeen) === LE2.dayIdx(LE.now()) && c.lastSeen < V.start;
+    const lastEv = (c.ev || []).slice(-1)[0]; const doneToday = !!lastEv && LE2.dayIdx(lastEv[0] * 1000) === LE2.dayIdx(LE.now()) && lastEv[0] * 1000 < V.start;   // granskning: senaste riktiga svaret (Utmaningar räknas inte)
     // Bossen är passets sträckuppgift: att analysera en lösning eller räkna baklänges är just en sådan (ingen hämtning ersätts)
     if (spec.mode === 'challenge' || !(['practice', 'focus', 'boss'].includes(spec.role) || (V.mode === 'flow' && spec.role === 'remember' && doneToday)) || spec.help === 'rescue' || spec.help === 'hint') return null;
     const done = new Set(S.queue.filter(x => x.rhythm).map(x => x.rhythm)); const last = S.queue.filter(x => x.cat !== 'learn').slice(-1)[0];
@@ -296,21 +298,23 @@ const EXP = {
     const e = V.exp; const p = prof(kid.id); const flow = V.mode === 'flow';
     const g = e === 'achieve' ? EXP.goalOf(kid).now : null;
     const mission = V.mode === 'mission';   // provets egen träning (2.1.1) är inte dagens plan
-    const title = e === 'explore' ? 'ÄVENTYRET KLART!' : mission ? 'PROVTRÄNINGEN KLAR' : e === 'grow' ? (flow ? 'EXTRARUNDAN KLAR!' : 'RUNDAN KLAR!') : flow ? 'EXTRAPASSET KLART' : 'DAGENS PLAN KLAR';
+    // Granskning: efter provträning, Revansch o.d. FÖRE dagens plan erbjuds dagens plan – inte FLOW (FLOW kommer bara efter CORE)
+    const corePending = V.mode !== 'kor' && !flow && !EXP.coreDone(p);
+    const title = e === 'explore' ? 'ÄVENTYRET KLART!' : mission ? 'PROVTRÄNINGEN KLAR' : e === 'grow' ? (flow ? 'EXTRARUNDAN KLAR!' : 'RUNDAN KLAR!') : flow ? 'EXTRAPASSET KLART' : V.mode === 'kor' ? 'DAGENS PLAN KLAR' : 'PASSET KLART';
     const flowLabel = e === 'explore' ? 'ETT ÄVENTYR TILL' : e === 'grow' ? 'EN RUNDA TILL' : g && EXP.isExam(g.e) && EXP.examShare(kid, g, EXP.peekFlow(kid)).n > 0 ? 'FORTSÄTT MOT PROVET' : 'FORTSÄTT';
     const kinds = []; for (const r of V.rewards) if (EXP.DELIGHT[r.k] && !kinds.includes(r.k)) kinds.push(r.k);
     const delights = kinds.slice(0, 3).map(k => `<div class="delight">${esc(EXP.DELIGHT[k])}</div>`).join('');
     const trail = e === 'explore' ? `<div class="trail done" aria-label="Det här gjorde du">${S.queue.slice(0, S.i + 1).map(x => `<span class="dot ok" aria-hidden="true">${(EXP.ACT[EXP.uiOf(x)] || EXP.ACT[x.paper ? 'paper' : ''] || [0, x.cat === 'learn' ? '🔎' : x.spec && x.spec.role === 'boss' ? '👑' : '⭐'])[1]}</span>`).join('')}</div>` : '';
     const back = e === 'explore' ? [] : EXP.comeBack(kid, V);
     const gems = V.rewards.reduce((a, r) => a + r.gems, 0);
-    const canMore = EXP.canFlow(kid); const rested = EXP.flowsToday(p) >= EXP.FLOW_MAX;
+    const canMore = !corePending && EXP.canFlow(kid); const rested = EXP.flowsToday(p) >= EXP.FLOW_MAX;
     const fb = LE2.felbokChild(V.C.L, V.C.pol, LE.now()); const todo = fb.items.filter(x => x.state === 'todo').length;
     render(`${topbar('Klart', 'home')}
     <div class="stack" style="margin-top:6px">
       <section class="card pad-lg summary-hero stack klar" style="gap:8px;text-align:center" aria-label="${esc(title)}">
         <div style="font-size:2rem" aria-hidden="true">${e === 'explore' ? '🗺️' : '✅'}</div>
         <div class="klar-title">${esc(title)}</div>
-        ${e === 'achieve' && !flow ? '<div>Appen håller koll på resten.</div>' : ''}
+        ${e === 'achieve' && V.mode === 'kor' ? '<div>Appen håller koll på resten.</div>' : ''}
         ${trail}
         ${e !== 'explore' ? `<div style="font-weight:700">${sum.ok} av ${sum.n} rätt</div>` : ''}
         ${(() => { const up = [...V.stageUps].filter(cid => ((V.C.L.c[cid] || {}).st || 0) >= 2).length; return up && e !== 'explore' ? `<div>${up === 1 ? 'Ett område' : `${up} områden`} sitter bättre nu</div>` : ''; })()}
@@ -318,9 +322,9 @@ const EXP = {
       </section>
       ${back.length ? `<div class="card stack" style="gap:4px"><div class="eyebrow">Det här behöver komma tillbaka</div>${back.map(b => `<div>${esc(b.name)} – kommer tillbaka ${esc(b.when)}.</div>`).join('')}</div>` : ''}
       ${extraCards}
-      ${canMore ? `<button class="btn big wide secondary" data-v2="flow">${esc(flowLabel)} · cirka ${EXP.flowMins(kid)} min</button>` : `<div class="card muted" style="text-align:center">${rested ? 'Bra jobbat idag! Det du har övat sätter sig bäst om du vilar nu.' : 'Allt för idag är gjort.'}</div>`}
+      ${corePending ? `<button class="btn big wide" data-v2="kor">Till dagens plan · cirka ${EXP.mins(V2.peekPlan(kid).plan, kid)} min</button>` : canMore ? `<button class="btn big wide secondary" data-v2="flow">${esc(flowLabel)} · cirka ${EXP.flowMins(kid)} min</button>` : `<div class="card muted" style="text-align:center">${rested ? 'Bra jobbat idag! Det du har övat sätter sig bäst om du vilar nu.' : 'Allt för idag är gjort.'}</div>`}
       ${e === 'grow' && todo && canMore ? `<button class="btn ghost wide" data-v2="revansch">Revansch i stället · ${todo} ${todo === 1 ? 'sak' : 'saker'}</button>` : ''}
-      <button class="btn big wide ${canMore ? 'secondary' : ''}" data-go="home">Klar för idag</button>
+      <button class="btn big wide ${canMore || corePending ? 'secondary' : ''}" data-go="home">${corePending ? 'Till startsidan' : 'Klar för idag'}</button>
     </div>`);
   },
   // Avklarade dagsuppdrag hämtas automatiskt på KLAR (samma belöning som knappen "Hämta" – utan att barnet måste göra något mer)

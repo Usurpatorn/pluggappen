@@ -33,7 +33,7 @@ const CONTENT = BUNDLE || SYN;
     const kid = () => PA().KIDS.find(k => k.id === KID); const algC = new Set(ALG.map(s => 's:' + s));
     const seen = { exempel: 0, digitalt: 0, papper: 0, hittaFelet: 0, baklanges: 0, problem: 0, minns: 0, revansch: 0, testa: 0, testaPapper: 0, flow: 0, klar: 0 };
     const kemi = { upptack: 0, sortera: 0, minns: 0, koppla: 0, orsak: 0, anvand: 0, hittaFelet: 0, boss: 0, minnsSenare: 0 };
-    const time = {}; const time14 = {}; const rnd = rng(+(process.env.GSEED || 77)); let day = 0;
+    const time = {}; const time14 = {}; const rhy = { n: 0, ok: 0 }; const rnd = rng(+(process.env.GSEED || 77)); let day = 0;
     const play = (mode) => {
       let g = 0; while (PA().S && PA().S.v2 && $('#qcard') && g++ < 80) {
         const S = PA().S; const it = S.queue[S.i]; const cid = it.spec && it.spec.cid; const def = cid ? (PA().LE.state(kid()).cat[cid] || {}) : {};
@@ -60,7 +60,9 @@ const CONTENT = BUNDLE || SYN;
           if (it.spec.role === 'boss' || it.spec.mode === 'challenge') kemi.boss++;
           if (it.spec.role === 'remember') kemi.minnsSenare++;
         }
+        const logN = it.rhythm ? PA().DB.profiles[KID].le.log.length : -1;
         void def; D.answer(() => rnd() < (mode === 'exam' ? 0.25 : 0.22)); w.__advance(5000);
+        if (logN >= 0) { const e = PA().LE2.decodeEv(PA().DB.profiles[KID].le.log[logN] || []); rhy.n++; if (e && e.cid === cid && e.mode !== 'challenge' && e.form === (it.rhythm === 'spot' ? 'm' : 'v')) rhy.ok++; }
       }
     };
     let atExam = null;
@@ -80,15 +82,16 @@ const CONTENT = BUNDLE || SYN;
     console.log('  Kemi:', JSON.stringify(kemi));
     for (const [k, v] of Object.entries(seen)) ok(v > 0, `algebra: ${k} förekommer (${v})`);
     ok(seen.testaPapper >= 2 && seen.testaPapper <= 3, `Testa mig: 2–3 pappersuppgifter (${seen.testaPapper})`);
-    // Lärarens betoning (kravet: betonade områden får mer tid). Mäts per område under de två första veckorna, då uppdraget byggs upp;
-    // närmare provet sprids repetitionen efter vad som sitter (hållbar inlärning), så totalsiffran styrs mest av hur många fel som görs.
-    // Stabilt över tio frön (GSEED=1..9, 77). Dessutom introduceras de betonade områdena först.
+    // Lärarens betoning: de betonade områdena introduceras först, får mer tid per område de två första veckorna och har minst lika hög
+    // motorstatus dagen före provet.
     const fs0 = (sk) => ((atExam || {})['s:' + sk] || {}).fs || Infinity; const st0 = (sk) => ((atExam || {})['s:' + sk] || {}).st || 0;
     const avg = (arr, f) => arr.reduce((a, x) => a + f(x), 0) / arr.length; const NON = ALG.filter(s => !FOCUS.includes(s));
     console.log('  Introducerad (dygn från start):', JSON.stringify(Object.fromEntries(ALG.map(s => [s, Math.round((fs0(s) * 1000 - T_FIXED) / DAY)]))), ' stadium dagen före provet:', JSON.stringify(Object.fromEntries(ALG.map(s => [s, st0(s)]))));
     ok(Math.max(...FOCUS.map(fs0)) <= Math.min(...NON.map(fs0)), 'lärarens betonade områden introduceras före övrigt kapitelinnehåll');
+    ok(avg(FOCUS, st0) >= avg(NON, st0), `betonade områden har minst lika hög status dagen före provet (${avg(FOCUS, st0).toFixed(1)} mot ${avg(NON, st0).toFixed(1)})`);   // återinförd efter granskningen
     const t14 = (sk) => time14[sk] || 0;
     ok(avg(FOCUS, t14) > avg(NON, t14), `betonade områden får mer tid per område de två första veckorna (${avg(FOCUS, t14).toFixed(1)} mot ${avg(NON, t14).toFixed(1)} uppgifter)`);
+    ok(rhy.n > 0 && rhy.ok === rhy.n, `Hitta felet/Baklänges loggas som vanligt bevis för momentet (form m/v, ingen Utmaning): ${rhy.ok} av ${rhy.n}`);
     for (const [k, v] of Object.entries(kemi)) ok(v > 0, `kemi: ${k} förekommer (${v})`);
     ok(PA().LE.errors.length === 0, 'inga fel i v2-lagret ' + JSON.stringify(PA().LE.errors.slice(0, 2)));
   } catch (e) { fails++; console.log('EXC', e.stack); }
