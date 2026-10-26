@@ -33,6 +33,8 @@ const suites = [
   ['2.1 Små mattebanker åk 2 (former, bråk) – bara v2', 'test_gen2.js'],
   ['2.2 Study Mission: skoluppgifter, lärarfrågor, uppdrag, innehållshälsa', 'test_study_mission.js'],
   ['2.1 Kodgranskningens fynd (XSS, Felboken, kompaktering, privat innehåll)', 'test_review21.js'],
+  ['2.1 Innehållsgranskningens sakfel får aldrig komma tillbaka', 'test_content_facts.js'],
+  ['2.1 Learning Recipes: aktivitet efter stadium, ingen uppblåst behärskning', 'test_recipes.js'],
 ];
 let failed = 0; const rows = [];
 for (const [name, file, opts = {}] of suites) {
