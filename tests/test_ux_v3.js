@@ -1,11 +1,12 @@
 /* Experience v3 – regressionstester för den sista oberoende UX-granskningen (riktiga appen i jsdom, fast klocka, syntetisk familj).
    - samma faktum kommer inte tillbaka samma dag i en annan form (t.ex. flerval och sedan som Boss); andelen djupare Boss-former skrivs ut
    - Achieve: provets moment syns även som Repetition/Revansch/Boss; andelen "N av M" räknar samma platser som passet
-   - uttrycksknappsatsen i v3: siffrorna 1–0 på egna rader (v1/Klassisk oförändrade)
+   - uttrycksknappsatsen i v3: siffrorna 1–0 på egna rader (v1/Klassisk: test_keypad.js)
    - Explore: ämnet i rubriken, inga XP-flygare, "Bossen väntar nästa gång" om kronan inte nåddes
    - efter dagens plan: inga räknare för Felboken/uppdragen på hemmet (skuldfritt)
    - Testa mig i v3: ingen klocka
-   - pappersfeedback: "Eller …" får inget stegnummer, numren stämmer med knapparna */
+   - pappersfeedback: "Eller …" får inget stegnummer, numren stämmer med knapparna
+   - N kvar: planerade uppgifter; under Ny chans/Rescue "Ny chans · sedan N kvar" (motorns omförsök oförändrade) */
 'use strict';
 process.env.TZ = 'Europe/Stockholm';
 const { mkWin, tools, FIX, rng, T_FIXED } = require('./le/childflow.js');
@@ -63,6 +64,17 @@ const norm = (s) => String(s || '').replace(/\s+/g, ' ').trim();
           D.answer(() => false); w.__advance(4000); } }
       ok(sawKeys, 'en uttrycksuppgift med knappsats prövades');
       openKid(T, 'k8'); const tb = T.$('[data-v2="testa"]'); if (tb) { T.click(tb); D.run(() => false); ok(!/Testa mig · \d+:\d\d/.test(norm(T.$('#app').textContent)), 'Testa mig i v3: ingen klocka i resultatet'); } }
+    /* 8. N kvar och Ny chans: räknaren visar planerade uppgifter; en Ny chans/Rescue syns som extra och tar ingen planerad plats */
+    { const w = mkWin({ seed: 21, fixedClock: true }); await sleep(40); const T = tools(w); const PA = T.PA; PA().FAMILY.apply(FIX); PA().load(); PA().rerender(); const D = v2tools(w, T);
+      let extras = 0, consistent = 0, planned = 0, okPlanned = 0; const r8 = rng(8);
+      for (let d = 0; d < 4; d++) { for (const id of ['k2', 'k4']) { openKid(T, id); if (!T.$('.go-btn[data-v2="kor"]')) continue; T.click(T.$('.go-btn[data-v2="kor"]')); let g = 0, promised = null;
+        while (PA().S && PA().S.v2 && T.$('#qcard') && g++ < 60) { const it = PA().S.queue[PA().S.i]; const lc = norm((T.$('.left-count') || {}).textContent);
+          if (PA().EXP.isExtra(it)) { extras++; const m = lc.match(/^Ny chans · (?:sedan (\d+) kvar|extra)$/); ok(!!m, `Ny chans syns som extra: "${lc}"`); promised = m && m[1] ? +m[1] : 0; }
+          else { planned++; const m = lc.match(/^(\d+) kvar$/); if (m) okPlanned++; if (promised != null && m) { if (+m[1] === promised) consistent++; else ok(false, `efter Ny chans: ${m[1]} kvar, utlovat ${promised}`); } promised = null; }
+          D.answer(() => r8() < 0.5); w.__advance(4000); } w.__advance(0); }
+        w.__advance(DAY); }
+      console.log(`  N kvar: ${extras} Ny chans/Rescue, ${consistent} gånger stämde "sedan N kvar" med nästa uppgift`);
+      ok(extras > 0, 'minst en Ny chans/Rescue prövades'); ok(okPlanned === planned, `planerade uppgifter visar "N kvar" (${okPlanned}/${planned})`); }
   } catch (e) { fails++; console.log('EXC', e.stack); }
   console.log(`\n${checks} kontroller, ${fails} fel`); console.log(fails ? 'UX V3 TEST FAILED' : 'UX V3 TEST OK'); process.exit(fails ? 1 : 0);
 })();
