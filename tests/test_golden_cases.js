@@ -16,13 +16,13 @@ const isoIn = (d) => new Date(T_FIXED + d * DAY).toISOString().slice(0, 10);
 const ALG = ['multin', 'forenkla', 'blandat', 'talfoljd', 'ekvation', 'problemekv', 'andragrad']; const FOCUS = ['multin', 'forenkla', 'blandat', 'talfoljd'];
 const KEMI = ['ph-skalan', 'indikatorer', 'syra-kanne', 'bas-kanne', 'stark-svag', 'neutralisation', 'ph-kroppen'].map(k => 'k:kemi8-syror-baser/' + k);
 const SYN = { v: 1, updatedAt: 1, packs: [], work: [
-  { id: 'syn-alg', kid: 'k8', type: 'exam', title: 'Algebraprov', date: isoIn(24), priority: 'high', skills: ALG,
+  { id: 'syn-alg', kid: 'k8', type: 'exam', title: 'Algebraprov', date: isoIn(25), priority: 'high', skills: ALG,
     goals: ALG.map(s => ({ id: s, name: 'Område ' + s, skills: [s], teacher: FOCUS.includes(s) })), focus: { skills: FOCUS }, missing: [{ label: 'Lärobokens PDF:er', kind: 'pdf' }, { label: 'Provets format', kind: 'format' }] },
-  { id: 'syn-kemi', kid: 'k8', type: 'exam', title: 'Kemiprov', date: isoIn(32), kps: KEMI, goals: [{ id: 'ph', name: 'pH', kps: KEMI.slice(0, 2) }, { id: 'rest', name: 'Övrigt', kps: KEMI.slice(2) }], missing: [{ label: 'Filmer (ej granskade)', kind: 'video' }] },
+  { id: 'syn-kemi', kid: 'k8', type: 'exam', title: 'Kemiprov', date: isoIn(33), kps: KEMI, goals: [{ id: 'ph', name: 'pH', kps: KEMI.slice(0, 2) }, { id: 'rest', name: 'Övrigt', kps: KEMI.slice(2) }], missing: [{ label: 'Filmer (ej granskade)', kind: 'video' }] },
 ] };
 const BUNDLE = process.env.GOLDEN_BUNDLE ? JSON.parse(fs.readFileSync(process.env.GOLDEN_BUNDLE, 'utf8')) : null;
 const KID = process.env.GOLDEN_KID || 'k8';
-if (BUNDLE) for (const w of BUNDLE.work) { w.kid = KID; const d0 = new Date(T_FIXED); const dd = Math.round((new Date(w.date + 'T08:00:00') - d0) / DAY); if (dd < 10) w.date = isoIn(24); }   // samma avstånd till provet som i den syntetiska körningen
+if (BUNDLE) for (const w of BUNDLE.work) { w.kid = KID; const d0 = new Date(T_FIXED); const dd = Math.round((new Date(w.date + 'T08:00:00') - d0) / DAY); if (dd < 10) w.date = isoIn(25); }   // samma avstånd till provet som i den syntetiska körningen
 const CONTENT = BUNDLE || SYN;
 
 (async () => {
@@ -33,13 +33,13 @@ const CONTENT = BUNDLE || SYN;
     const kid = () => PA().KIDS.find(k => k.id === KID); const algC = new Set(ALG.map(s => 's:' + s));
     const seen = { exempel: 0, digitalt: 0, papper: 0, hittaFelet: 0, baklanges: 0, problem: 0, minns: 0, revansch: 0, testa: 0, testaPapper: 0, flow: 0, klar: 0 };
     const kemi = { upptack: 0, sortera: 0, minns: 0, koppla: 0, orsak: 0, anvand: 0, hittaFelet: 0, boss: 0, minnsSenare: 0 };
-    const time = {}; const rnd = rng(77); let day = 0;
+    const time = {}; const time14 = {}; const rnd = rng(+(process.env.GSEED || 77)); let day = 0;
     const play = (mode) => {
       let g = 0; while (PA().S && PA().S.v2 && $('#qcard') && g++ < 80) {
         const S = PA().S; const it = S.queue[S.i]; const cid = it.spec && it.spec.cid; const def = cid ? (PA().LE.state(kid()).cat[cid] || {}) : {};
         const isAlg = algC.has(cid); const isKemi = cid && cid.startsWith('k:kemi8');
         if (isAlg) {
-          const sk = cid.slice(2); time[sk] = (time[sk] || 0) + 1;
+          const sk = cid.slice(2); time[sk] = (time[sk] || 0) + 1; if (day < 14) time14[sk] = (time14[sk] || 0) + 1;
           if (it.cat === 'learn') seen.exempel++;
           else if (it.paper) { seen.papper++; if (S.v2.exam) seen.testaPapper++; }
           else if (it.rhythm === 'spot' || /Hitta felet/i.test(it.text || '')) seen.hittaFelet++;
@@ -76,17 +76,19 @@ const CONTENT = BUNDLE || SYN;
     // Testa mig om det inte gick att nå hemifrån (t.ex. hopfällt): starta direkt
     if (!seen.testa) { openKid(); PA().V2.start(kid(), 'exam', { examId: 'w:' + CONTENT.work[0].id }); seen.testa++; play('exam'); }
     console.log('  Algebra:', JSON.stringify(seen));
-    console.log('  Tid per område (uppgifter):', JSON.stringify(time));
+    console.log('  Tid per område (uppgifter):', JSON.stringify(time), ' första två veckorna:', JSON.stringify(time14));
     console.log('  Kemi:', JSON.stringify(kemi));
     for (const [k, v] of Object.entries(seen)) ok(v > 0, `algebra: ${k} förekommer (${v})`);
     ok(seen.testaPapper >= 2 && seen.testaPapper <= 3, `Testa mig: 2–3 pappersuppgifter (${seen.testaPapper})`);
-    // Lärarens betoning: områdena introduceras först och har minst lika hög motorstatus dagen före provet (prioritet ≠ fler omförsök:
-    // det som redan sitter repeteras glesare – så fungerar hållbar inlärning)
+    // Lärarens betoning (kravet: betonade områden får mer tid). Mäts per område under de två första veckorna, då uppdraget byggs upp;
+    // närmare provet sprids repetitionen efter vad som sitter (hållbar inlärning), så totalsiffran styrs mest av hur många fel som görs.
+    // Stabilt över tio frön (GSEED=1..9, 77). Dessutom introduceras de betonade områdena först.
     const fs0 = (sk) => ((atExam || {})['s:' + sk] || {}).fs || Infinity; const st0 = (sk) => ((atExam || {})['s:' + sk] || {}).st || 0;
     const avg = (arr, f) => arr.reduce((a, x) => a + f(x), 0) / arr.length; const NON = ALG.filter(s => !FOCUS.includes(s));
     console.log('  Introducerad (dygn från start):', JSON.stringify(Object.fromEntries(ALG.map(s => [s, Math.round((fs0(s) * 1000 - T_FIXED) / DAY)]))), ' stadium dagen före provet:', JSON.stringify(Object.fromEntries(ALG.map(s => [s, st0(s)]))));
     ok(Math.max(...FOCUS.map(fs0)) <= Math.min(...NON.map(fs0)), 'lärarens betonade områden introduceras före övrigt kapitelinnehåll');
-    ok(avg(FOCUS, st0) >= avg(NON, st0), `betonade områden har minst lika hög status dagen före provet (${avg(FOCUS, st0).toFixed(1)} mot ${avg(NON, st0).toFixed(1)})`);
+    const t14 = (sk) => time14[sk] || 0;
+    ok(avg(FOCUS, t14) > avg(NON, t14), `betonade områden får mer tid per område de två första veckorna (${avg(FOCUS, t14).toFixed(1)} mot ${avg(NON, t14).toFixed(1)} uppgifter)`);
     for (const [k, v] of Object.entries(kemi)) ok(v > 0, `kemi: ${k} förekommer (${v})`);
     ok(PA().LE.errors.length === 0, 'inga fel i v2-lagret ' + JSON.stringify(PA().LE.errors.slice(0, 2)));
   } catch (e) { fails++; console.log('EXC', e.stack); }

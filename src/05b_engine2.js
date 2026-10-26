@@ -7,7 +7,7 @@
 const LE2 = (() => {
   'use strict';
   const DAY = 86400000;
-  const RULES = '3I.3';   // 3I (2.1): formmedvetna bevis (3I.2: djupbevis från två olika dygn; 3I.3: flervalskonceptets två träffar från två olika dygn) – djupgrind för kunskapspunkter, form i bevisloggen, vilande moment leds vidare
+  const RULES = '3J.1';   // 3I (2.1): formmedvetna bevis (3I.2: djupbevis från två olika dygn; 3I.3: flervalskonceptets två träffar från två olika dygn; 3J.1: högst ett stadiesteg per dygn; FLOW-pass påverkar varken kalibrering eller svält-skydd) – djupgrind för kunskapspunkter, form i bevisloggen, vilande moment leds vidare
   // Lokala dygn: förfallodagar ligger på lokala dygnsgränser.
   const tzOff = (t) => new Date(t).getTimezoneOffset() * 60000;
   const dayIdx = (t) => Math.floor((t - tzOff(t)) / DAY);
@@ -113,6 +113,7 @@ const LE2 = (() => {
     const countsForLevel = ev.ctx !== 'retry' && ev.help !== 'rescue' && ev.ctx !== 'exam';
     if (c.n === 0) { D.newSeen++; c.fs = Math.round(now / 1000); L.newSess = L.sessN || 0; }
     if (ev.kind && ev.kind !== 'mc') c.kf = 1;
+    const seenToday = !!(c.lastSeen && dayIdx(c.lastSeen) === today);   // 3J: redan övat idag (ett senare pass samma dygn)
     c.n++; c.lastSeen = now;
     if (firstInSess && before.st >= 1 && ev.ctx !== 'exam') {
       const hit = independent ? 1 : 0; D.ret[0]++; D.ret[1] += hit;
@@ -120,7 +121,8 @@ const LE2 = (() => {
     }
     if (firstInSess && c.pw && today > c.pw.d) { const b = c.pw.f ? D.fw : D.sw; b[0]++; if (independent) b[1]++; delete c.pw; }
     if (!ev.ok && firstInSess && ev.ctx !== 'exam') { D.wrong++; if (ev.fast) D.fastWrong++; c.pw = { d: today, f: ev.fast ? 1 : 0 }; }
-    if (firstInSess && c.st >= 1 && ev.ctx !== 'exam' && (ev.help === 'none' || !ev.ok)) L.rs = [...(L.rs || []), ev.ok ? 1 : 0].slice(-CFG.calib.window);
+    // 3J (Experience v3, granskning M3): kalibreringen mäter fördröjd hämtning – ett andra pass samma dygn (FLOW) räknas inte
+    if (firstInSess && c.st >= 1 && ev.ctx !== 'exam' && !seenToday && (ev.help === 'none' || !ev.ok)) L.rs = [...(L.rs || []), ev.ok ? 1 : 0].slice(-CFG.calib.window);
     // 3D: Rescue-räkning (föräldrainsikt vid upprepade Rescue)
     if (ev.role === 'X' && sess && c.rsSess !== sess.id) { c.rsSess = sess.id; D.rescues++; c.rescueDays = [...(c.rescueDays || []).filter(d => today - d <= 14), today].slice(-4); }
     const I = intervalDays(c.st, pol, L); const elapsedD = c.lastOk ? (now - c.lastOk) / DAY : Infinity;
@@ -143,6 +145,7 @@ const LE2 = (() => {
       else if (qualifying && mcOnlyNeedsTwo && c.mcOk && c.mcd === today) { reasons.push('flervalskoncept: andra träffen samma dygn → räknas som övning, nästa dygn avgör'); }
       else if (qualifying) {
         if (c.st === 0) { c.st = 1; reasons.push('lärt idag → kommer tillbaka imorgon'); }
+        else if (c.lastOk && dayIdx(c.lastOk) === today) { reasons.push('redan rätt tidigare idag → räknas som övning (högst ett stadiesteg per dygn)'); }   // 3J (granskning M1): två pass med ≥ 12 h emellan samma dygn
         else if (elapsedD >= CFG.early * I && !gateOpen) { reasons.push(`hämtat efter ${elapsedD.toFixed(1)} d men stadium ${c.st} kräver djupare förståelse först (djupbevis ${c.dp || 0}/${CFG.depth.need}, ${c.dpn || 0}/${CFG.depth.days} dygn)`); }
         else if (elapsedD >= CFG.early * I) { c.st = Math.min(6, c.st + 1); reasons.push(`hämtat efter ${elapsedD.toFixed(1)} d (intervall ${I} d) → stadium ${c.st}`); rewards.push('REMEMBERED'); if (ev.kind === 'mc') D.mcAdv++; else D.freeAdv++; if (mcOnlyNeedsTwo) { c.mcOk = 0; delete c.mcd; } }
         else reasons.push(`för tidig hämtning (${elapsedD.toFixed(1)} d < ${(CFG.early * I).toFixed(1)} d) → räknas som övning`);
@@ -214,7 +217,9 @@ const LE2 = (() => {
   const KDEC = inv(KCODE), HDEC = inv(HCODE), XDEC = inv(XCODE), MDEC = inv(MCODE);
 
   function apply(L, cat, e, pol) {
-    if (e.sess && L.lastSess !== e.sess) { if (L.lastSess) calibrate(L); L.lastSess = e.sess; L.sessN = (L.sessN || 0) + 1; }
+    // 3J (granskning H3): ett FLOW-pass (sessionsid som slutar på "f") räknas inte som ett pass i svält-skyddet – annars släppte
+    // tre extrapass om dagen in nytt varje dag trots överlast. Äldre versioner räknar det som ett vanligt pass (ofarligt).
+    if (e.sess && L.lastSess !== e.sess) { if (L.lastSess) calibrate(L); L.lastSess = e.sess; if (!/f$/.test(String(e.sess))) L.sessN = (L.sessN || 0) + 1; }
     // 3I: ett vilande moment (Concept Pack) leder beviset till kunskapspunkten frågan prövar. Loggen ändras aldrig (rollback läser originalet).
     // Granskning 2.1 (H2): har det vilande momentet en olöst Felboks-post (från 2.0) stannar beviset där tills posten är löst – annars kunde
     // Revansch aldrig verifiera den. Deterministiskt: beror bara på tillståndet vid omspelningen.

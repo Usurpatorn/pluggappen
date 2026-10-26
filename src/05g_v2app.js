@@ -121,12 +121,14 @@ const V2 = {
     }
     if (mode === 'flow') return EXP.flowPlan(kid, C, now, id);   // Experience v3: frivilligt extrablock – samma motor, kortare, dygnets gräns för nytt
     if (mode === 'readclose') { const cids = LE.cidsOfSkill(C, extra.skillId); if (!cids.length) return []; const start = Math.floor(Math.random() * cids.length); const plan = [0, 1, 2].map(i => ({ cid: cids[(start + i) % cids.length], role: 'readclose', why: 'läst, stängt – minns du?' })); plan.maxItems = 3; return plan; }
-    return LE.plan(kid, V2.n(kid, C), now, id).plan;
+    // v3 (granskning M2): ett nytt Kör! efter dagens CORE (t.ex. från Testa mig) får bara det som är kvar av dygnets gräns för nytt
+    const later = EXP.on(kid) && EXP.coreDone(p);
+    return LE.plan(kid, V2.n(kid, C), now, id, later ? { newCap: Math.max(0, C.pol.maxNew - EXP.newToday(C, now)) } : {}).plan;
   },
   start(kid, mode = 'kor', extra = {}) {
     const p = prof(kid.id);
     if (!LE.canStart(kid, p)) { if (mode === 'kor') { S = null; return startSession(kid, recommendSprint(kid).opts); } toast('Hämtar det senaste från molnet – försök igen om en stund'); return; }   // barnet blockeras aldrig: v1-pass tills första synken är klar
-    const C = LE.state(kid); const now = LE.sessClock(C); const { id } = LE.newSessId(p);
+    const C = LE.state(kid); const now = LE.sessClock(C); const { id: id0 } = LE.newSessId(p); const id = mode === 'flow' ? id0 + 'f' : id0;   // v3: FLOW-pass märks i id:t (motorn räknar dem inte i svält-skyddet)
     const plan = V2.plan(kid, mode, C, now, id, extra);
     if (!plan.length) { toast(mode === 'revansch' ? 'Inget att ta revansch på just nu' : 'Inget att öva just nu'); return go('home'); }
     const exam = mode === 'exam';
@@ -182,7 +184,7 @@ const V2 = {
       if (!q && spec.mode === 'challenge') q = PACKS.question(spec.cid, { lvl: 3, format: 'depth', pol: pol.name, avoid, rnd: Math.random, itemId: LECAT.itemId });
       if (!q) return [];
       q = { ...q, skill, cat: 'math', level: q.level || spec.lvl };
-      if (V.exp === 'explore' && !V.exam && EXP.buildable(q)) q.build = true;   // v3: bygg ordet med brickor (samma rättning)
+      if (V.exp === 'explore' && !V.exam && spec.format !== 'recall' && EXP.buildable(q) && !(q.accept && q.accept.exact)) q.build = true;   // v3: bygg ordet med brickor (samma rättning) – aldrig när motorn ber om eget svar eller stavningen är själva frågan
       V.seen.add(V2.iid(q)); return [{ ...q, spec, _slotEnd: true }];
     }
     let q;
@@ -254,12 +256,14 @@ const V2 = {
   total() { if (S.v2.exp && !S.v2.exam) return Math.max(S.v2.planN || 1, EXP.done() + 1); const pr = LER.progress(S.v2.R); return Math.max(S.queue.length, S.i + Math.max(1, pr.left)); },
   // v3: räknaren följer den planerade längden – omförsök och Rescue är "Ny chans" utan nummer (mållinjen flyttar sig inte)
   num() { if (!(S.v2.exp && !S.v2.exam)) return S.i + 1; const it = S.queue[S.i]; return EXP.isExtra(it) ? 'Ny chans' : Math.min(V2.total(), EXP.done() + 1); },
-  hasNext() { const pr = LER.progress(S.v2.R); return S.i + 1 < S.queue.length || pr.left > 1 || (pr.left === 1 && !(S.queue[S.i] && S.queue[S.i]._slotEnd)); },
+  // Anropas efter svaret (passköraren har redan gått vidare): finns det något kvar i planen är det "Nästa", inte "Visa resultat"
+  // (granskning v3: Bossen kom efter en knapp som sa "Visa resultat")
+  hasNext() { const pr = LER.progress(S.v2.R); return S.i + 1 < S.queue.length || pr.left > 0; },
   title(item) { return S.v2.exam ? 'Testa mig' : S.v2.mode === 'revansch' ? 'Revansch' : S.v2.mode === 'readclose' ? 'Minns du?' : item.cat === 'word' ? esc(item.deck.name) : item.skill ? esc(item.skill.short || item.skill.name) : 'Kör!'; },
   topRight() { const pr = LER.progress(S.v2.R); if (S.v2.exp && !S.v2.exam) return `<span class="left-count">${Math.max(0, V2.total() - EXP.done())} kvar</span>`; return S.v2.exam ? `<span class="pill">Inga ledtrådar · svar efteråt</span>` : `<span class="left-count">${Math.max(0, pr.left)} kvar</span>`; },
   progressBar() { const tot = V2.total();
     if (S.v2.exp && !S.v2.exam) { const d = EXP.done();   // v3: planerade platser; ingen röd historik för fel svar
-      if (S.v2.exp === 'explore') return `<div class="trail" role="progressbar" aria-valuemin="0" aria-valuemax="${tot}" aria-valuenow="${d}" aria-label="Äventyret">${Array.from({ length: tot }, (_, i) => `<span class="dot ${i < d ? 'ok' : i === d ? 'cur' : ''}" aria-hidden="true">${i === tot - 1 ? '👑' : i < d ? '✓' : ''}</span>`).join('')}</div>`;
+      if (S.v2.exp === 'explore') return `<div class="trail" role="progressbar" aria-valuemin="0" aria-valuemax="${tot}" aria-valuenow="${d}" aria-label="Äventyret">${Array.from({ length: tot }, (_, i) => `<span class="dot ${i < d ? 'ok' : i === d ? 'cur' : ''}" aria-hidden="true">${i === tot - 1 ? '👑' : ''}</span>`).join('')}</div>`;
       return `<div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="${tot}" aria-valuenow="${d}">${Array.from({ length: tot }, (_, i) => `<i class="${i < d ? 'ok' : i === d ? 'cur' : ''}"></i>`).join('')}</div>`; } return `<div class="progress">${Array.from({ length: tot }, (_, i) => `<i class="${i < S.i ? (S.v2.exam ? 'ok' : S.results[i] === false ? 'no' : 'ok') : i === S.i ? 'cur' : ''}"></i>`).join('')}</div>`; },
   chip(item) {
     if (item && item.teacher && S.v2.exam) return `<div class="row" style="justify-content:center"><span class="pill acc" style="font-weight:800;letter-spacing:.04em"><span aria-hidden="true">📝</span> LÄRARENS FRÅGA${item.teacher.n ? ' ' + esc(item.teacher.n) : ''}</span></div>`;
@@ -292,15 +296,16 @@ const V2 = {
   challengeXp(correct) { const p = prof(S.kid.id); const xp = correct ? 14 : 2; p.xp += xp; bumpDay(p, correct, xp); if (correct) questEvent(p, 'correct', { skillId: null }); save(); return xp; },
   check(q, raw) { return q.v2check === 'recall' ? RECALL.check(q, raw) : q.v2check === 'create' ? CHG.check(q, raw) : q.v2check === 'pack' ? PACKS.check(q, raw) : checkAnswer(q, raw); },
   /* ---------- Svar → bevis ---------- */
-  // v3: sortera, para ihop och bygg ordet är strukturerade svar (som ordning) – svåra att gissa men inte helt eget svar
-  kindOf(q) { return q.type === 'choicetext' || q.choices ? 'mc' : q.type === 'order' || q.type === 'sort' || q.type === 'match' || q.build ? 'order' : q.type === 'open' ? 'open' : 'free'; },
+  // v3 (granskning H1/H2): sortera, para ihop och bygg ordet går att lösa genom att pröva sig fram eller känna igen – de räknas som
+  // flerval (k = gissningsgrad). Då kan de aldrig ensamma lyfta ett koncept förbi flervalsgränsen eller ge "Säker".
+  kindOf(q) { return q.type === 'choicetext' || q.choices || q.type === 'sort' || q.type === 'match' || q.build ? 'mc' : q.type === 'order' ? 'order' : q.type === 'open' ? 'open' : 'free'; },
   observe(q, correct) {
     return V2.safe(() => {
       const V = S.v2; const spec = q.spec; if (!spec) return null; const kid = S.kid; const p = prof(kid.id); const C = V.C;
       const kind = V2.kindOf(q); const fast = !correct && LE._shownAt > 0 && (Date.now() - LE._shownAt) < (LE.FAST_MS[kind] || 2500);
       const help = V.exam ? 'none' : spec.help === 'rescue' ? 'rescue' : S.revealed ? 'solution' : (S.usedHelp || spec.help === 'hint') ? 'hint' : 'none';
       const dev = LE.dev(); const seq = ((p.le.seqs || {})[dev] || 0) + 1; p.le.seqs = { ...(p.le.seqs || {}), [dev]: seq };
-      const ev = { t: V.start + 1000 * (++V.k), dev, seq, cid: spec.cid, ok: !!correct, kind, k: kind === 'mc' ? ((q.choices || []).length || 3) : 0, help, ctx: spec.ctx || 'first', item: V2.iid(q), fast, sess: V.id, lvl: q.level || spec.lvl || 1, restart: V.restart,
+      const ev = { t: V.start + 1000 * (++V.k), dev, seq, cid: spec.cid, ok: !!correct, kind, k: kind === 'mc' ? ((q.choices || []).length || q.k || (q.build ? 4 : 3)) : 0, help, ctx: spec.ctx || 'first', item: V2.iid(q), fast, sess: V.id, lvl: q.level || spec.lvl || 1, restart: V.restart,
         role: spec.code || undefined, stretch: !!spec.stretch, onlyVariant: !!q.onlyVariant, mode: spec.mode === 'challenge' ? 'challenge' : V.exam ? 'testa' : V.mode === 'readclose' ? 'readclose' : undefined, form: q.fcode || undefined, med: q.paper ? 'p' : undefined };
       const last = C.L.clock.last || 0; p.le.log.push(LE2.encodeEv(ev)); const res = LE2.apply(C.L, C.cat, ev, C.pol); C.n = p.le.log.length; LE.rebuildIfLate(p, C, ev.t, last);
       if (res.diff && res.diff.after && res.diff.after.st > res.diff.before.st) V.stageUps.add(spec.cid);

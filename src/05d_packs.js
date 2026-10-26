@@ -281,7 +281,7 @@ const PACKS = (() => {
           const items = [...tr.map(f => ({ t: f.s, b: 'Stämmer' })), ...fa.map(t => ({ t, b: 'Stämmer inte' }))].filter((x, i, a) => x.t && a.findIndex(y => norm(y.t) === norm(x.t)) === i);
           if (items.filter(x => x.b === 'Stämmer inte').length < 1) return null;
           const answer = {}; for (const x of items) answer[x.t] = x.b;
-          return { type: 'sort', text: 'Stämmer det? Sortera.', bins: ['Stämmer', 'Stämmer inte'], items: shuffle(items.map(x => x.t), r), answer, k: 2, steps: [`<b>Stämmer:</b> ${tr.map(f => esc(f.s)).join(' · ')}`, kp.explain].filter(Boolean), hint: 'Läs ett påstående i taget. Stämmer det med det du har lärt dig?', v2check: 'pack' };
+          return { type: 'sort', text: 'Stämmer det? Sortera.', bins: ['Stämmer', 'Stämmer inte'], items: shuffle(items.map(x => x.t), r), answer, k: 4, steps: [`<b>Stämmer:</b> ${tr.map(f => esc(f.s)).join(' · ')}`, kp.explain].filter(Boolean), hint: 'Läs ett påstående i taget. Stämmer det med det du har lärt dig?', v2check: 'pack' };
         }, { ui: 'sort', lvl: f0.lvl });
       } }
     for (const v of out) { v.speak = v.f.k !== 'read' && v.f.speak !== false; if (!v.ui) v.ui = v.form === 'recall' ? 'type' : v.f.k === 'num' ? 'num' : 'choice'; }

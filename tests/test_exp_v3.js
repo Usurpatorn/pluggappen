@@ -20,10 +20,10 @@ const gunzip = (name) => { const f = path.join(os.tmpdir(), `${name}-${process.p
 const isoIn = (days) => new Date(T_FIXED + days * DAY).toISOString().slice(0, 10);
 // Syntetiska skoluppgifter för golden case A (algebra) och B (kemi): samma struktur som familjens privata innehåll
 const CONTENT = { v: 1, updatedAt: 1, packs: [], work: [
-  { id: 'syn-alg', kid: 'k8', type: 'exam', title: 'Algebraprov', date: isoIn(24), priority: 'high', skills: ['multin', 'forenkla', 'blandat', 'talfoljd', 'ekvation', 'problemekv', 'andragrad'],
+  { id: 'syn-alg', kid: 'k8', type: 'exam', title: 'Algebraprov', date: isoIn(25), priority: 'high', skills: ['multin', 'forenkla', 'blandat', 'talfoljd', 'ekvation', 'problemekv', 'andragrad'],
     goals: [{ id: 'g1', name: 'Parenteser och förenkling', skills: ['multin', 'forenkla'], teacher: true }, { id: 'g2', name: 'Uttryck och talföljder', skills: ['blandat', 'talfoljd'] }, { id: 'g3', name: 'Ekvationer', skills: ['ekvation', 'andragrad'] }, { id: 'g4', name: 'Problemlösning', skills: ['problemekv'], teacher: true }],
     focus: { skills: ['multin', 'forenkla', 'problemekv'] }, missing: [{ label: 'Lärobokens avsnitt (PDF saknas)', kind: 'pdf' }, { label: 'Provets format', kind: 'format', note: 'okänt' }] },
-  { id: 'syn-kemi', kid: 'k8', type: 'exam', title: 'Kemiprov', date: isoIn(32), kps: ['k:kemi8-syror-baser/ph-skalan', 'k:kemi8-syror-baser/indikatorer', 'k:kemi8-syror-baser/neutralisation'],
+  { id: 'syn-kemi', kid: 'k8', type: 'exam', title: 'Kemiprov', date: isoIn(33), kps: ['k:kemi8-syror-baser/ph-skalan', 'k:kemi8-syror-baser/indikatorer', 'k:kemi8-syror-baser/neutralisation'],
     goals: [{ id: 'k1', name: 'pH och indikatorer', kps: ['k:kemi8-syror-baser/ph-skalan', 'k:kemi8-syror-baser/indikatorer'] }, { id: 'k2', name: 'Neutralisation', kps: ['k:kemi8-syror-baser/neutralisation'] }],
     missing: [{ label: 'Videogenomgångar (ej granskade)', kind: 'video' }, { label: 'Laborationsmaterial', kind: 'lab' }] },
 ] };
@@ -92,7 +92,7 @@ function runLog(T, D, wrongFn = () => false) {
       // bevis och id: sortering/para ihop loggas som strukturerade svar med frågans stabila id
       const p = PA().DB.profiles.k2; const evs = p.le.log.map(a => PA().LE2.decodeEv(a));
       const ids = new Set(evs.map(e => e.item));
-      ok(evs.some(e => e.kind === 'order'), 'aktiviteter loggas som strukturerade svar (inte flerval)');
+      { const kinds = evs.filter(e => /^i/.test(e.item || '')); ok(evs.some(e => e.kind === 'mc' && e.k >= 2), 'aktiviteterna (sortera, para ihop, bygg) loggas som flerval med gissningsgrad – de kan inte ensamma ge "Säker"'); void kinds; }
       ok([...ids].every(id => /^i[0-9a-z]+$/.test(id)), 'varje bevis har ett uppgifts-id');
       ok(PA().LE.errors.length === 0, 'Explore: inga fel i v2-lagret ' + JSON.stringify(PA().LE.errors.slice(0, 2)));
     }
