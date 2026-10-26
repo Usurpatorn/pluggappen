@@ -265,6 +265,7 @@ function runLog(T, D, wrongFn = () => false) {
     const html = fs.readFileSync(path.join(__dirname, '../dist/pluggappen.html'), 'utf8');
     ok(!/getUserMedia|capture=|type="file"|createImageBitmap|Tesseract|handwriting/i.test(html), 'ingen kamera, fotouppladdning, OCR eller handskriftstolkning');
     ok(!/Din lösning är korrekt/.test(html), 'texten "Din lösning är korrekt" finns inte i appen');
+    ok(/prefers-reduced-motion:\s*reduce/.test(require('fs').readFileSync(require('path').join(__dirname, '..', 'dist', 'index.html'), 'utf8')), 'tillgänglighet: "minska rörelse" stänger av animationer');
   } catch (e) { fails++; console.log('EXC', e.stack); }
   console.log(`\n${checks} kontroller, ${fails} fel`); console.log(fails ? 'EXPERIENCE V3 TEST FAILED' : 'EXPERIENCE V3 TEST OK'); process.exit(fails ? 1 : 0);
 })();

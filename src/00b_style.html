@@ -245,4 +245,6 @@
 .klar-title { font-family: var(--display); font-weight: 800; font-size: 1.5rem; letter-spacing: .04em; }
 .delight { font-weight: 700; color: var(--acc-ink); }
 @media (max-width: 380px) { .sort-bins { grid-template-columns: 1fr 1fr; } .goal-title { font-size: 1.45rem; } }
+/* v3 tillgänglighet: "minska rörelse" stänger av studs, puls och övergångar */
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
 </style>

@@ -22,7 +22,8 @@ const V2 = {
   mins(n) { return Math.max(2, Math.round(n * 0.6)); },
   n(kid, C) { const p = prof(kid.id); const pol = C.pol; return p.settings.focus ? Math.max(3, Math.min(pol.n, p.settings.sprint || pol.n)) : pol.n; },
   v2recs(p) { return ((p.le && p.le.shadow) || []).filter(r => r.e === 2); },
-  doneToday(p) { const d0 = LE2.dayIdx(LE.now()); return V2.v2recs(p).some(r => r.done && r.m !== 'exam' && LE2.dayIdx(r.t * 1000) === d0); },
+  doneToday(p) { const d0 = LE2.dayIdx(LE.now()); return V2.v2recs(p).some(r => r.done && r.m !== 'exam' && r.m !== 'mission' && LE2.dayIdx(r.t * 1000) === d0); },   // provträning är inte dagens pass
+  missionToday(p) { const d0 = LE2.dayIdx(LE.now()); return V2.v2recs(p).some(r => r.m === 'mission' && LE2.dayIdx(r.t * 1000) === d0); },
   weekDays(p) { const wk = weekKey(); return Object.entries(p.days || {}).filter(([k, d]) => k >= wk && d.n > 0).length; },
   lastAt(p) { const recs = (p.le && p.le.shadow) || []; return recs.length ? recs[recs.length - 1].t * 1000 : (p.lastDay ? new Date(p.lastDay + 'T12:00:00').getTime() : null); },
   skillOf(kid, cid) { if (cid && cid.startsWith('k:')) { const e = PACKS.info(cid); return e ? PACKS.skillFor(kid, e.kp.skill) : null; } return [...kid.skills, ...(kid.v2skills || [])].find(s => LECAT.skillCid(s.id) === cid); },
@@ -100,7 +101,8 @@ const V2 = {
         <div class="row"><div class="grow"><div class="eyebrow">${esc(e.title)} · ${fmtDate(e.date)}</div><div class="days">${days > 0 ? days : 'Idag'}</div><div style="opacity:.85">${days > 1 ? 'dagar kvar' : days === 1 ? 'dag kvar' : 'Lycka till!'}</div></div></div>
         ${st.per.length && st.per.every(x => x.ready === 'För lite underlag') ? `<div style="font-size:.95rem;opacity:.9">${st.per.length} områden på provet. Kör några pass så ser du här vad som sitter.</div>` : `<div class="stack" style="gap:6px">${shown.map(x => `<div class="row" style="justify-content:space-between;gap:8px"><span style="font-weight:700">${esc(x.name)}</span><span class="pill ${V2.READY_CLS[x.ready]}" style="font-size:.75rem">${V2.READY_TXT[x.ready]}</span></div>`).join('')}${st.per.length > shown.length ? `<div style="opacity:.8;font-size:.85rem">+ ${st.per.length - shown.length} till</div>` : ''}</div>`}
         <div style="font-size:.9rem;opacity:.9">${msg}</div>
-        ${cids.length ? `<div class="row"><button class="btn grow" data-v2="mission" data-exam="${esc(e.id)}">Öva inför provet · cirka ${V2.mins(Math.max(1, mp.length))} minuter</button><button class="btn ghost" data-v2="testa" data-exam="${esc(e.id)}">Testa mig</button></div>`
+        ${cids.length && !mp.length ? `<div style="font-size:.9rem;opacity:.9">Just nu finns inget att öva just för provet – inget är förfallet och inget nytt tas in idag. Kör! fortsätter med det viktigaste.</div><div class="row"><button class="btn ghost grow" data-v2="testa" data-exam="${esc(e.id)}">Testa mig</button></div>` : ''}
+        ${cids.length && mp.length ? `<div class="row"><button class="btn grow" data-v2="mission" data-exam="${esc(e.id)}">Öva inför provet · cirka ${V2.mins(Math.max(1, mp.length))} minuter</button><button class="btn ghost" data-v2="testa" data-exam="${esc(e.id)}">Testa mig</button></div>`
           : `<div style="font-size:.9rem;opacity:.9">Provets områden är inte inlagda i appen ännu, så det finns inget att öva just för det här provet. Be en vuxen lägga in vad provet handlar om.</div>`}
       </div>`; }).join('');
     }, 'examCards', '');
@@ -134,20 +136,25 @@ const V2 = {
     }
     if (mode === 'flow') return EXP.flowPlan(kid, C, now, id);   // Experience v3: frivilligt extrablock – samma motor, kortare, dygnets gräns för nytt
     // Hotfix 2.1.1: "Öva inför provet" – samma motor och samma regler (förfallet, nytt inom dygnets gräns, Revansch), men bara provets koncept
-    if (mode === 'mission') { const e = LE.exams(kid, p).find(x => x.id === extra.examId); if (!e) return []; const cids = V2.examCidsActive(kid, e); if (!cids.length) return []; const plan = LE.plan(kid, V2.n(kid, C), now, id, { only: cids, newCap: V2.newCapToday(C, now) }).plan; plan.examId = e.id; return plan; }
+    if (mode === 'mission') { const e = LE.exams(kid, p).find(x => x.id === extra.examId); if (!e) return []; const cids = V2.examCidsActive(kid, e); if (!cids.length) return []; const plan0 = LE.plan(kid, V2.n(kid, C), now, id, { only: cids, newCap: V2.newCapToday(C, now) }).plan; const set = new Set(cids);
+      // Granskning: bara provets koncept (även Bossen), och inget pass alls när inget av provet går att öva just nu (t.ex. kvällen före provet
+      // med opåbörjade områden) – då visas en ärlig text i stället för en knapp som startar något annat
+      const plan = plan0.filter(s => set.has(s.cid)); if (!plan.some(s => s.role !== 'boss')) return [];
+      Object.assign(plan, { light: plan0.light, restart: plan0.restart, maxItems: plan0.maxItems, maxNew: plan0.maxNew, examDays: plan0.examDays, only: set, examId: e.id }); return plan; }
     if (mode === 'readclose') { const cids = LE.cidsOfSkill(C, extra.skillId); if (!cids.length) return []; const start = Math.floor(Math.random() * cids.length); const plan = [0, 1, 2].map(i => ({ cid: cids[(start + i) % cids.length], role: 'readclose', why: 'läst, stängt – minns du?' })); plan.maxItems = 3; return plan; }
-    // v3 (granskning M2): ett nytt Kör! efter dagens CORE (t.ex. från Testa mig) får bara det som är kvar av dygnets gräns för nytt
-    const later = EXP.on(kid) && EXP.coreDone(p);
-    return LE.plan(kid, V2.n(kid, C), now, id, later ? { newCap: Math.max(0, C.pol.maxNew - EXP.newToday(C, now)) } : {}).plan;
+    // v3 (granskning M2) och 2.1.1: ett nytt Kör! efter dagens CORE eller efter provträning samma dag får bara det som är kvar av dygnets gräns för nytt
+    const later = (EXP.on(kid) && EXP.coreDone(p)) || V2.missionToday(p);
+    return LE.plan(kid, V2.n(kid, C), now, id, later ? { newCap: V2.newCapToday(C, now) } : {}).plan;
   },
   start(kid, mode = 'kor', extra = {}) {
     const p = prof(kid.id);
     if (!LE.canStart(kid, p)) { if (mode === 'kor') { S = null; return startSession(kid, recommendSprint(kid).opts); } toast('Hämtar det senaste från molnet – försök igen om en stund'); return; }   // barnet blockeras aldrig: v1-pass tills första synken är klar
-    const C = LE.state(kid); const now = LE.sessClock(C); const { id: id0 } = LE.newSessId(p); const id = mode === 'flow' ? id0 + 'f' : id0;   // v3: FLOW-pass märks i id:t (motorn räknar dem inte i svält-skyddet)
+    const C = LE.state(kid); const now = LE.sessClock(C); const { id: id0 } = LE.newSessId(p); const id = mode === 'flow' ? id0 + 'f' : mode === 'mission' ? id0 + 'm' : id0;   // FLOW och provträning märks i id:t (motorn räknar dem inte i svält-skyddet)
     const plan = V2.plan(kid, mode, C, now, id, extra);
     if (!plan.length) { toast(mode === 'revansch' ? 'Inget att ta revansch på just nu' : 'Inget att öva just nu'); return go('home'); }
     const exam = mode === 'exam';
-    const R = LER.create(C.L, LE.activeCat(C, p), plan, C.pol, { sessId: id, mode: exam ? 'exam' : 'practice', maxItems: plan.maxItems });
+    const cat0 = LE.activeCat(C, p); const cat = plan.only ? Object.fromEntries(Object.entries(cat0).filter(([cid]) => plan.only.has(cid))) : cat0;   // provträning: lätta uppgifter och Bossen bara ur provet
+    const R = LER.create(C.L, cat, plan, C.pol, { sessId: id, mode: exam ? 'exam' : 'practice', maxItems: plan.maxItems });
     const rec = { id, t: Math.round(now / 1000), src: 'v2', e: 2, m: mode, mode: 'v2', v1: [], v2: plan.map(s => [s.cid, LE.ROLE[s.role] || '?', LE.whyKey(s)]), light: plan.light ? 1 : 0, rst: plan.restart ? 1 : 0, pol: C.pn, a: [], w: [0, 0], done: 0 };
     p.le.shadow = [...(p.le.shadow || []), rec].slice(-LE2.SHADOW_MAX);
     S = { kid, mode: 'v2', opts: { v2: mode, ...extra }, queue: [], i: 0, results: [], xp: 0, usedHelp: false, retried: false, startedAt: Date.now(), streak: 0, revealed: false, answered: false, examId: extra.examId, deadline: null, chain: null,
@@ -204,7 +211,7 @@ const V2 = {
     }
     let q;
     // v3-rytm: Hitta felet / Baklänges som fördjupning (registreras som Utmaning – ändrar aldrig grundkunskapens stadium)
-    const rk = EXP.rhythmKind(V, spec, skill, c); if (rk) { const rq = EXP.rhythmItem(rk, skill, spec.lvl); if (rq) { V.seen.add(V2.iid(rq)); return [{ ...rq, skill, cat: 'math', level: rq.level || spec.lvl, rhythm: rk, spec: { ...spec, mode: 'challenge', rhythm: rk }, _slotEnd: true }]; } }
+    const rk = EXP.rhythmKind(V, spec, skill, c); if (rk) { const rq = EXP.rhythmItem(rk, skill, spec.lvl); if (rq) { V.seen.add(V2.iid(rq)); return [{ ...rq, skill, cat: 'math', level: rq.level || spec.lvl, rhythm: rk, fcode: rk === 'spot' ? 'm' : 'v', spec: { ...spec, rhythm: rk }, _slotEnd: true }]; } }   // granskning: rytmen är riktig övning av momentet → vanligt bevis (form: hitta felet / baklänges), inte en Utmaning utan bevis
     if (spec.mode === 'challenge') q = CHG.make(skill, spec.lvl, (c && c.ch && c.ch.n) || 0, { young: pol.name === 'younger' });   // annars: vanlig uppgift på högsta nivån, märkt UTMANING
     // Fria textsvar (nyckelordsrättning) används aldrig i v2 – rättningen är inte tillräckligt säker för att styra stadier och Felboken (3E).
     const genNoOpen = () => { let q1 = null; for (let lv = spec.lvl; lv >= 1 && (!q1 || q1.type === 'open'); lv--) for (let j = 0; j < 4 && (!q1 || q1.type === 'open'); j++) q1 = makeQuestion(kid, skill, lv, { noOpen: true, v2: true }); return q1; };

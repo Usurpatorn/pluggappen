@@ -1117,8 +1117,8 @@
     },
     {
      "k": "qa",
-     "q": "Du ska avkalka en kaffebryggare hemma. Du kan välja ättika (svag syra) eller koncentrerad saltsyra (stark syra). Vilken är rimligast?",
-     "a": "Ättikan – den löser kalk men är mycket mindre farlig",
+     "q": "Du ska avkalka en kaffebryggare hemma. Du kan välja ättika eller saltsyra. Vilken är rimligast?",
+     "a": "Ättikan – den löser kalk men är mycket mindre frätande",
      "not": [
       "Saltsyran – starkare är alltid bättre",
       "Ingen av dem – syror löser inte kalk",
@@ -1126,7 +1126,7 @@
      ],
      "form": "application",
      "lvl": 2,
-     "why": "Båda syrorna löser kalk, men en stark, koncentrerad syra är frätande. Välj den svagaste syra som räcker."
+     "why": "Ättiksyra är en svag syra: bara en liten del av molekylerna avger vätejoner. Saltsyra är en stark syra och mycket frätande. Båda löser kalk, så välj den som är säkrast."
     }
    ],
    "mistakes": [

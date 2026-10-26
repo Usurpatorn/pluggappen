@@ -889,7 +889,7 @@ function startListening(ex) {
 function renderSlots() { const el = document.getElementById('slots'); el.innerHTML = S.spell.picked.length ? S.spell.picked.map(x => `<span class="ltile">${esc(x.c)}</span>`).join('') : `<span class="muted" style="font-size:.9rem;align-self:center">Tryck på bokstäverna</span>`; document.getElementById('submit').disabled = !S.spell.picked.length; }
 function finishWord(ex, correct, revealForeign, note) {
   S.answered = true;
-  const xp = recordWordAnswer(S.kid.id, ex.word.id, correct);
+  let xp = recordWordAnswer(S.kid.id, ex.word.id, correct); if (S.v2 && S.v2.exp) xp = EXP.flowXp(ex, xp);   // granskning: FLOW-XP även för ord
   if (S.mode === 'felbok') { const p = prof(S.kid.id); if (correct) { clearMistake(p, 'w_' + ex.word.id); save(); } }
   else if (!correct) { noteMistake(prof(S.kid.id), ex); save(); }
   if (correct) { S.streak++; } else S.streak = 0;
@@ -946,8 +946,8 @@ function submitMath() {
   if (res.status === 'unsimplified' && !S.retried && !(S.v2 && S.v2.exam)) { S.retried = true; fb.innerHTML = `<div class="feedback warn"><span>🧐</span><div><div class="big">Nästan!</div><div class="sub">Värdet stämmer, men uttrycket ska förenklas färdigt. Multiplicera in och slå ihop lika termer.</div></div></div>`; return; }
   const correct = res.status === 'correct' && !S.revealed;
   S.answered = true; const isTest = S.mode === 'test';
-  const v2ch = !!(S.v2 && q.spec && q.spec.mode === 'challenge'); const v2help = !!(S.v2 && q.spec && q.spec.help && q.spec.help !== 'none');
-  let xp = v2ch ? V2.challengeXp(correct) : recordAnswer(S.kid.id, q.skill.id, correct, q.level, S.usedHelp || isTest || v2help);   // granskning M6/L6
+  const v2ch = !!(S.v2 && q.spec && (q.spec.mode === 'challenge' || q.rhythm)); const v2help = !!(S.v2 && q.spec && q.spec.help && q.spec.help !== 'none');
+  let xp = v2ch ? V2.challengeXp(correct) : recordAnswer(S.kid.id, q.skill.id, correct, q.level, S.usedHelp || isTest || v2help);   // granskning M6/L6 · v3-rytmen: XP som Utmaning, v1:s mastery orörd (rollback)
   if (S.v2 && S.v2.exp) xp = EXP.flowXp(q, xp);
   LE.observe(S, q, correct); // Fas 3B: skuggläge – loggar bevis, påverkar inte v1
   if (S.mode === 'felbok') { const p = prof(S.kid.id); if (correct) { clearMistake(p, q.mistakeId); save(); } }
