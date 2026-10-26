@@ -99,10 +99,55 @@ jobs:
           RULES_FILE: /tmp/rules.v21
           EXPECT: v21
 
+  # Testadress för en förhandsversion (t.ex. Experience v3 före merge): bara när repo-variabeln PREVIEW_REF är satt till en gren.
+  # Byggs i ETT EGET JOBB utan publiceringsbehörighet (bara läsrätt): grenens kod kör aldrig i jobbet som publicerar produktionen och
+  # kan inte röra produktionens filer. Bara en enda fil, preview/index.html, förs över – och den kontrolleras innan den läggs bredvid.
+  # Ta bort testadressen: radera variabeln och kör workflowen igen.
+  preview:
+    name: Bygg testadressen (förhandsversion)
+    needs: test
+    if: ${{ vars.PREVIEW_REF != '' && vars.PAGES_ACTIONS == 'true' && (github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')) }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Kontrollera PREVIEW_REF (en befintlig gren i det här repot, inte main)
+        env:
+          PREVIEW_REF: ${{ vars.PREVIEW_REF }}
+          REPO: ${{ github.repository }}
+        run: |
+          if ! printf '%s' "$PREVIEW_REF" | grep -Eq '^[A-Za-z0-9][A-Za-z0-9._/-]{0,99}$'; then echo "Ogiltigt PREVIEW_REF"; exit 1; fi
+          case "$PREVIEW_REF" in main|*..*) echo "PREVIEW_REF får inte vara main eller innehålla .."; exit 1;; esac
+          git ls-remote --exit-code --heads "https://github.com/$REPO.git" "refs/heads/$PREVIEW_REF" >/dev/null || { echo "Grenen finns inte"; exit 1; }
+      - uses: actions/checkout@v5
+        with:
+          ref: refs/heads/${{ vars.PREVIEW_REF }}
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Bygg och pröva
+        env:
+          PRIVACY_TERMS: ${{ secrets.PRIVACY_TERMS }}
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+          node tests/test_preview.js
+          PREVIEW=1 bash scripts/build.sh
+          node tests/test_privacy.js
+          test -f dist/preview/index.html
+          echo "### Testadress byggd: $(git rev-parse --short HEAD) – $(grep -o "PLUGG_BUILD = '[^']*'" dist/preview/index.html | head -1)" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: preview-page
+          path: dist/preview/index.html
+          retention-days: 7
+
   deploy:
     name: Publicera (GitHub Pages)
-    needs: test
-    if: ${{ vars.PAGES_ACTIONS == 'true' && (github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')) }}
+    needs: [test, preview]
+    # Produktionen publiceras även när testadressen hoppas över eller misslyckas
+    if: ${{ !cancelled() && needs.test.result == 'success' && vars.PAGES_ACTIONS == 'true' && (github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')) }}
     runs-on: ubuntu-latest
     environment:
       name: github-pages
@@ -112,36 +157,20 @@ jobs:
         with:
           name: site-${{ needs.test.outputs.build_id }}
           path: dist
-      # Testadress för en förhandsversion (t.ex. Experience v3 före merge): bara när repo-variabeln PREVIEW_REF är satt till en gren.
-      # Byggs från grenen med PREVIEW=1 → <sajten>/preview/. Inget familjeinnehåll byggs in; egen lagring, ingen service worker,
-      # ingen push (se scripts/build.sh på grenen). Misslyckas förhandsbygget publiceras produktionen ändå – utan testadress.
-      # Ta bort testadressen: radera variabeln och kör workflowen igen.
-      - uses: actions/setup-node@v5
-        if: ${{ vars.PREVIEW_REF != '' }}
+      - uses: actions/download-artifact@v4
+        if: ${{ needs.preview.result == 'success' }}
         with:
-          node-version: '22'
-      - name: Bygg testadressen (förhandsversion)
-        id: preview
-        if: ${{ vars.PREVIEW_REF != '' }}
-        continue-on-error: true
-        env:
-          PREVIEW_REF: ${{ vars.PREVIEW_REF }}
-          PRIVACY_TERMS: ${{ secrets.PRIVACY_TERMS }}
-        run: |
-          git clone --quiet --depth 1 --branch "$PREVIEW_REF" "https://github.com/$GITHUB_REPOSITORY.git" preview-src
-          cd preview-src
-          npm ci --no-audit --no-fund
-          npm run build
-          node tests/test_preview.js
-          PREVIEW=1 bash scripts/build.sh
-          node tests/test_privacy.js
-          test -f dist/preview/index.html
-      - name: Lägg testadressen bredvid produktionen
-        if: ${{ steps.preview.outcome == 'success' }}
+          name: preview-page
+          path: preview-in
+      - name: Lägg testadressen bredvid produktionen (bara en kontrollerad fil)
+        if: ${{ needs.preview.result == 'success' }}
         env:
           PREVIEW_REF: ${{ vars.PREVIEW_REF }}
         run: |
-          mkdir -p dist/preview && cp preview-src/dist/preview/index.html dist/preview/index.html
+          test "$(find preview-in -type f | wc -l)" = "1" && test -f preview-in/index.html
+          grep -q 'window.PLUGG_PREVIEW = true' preview-in/index.html && grep -q '· testversion' preview-in/index.html && grep -q 'window.PLUGG_PUSH_KEY = null' preview-in/index.html
+          if grep -q 'serviceWorker.register' preview-in/index.html; then echo 'testsidan registrerar en service worker'; exit 1; fi
+          mkdir -p dist/preview && cp preview-in/index.html dist/preview/index.html
           echo "### Testadress: <sajten>/preview/ (gren: $PREVIEW_REF)" >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
