@@ -14,7 +14,7 @@
  "templates": [
   "ak8"
  ],
- "rev": 2,
+ "rev": 3,
  "sources": [
   {
    "id": "lgr22",
@@ -756,7 +756,8 @@
         "pH 4",
         "pH 6"
        ],
-       "odd": "Vilket pH-värde är INTE surt?"
+       "odd": "Vilket pH-värde är INTE surt?",
+       "label": "Sur"
       },
       {
        "q": "Vilket pH-värde betyder att lösningen är basisk?",
@@ -765,7 +766,8 @@
         "pH 10",
         "pH 13"
        ],
-       "odd": "Vilket pH-värde är INTE basiskt?"
+       "odd": "Vilket pH-värde är INTE basiskt?",
+       "label": "Basisk"
       }
      ]
     },
@@ -801,6 +803,39 @@
      ],
      "form": "cause",
      "lvl": 2
+    },
+    {
+     "k": "group",
+     "groups": [
+      {
+       "q": "Vilken lösning är sur?",
+       "label": "Sur",
+       "items": [
+        "Citronsaft",
+        "Ättika",
+        "Läsk"
+       ]
+      },
+      {
+       "q": "Vilken lösning är neutral?",
+       "label": "Neutral",
+       "items": [
+        "Rent vatten",
+        "Sockerlösning",
+        "Koksaltlösning"
+       ]
+      },
+      {
+       "q": "Vilken lösning är basisk?",
+       "label": "Basisk",
+       "items": [
+        "Tvålvatten",
+        "Propplösare",
+        "Bikarbonatlösning"
+       ]
+      }
+     ],
+     "why": "pH under 7 = sur, pH 7 = neutral, pH över 7 = basisk. Salt och socker löst i vatten ändrar inte pH."
     }
    ],
    "mistakes": [
@@ -970,7 +1005,8 @@
         "Svavelsyra",
         "Salpetersyra"
        ],
-       "odd": "Vilken av dessa är INTE en stark syra?"
+       "odd": "Vilken av dessa är INTE en stark syra?",
+       "label": "Stark syra"
       },
       {
        "q": "Vilken av dessa är en svag syra?",
@@ -980,7 +1016,8 @@
         "Kolsyra",
         "Mjölksyra"
        ],
-       "odd": "Vilken av dessa är INTE en svag syra?"
+       "odd": "Vilken av dessa är INTE en svag syra?",
+       "label": "Svag syra"
       }
      ]
     },
@@ -992,14 +1029,16 @@
        "items": [
         "Natriumhydroxid",
         "Kaliumhydroxid"
-       ]
+       ],
+       "label": "Stark bas"
       },
       {
        "q": "Vilken bas är svag?",
        "items": [
         "Ammoniak",
         "Bikarbonat"
-       ]
+       ],
+       "label": "Svag bas"
       }
      ]
     },
@@ -1482,7 +1521,8 @@
         "Zink",
         "Magnesium",
         "Järn"
-       ]
+       ],
+       "label": "Reagerar med saltsyra"
       },
       {
        "q": "Vilken metall reagerar INTE med saltsyra?",
@@ -1490,7 +1530,8 @@
         "Koppar",
         "Guld",
         "Silver"
-       ]
+       ],
+       "label": "Reagerar inte"
       }
      ],
      "lvl": 2,

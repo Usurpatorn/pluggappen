@@ -7,7 +7,7 @@
 const LE2 = (() => {
   'use strict';
   const DAY = 86400000;
-  const RULES = '3I.2';   // 3I (2.1): formmedvetna bevis (3I.2: djupbevis från två olika dygn) – djupgrind för kunskapspunkter, form i bevisloggen, vilande moment leds vidare
+  const RULES = '3I.3';   // 3I (2.1): formmedvetna bevis (3I.2: djupbevis från två olika dygn; 3I.3: flervalskonceptets två träffar från två olika dygn) – djupgrind för kunskapspunkter, form i bevisloggen, vilande moment leds vidare
   // Lokala dygn: förfallodagar ligger på lokala dygnsgränser.
   const tzOff = (t) => new Date(t).getTimezoneOffset() * 60000;
   const dayIdx = (t) => Math.floor((t - tzOff(t)) / DAY);
@@ -20,7 +20,7 @@ const LE2 = (() => {
     O3_streak: 'Streak behålls som positiv kontinuitet, ingen straffande text; "Pluggat N dagar den här veckan" visas bredvid.',
     O4_mcMaxStageYounger: 2,
     O5_grades: 'E/C/A bara för förälder, märkt "övningsindikation – inte ett förutsagt betyg". Barn: Bra koll / Öva lite mer / För lite underlag.',
-    O6_afterKlar: 'Diskret länk "Öva extra" – ingen stor "en till"-knapp när planerat arbete är klart.',
+    O6_afterKlar: 'Diskret länk "Öva extra" – ingen stor "en till"-knapp när planerat arbete är klart. Experience v3 (godkänt av föräldern): KLAR följs av ett frivilligt FLOW-block med ett tryck – kortare, samma motor, samma dygnsgräns för nytt, inget startar av sig självt.',
     O7_shadowExit: { minDays: 14, needAllProfiles: true },
     O8_felbokDisplay: { younger: 3, middle: 5, older: 5 },
     O9_policy: 'Kursmallens standard + föräldraöverstyrning (bara i föräldraläget, visas aldrig för barnet).',
@@ -138,11 +138,13 @@ const LE2 = (() => {
       const qualifying = independent && firstInSess && w >= CFG.evidence.qualify && !mcBlocked;
       const hintLearn = ev.ok && ev.help === 'hint' && c.st === 0 && firstInSess;
       if (hintLearn) { c.st = 1; c.lastOk = now; reasons.push('rätt med ledtråd på nytt koncept → stadium 1 (repetition imorgon)'); }
-      else if (qualifying && mcOnlyNeedsTwo && !c.mcOk) { c.mcOk = 1; reasons.push('flervalskoncept: första fördröjda träffen noterad, nästa avgör'); }
+      else if (qualifying && mcOnlyNeedsTwo && !c.mcOk) { c.mcOk = 1; c.mcd = today; reasons.push('flervalskoncept: första fördröjda träffen noterad, nästa avgör'); }
+      // 3I.3 (Experience v3, FLOW): den andra flervalsträffen måste komma ett ANNAT dygn – två pass samma dag (Kör! + FLOW) är inte två fördröjda bevis
+      else if (qualifying && mcOnlyNeedsTwo && c.mcOk && c.mcd === today) { reasons.push('flervalskoncept: andra träffen samma dygn → räknas som övning, nästa dygn avgör'); }
       else if (qualifying) {
         if (c.st === 0) { c.st = 1; reasons.push('lärt idag → kommer tillbaka imorgon'); }
         else if (elapsedD >= CFG.early * I && !gateOpen) { reasons.push(`hämtat efter ${elapsedD.toFixed(1)} d men stadium ${c.st} kräver djupare förståelse först (djupbevis ${c.dp || 0}/${CFG.depth.need}, ${c.dpn || 0}/${CFG.depth.days} dygn)`); }
-        else if (elapsedD >= CFG.early * I) { c.st = Math.min(6, c.st + 1); reasons.push(`hämtat efter ${elapsedD.toFixed(1)} d (intervall ${I} d) → stadium ${c.st}`); rewards.push('REMEMBERED'); if (ev.kind === 'mc') D.mcAdv++; else D.freeAdv++; if (mcOnlyNeedsTwo) c.mcOk = 0; }
+        else if (elapsedD >= CFG.early * I) { c.st = Math.min(6, c.st + 1); reasons.push(`hämtat efter ${elapsedD.toFixed(1)} d (intervall ${I} d) → stadium ${c.st}`); rewards.push('REMEMBERED'); if (ev.kind === 'mc') D.mcAdv++; else D.freeAdv++; if (mcOnlyNeedsTwo) { c.mcOk = 0; delete c.mcd; } }
         else reasons.push(`för tidig hämtning (${elapsedD.toFixed(1)} d < ${(CFG.early * I).toFixed(1)} d) → räknas som övning`);
         c.lastOk = now;
       } else reasons.push(mcBlocked ? 'flerval räcker inte på detta stadium → behöver eget svar' : !independent ? `rätt med ${ev.help} → delvis bevis` : 'upprepning i samma pass → delvis bevis');
@@ -375,7 +377,9 @@ const LE2 = (() => {
     // svält-skydd: vanlig överlast → nytt efter 4 pass; kraftig överlast (≥2×tak) → efter 8; extrem (≥3×tak) → efter 12. Aldrig permanent stopp.
     const starved = load < 2 * cap ? sinceNew >= B.starveSessions : sinceNew >= B.starveSessionsHard * (load >= 3 * cap ? 1.5 : 1);
     // provets sista dygn: inget nytt; tre dygn före: bara om svält; provvecka: ett nytt koncept på en plats
-    const maxNew = examDays <= 1 ? 0 : examDays <= 3 ? (starved ? 1 : 0) : overloaded ? (starved ? 1 : 0) : examDays <= CFG.exam.weekDays ? 1 : pol.maxNew;
+    const maxNew0 = examDays <= 1 ? 0 : examDays <= 3 ? (starved ? 1 : 0) : overloaded ? (starved ? 1 : 0) : examDays <= CFG.exam.weekDays ? 1 : pol.maxNew;
+    // Experience v3 (FLOW): ett extrablock samma dygn får bara det som är kvar av dygnets gräns för ny inlärning (opts.newCap). CORE oförändrat.
+    const maxNew = opts.newCap != null ? Math.max(0, Math.min(maxNew0, opts.newCap)) : maxNew0;
     let newTaken = 0; const isNewC = (cid) => !(L.c[cid] && L.c[cid].n > 0);
     // Provets sista tre dygn (och provet inte klart): minst halva passet till provets koncept – innan något annat fyller passet.
     // Granskning M8: aldrig osedda koncept här utöver maxNew (provkvällen: inget nytt alls).
@@ -496,14 +500,15 @@ const LE2 = (() => {
   function encodeEv(e) {
     const base = [Math.round(e.t / 1000), e.dev, e.seq, e.cid, e.ok ? 1 : 0, KCODE[e.kind] || 'f', e.k || 0, HCODE[e.help || 'none'] || 'n', XCODE[e.ctx || 'first'] || 'f', e.item || '', e.fast ? 1 : 0, e.sess || '', e.lvl || 1, e.restart ? 1 : 0];
     if (e.mode === 'challenge') { base[7] = 'r'; base[8] = 'r'; }
-    if (e.mode || e.role || e.stretch || e.onlyVariant || e.form) base.push(MCODE[e.mode] || '', e.role || '', e.stretch ? 1 : 0, e.mode === 'challenge' ? (HCODE[e.help || 'none'] || 'n') : '');
-    if (e.onlyVariant || e.form) base.push(e.onlyVariant ? 1 : 0);   // 18: frågebanken saknade en annan uppgift (Felboken får verifiera med samma fråga efter några dygn)
-    if (e.form) base.push(e.form);   // 19 (3I): frågeform r/c/v/l/m/x/a/e/s (äldre versioner läser inte fältet)
+    if (e.mode || e.role || e.stretch || e.onlyVariant || e.form || e.med) base.push(MCODE[e.mode] || '', e.role || '', e.stretch ? 1 : 0, e.mode === 'challenge' ? (HCODE[e.help || 'none'] || 'n') : '');
+    if (e.onlyVariant || e.form || e.med) base.push(e.onlyVariant ? 1 : 0);   // 18: frågebanken saknade en annan uppgift (Felboken får verifiera med samma fråga efter några dygn)
+    if (e.form || e.med) base.push(e.form || '');   // 19 (3I): frågeform r/c/v/l/m/x/a/e/s (äldre versioner läser inte fältet)
+    if (e.med) base.push(e.med);   // 20 (Experience v3): 'p' = räknat på papper – bara visning, motorn läser inte fältet (äldre versioner ignorerar det)
     return base;
   }
   function decodeEv(a) {
     const e = { t: a[0] * 1000, dev: a[1], seq: a[2], cid: a[3], ok: !!a[4], kind: KDEC[a[5]] || 'free', k: a[6], help: HDEC[a[7]] || 'none', ctx: XDEC[a[8]] || 'first', item: a[9], fast: !!a[10], sess: a[11], lvl: a[12], restart: !!a[13] };
-    if (a.length > 14) { if (a[14]) e.mode = MDEC[a[14]]; if (a[15]) e.role = a[15]; if (a[16]) e.stretch = true; if (e.mode === 'challenge') { e.help = HDEC[a[17]] || 'none'; e.ctx = 'first'; } if (a[18]) e.onlyVariant = true; if (a[19] && typeof a[19] === 'string') e.form = a[19].slice(0, 1); }
+    if (a.length > 14) { if (a[14]) e.mode = MDEC[a[14]]; if (a[15]) e.role = a[15]; if (a[16]) e.stretch = true; if (e.mode === 'challenge') { e.help = HDEC[a[17]] || 'none'; e.ctx = 'first'; } if (a[18]) e.onlyVariant = true; if (a[19] && typeof a[19] === 'string') e.form = a[19].slice(0, 1); if (a[20] === 'p') e.med = 'p'; }
     return e;
   }
   const evKey = (e) => Array.isArray(e) ? e[1] + ':' + e[2] : e.dev + ':' + e.seq;

@@ -5,7 +5,7 @@
 process.env.TZ = 'Europe/Stockholm';
 const fs = require('fs'); const path = require('path'); const zlib = require('zlib');
 const { mkWin, tools, FIX, rng } = require('./le/childflow.js');
-const { v2tools, setEngine, toStart } = require('./le/v2driver.js');
+const { v2tools, classic, setEngine, toStart } = require('./le/v2driver.js');
 const trnd = rng((Number(process.env.SEED) || 2101) + 1);
 let fails = 0, checks = 0; const ok = (c, m) => { checks++; if (!c) { fails++; console.log('FAIL', m); } };
 const OLD = path.join(require('os').tmpdir(), 'pluggappen-2.0.0-' + process.pid + '.html');
@@ -17,7 +17,7 @@ const KP = 'k:kemi8-syror-baser/';
 
 const w = mkWin({ seed: 2101, fixedClock: true }); const T = tools(w);
 setTimeout(() => { try {
-  T.PA().FAMILY.apply(FIX); T.PA().load(); T.PA().rerender(); const PA = T.PA(); const D = v2tools(w, T);
+  T.PA().FAMILY.apply(FIX); T.PA().load(); classic(T); T.PA().rerender(); const PA = T.PA(); const D = v2tools(w, T);
   const kid = PA.KIDS.find(k => k.id === 'k8');
   // ---- Katalog
   const C0 = PA.LE.state(kid);
@@ -74,7 +74,7 @@ setTimeout(() => { try {
   const wO = mkWin({ seed: 31, fixedClock: true, storage: dump(w), file: OLD }); const TO = tools(wO);
   setTimeout(() => { try {
     ok(/v2\.0\.0/.test(wO.PLUGG_BUILD || ''), '2.0.0 laddad: ' + wO.PLUGG_BUILD);
-    TO.PA().FAMILY.apply(FIX); TO.PA().load(); TO.PA().rerender(); openKid(TO, 'k8'); const DO = v2tools(wO, TO);
+    TO.PA().FAMILY.apply(FIX); TO.PA().load(); classic(TO); TO.PA().rerender(); openKid(TO, 'k8'); const DO = v2tools(wO, TO);
     ok(TO.$('[data-v2="kor"]'), '2.0.0: v2 fortsätter på 2.1-data');
     TO.click(TO.$('[data-v2="kor"]') || TO.$('[data-v2="extra"]')); DO.run(false); ok(/Bra jobbat|KLART/i.test(TO.$('#app').textContent), '2.0.0: ett pass fungerar');
     const pO = TO.PA().DB.profiles.k8; ok(TO.PA().LE.errors.length === 0, '2.0.0: inga fel med 2.1-data: ' + JSON.stringify(TO.PA().LE.errors.slice(-2)));
@@ -82,7 +82,7 @@ setTimeout(() => { try {
     TO.PA().flushSave();
     const wB = mkWin({ seed: 32, fixedClock: true, storage: dump(wO) }); const TB = tools(wB);
     setTimeout(() => { try {
-      TB.PA().FAMILY.apply(FIX); TB.PA().load(); TB.PA().rerender(); openKid(TB, 'k8'); const DB2 = v2tools(wB, TB);
+      TB.PA().FAMILY.apply(FIX); TB.PA().load(); classic(TB); TB.PA().rerender(); openKid(TB, 'k8'); const DB2 = v2tools(wB, TB);
       TB.click(TB.$('[data-v2="kor"]') || TB.$('[data-v2="extra"]')); DB2.run(false); ok(/Bra jobbat|KLART/i.test(TB.$('#app').textContent), 'tillbaka i 2.1: passet fungerar');
       const Cb = TB.PA().LE.state(TB.PA().KIDS.find(k => k.id === 'k8')); ok(Object.entries(Cb.L.c).some(([id, c]) => id.startsWith(KP) && c.n > 0), 'tillbaka i 2.1: kunskapspunkterna har kvar sina bevis');
       ok(TB.PA().LE.errors.length === 0, 'tillbaka i 2.1: inga fel');

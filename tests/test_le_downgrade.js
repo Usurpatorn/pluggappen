@@ -6,7 +6,7 @@ process.env.TZ = 'Europe/Stockholm';
 const fs = require('fs'); const path = require('path'); const zlib = require('zlib');
 const { mkWin, tools, FIX, rng } = require('./le/childflow.js');
 const trnd = rng((Number(process.env.SEED) || 777) + 1);   // testets egna val (rätt/fel) är också deterministiska
-const { v2tools, enableV2, toStart } = require('./le/v2driver.js');
+const { v2tools, classic, enableV2, toStart } = require('./le/v2driver.js');
 let fails = 0, checks = 0; const ok = (c, m) => { checks++; if (!c) { fails++; console.log('FAIL', m); } };
 const OLD = path.join(require('os').tmpdir(), 'pluggappen-1.2.0-' + process.pid + '.html');
 fs.writeFileSync(OLD, zlib.gunzipSync(fs.readFileSync(path.join(__dirname, 'golden/pluggappen-1.2.0.html.gz'))));
@@ -17,12 +17,12 @@ const finish = () => { try { fs.unlinkSync(OLD); } catch (e) { /* ignore */ } co
 function upgrade(next) {
   const w0 = mkWin({ seed: 21, fixedClock: true, file: OLD }); const T0 = tools(w0);
   setTimeout(() => { try {
-    T0.PA().FAMILY.apply(FIX); T0.PA().load(); T0.PA().rerender();
+    T0.PA().FAMILY.apply(FIX); T0.PA().load(); classic(T0); T0.PA().rerender();
     for (const id of ['k2', 'k4', 'k8']) { openKid(T0, id); T0.click(T0.$('[data-rec]')); T0.run(); }
     T0.PA().flushSave(); const before = JSON.parse(JSON.stringify(T0.PA().DB.profiles));
     const w1 = mkWin({ seed: 22, fixedClock: true, storage: dump(w0) }); const T1 = tools(w1);
     setTimeout(() => { try {
-      T1.PA().FAMILY.apply(FIX); T1.PA().load(); const D1 = v2tools(w1, T1);
+      T1.PA().FAMILY.apply(FIX); T1.PA().load(); classic(T1); const D1 = v2tools(w1, T1);
       for (const id of ['k2', 'k4', 'k8']) {
         openKid(T1, id); ok(T1.$('[data-v2="kor"]') && !T1.$('[data-rec]'), `uppgradering: ${id} får v2 direkt (ingen aktivering behövs)`);
         T1.click(T1.$('[data-v2="kor"]')); D1.run(false); ok(/Bra jobbat/.test(T1.$('#app').textContent), `uppgradering: ${id} kör ett v2-pass på 1.2.0-data`);
@@ -34,7 +34,7 @@ function upgrade(next) {
 }
 const wN = mkWin({ seed: 4711, fixedClock: true }); const TN = tools(wN);
 upgrade(() => setTimeout(() => { try {
-  TN.PA().FAMILY.apply(FIX); TN.PA().load(); TN.PA().rerender(); const D = v2tools(wN, TN);
+  TN.PA().FAMILY.apply(FIX); TN.PA().load(); classic(TN); TN.PA().rerender(); const D = v2tools(wN, TN);
   enableV2(wN, TN, 'k8'); openKid(TN, 'k8');
   for (let i = 0; i < 3; i++) { TN.click(TN.$('[data-v2="kor"]') || TN.$('[data-v2="extra"]')); D.run((it) => trnd() < 0.35); toStart(TN); openKid(TN, 'k8'); wN.__advance(86400000); TN.click(TN.$('[data-go="start"]')); openKid(TN, 'k8'); }
   TN.click(TN.$('[data-v2="testa"]')); D.run(() => trnd() < 0.3); toStart(TN);
@@ -44,7 +44,7 @@ upgrade(() => setTimeout(() => { try {
   const wO = mkWin({ seed: 99, fixedClock: true, storage: dump(wN), file: OLD }); const TO = tools(wO);
   setTimeout(() => { try {
     ok(/v1\.2\.0/.test(wO.PLUGG_BUILD || ''), '1.2.0 laddad: ' + wO.PLUGG_BUILD);
-    TO.PA().FAMILY.apply(FIX); TO.PA().load(); TO.PA().rerender(); openKid(TO, 'k8');
+    TO.PA().FAMILY.apply(FIX); TO.PA().load(); classic(TO); TO.PA().rerender(); openKid(TO, 'k8');
     ok(TO.$('[data-rec]') && !TO.$('[data-v2]'), '1.2.0: barnet får v1-startsidan');
     TO.click(TO.$('[data-rec]')); TO.run(); ok(/Resultat|Klart|Bra|rätt/.test(TO.$('#app').textContent), '1.2.0: ett v1-pass går att köra');
     TO.click(TO.$('[data-go="home"]')); if (TO.$('[data-act="felbok"]')) { TO.click(TO.$('[data-act="felbok"]')); TO.run(); TO.click(TO.$('[data-go="home"]')); }
@@ -55,7 +55,7 @@ upgrade(() => setTimeout(() => { try {
     TO.PA().flushSave();
     const wB = mkWin({ seed: 7, fixedClock: true, storage: dump(wO) }); const TB = tools(wB);
     setTimeout(() => { try {
-      TB.PA().FAMILY.apply(FIX); TB.PA().load(); TB.PA().rerender(); openKid(TB, 'k8'); const DB2 = v2tools(wB, TB);
+      TB.PA().FAMILY.apply(FIX); TB.PA().load(); classic(TB); TB.PA().rerender(); openKid(TB, 'k8'); const DB2 = v2tools(wB, TB);
       ok(TB.$('[data-v2="kor"]'), 'tillbaka till ny version: v2 fortsätter för barnet');
       TB.click(TB.$('[data-v2="kor"]') || TB.$('[data-v2="extra"]')); DB2.run(false); ok(/Bra jobbat/.test(TB.$('#app').textContent), 'ny version: v2-pass fungerar efter 1.2.0-perioden');
       const pB = TB.PA().DB.profiles.k8; ok(rw.every(k => (pB.le.rw || []).includes(k)), 'belöningsmarkörer överlever 1.2.0-perioden');

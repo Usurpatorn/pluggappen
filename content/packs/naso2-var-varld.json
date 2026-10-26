@@ -14,7 +14,7 @@
  "templates": [
   "ak2"
  ],
- "rev": 2,
+ "rev": 3,
  "sources": [
   {
    "id": "lgr22",
@@ -137,7 +137,8 @@
         "Skridskor",
         "Pulka"
        ],
-       "odd": "Vilket hör INTE till vintern?"
+       "odd": "Vilket hör INTE till vintern?",
+       "label": "Vinter"
       },
       {
        "q": "Vilket hör till sommaren?",
@@ -145,7 +146,8 @@
         "Bada i sjön",
         "Glass",
         "Jordgubbar"
-       ]
+       ],
+       "label": "Sommar"
       }
      ],
      "lvl": 2
@@ -297,7 +299,8 @@
         "Häst",
         "Ekorre"
        ],
-       "odd": "Vilket djur är INTE ett däggdjur?"
+       "odd": "Vilket djur är INTE ett däggdjur?",
+       "label": "Däggdjur"
       },
       {
        "q": "Vilket djur är en fågel?",
@@ -306,7 +309,8 @@
         "Kråka",
         "Uggla"
        ],
-       "odd": "Vilket djur är INTE en fågel?"
+       "odd": "Vilket djur är INTE en fågel?",
+       "label": "Fågel"
       },
       {
        "q": "Vilket djur är en insekt?",
@@ -315,7 +319,8 @@
         "Bi",
         "Fjäril"
        ],
-       "odd": "Vilket djur är INTE en insekt?"
+       "odd": "Vilket djur är INTE en insekt?",
+       "label": "Insekt"
       },
       {
        "q": "Vilket djur är en fisk?",
@@ -323,7 +328,8 @@
         "Gädda",
         "Lax",
         "Abborre"
-       ]
+       ],
+       "label": "Fisk"
       }
      ]
     },
@@ -659,14 +665,16 @@
         "Dricka vatten",
         "Äta frukt"
        ],
-       "odd": "Vad är INTE bra för kroppen?"
+       "odd": "Vad är INTE bra för kroppen?",
+       "label": "Bra för kroppen"
       },
       {
        "q": "Vad är inte bra för kroppen?",
        "items": [
         "Äta godis hela dagen",
         "Aldrig röra sig"
-       ]
+       ],
+       "label": "Inte bra för kroppen"
       }
      ],
      "lvl": 2
@@ -1074,7 +1082,8 @@
         "En järnspik",
         "En järnskruv"
        ],
-       "odd": "Vilken sak drar magneten INTE till sig?"
+       "odd": "Vilken sak drar magneten INTE till sig?",
+       "label": "Magneten drar"
       },
       {
        "q": "Vilken sak drar magneten inte till sig?",
@@ -1082,7 +1091,8 @@
         "Ett suddgummi",
         "En träkloss",
         "En plastmugg"
-       ]
+       ],
+       "label": "Magneten drar inte"
       }
      ],
      "lvl": 2
@@ -1096,21 +1106,24 @@
         "Tidning",
         "Mjölkpaket",
         "Kartong"
-       ]
+       ],
+       "label": "Papper"
       },
       {
        "q": "Vilket skräp är plast?",
        "items": [
         "Plastpåse",
         "Yoghurtburk"
-       ]
+       ],
+       "label": "Plast"
       },
       {
        "q": "Vilket skräp är glas?",
        "items": [
         "Syltburk",
         "Glasflaska"
-       ]
+       ],
+       "label": "Glas"
       }
      ],
      "lvl": 2
@@ -1352,7 +1365,8 @@
         "Finland",
         "Island"
        ],
-       "odd": "Vilket land hör INTE till Norden?"
+       "odd": "Vilket land hör INTE till Norden?",
+       "label": "Norden"
       },
       {
        "q": "Vilket land hör inte till Norden?",
@@ -1360,7 +1374,8 @@
         "Spanien",
         "Italien",
         "Frankrike"
-       ]
+       ],
+       "label": "Inte Norden"
       }
      ],
      "lvl": 2
@@ -1653,14 +1668,16 @@
         "Att vara trygg",
         "Att få leka"
        ],
-       "odd": "Vilket är INTE en rättighet enligt barnkonventionen?"
+       "odd": "Vilket är INTE en rättighet enligt barnkonventionen?",
+       "label": "Barnets rättighet"
       },
       {
        "q": "Vilket är inte en rättighet?",
        "items": [
         "Att äta godis varje dag",
         "Att köra bil"
-       ]
+       ],
+       "label": "Inte en rättighet"
       }
      ],
      "lvl": 2

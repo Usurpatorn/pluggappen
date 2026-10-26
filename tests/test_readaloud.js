@@ -3,7 +3,7 @@
 'use strict';
 process.env.TZ = 'Europe/Stockholm';
 const { JSDOM } = require('jsdom'); const fs = require('fs'); const path = require('path');
-const FIX = require('./test_fixture_family.json'); const { v2tools, toStart } = require('./le/v2driver.js'); const { tools } = require('./le/childflow.js');
+const FIX = require('./test_fixture_family.json'); const { v2tools, classic, toStart } = require('./le/v2driver.js'); const { tools } = require('./le/childflow.js');
 let fails = 0, checks = 0; const ok = (c, m) => { checks++; if (!c) { fails++; console.log('FAIL', m); } };
 const spoken = [];
 function win(withTts) {
@@ -17,7 +17,7 @@ function win(withTts) {
 }
 const w = win(true); const T = tools(w);
 setTimeout(() => { try {
-  const PA = T.PA(); PA.FAMILY.apply(FIX); PA.load(); PA.rerender(); const D = v2tools(w, T);
+  const PA = T.PA(); PA.FAMILY.apply(FIX); PA.load(); classic(T); PA.rerender(); const D = v2tools(w, T);
   // 1) Behörighet per fråga
   const k2 = PA.KIDS.find(k => k.id === 'k2'); const k8 = PA.KIDS.find(k => k.id === 'k8');
   const lasa = k2.skills.find(s => s.id === 'sv_lasa'); const qL = PA.makeQuestion(k2, lasa, 2, { noOpen: true }); ok(!PA.V2.canSpeak({ ...qL, skill: lasa }), 'läsförståelse (sv_lasa): ingen uppläsning');
@@ -46,7 +46,7 @@ setTimeout(() => { try {
   // 4) Utan talsyntes: ingen knapp, inga fel
   const w2 = win(false); const T2 = tools(w2);
   setTimeout(() => { try {
-    T2.PA().FAMILY.apply(FIX); T2.PA().load(); T2.PA().rerender(); toStart(T2); T2.click(T2.$('[data-kid="k2"]')); if (T2.$('[data-pet]')) T2.click(T2.$('[data-pet]'));
+    T2.PA().FAMILY.apply(FIX); T2.PA().load(); classic(T2); T2.PA().rerender(); toStart(T2); T2.click(T2.$('[data-kid="k2"]')); if (T2.$('[data-pet]')) T2.click(T2.$('[data-pet]'));
     T2.click(T2.$('[data-v2="kor"]')); ok(!T2.$('[data-speak]') || ![...w2.document.querySelectorAll('[data-speak]')].some(b => /Läs upp/.test(b.textContent)), 'utan talsyntes: ingen Läs upp-knapp');
     ok(T2.PA().LE.errors.length === 0, 'utan talsyntes: inga fel');
   } catch (e) { fails++; console.log('EXC', e.stack); }

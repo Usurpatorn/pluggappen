@@ -5,7 +5,7 @@
 process.env.TZ = 'Europe/Stockholm';
 const fs = require('fs'); const path = require('path'); const zlib = require('zlib');
 const { mkWin, tools, FIX } = require('./le/childflow.js');
-const { v2tools, setEngine, toStart, unlockParent } = require('./le/v2driver.js');
+const { v2tools, classic, setEngine, toStart, unlockParent } = require('./le/v2driver.js');
 let fails = 0, checks = 0; const ok = (c, m) => { checks++; if (!c) { fails++; console.log('FAIL', m); } };
 const OLD = path.join(require('os').tmpdir(), 'pluggappen-2.0.0-sm-' + process.pid + '.html');
 fs.writeFileSync(OLD, zlib.gunzipSync(fs.readFileSync(path.join(__dirname, 'golden/pluggappen-2.0.0.html.gz'))));
@@ -35,7 +35,7 @@ const CONTENT = {
 
 const w = mkWin({ seed: 2201, fixedClock: true }); const T = tools(w);
 setTimeout(() => { try {
-  const PA = T.PA(); PA.FAMILY.apply(FIX); PA.load(); PA.rerender(); const D = v2tools(w, T);
+  const PA = T.PA(); PA.FAMILY.apply(FIX); PA.load(); classic(T); PA.rerender(); const D = v2tools(w, T);
   // ---- 1) _content: tvätt och validering
   const cl = PA.FAMILY.cleanContent(CONTENT);
   ok(cl && cl.work.length === 4, 'skoluppgifterna läses (även för okänt barn – men de används aldrig)');
@@ -135,13 +135,13 @@ setTimeout(() => { try {
   const qrBefore = JSON.stringify(p.le.qr);
   const wO = mkWin({ seed: 41, fixedClock: true, storage: dump(w), file: OLD }); const TO = tools(wO);
   setTimeout(() => { try {
-    TO.PA().FAMILY.apply(FIX); TO.PA().load(); TO.PA().rerender(); wO.__advance(8 * 86400000); openKid(TO, 'k8'); const DO = v2tools(wO, TO);
+    TO.PA().FAMILY.apply(FIX); TO.PA().load(); classic(TO); TO.PA().rerender(); wO.__advance(8 * 86400000); openKid(TO, 'k8'); const DO = v2tools(wO, TO);
     TO.click(TO.$('[data-v2="kor"]') || TO.$('[data-v2="extra"]')); DO.run(false); ok(/Bra jobbat|KLART/i.test(TO.$('#app').textContent), '2.0.0: passet fungerar med 2.1-data');
     ok(TO.PA().LE.errors.length === 0, '2.0.0: inga fel'); const pO = TO.PA().DB.profiles.k8; ok(JSON.stringify(pO.le.qr) === qrBefore, '2.0.0 bär markeringarna orörda vidare');
     TO.PA().flushSave();
     const wB = mkWin({ seed: 42, fixedClock: true, storage: dump(wO) }); const TB = tools(wB);
     setTimeout(() => { try {
-      TB.PA().FAMILY.apply(FIX); TB.PA().load(); TB.PA().rerender(); wB.__advance(8 * 86400000); openKid(TB, 'k8');
+      TB.PA().FAMILY.apply(FIX); TB.PA().load(); classic(TB); TB.PA().rerender(); wB.__advance(8 * 86400000); openKid(TB, 'k8');
       ok(/KEMIPROV ·/.test(TB.$('#app').textContent), 'tillbaka i 2.1: skoluppgiften finns kvar (lokalt sparat innehåll)');
       ok(TB.PA().LE.health(TB.PA().KIDS.find(k => k.id === 'k8')).items.some(x => x.flags.includes('reported2')), 'tillbaka i 2.1: flaggorna finns kvar');
       ok(TB.PA().LE.errors.length === 0, 'tillbaka i 2.1: inga fel');

@@ -14,7 +14,7 @@
  "templates": [
   "ak4"
  ],
- "rev": 2,
+ "rev": 3,
  "sources": [
   {
    "id": "lgr22",
@@ -333,7 +333,8 @@
         "Ett berg",
         "En älv"
        ],
-       "odd": "Vilket av detta finns INTE i naturen?"
+       "odd": "Vilket av detta finns INTE i naturen?",
+       "label": "Finns i naturen"
       },
       {
        "q": "Vilket av detta har människor bestämt?",
@@ -341,7 +342,8 @@
         "En landsgräns",
         "En kommungräns",
         "Ett län"
-       ]
+       ],
+       "label": "Bestämt av människor"
       }
      ],
      "lvl": 2
@@ -1005,14 +1007,16 @@
         "Äldreomsorg",
         "Vatten och sopor"
        ],
-       "odd": "Vad sköter INTE kommunen?"
+       "odd": "Vad sköter INTE kommunen?",
+       "label": "Kommunen"
       },
       {
        "q": "Vad ansvarar regionen för?",
        "items": [
         "Sjukvården",
         "Bussar och tåg i länet"
-       ]
+       ],
+       "label": "Regionen"
       }
      ],
      "lvl": 2
@@ -1292,7 +1296,8 @@
         "Det regnar i dag",
         "I morgon blir det blåsigt",
         "Just nu är det 3 grader"
-       ]
+       ],
+       "label": "Väder"
       },
       {
        "q": "Vilket handlar om KLIMAT?",
@@ -1300,7 +1305,8 @@
         "I norra Sverige är vintrarna långa och kalla",
         "Somrarna i Skåne brukar vara milda",
         "Det snöar varje vinter i fjällen"
-       ]
+       ],
+       "label": "Klimat"
       }
      ],
      "lvl": 2
@@ -1576,7 +1582,8 @@
        "items": [
         "Gran",
         "Tall"
-       ]
+       ],
+       "label": "Barrträd"
       },
       {
        "q": "Vilket träd är ett lövträd?",
@@ -1585,7 +1592,8 @@
         "Bok",
         "Björk"
        ],
-       "odd": "Vilket träd är INTE ett lövträd?"
+       "odd": "Vilket träd är INTE ett lövträd?",
+       "label": "Lövträd"
       }
      ],
      "lvl": 2
@@ -1864,7 +1872,8 @@
         "Vattenkraft",
         "Skog"
        ],
-       "odd": "Vilken av dessa är INTE förnybar?"
+       "odd": "Vilken av dessa är INTE förnybar?",
+       "label": "Förnybar"
       },
       {
        "q": "Vilken av dessa är icke förnybar?",
@@ -1874,7 +1883,8 @@
         "Järnmalm",
         "Naturgas"
        ],
-       "odd": "Vilken av dessa är förnybar?"
+       "odd": "Vilken av dessa är förnybar?",
+       "label": "Icke förnybar"
       }
      ]
     },
@@ -2014,7 +2024,8 @@
         "Laga saker i stället för att köpa nytt",
         "Släcka lampan när man går ut ur rummet"
        ],
-       "odd": "Vilket är INTE ett bra sätt att hushålla med resurser?"
+       "odd": "Vilket är INTE ett bra sätt att hushålla med resurser?",
+       "label": "Hushållar med resurser"
       },
       {
        "q": "Vilket slösar med jordens resurser?",
@@ -2022,7 +2033,8 @@
         "Slänga mat",
         "Låta datorn stå på hela natten",
         "Köpa nya kläder varje vecka"
-       ]
+       ],
+       "label": "Slösar med resurser"
       }
      ],
      "lvl": 2

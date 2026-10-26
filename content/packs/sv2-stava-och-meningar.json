@@ -14,7 +14,7 @@
  "templates": [
   "ak2"
  ],
- "rev": 2,
+ "rev": 3,
  "sources": [
   {
    "id": "lgr22",
@@ -111,7 +111,8 @@
         "boll",
         "simma",
         "hoppa"
-       ]
+       ],
+       "label": "Dubbel konsonant"
       },
       {
        "q": "Vilket ord har lång vokal och bara en konsonant efter vokalen?",
@@ -120,7 +121,8 @@
         "bil",
         "mat",
         "ros"
-       ]
+       ],
+       "label": "En konsonant"
       }
      ],
      "lvl": 2
@@ -513,7 +515,8 @@
         "äpple",
         "bord",
         "barn"
-       ]
+       ],
+       "label": "ett"
       },
       {
        "q": "Vilket ord ska ha en framför sig?",
@@ -522,7 +525,8 @@
         "katt",
         "boll",
         "stol"
-       ]
+       ],
+       "label": "en"
       }
      ]
     }

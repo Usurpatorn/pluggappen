@@ -23,7 +23,7 @@ const LECAT = (() => {
     const P = typeof PACKS !== 'undefined' ? PACKS : null;
     for (const s of [...(kid.skills || []), ...(kid.v2skills || [])]) {
       const id = skillCid(s.id); if (cat[id]) continue;
-      cat[id] = { id, kind: 'skill', ref: s.id, name: s.short || s.name, full: s.name, subject: s.group || 'math', maxLvl: s.maxLvl || 3, recall: recallOf(s, openBank), focus: !!s.focus, prereq: [] };
+      cat[id] = { id, kind: 'skill', ref: s.id, name: s.short || s.name, full: s.name, subject: s.group || 'math', maxLvl: s.maxLvl || 3, recall: recallOf(s, openBank), focus: !!s.focus || (kid.focusSkills || []).includes(s.id), prereq: [] };
       map[s.id] = id;
       const pk = P ? P.catalogEntries(kid, s, polName, itemId) : null;
       if (pk) { Object.assign(cat, pk.kps); cat[id].active = false; cat[id].route = pk.route; cat[id].packed = 1; kpsOf[s.id] = Object.keys(pk.kps); }

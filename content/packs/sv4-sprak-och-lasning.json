@@ -14,7 +14,7 @@
  "templates": [
   "ak4"
  ],
- "rev": 2,
+ "rev": 3,
  "sources": [
   {
    "id": "lgr22",
@@ -119,7 +119,8 @@
         "boll",
         "Sverige"
        ],
-       "odd": "Vilket ord är INTE ett substantiv?"
+       "odd": "Vilket ord är INTE ett substantiv?",
+       "label": "Substantiv"
       },
       {
        "q": "Vilket ord är ett verb?",
@@ -129,7 +130,8 @@
         "skrev",
         "sjunger"
        ],
-       "odd": "Vilket ord är INTE ett verb?"
+       "odd": "Vilket ord är INTE ett verb?",
+       "label": "Verb"
       },
       {
        "q": "Vilket ord är ett adjektiv?",
@@ -139,7 +141,8 @@
         "stor",
         "snabb"
        ],
-       "odd": "Vilket ord är INTE ett adjektiv?"
+       "odd": "Vilket ord är INTE ett adjektiv?",
+       "label": "Adjektiv"
       }
      ]
     },
@@ -264,7 +267,8 @@
         "vi",
         "de"
        ],
-       "odd": "Vilket ord är INTE ett pronomen?"
+       "odd": "Vilket ord är INTE ett pronomen?",
+       "label": "Pronomen"
       },
       {
        "q": "Vilket ord är ett substantiv?",
@@ -272,7 +276,8 @@
         "bord",
         "hund",
         "Lisa"
-       ]
+       ],
+       "label": "Substantiv"
       }
      ],
      "lvl": 2
@@ -1079,7 +1084,8 @@
         "boll",
         "hoppa",
         "simma"
-       ]
+       ],
+       "label": "Dubbel konsonant"
       },
       {
        "q": "Vilket ord har lång vokal och bara en konsonant efter vokalen?",
@@ -1088,7 +1094,8 @@
         "sol",
         "mat",
         "hus"
-       ]
+       ],
+       "label": "En konsonant"
       }
      ],
      "lvl": 2
