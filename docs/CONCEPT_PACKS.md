@@ -59,7 +59,7 @@ Varje fakta har `k` (slag) och valfritt `lvl` 1–3 (djup), `form` (överstyr fo
 |---|---|---|
 | `term` | `term`, `q` (+ `not`, `alias`, `def`, `notDef`, `rq`, `cls`) | igenkänning (flerval), eget svar (om termen är kort), omvänd (vad betyder …) |
 | `qa` | `q`, `a`, `not` (≥ 2) (+ `alias`, `recall`, `cs`, `exact`) | flerval i angiven form; eget svar om `recall: true` och svaret är kort |
-| `pairs` | `items` (≥ 3 par), `q` med `{a}`/`{b}` (+ `rq`, `pq`, `recallB`, `mq`, `match: false`) | a→b, b→a, "vilket par hör ihop" (KOPPLA), omvandla själv; **PARA IHOP** (v3) när alla vänster- och högerled är unika |
+| `pairs` | `items` (≥ 3 par), `q` med `{a}`/`{b}` (+ `rq`, `pq`, `recallB`, `mq`, `match: false`, `par: false` – inget "vilket par hör ihop" eller PARA IHOP när paren kan lösas med bokstavsjämförelse) | a→b, b→a, "vilket par hör ihop" (KOPPLA), omvandla själv; **PARA IHOP** (v3) när alla vänster- och högerled är unika |
 | `group` | `groups` (≥ 2, `q` + `items` ≥ 2, ev. `odd`, `label`) (+ `sq`, `sort: false`) | vilken hör till gruppen, "vilken hör inte hit"; **SORTERA** (v3) när alla grupper har `label` (≤ 28 tecken, unika, inget led i två grupper) |
 | `order` | `q`, `items` (≥ 3) (+ `gapq`, `gap: false`) | ordningsuppgift; saknad länk (≥ 5 led, grannarna visas aldrig som alternativ) |
 | `stmt` | `s` (sant), `f` (falska, ≥ 1) | vilket stämmer; HITTA FELET (vilket är fel); **STÄMMER DET?** (v3, sortera två sanna och två falska ur punktens påståenden, kräver ≥ 2 `stmt`; stäng av med `kp.tf: false`) |

@@ -225,7 +225,7 @@ const PACKS = (() => {
           }, { ui: 'match', lvl: Math.min(3, f.lvl || 1) });
         }
         const pairLen = Math.max(...As.map(x => strip(x).length)) + Math.max(...Bs.map(x => strip(x).length)) + 3;
-        if (f.items.length >= 4 && pairLen <= TEXT[pol].choice) add({ ...f, id: (f.id || fnv(f.q)) + '.par', lvl: Math.max(2, f.lvl || 1) }, 'relationship', 'pair', (r) => {
+        if (f.items.length >= 4 && f.par !== false && pairLen <= TEXT[pol].choice) add({ ...f, id: (f.id || fnv(f.q)) + '.par', lvl: Math.max(2, f.lvl || 1) }, 'relationship', 'pair', (r) => {
           const pick = Math.floor(r() * f.items.length); const [a, b] = f.items[pick]; const wrong = [];
           const usedB = new Set([norm(b)]);   // felparen använder andra högerled än det rätta paret – och olika sinsemellan
           for (const [a2] of shuffle(f.items.filter((_, j) => j !== pick), r)) { const b2 = shuffle(Bs.filter(x => !usedB.has(norm(x)) && !bOf(a2).some(y => norm(y) === norm(x))), r)[0]; if (b2) { usedB.add(norm(b2)); wrong.push(`${a2} – ${b2}`); } if (wrong.length >= 3) break; }

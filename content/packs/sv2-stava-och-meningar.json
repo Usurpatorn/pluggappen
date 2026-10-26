@@ -378,7 +378,8 @@
      ],
      "mq": "Para ihop ordet med hur sj-ljudet stavas.",
      "why": "Sj-ljudet kan skrivas sj (sju), skj (skjorta) och stj (stjärna).",
-     "match": false
+     "match": false,
+     "par": false
     }
    ],
    "src": [
@@ -472,7 +473,8 @@
      ],
      "mq": "Para ihop ordet med hur j-ljudet stavas.",
      "why": "J-ljudet kan skrivas j (jag), g (gilla), hj (hjälpa), lj (ljus) och dj (djur).",
-     "match": false
+     "match": false,
+     "par": false
     }
    ],
    "src": [
