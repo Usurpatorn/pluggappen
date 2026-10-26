@@ -47,7 +47,9 @@ service cloud.firestore {
       // även för medlemmar och för övergångsvägen med gammal kod. Det skrivs bara med Google-servicekontot (scripts/content.mjs deploy),
       // som går förbi reglerna. Appen läser det och skriver det aldrig. Föräldern får radera det (radera familjens data).
       match /profiles/{doc} {
-        allow read: if isMember() || legacyGrace();
+        // _content läses bara av medlemmar. Övergångsvägen (gammal familjekod, utan inloggning) gäller aldrig _content – appversioner
+        // före 2.1 läser det inte, så ingen enhet påverkas (verifierat i Firestore-emulatorn: tests/rules/rules.test.mjs).
+        allow read: if isMember() || (legacyGrace() && doc != '_content');
         allow create, update: if doc != '_content' && (isMember() || legacyGrace())
           && request.resource.data.keys().hasOnly(['json', 'updatedAt', 'kid'])
           && request.resource.data.json is string
