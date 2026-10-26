@@ -212,7 +212,7 @@ const LE2 = (() => {
   const KDEC = inv(KCODE), HDEC = inv(HCODE), XDEC = inv(XCODE), MDEC = inv(MCODE);
 
   function apply(L, cat, e, pol) {
-    if (e.sess && L.lastSess !== e.sess) { if (L.lastSess) calibrate(L); L.lastSess = e.sess; L.sessN = (L.sessN || 0) + 1; }
+    if (e.sess && L.lastSess !== e.sess) { if (L.lastSess) calibrate(L); L.lastSess = e.sess; if (!/m$/.test(String(e.sess))) L.sessN = (L.sessN || 0) + 1; }   // 2.1.1: provträning (id …m) är inget eget pass för svältskyddet
     // 3I: ett vilande moment (Concept Pack) leder beviset till kunskapspunkten frågan prövar. Loggen ändras aldrig (rollback läser originalet).
     // Granskning 2.1 (H2): har det vilande momentet en olöst Felboks-post (från 2.0) stannar beviset där tills posten är löst – annars kunde
     // Revansch aldrig verifiera den. Deterministiskt: beror bara på tillståndet vid omspelningen.
@@ -375,7 +375,8 @@ const LE2 = (() => {
     // svält-skydd: vanlig överlast → nytt efter 4 pass; kraftig överlast (≥2×tak) → efter 8; extrem (≥3×tak) → efter 12. Aldrig permanent stopp.
     const starved = load < 2 * cap ? sinceNew >= B.starveSessions : sinceNew >= B.starveSessionsHard * (load >= 3 * cap ? 1.5 : 1);
     // provets sista dygn: inget nytt; tre dygn före: bara om svält; provvecka: ett nytt koncept på en plats
-    const maxNew = examDays <= 1 ? 0 : examDays <= 3 ? (starved ? 1 : 0) : overloaded ? (starved ? 1 : 0) : examDays <= CFG.exam.weekDays ? 1 : pol.maxNew;
+    const maxNew0 = examDays <= 1 ? 0 : examDays <= 3 ? (starved ? 1 : 0) : overloaded ? (starved ? 1 : 0) : examDays <= CFG.exam.weekDays ? 1 : pol.maxNew;
+    const maxNew = opts.newCap != null ? Math.max(0, Math.min(maxNew0, opts.newCap)) : maxNew0;   // 2.1.1: provträningen får bara det som är kvar av dygnets gräns
     let newTaken = 0; const isNewC = (cid) => !(L.c[cid] && L.c[cid].n > 0);
     // Provets sista tre dygn (och provet inte klart): minst halva passet till provets koncept – innan något annat fyller passet.
     // Granskning M8: aldrig osedda koncept här utöver maxNew (provkvällen: inget nytt alls).
