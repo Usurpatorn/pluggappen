@@ -134,7 +134,7 @@ const V2 = {
     const rec = { id, t: Math.round(now / 1000), src: 'v2', e: 2, m: mode, mode: 'v2', v1: [], v2: plan.map(s => [s.cid, LE.ROLE[s.role] || '?', LE.whyKey(s)]), light: plan.light ? 1 : 0, rst: plan.restart ? 1 : 0, pol: C.pn, a: [], w: [0, 0], done: 0 };
     p.le.shadow = [...(p.le.shadow || []), rec].slice(-LE2.SHADOW_MAX);
     S = { kid, mode: 'v2', opts: { v2: mode, ...extra }, queue: [], i: 0, results: [], xp: 0, usedHelp: false, retried: false, startedAt: Date.now(), streak: 0, revealed: false, answered: false, examId: extra.examId, deadline: null, chain: null,
-      v2: { R, C, id, mode, exam, start: now, k: 0, plan, light: !!plan.light, restart: !!plan.restart, rewards: [], answers: [], seen: new Set(), stageUps: new Set(), fbBefore: LE2.felbokVisible(C.L, now).length, extra, exp: EXP.on(kid) ? EXP.of(kid) : null, calm: !!plan.restart } };
+      v2: { R, C, id, mode, exam, start: now, k: 0, plan, planN: plan.length, light: !!plan.light, restart: !!plan.restart, rewards: [], answers: [], seen: new Set(), stageUps: new Set(), fbBefore: LE2.felbokVisible(C.L, now).length, extra, exp: EXP.on(kid) ? EXP.of(kid) : null, calm: !!plan.restart } };
     save();
     state.screen = 'practice';
     if (!V2.advance()) return V2.finish();
@@ -178,7 +178,7 @@ const V2 = {
       if (V.exam) { const tq = V2.teacherQ(kid, spec.cid); if (tq) { V.seen.add(V2.iid(tq)); return [{ ...tq, skill, cat: 'math', level: tq.level, spec, _slotEnd: true }]; } }
       const fmt = V.exam ? 'any' : spec.role === 'readclose' ? 'recall' : spec.format === 'recall' || spec.format === 'depth' ? spec.format : 'any';
       const stage = V.exam ? null : { n: c ? c.n : 0, st: c ? c.st : 0 };   // Learning Recipe: stadiet styr aktiviteten (inte i Testa mig)
-      let q = PACKS.question(spec.cid, { lvl: spec.lvl, format: fmt, pol: pol.name, avoid, rnd: Math.random, challenge: spec.mode === 'challenge', itemId: LECAT.itemId, stage, exam: V.exam, vary: V.exam ? null : EXP.vary(V) });
+      let q = PACKS.question(spec.cid, { lvl: spec.lvl, format: fmt, pol: pol.name, avoid, rnd: Math.random, challenge: spec.mode === 'challenge', itemId: LECAT.itemId, stage, exam: V.exam, vary: V.exam ? null : EXP.vary(V, spec) });
       if (!q && spec.mode === 'challenge') q = PACKS.question(spec.cid, { lvl: 3, format: 'depth', pol: pol.name, avoid, rnd: Math.random, itemId: LECAT.itemId });
       if (!q) return [];
       q = { ...q, skill, cat: 'math', level: q.level || spec.lvl };
@@ -244,19 +244,23 @@ const V2 = {
   canSpeak(q) { if (typeof TTS === 'undefined' || !TTS.ok || !q) return false; if (q.speak === false) return false; const sk = q.skill || {}; if (sk.readAloud === false || V2.READ_OFF.has(sk.id)) return false; if (q.fig && /readbox|listen-box|svread/i.test(q.fig)) return false; return true; },
   sayText(q) { const t = RECALL.strip(q.text).replace(/\s+/g, ' ').trim();
     if (q.type === 'sort') return `${t} … ${q.items.join(', ')}. Grupperna är: ${q.bins.join(' och ')}.`;
-    if (q.type === 'match') return `${t} … ${q.pairs.map(x => x[0]).join(', ')}.`; const ch = q.type === 'choicetext' && Array.isArray(q.choices) ? q.choices.map(c => RECALL.strip(c).trim()) : null; return ch ? `${t} … ${ch.slice(0, -1).join(', ')} eller ${ch[ch.length - 1]}?` : t; },
+    if (q.type === 'match') return `${t} … ${q.pairs.map(x => x[0]).join(', ')}. Och: ${q.pairs.map(x => x[1]).join(', ')}.`; const ch = q.type === 'choicetext' && Array.isArray(q.choices) ? q.choices.map(c => RECALL.strip(c).trim()) : null; return ch ? `${t} … ${ch.slice(0, -1).join(', ')} eller ${ch[ch.length - 1]}?` : t; },
   speakBtn(q, p) {
     if (!V2.canSpeak(q)) return '';
-    if (S.v2.C.pol.name === 'younger') return `<button class="btn ghost" data-speak="${esc(V2.sayText(q))}" data-lang="sv" style="min-height:36px;padding:0 12px" aria-label="Läs upp frågan">🔊 Läs upp</button>`;
+    if (S.v2.C.pol.name === 'younger') return `<button class="btn ghost" data-speak="${esc(V2.sayText(q))}" data-lang="sv" style="min-height:${S.v2.exp ? 48 : 36}px;padding:0 12px" aria-label="Läs upp frågan">🔊 Läs upp</button>`;
     return p.settings.tts ? `<button class="icon-btn" data-speak="${esc(q.text.replace(/<[^>]+>/g, ''))}" data-lang="sv" data-highlight="1" style="width:36px;height:36px" aria-label="Läs upp">${ICON.speaker}</button>` : '';
   },
   /* ---------- Visning under passet ---------- */
-  total() { const pr = LER.progress(S.v2.R); return Math.max(S.queue.length, S.i + Math.max(1, pr.left)); },
+  total() { if (S.v2.exp && !S.v2.exam) return Math.max(S.v2.planN || 1, EXP.done() + 1); const pr = LER.progress(S.v2.R); return Math.max(S.queue.length, S.i + Math.max(1, pr.left)); },
+  // v3: räknaren följer den planerade längden – omförsök och Rescue är "Ny chans" utan nummer (mållinjen flyttar sig inte)
+  num() { if (!(S.v2.exp && !S.v2.exam)) return S.i + 1; const it = S.queue[S.i]; return EXP.isExtra(it) ? 'Ny chans' : Math.min(V2.total(), EXP.done() + 1); },
   hasNext() { const pr = LER.progress(S.v2.R); return S.i + 1 < S.queue.length || pr.left > 1 || (pr.left === 1 && !(S.queue[S.i] && S.queue[S.i]._slotEnd)); },
   title(item) { return S.v2.exam ? 'Testa mig' : S.v2.mode === 'revansch' ? 'Revansch' : S.v2.mode === 'readclose' ? 'Minns du?' : item.cat === 'word' ? esc(item.deck.name) : item.skill ? esc(item.skill.short || item.skill.name) : 'Kör!'; },
-  topRight() { const pr = LER.progress(S.v2.R); return S.v2.exam ? `<span class="pill">Inga ledtrådar · svar efteråt</span>` : `<span class="left-count">${Math.max(0, pr.left)} kvar</span>`; },
+  topRight() { const pr = LER.progress(S.v2.R); if (S.v2.exp && !S.v2.exam) return `<span class="left-count">${Math.max(0, V2.total() - EXP.done())} kvar</span>`; return S.v2.exam ? `<span class="pill">Inga ledtrådar · svar efteråt</span>` : `<span class="left-count">${Math.max(0, pr.left)} kvar</span>`; },
   progressBar() { const tot = V2.total();
-    if (S.v2.exp === 'explore' && !S.v2.exam) return `<div class="trail" role="progressbar" aria-valuemin="0" aria-valuemax="${tot}" aria-valuenow="${S.i}" aria-label="Äventyret">${Array.from({ length: tot }, (_, i) => `<span class="dot ${i < S.i ? 'ok' : i === S.i ? 'cur' : ''}" aria-hidden="true">${i === tot - 1 ? '👑' : i < S.i ? '✓' : ''}</span>`).join('')}</div>`; return `<div class="progress">${Array.from({ length: tot }, (_, i) => `<i class="${i < S.i ? (S.v2.exam ? 'ok' : S.results[i] === false ? 'no' : 'ok') : i === S.i ? 'cur' : ''}"></i>`).join('')}</div>`; },
+    if (S.v2.exp && !S.v2.exam) { const d = EXP.done();   // v3: planerade platser; ingen röd historik för fel svar
+      if (S.v2.exp === 'explore') return `<div class="trail" role="progressbar" aria-valuemin="0" aria-valuemax="${tot}" aria-valuenow="${d}" aria-label="Äventyret">${Array.from({ length: tot }, (_, i) => `<span class="dot ${i < d ? 'ok' : i === d ? 'cur' : ''}" aria-hidden="true">${i === tot - 1 ? '👑' : i < d ? '✓' : ''}</span>`).join('')}</div>`;
+      return `<div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="${tot}" aria-valuenow="${d}">${Array.from({ length: tot }, (_, i) => `<i class="${i < d ? 'ok' : i === d ? 'cur' : ''}"></i>`).join('')}</div>`; } return `<div class="progress">${Array.from({ length: tot }, (_, i) => `<i class="${i < S.i ? (S.v2.exam ? 'ok' : S.results[i] === false ? 'no' : 'ok') : i === S.i ? 'cur' : ''}"></i>`).join('')}</div>`; },
   chip(item) {
     if (item && item.teacher && S.v2.exam) return `<div class="row" style="justify-content:center"><span class="pill acc" style="font-weight:800;letter-spacing:.04em"><span aria-hidden="true">📝</span> LÄRARENS FRÅGA${item.teacher.n ? ' ' + esc(item.teacher.n) : ''}</span></div>`;
     const xc = S.v2.exp ? EXP.chipFor(item) : null; if (xc) return `<div class="row" style="justify-content:center"><span class="pill acc" style="font-weight:800;letter-spacing:.04em"><span aria-hidden="true">${xc[1]}</span> ${xc[0]}</span></div>`;
@@ -269,7 +273,7 @@ const V2 = {
   teachBody(item) {
     const ex = item.ex; const rescue = item.spec.role === 'rescue'; const intro = item.spec.role === 'intro'; const s = item.skill;
     const say = typeof TTS !== 'undefined' && TTS.ok && S.v2.C.pol.name === 'younger' && s.readAloud !== false && !V2.READ_OFF.has(s.id) && ex && ex.intro ? `<button class="btn ghost" data-speak="${esc(RECALL.strip(ex.intro.name + '. ' + ex.intro.explain))}" data-lang="sv" style="min-height:36px">🔊 Läs upp</button>` : '';
-    if (intro && ex && ex.intro) return `<div class="eyebrow">Något nytt</div><h3 style="margin:6px 0">${esc(ex.intro.name)}</h3><p style="font-size:1.05rem">${safeHtml(ex.intro.explain)}</p>${say}${s.method ? `<details class="sketch"><summary>📖 Läs mer om ${esc(s.short || s.name)}</summary><div class="method" style="margin-top:8px">${safeHtml(s.method)}</div></details>` : ''}<button class="btn big wide" data-v2="teachok">Jag är redo →</button>`;
+    if (intro && ex && ex.intro) return `<div class="eyebrow">Något nytt</div><h3 style="margin:6px 0">${esc(ex.intro.name)}</h3><p style="font-size:1.05rem">${safeHtml(ex.intro.explain)}</p>${say}${s.method ? `<details class="sketch"><summary>📖 Läs mer om ${esc(s.short || s.name)}</summary><div class="method" style="margin-top:8px">${safeHtml(s.method)}</div></details>` : ''}<button class="btn big wide" data-v2="teachok">${S.v2.exp ? 'Nu provar jag →' : 'Jag är redo →'}</button>`;
     return `<div class="eyebrow">${rescue ? 'Vi tar det tillsammans' : 'En kort förklaring först'}</div>
       ${ex ? `<div class="steps"><div class="eyebrow">${ex.fromFail ? 'Uppgiften du nyss fick' : 'Exempel'}</div>${ex.fig ? `<div class="figwrap">${safeHtml(ex.fig)}</div>` : ''}<div style="font-weight:700;margin:6px 0">${safeHtml(ex.text)}</div><ol>${ex.steps.map(st => `<li>${safeHtml(st)}</li>`).join('')}</ol><p style="margin-top:8px">Svar: <b>${esc(ex.answer)}</b></p></div>` : ''}
       ${s.method ? `<details class="sketch"><summary>📖 Läs mer om ${esc(s.short || s.name)}</summary><div class="method" style="margin-top:8px">${safeHtml(s.method)}</div></details>` : ''}
@@ -368,8 +372,8 @@ const V2 = {
     if (V.exp && V.mode !== 'readclose') {   // Experience v3: KLAR → frivillig FLOW
       beep(won.length ? 'badge' : 'win');
       const cards = `${newFb ? `<div class="card row" style="gap:10px"><span style="font-size:1.3rem" aria-hidden="true">📕</span><div class="grow muted" style="font-size:.9rem">${newFb > cap ? 'Några saker' : newFb === 1 ? 'En sak' : `${newFb} saker`} sparades i Felboken – revansch ett annat pass.</div></div>` : ''}
-      ${claimable.length ? `<div class="card" style="border:2px solid var(--good)"><div class="eyebrow">Uppdrag klart!</div>${claimable.map(q => `<div class="quest done"><div class="qi">✅</div><div class="grow"><div class="qt">${esc(q.text)}</div><div class="qp">+${q.reward.xp} XP, +${q.reward.gems} 💎</div></div><button class="btn claim" data-claim="${q.id}">Hämta</button></div>`).join('')}</div>` : ''}
-      ${won.length ? `<div class="card" style="border:2px solid var(--acc)"><div class="eyebrow">Nytt märke! +${10 * won.length} 💎</div><div class="badge-row" style="margin-top:8px">${won.map(b => `<span class="badge"><span class="e">${b.e}</span>${b.name}</span>`).join('')}</div></div>` : ''}`;
+      ${EXP.autoClaim(kid, claimable)}
+      ${won.length ? `<div class="card row" style="gap:10px"><span class="badge"><span class="e">${won[0].e}</span>${won.map(b => b.name).join(', ')}</span><span class="muted" style="font-size:.9rem">Nytt märke</span></div>` : ''}`;   // v3: inga lösa trådar på KLAR – uppdragen hämtas automatiskt
       return EXP.finish(kid, V, sum, won, cards);
     }
     if (won.length) beep('badge'); else beep('win'); if (klar && young) confetti(60);

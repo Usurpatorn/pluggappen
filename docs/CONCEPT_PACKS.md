@@ -59,14 +59,19 @@ Varje fakta har `k` (slag) och valfritt `lvl` 1–3 (djup), `form` (överstyr fo
 |---|---|---|
 | `term` | `term`, `q` (+ `not`, `alias`, `def`, `notDef`, `rq`, `cls`) | igenkänning (flerval), eget svar (om termen är kort), omvänd (vad betyder …) |
 | `qa` | `q`, `a`, `not` (≥ 2) (+ `alias`, `recall`, `cs`, `exact`) | flerval i angiven form; eget svar om `recall: true` och svaret är kort |
-| `pairs` | `items` (≥ 3 par), `q` med `{a}`/`{b}` (+ `rq`, `pq`, `recallB`) | a→b, b→a, "vilket par hör ihop" (KOPPLA), omvandla själv |
-| `group` | `groups` (≥ 2, `q` + `items` ≥ 2, ev. `odd`) | sortera, "vilken hör inte hit" |
+| `pairs` | `items` (≥ 3 par), `q` med `{a}`/`{b}` (+ `rq`, `pq`, `recallB`, `mq`, `match: false`) | a→b, b→a, "vilket par hör ihop" (KOPPLA), omvandla själv; **PARA IHOP** (v3) när alla vänster- och högerled är unika |
+| `group` | `groups` (≥ 2, `q` + `items` ≥ 2, ev. `odd`, `label`) (+ `sq`, `sort: false`) | vilken hör till gruppen, "vilken hör inte hit"; **SORTERA** (v3) när alla grupper har `label` (≤ 28 tecken, unika, inget led i två grupper) |
 | `order` | `q`, `items` (≥ 3) (+ `gapq`, `gap: false`) | ordningsuppgift; saknad länk (≥ 5 led, grannarna visas aldrig som alternativ) |
-| `stmt` | `s` (sant), `f` (falska, ≥ 1) | vilket stämmer; HITTA FELET (vilket är fel) |
+| `stmt` | `s` (sant), `f` (falska, ≥ 1) | vilket stämmer; HITTA FELET (vilket är fel); **STÄMMER DET?** (v3, sortera två sanna och två falska ur punktens påståenden, kräver ≥ 2 `stmt`; stäng av med `kp.tf: false`) |
 | `num` | `q`, `a` (tal) (+ `unit`) | beräkning i flera steg |
 | `pick` | `text`, `ask`, `a` (ett ord i meningen) | peka ut ordet (ordklass, satsdel …) |
 | `fix` | `bad`, `good`, `err`, `fix` | vilket ord är fel; skriv ordet rätt; vilken mening är rätt |
 | `read` | `text`, `qs` (`q`, `a`, `not` ≥ 2) | läsförståelse med texten synlig (läses aldrig upp) |
+
+**Experience v3 – aktiviteter (samma kunskap, samma rättning):** SORTERA och STÄMMER DET? blir `type: 'sort'`, PARA IHOP
+blir `type: 'match'` – båda rättas deterministiskt (allt på rätt plats / alla par utan fel), loggas som strukturerat svar (som
+ordning) och har fasta omgångar så att uppgiftens id inte ändras med slumpen. `pick`/`fix` visas som TRYCK PÅ ORDET i meningen.
+Korta egna svar kan för Yngre byggas av bokstavsbrickor (BYGG ORDET). Para ihop används aldrig i Testa mig (återkoppling par för par).
 
 **Former:** recognition (r) · recall (c) · reverse (v) · relationship (l) · mistake (m) · cause (x) · application (a) ·
 explanation (e) · multistep (s). Challenge är inte en form utan en markering (`ch` eller nivå 3 + djupform) och hålls
@@ -121,6 +126,13 @@ Typens signaturaktiviteter väger ×1,5. Variation har alltid ett skäl – aldr
 - Lärarfrågor bevaras källtroget och kopplas till kunskapspunkter. I Testa mig används bara de som kan rättas säkert:
   flerval (`a` + minst två `not`) eller kort eget svar (`typed`, högst tre ord). Övriga påverkar bara vilka punkter som prövas.
 - Inga personnamn – varken barnets, lärarens eller andras – i titlar, frågor eller källor.
+- **Experience v3 (tillägg, ignoreras av äldre versioner):**
+  `"goals": [{ "id", "name", "skills": [], "kps": [], "teacher": true }]` – lärarens målområden; Testa mig rapporterar
+  Bra koll / Öva lite mer / För lite underlag per område (aldrig en prognos).
+  `"focus": { "skills": [], "kps": [] }` – lärarens betoning → motorns befintliga fokusvikt (introduceras först).
+  `"missing": [{ "label", "kind": "pdf|book|format|video|lab|questions|other", "note" }]` – luckor i underlaget; visas för
+  föräldern, aldrig för barnet, och appen hittar aldrig på innehåll i stället.
+  Kvalitetsgrinden kräver att målområden och betoning ligger inom skoluppgiftens egna `skills`/`kps` (ingen påhittad omfattning).
 
 ## 9. Kvalitetsgrind (CI: `tests/test_packs.js`, lokalt `node scripts/content.mjs check [mapp]`)
 Varje variant × 10 frö: unika alternativ, inget tvetydigt rätt svar, rättningen godkänner facit och underkänner varje
