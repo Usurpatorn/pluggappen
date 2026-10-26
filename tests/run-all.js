@@ -36,6 +36,7 @@ const suites = [
   ['2.1 Innehållsgranskningens sakfel får aldrig komma tillbaka', 'test_content_facts.js'],
   ['2.1 Learning Recipes: aktivitet efter stadium, ingen uppblåst behärskning', 'test_recipes.js'],
   ['2.1.1 Hotfix: provrubriken på Kör! = passet; Öva inför provet; ärlig text utan kopplingar; Äldres första kurs', 'test_exam_cta.js'],
+  ['2.1.1 Startknappar och sammanhang: datumgränser 28/21 dygn, två prov, kemi, manuella glosor, saknat privat innehåll, v1, profilbyte', 'test_cta_paths.js'],
 ];
 let failed = 0; const rows = [];
 for (const [name, file, opts = {}] of suites) {
