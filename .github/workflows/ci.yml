@@ -112,6 +112,37 @@ jobs:
         with:
           name: site-${{ needs.test.outputs.build_id }}
           path: dist
+      # Testadress för en förhandsversion (t.ex. Experience v3 före merge): bara när repo-variabeln PREVIEW_REF är satt till en gren.
+      # Byggs från grenen med PREVIEW=1 → <sajten>/preview/. Inget familjeinnehåll byggs in; egen lagring, ingen service worker,
+      # ingen push (se scripts/build.sh på grenen). Misslyckas förhandsbygget publiceras produktionen ändå – utan testadress.
+      # Ta bort testadressen: radera variabeln och kör workflowen igen.
+      - uses: actions/setup-node@v5
+        if: ${{ vars.PREVIEW_REF != '' }}
+        with:
+          node-version: '22'
+      - name: Bygg testadressen (förhandsversion)
+        id: preview
+        if: ${{ vars.PREVIEW_REF != '' }}
+        continue-on-error: true
+        env:
+          PREVIEW_REF: ${{ vars.PREVIEW_REF }}
+          PRIVACY_TERMS: ${{ secrets.PRIVACY_TERMS }}
+        run: |
+          git clone --quiet --depth 1 --branch "$PREVIEW_REF" "https://github.com/$GITHUB_REPOSITORY.git" preview-src
+          cd preview-src
+          npm ci --no-audit --no-fund
+          npm run build
+          node tests/test_preview.js
+          PREVIEW=1 bash scripts/build.sh
+          node tests/test_privacy.js
+          test -f dist/preview/index.html
+      - name: Lägg testadressen bredvid produktionen
+        if: ${{ steps.preview.outcome == 'success' }}
+        env:
+          PREVIEW_REF: ${{ vars.PREVIEW_REF }}
+        run: |
+          mkdir -p dist/preview && cp preview-src/dist/preview/index.html dist/preview/index.html
+          echo "### Testadress: <sajten>/preview/ (gren: $PREVIEW_REF)" >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

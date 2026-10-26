@@ -33,6 +33,16 @@ Privat termlista för integritetstestet läggs i `tests/privacy_terms.local.json
 ## Pages via Actions (inställt 2026-10-25)
 Settings → Pages → Source: **GitHub Actions**; Settings → Secrets and variables → Actions → **Variables** → `PAGES_ACTIONS` = `true`.
 
+## Testadress för en förhandsversion
+För att pröva en gren på riktiga enheter före merge (t.ex. Experience v3): sätt repo-variabeln `PREVIEW_REF` till grenens namn
+(Settings → Secrets and variables → Actions → Variables) och kör workflowen "CI – test, bygg, publicera" (Run workflow, tomt
+`deploy_ref`). Produktionen publiceras som vanligt och grenen byggs med `PREVIEW=1` till `<sajten>/preview/`.
+- Inget familjeinnehåll byggs in; enheten kopplas till familjen som en ny enhet och hämtar familjens data via den vanliga synken.
+- Egen lagring (prefix) – produktionens data på samma enhet rörs inte. Ingen service worker, inga push-påminnelser.
+- Det barnen gör i testversionen är riktiga bevis i familjens data (samma synk). Produktionen (2.1.1) läser och bevarar v3-data (rollbacktest).
+- Misslyckas förhandsbygget publiceras produktionen ändå, utan testadress.
+- Uppdatera testadressen efter nya commits på grenen: kör workflowen igen. Ta bort: radera variabeln och kör workflowen igen.
+
 ## Learning Engine v2 – skuggläge (från 1.2.0, Fas 3B)
 - Källor: `src/05a_concepts.js` (konceptkatalog), `src/05b_engine2.js` (motorn, rena funktioner), `src/05c_shadow.js` (koppling + föräldradiagnostik).
 - Barnen får **v1**. v2 loggar bevis från v1-svaren och sparar vad den skulle ha valt i `p.le` (i barnets profil, inom familjens lagring). Föräldraläget → barnet → **Motor v2**.
