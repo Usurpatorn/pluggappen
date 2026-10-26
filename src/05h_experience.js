@@ -25,7 +25,7 @@ const EXP = {
   isDefault(kid) { const p = prof(kid.id); return !(p.settings && EXP.KINDS[p.settings.exp]); },
   on(kid) { return !!kid && V2.on(kid) && EXP.of(kid) !== 'classic'; },
   cur() { return (typeof S !== 'undefined' && S && S.v2 && S.v2.exp) || null; },
-  set(kid, v) { const p = prof(kid.id); if (v === 'default') delete p.settings.exp; else if (EXP.KINDS[v]) p.settings.exp = v; else return; p.settings.expAt = LE.now(); save(); },
+  set(kid, v) { const p = prof(kid.id); if (v === 'default') p.settings.exp = 'default'; else if (EXP.KINDS[v]) p.settings.exp = v; else return; p.settings.expAt = LE.now(); save(); },   // 'default' sparas (tas inte bort): annars kunde synken återställa ett äldre val (granskning)
   // Synk: p.settings.exp/expAt följer motorvalets regel (senaste ändringen vinner) och p.v3.sc slås ihop som union – se mergeProfiles (04_sync.js)
   /* ---------- Dagens läge (bara motorns egna data) ---------- */
   today() { return LE2.dayIdx(LE.now()); },
@@ -37,7 +37,10 @@ const EXP = {
   // Ny inlärning idag (första beviset på konceptet idag) – FLOW får aldrig ta in mer nytt än policyns gräns per dygn
   newToday(C, now) { const d = LE2.dayIdx(now); return Object.entries(C.L.c).filter(([id, c]) => c.fs && LE2.dayIdx(c.fs * 1000) === d && C.cat[id] && C.cat[id].kind !== 'deck').length; },
   flowPlan(kid, C, now, id) {
-    const newCap = Math.max(0, C.pol.maxNew - EXP.newToday(C, now)); const n = Math.max(3, Math.round(V2.n(kid, C) * 0.6));
+    const p = prof(kid.id); const newCap = V2.newCapToday(C, now, p);
+    // FLOW är kortare än dagens CORE (granskning: policyns längd räckte inte – CORE kan vara 3–5 uppgifter)
+    const d0 = LE2.dayIdx(now); const core = V2.v2recs(p).filter(r => r.m === 'kor' && LE2.dayIdx(r.t * 1000) === d0).slice(-1)[0]; const coreN = core && core.v2 ? core.v2.length : 0;
+    const base = Math.round(V2.n(kid, C) * 0.6); const n = coreN ? Math.max(2, Math.min(base, coreN - 1)) : Math.max(3, base);
     let plan = LE.plan(kid, n, now, id, { newCap }).plan;
     // Motorns pass har en minsta längd per policy; FLOW visar bara början av planen (samma ordning, Bossen sist) så att extrablocket
     // alltid är kortare än CORE. Inget läggs till – bara färre uppgifter.
@@ -114,6 +117,7 @@ const EXP = {
      stor del av en plan som hör till provet; missionBtn erbjuder provets egen träning (bara provets koncept) – eller säger ärligt att
      provets områden inte är inlagda ännu. Inget tyst utbyte mot annat innehåll. */
   examShare(kid, m, plan) { if (!m) return { cids: [], n: 0, of: 0 }; const cids = V2.examCidsActive(kid, m.e); return { cids, ...V2.missionShare(plan || [], cids) }; },
+  mostly(sh) { return sh.n > 0 && sh.n * 2 >= sh.of; },   // "MOT PROVET" på FLOW-knappen bara när minst hälften av extrapasset hör till provet (granskning)
   shareText(sh) { return sh.n === sh.of ? 'Allt inför provet' : `${sh.n} av ${sh.of} uppgifter inför provet`; },
   missionBtn(kid, m, cls = 'btn big wide secondary') {
     if (!m) return ''; const cids = V2.examCidsActive(kid, m.e);
@@ -126,7 +130,7 @@ const EXP = {
   achieveHome(kid, p) {
     const g = EXP.goalOf(kid); const m = g.now;
     const sedan = g.next ? `<div class="then">Sedan: <b>${esc(g.next.e.title.toUpperCase())}</b> · ${esc(fmtDate(g.next.e.date).toUpperCase())}</div>` : '';
-    if (EXP.coreDone(p)) { const fsh = EXP.examShare(kid, m, EXP.peekFlow(kid)); return EXP.doneCard(kid, p, 'DAGENS PLAN KLAR', 'Appen håller koll på resten.', m && EXP.isExam(m.e) && fsh.n > 0 ? 'FORTSÄTT MOT PROVET' : 'FORTSÄTT') + EXP.goalDetail(kid, m); }
+    if (EXP.coreDone(p)) { const fsh = EXP.examShare(kid, m, EXP.peekFlow(kid)); return EXP.doneCard(kid, p, 'DAGENS PLAN KLAR', 'Appen håller koll på resten.', m && EXP.isExam(m.e) && EXP.mostly(fsh) ? 'FORTSÄTT MOT PROVET' : 'FORTSÄTT') + EXP.goalDetail(kid, m); }
     const s = EXP.summary(kid); const sh = EXP.examShare(kid, m, s.plan); const ex = m && sh.n > 0;   // provrubrik bara när dagens pass innehåller provet
     const when = m ? `${esc(fmtDate(m.e.date).toUpperCase())} · ${m.d === 0 ? 'idag' : m.d === 1 ? 'imorgon' : `om ${m.d} dagar`}` : '';
     const head = ex ? `<div class="eyebrow">NÄSTA MÅL</div><div class="goal-title">${esc(m.e.title.toUpperCase())}</div><div class="goal-date">${when}</div>`
@@ -158,8 +162,9 @@ const EXP = {
   welcome(kid) {
     return EXP.safe(() => {
       const p = prof(kid.id); const last = V2.lastAt(p); if (!last || (LE.now() - last) / LE2.DAY < LE2.CFG.session.absentWarmDays || V2.doneToday(p)) return '';
-      // RETURN: motorn har verkligen justerat planen efter uppehållet (uppvärmning, återstart) – därför får texten säga det
-      return `<div class="card row welcome" style="gap:12px"><div style="font-size:1.5rem" aria-hidden="true">👋</div><div class="grow"><div style="font-weight:800;font-family:var(--display)">Kul att du är tillbaka.</div><div class="muted" style="font-size:.95rem">Jag har justerat planen.</div></div></div>`;
+      // RETURN: "Jag har justerat planen." bara när motorn verkligen har gjort det (återstart efter långt uppehåll) – granskning: annars bara hälsningen
+      const adj = !!(V2.peekPlan(kid).plan || {}).restart;
+      return `<div class="card row welcome" style="gap:12px"><div style="font-size:1.5rem" aria-hidden="true">👋</div><div class="grow"><div style="font-weight:800;font-family:var(--display)">Kul att du är tillbaka.</div>${adj ? '<div class="muted" style="font-size:.95rem">Jag har justerat planen.</div>' : ''}</div></div>`;
     }, 'welcome', '');
   },
   /* ---------- Under passet ---------- */
@@ -199,8 +204,9 @@ const EXP = {
     return done < Math.ceil((V.plan.length || 6) / 2);
   },
   /* Rytmen i Achieve/Grow-matte (brief §13): UPPTÄCK (löst exempel) · GÖR (papper) · HITTA FELET (digital analys) · BAKLÄNGES · MINNS.
-     Hitta felet och Baklänges använder Utmaningslagrets befintliga generatorer och registreras som Utmaning: fördjupning som aldrig ändrar
-     stadium, förfallodag eller Felboken (samma regel som 3H). Högst en av varje per pass, bara på moment som redan börjar sitta (stadium ≥ 2). */
+     Hitta felet och Baklänges använder Utmaningslagrets befintliga generatorer men registreras som VANLIGT bevis för momentet (form
+     "hitta felet" m / "baklänges" v): det är riktig övning av momentet, och som Utmaning tog de bevis från passet (granskning). Hitta felet är
+     flerval (k = 3, gissningsgrad räknas). Högst en av varje per pass, bara på moment som redan börjar sitta (stadium ≥ 2). */
   rhythmKind(V, spec, skill, c) {
     if (!V.exp || V.exp === 'explore' || V.exam || V.mode === 'revansch' || V.mode === 'readclose') return null;
     if (!skill || (skill.group || 'math') !== 'math' || typeof skill.gen !== 'function' || !c || c.st < 2) return null;
@@ -215,7 +221,8 @@ const EXP = {
   },
   rhythmItem(kind, skill, lvl) {
     const want = kind === 'spot' ? ['spot'] : ['create', 'equation'];
-    for (const k of kind === 'spot' ? [0] : /ekv/.test(skill.id) ? [3, 2] : [2]) { const q = CHG.make(skill, lvl, k); if (q && want.includes(q.challenge)) return q; }
+    // spot: felet hamnar i A, B eller C och är av olika slag (granskning: det var alltid A). k väljer också Utmaningens sort (k % 5 = 0 → Hitta felet).
+    for (const k of kind === 'spot' ? [5 * Math.floor(Math.random() * 6)] : /ekv/.test(skill.id) ? [3, 2] : [2]) { const q = CHG.make(skill, lvl, k); if (q && want.includes(q.challenge)) return q; }
     return null;
   },
   paperNote(q) { return `<div class="paper-note" role="note"><span aria-hidden="true">✏️</span><div><b>Räkna på papper.</b> Skriv uträkningen på ditt papper${S.v2 && S.v2.exam ? '' : ' – i lugn och ro'}. Skriv bara svaret här.</div></div>`; },
@@ -301,7 +308,7 @@ const EXP = {
     // Granskning: efter provträning, Revansch o.d. FÖRE dagens plan erbjuds dagens plan – inte FLOW (FLOW kommer bara efter CORE)
     const corePending = V.mode !== 'kor' && !flow && !EXP.coreDone(p);
     const title = e === 'explore' ? 'ÄVENTYRET KLART!' : mission ? 'PROVTRÄNINGEN KLAR' : e === 'grow' ? (flow ? 'EXTRARUNDAN KLAR!' : 'RUNDAN KLAR!') : flow ? 'EXTRAPASSET KLART' : V.mode === 'kor' ? 'DAGENS PLAN KLAR' : 'PASSET KLART';
-    const flowLabel = e === 'explore' ? 'ETT ÄVENTYR TILL' : e === 'grow' ? 'EN RUNDA TILL' : g && EXP.isExam(g.e) && EXP.examShare(kid, g, EXP.peekFlow(kid)).n > 0 ? 'FORTSÄTT MOT PROVET' : 'FORTSÄTT';
+    const flowLabel = e === 'explore' ? 'ETT ÄVENTYR TILL' : e === 'grow' ? 'EN RUNDA TILL' : g && EXP.isExam(g.e) && EXP.mostly(EXP.examShare(kid, g, EXP.peekFlow(kid))) ? 'FORTSÄTT MOT PROVET' : 'FORTSÄTT';
     const kinds = []; for (const r of V.rewards) if (EXP.DELIGHT[r.k] && !kinds.includes(r.k)) kinds.push(r.k);
     const delights = kinds.slice(0, 3).map(k => `<div class="delight">${esc(EXP.DELIGHT[k])}</div>`).join('');
     const trail = e === 'explore' ? `<div class="trail done" aria-label="Det här gjorde du">${S.queue.slice(0, S.i + 1).map(x => `<span class="dot ok" aria-hidden="true">${(EXP.ACT[EXP.uiOf(x)] || EXP.ACT[x.paper ? 'paper' : ''] || [0, x.cat === 'learn' ? '🔎' : x.spec && x.spec.role === 'boss' ? '👑' : '⭐'])[1]}</span>`).join('')}</div>` : '';

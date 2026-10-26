@@ -207,7 +207,7 @@ function runLog(T, D, wrongFn = () => false) {
       click($('[data-v2="exp"][data-val="grow"]')); toStart(T); openKid(T, 'k8'); ok(/DAGENS MISSION|DAGENS RUNDA|MISSION KLAR|RUNDAN KLAR/.test(txt(T)), 'förälderns val Grow gäller direkt');
       unlockParent(w, T); click($('[data-tab="k8"]')); click($('[data-sub="v2"]')); click($('[data-v2="exp"][data-val="classic"]')); toStart(T); openKid(T, 'k8');
       ok(!$('section.mission') && $('.go-btn[data-v2="kor"]') && /IDAG \d+ minuter|uppgifter · cirka/.test(txt(T)), 'Klassisk (2.1): startsidan som i 2.1.0');
-      unlockParent(w, T); click($('[data-tab="k8"]')); click($('[data-sub="v2"]')); click($('[data-v2="exp"][data-val="default"]')); ok(PA().EXP.of(kid()) === 'achieve' && !PA().DB.profiles.k8.settings.exp, 'återställ till standard');
+      unlockParent(w, T); click($('[data-tab="k8"]')); click($('[data-sub="v2"]')); click($('[data-v2="exp"][data-val="default"]')); ok(PA().EXP.of(kid()) === 'achieve' && PA().EXP.isDefault(kid()) && PA().DB.profiles.k8.settings.exp === 'default', 'återställ till standard (sparas som "default" så att synken inte kan återställa ett äldre val)');
       // kemi (golden case B): pH-kunskapen finns som UPPTÄCK → SORTERA → MINNS → KOPPLA → ORSAK → ANVÄND → HITTA FELET → BOSS
       const vs = ['ph-skalan', 'indikatorer', 'neutralisation', 'syra-kanne', 'bas-kanne'].flatMap(k => PA().PACKS.variants('k:kemi8-syror-baser/' + k, 'older'));
       const has = (f) => vs.some(f); const kemi = { 'UPPTÄCK (förklaring)': !!PA().PACKS.teach('k:kemi8-syror-baser/ph-skalan', 'older'), SORTERA: has(v => v.ui === 'sort'), MINNS: has(v => v.form === 'recall'), KOPPLA: has(v => v.form === 'relationship' && v.ui !== 'sort'), 'ORSAK OCH EFFEKT': has(v => v.form === 'cause'), ANVÄND: has(v => v.form === 'application'), 'HITTA FELET': has(v => v.form === 'mistake'), 'BOSS (svårare)': has(v => v.ch) };
@@ -224,6 +224,8 @@ function runLog(T, D, wrongFn = () => false) {
       const a = { ...base, settings: { ...base.settings, exp: 'grow', expAt: 2000 } }, b = { ...base, settings: { ...base.settings, exp: 'classic', expAt: 1000 } };
       ok(M(a, b).settings.exp === 'grow' && M(b, a).settings.exp === 'grow', 'synk: förälderns senaste upplevelseval vinner (oavsett vilken enhet som är lokal)');
       const c = { ...base, settings: { ...base.settings } }; delete c.settings.exp; delete c.settings.expAt; ok(M(c, a).settings.exp === 'grow', 'synk: en enhet utan val tar inte bort förälderns val');
+      const r = { ...base, settings: { ...base.settings, exp: 'default', expAt: 3000 } }; ok(M(r, b).settings.exp === 'default' && M(b, r).settings.exp === 'default', 'synk: "återställ till standard" vinner över ett äldre val oavsett ordning (granskning)');
+      const s1 = { ...base, v3: { v: 1, sc: [[5, 's:z', 'i9', 2, 3]] } }, s2 = { ...base, v3: { v: 1, sc: [[5, 's:z', 'i9', 3, 3]] } }; ok(JSON.stringify(M(s1, s2).v3.sc) === JSON.stringify(M(s2, s1).v3.sc), 'synk: samma självkontroll på två enheter ger samma resultat oavsett ordning (granskning)');
       const v3a = { ...base, v3: { v: 1, sc: [[1, 's:x', 'i1', 2, 3]] } }, v3b = { ...base, v3: { v: 1, sc: [[2, 's:y', 'i2', 1, 3]] } };
       ok(M(v3a, v3b).v3.sc.length === 2 && M(v3b, v3a).v3.sc.length === 2, 'synk: självkontrollerna slås ihop (union)');
       const ev = PA().LE2.encodeEv({ t: 1e12, dev: 'd', seq: 1, cid: 's:x', ok: true, kind: 'free', help: 'none', ctx: 'first', item: 'i1', med: 'p' });

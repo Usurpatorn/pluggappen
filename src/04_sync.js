@@ -101,7 +101,7 @@ function mergeProfiles(a, b) {
   if (Object.keys(cl).length) out.mistakesCleared = cl; else delete out.mistakesCleared;
   // Fas 3B: v2-bevislogg (union på enhet:löpnummer, deterministisk bas)
   // Experience v3: barnets egna stegval vid jämförelse med lösningen (bara visning) – union på dygn|koncept|uppgift, högst 40
-  if (a.v3 || b.v3) { const m = new Map(); for (const x of [...((b.v3 && b.v3.sc) || []), ...((a.v3 && a.v3.sc) || [])]) if (Array.isArray(x) && x.length >= 4) m.set(x[0] + '|' + x[1] + '|' + x[2], x); out.v3 = { v: 1, sc: [...m.values()].sort((x, y) => x[0] - y[0] || (String(x[1]) + x[2] < String(y[1]) + y[2] ? -1 : 1)).slice(-40) }; }   // deterministisk ordning på alla enheter
+  if (a.v3 || b.v3) { const m = new Map(); for (const x of [...((b.v3 && b.v3.sc) || []), ...((a.v3 && a.v3.sc) || [])]) if (Array.isArray(x) && x.length >= 4) { const k = x[0] + '|' + x[1] + '|' + x[2]; const o = m.get(k); if (!o || JSON.stringify(x) > JSON.stringify(o)) m.set(k, x); } out.v3 = { v: 1, sc: [...m.values()].sort((x, y) => x[0] - y[0] || (String(x[1]) + x[2] < String(y[1]) + y[2] ? -1 : 1)).slice(-40) }; }   // deterministisk ordning på alla enheter; samma nyckel: deterministiskt val (granskning)
   if (a.le || b.le) out.le = typeof LE !== 'undefined' ? LE.mergeLE(a.le, b.le) : (a.le || b.le);
   return out;
 }

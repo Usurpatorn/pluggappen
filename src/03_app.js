@@ -678,7 +678,7 @@ function startSession(kid, opts) {
   const p = prof(kid.id); const n = opts.n || p.settings.sprint;
   let queue = [];
   if (opts.mode === 'felbok') {
-    const list = R.shuffle((p.mistakes || []).slice()).slice(0, opts.n || 10);
+    const list = R.shuffle((p.mistakes || []).filter(m => !(m.q && (m.q.type === 'sort' || m.q.type === 'match'))).slice()).slice(0, opts.n || 10);   // v1 kan inte visa v3-aktiviteter
     for (const mi of list) {
       if (mi.cat === 'word') { const d = deckById(p, mi.deckId); const w = d && d.words.find(x => x.id === mi.wordId); if (d && w) queue.push({ ...makeWordExercise(d, w, R.pick(['pick', 'type'])), cat: 'word' }); }
       else { const sk = skillById(kid, mi.skillId); if (sk) queue.push({ ...mi.q, skill: sk, cat: 'math', mistakeId: mi.id }); }
@@ -805,7 +805,7 @@ function initSketch() {
   document.getElementById('sketchClear')?.addEventListener('click', () => ctx.clearRect(0, 0, cv.width, cv.height));
 }
 function wordBody(ex) {
-  const lang = ex.deck.lang; const head = `<div class="row" style="justify-content:space-between"><span class="eyebrow">${S.v2 ? V2.num() : S.i + 1} av ${S.v2 ? V2.total() : S.queue.length} · ${esc(ex.title || 'Nytt ord')}</span><span>${LANGS[lang]?.flag || ''}</span></div>`;
+  const lang = ex.deck.lang; const head = `<div class="row" style="justify-content:space-between"><span class="eyebrow">${S.v2 && V2.num() === 'Ny chans' ? 'Ny chans' : `${S.v2 ? V2.num() : S.i + 1} av ${S.v2 ? V2.total() : S.queue.length}`} · ${esc(ex.title || 'Nytt ord')}</span><span>${LANGS[lang]?.flag || ''}</span></div>`;
   if (ex.kind === 'intro') { const sv = lang === 'sv'; return `${head}<div class="word-card"><div class="eyebrow">${sv ? 'Nytt kort' : 'Nytt ord'}</div><div class="we">${ex.word.e || '✨'}</div><div class="ww">${esc(sv ? ex.word.t : ex.word.w)}</div><div class="wt">${esc(sv ? ex.word.w : ex.word.t)}</div>${sv ? '' : speakBtn(ex.word.w, lang)}</div><div class="row" id="actions"><button class="btn grow big" id="next">Jag har sett det → </button></div>`; }
   if (ex.kind === 'pick') return `${head}<div class="word-card"><div class="we" style="font-size:${ex.promptEmoji ? '3.6rem' : '0'}">${ex.promptEmoji}</div><div class="ww">${esc(ex.prompt)}</div>${ex.speak ? speakBtn(ex.word.w, lang) : ''}</div><div class="wchoices">${ex.choices.map(c => `<button class="wchoice" data-wchoice="${c.id}">${c.e ? `<span class="ce">${esc(c.e)}</span>` : ''}<span>${esc(c.label)}</span></button>`).join('')}</div><div id="fb"></div><div class="row" id="actions"></div>`;
   if (ex.kind === 'listen') return `${head}<div class="word-card"><div class="eyebrow">Tryck och lyssna</div>${speakBtn(ex.word.w, lang, 'big')}<button class="pill" data-speak="${esc(ex.word.w)}" data-lang="${lang}" data-rate="0.6">🐢 Långsamt</button></div><div class="wchoices">${ex.choices.map(c => `<button class="wchoice" data-wchoice="${c.id}"><span>${esc(c.label)}</span></button>`).join('')}</div><div id="fb"></div><div class="row" id="actions"></div>`;
@@ -951,7 +951,7 @@ function submitMath() {
   if (S.v2 && S.v2.exp) xp = EXP.flowXp(q, xp);
   LE.observe(S, q, correct); // Fas 3B: skuggläge – loggar bevis, påverkar inte v1
   if (S.mode === 'felbok') { const p = prof(S.kid.id); if (correct) { clearMistake(p, q.mistakeId); save(); } }
-  else if (!correct && !v2ch) { noteMistake(prof(S.kid.id), q); save(); }
+  else if (!correct && !v2ch && !(q.type === 'sort' || q.type === 'match' || q.build)) { noteMistake(prof(S.kid.id), q); save(); }   // v3-aktiviteter hör till v2:s Felbok – v1:s Felbok kan inte visa dem (granskning)
   if (correct) { S.streak++; if (S.streak >= 3) { const b = Math.min(10, S.streak * 2); xp += b; prof(S.kid.id).xp += b; save(); } } else S.streak = 0;
   S.xp += xp; S.results.push(correct);
   let v2evs = null; const v2rw = S.v2 ? S.v2.rewards.length : 0;
@@ -959,7 +959,8 @@ function submitMath() {
   if (q.choices || q.type === 'choicetext') document.querySelectorAll('.choice, .wchoice, .tapword').forEach(c => { const v = Number(c.dataset.choice); if (v === q.answer) c.classList.add('ok'); else if (v === S.selected) c.classList.add('no'); c.disabled = true; });
   if (input) input.disabled = true;
   const praise = R.pick(['Snyggt!', 'Rätt!', 'Perfekt!', 'Så ska det se ut!', 'Boom!', 'Exakt!']);
-  if (q.paper) { if (correct) { beep('ok', S.streak); xpPop(xp); } else beep('no'); fb.innerHTML = EXP.paperFeedback(q, correct, raw); }   // v3: bara svaret är sett – aldrig "lösningen är korrekt"
+  if (S.revealed && (q.paper || q.type === 'sort' || q.type === 'match' || q.build)) fb.innerHTML = `<div class="feedback warn"><span style="font-size:1.4rem">👀</span><div><div class="big">Nu vet du hur man gör</div><div class="sub">Du får en liknande uppgift igen om en stund.</div></div></div>`;   // granskning: efter "Visa hur man gör" aldrig "Svaret stämmer inte"
+  else if (q.paper) { if (correct) { beep('ok', S.streak); xpPop(xp); } else beep('no'); fb.innerHTML = EXP.paperFeedback(q, correct, raw); }   // v3: bara svaret är sett – aldrig "lösningen är korrekt"
   else if (q.type === 'sort' || q.type === 'match' || q.build) {
     const extra = EXP.reveal(q, res);
     if (correct) { beep('ok', S.streak); xpPop(xp); fb.innerHTML = `<div class="feedback ok"><span style="font-size:1.4rem">✅</span><div><div class="big">${q.type === 'sort' ? 'Allt på rätt plats!' : q.type === 'match' ? 'Alla par rätt!' : praise}</div>${q.build ? `<div class="sub">${esc(answerDisplay(q))}</div>` : extra}</div></div>`; }
