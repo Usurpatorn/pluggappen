@@ -338,6 +338,8 @@ const PACKS = (() => {
       // Experience v3 (Explore): aldrig fler än två textval i rad när kunskapen också finns som en aktivitet (sortera, para ihop, ordna,
       // tryck i meningen, bygg ordet). Bara presentationen: formatet (eget svar/djup) och nivån som motorn bad om gäller fortfarande.
       if (opts.vary && opts.vary.choiceRun >= 2) { const act = pool.filter(v => v.ui !== 'choice'); if (act.length) pool = act; }
+      // Explore-Bossen (en utmaning i sig): en aktivitet på högst en nivå över, om en sådan finns – annars som vanligt
+      if (opts.vary && opts.vary.stretch) { const act = all0.filter(v => v.ui !== 'choice' && v.ui !== 'type' && v.lvl <= L + 1 && (opts.format !== 'recall' || v.form === 'recall') && (opts.format !== 'depth' || DEPTH.has(v.form))); if (act.length) pool = act; }
     }
     const iid = opts.itemId || ((q) => q.text);
     const built = (v) => finish(ent, v, v.build(rnd), pol);

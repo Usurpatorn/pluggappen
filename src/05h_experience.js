@@ -36,9 +36,16 @@ const EXP = {
   newToday(C, now) { const d = LE2.dayIdx(now); return Object.entries(C.L.c).filter(([id, c]) => c.fs && LE2.dayIdx(c.fs * 1000) === d && C.cat[id] && C.cat[id].kind !== 'deck').length; },
   flowPlan(kid, C, now, id) {
     const newCap = Math.max(0, C.pol.maxNew - EXP.newToday(C, now)); const n = Math.max(3, Math.round(V2.n(kid, C) * 0.6));
-    const plan = LE.plan(kid, n, now, id, { newCap }).plan; plan.flow = true; plan.newCap = newCap; return plan;
+    let plan = LE.plan(kid, n, now, id, { newCap }).plan;
+    // Motorns pass har en minsta längd per policy; FLOW visar bara början av planen (samma ordning, Bossen sist) så att extrablocket
+    // alltid är kortare än CORE. Inget läggs till – bara färre uppgifter.
+    if (plan.length > n) { const boss = plan.find(x => x.role === 'boss'); const keep = plan.filter(x => x !== boss).slice(0, boss ? n - 1 : n); const meta = { ...plan }; plan = boss ? [...keep, boss] : keep; Object.assign(plan, { light: meta.light, restart: meta.restart, maxItems: Math.min(meta.maxItems || n + 2, n + 2), maxNew: meta.maxNew, examDays: meta.examDays }); }
+    plan.flow = true; plan.newCap = newCap; return plan;
   },
   peekFlow(kid) { return EXP.safe(() => { const C = LE.state(kid); return EXP.flowPlan(kid, C, LE.now()); }, 'peekFlow', []); },
+  flowMins(kid) { return EXP.mins(EXP.peekFlow(kid), kid); },
+  // "cirka N min": samma uppskattning som Kör! (0,6 min per uppgift) + en extra minut per trolig pappersuppgift (räknas på papper tar längre tid)
+  mins(plan, kid) { const C = LE.state(kid); const paper = (EXP.of(kid) !== 'explore') ? plan.filter(s => ['focus', 'practice', 'boss'].includes(s.role) && EXP.PAPER[((C.cat[s.cid] || {}).ref) || '']).length : 0; return V2.mins(plan.length) + Math.min(paper, Math.ceil(plan.length / 2)); },
   canFlow(kid) { const p = prof(kid.id); return EXP.flowsToday(p) < EXP.FLOW_MAX && EXP.peekFlow(kid).length > 0; },
   /* ---------- Planens presentation ---------- */
   STATION: { warm: ['Värm upp', '☀️'], minns: ['Minns', '🧠'], upptack: ['Upptäck', '🔎'], klura: ['Klura', '🧩'], revansch: ['Revansch', '💪'], utmaning: ['Utmaning', '🧗'], boss: ['Boss', '👑'] },
@@ -50,7 +57,11 @@ const EXP = {
     for (const s of plan) { if (s.role === 'boss') continue; if (s.role === 'remember' || s.role === 'warmup') { rep = true; continue; } if (s.role === 'revansch') { rev = true; continue; } const nm = EXP.nameOf(kid, C, s.cid); if (nm && !names.includes(nm)) names.push(nm); }
     const list = names.slice(0, 3); if (rev) list.push('Revansch'); if (rep) list.push('Repetition');
     const st = []; for (const s of plan) { const k = EXP.stationOf(s, C); if (!st.includes(k)) st.push(k); }
-    return { n: plan.length, mins: V2.mins(plan.length), list, stations: st, light: !!plan.light, plan, C };
+    // Achieve: dela upp i det som hör till nästa prov och det som också övas idag (med momentens fulla namn)
+    const g = EXP.goalOf(kid).now; const inExam = new Set(g ? LE.examCids(C, g.e) : []); const ex = [], also = [];
+    for (const s0 of plan) { if (['boss', 'remember', 'warmup', 'revansch'].includes(s0.role)) continue; const d = C.cat[s0.cid] || {}; const nm = d.kind === 'kp' ? (PACKS.skillFor(kid, d.ref) || {}).name || EXP.nameOf(kid, C, s0.cid) : d.kind === 'skill' ? ((V2.skillOf(kid, s0.cid) || {}).name || d.name) : EXP.nameOf(kid, C, s0.cid); const arr = inExam.has(s0.cid) ? ex : also; if (nm && !ex.includes(nm) && !also.includes(nm)) arr.push(nm); }
+    if (plan.some(x => x.role === 'remember' || x.role === 'warmup')) also.push('Repetition'); if (plan.some(x => x.role === 'revansch')) also.push('Revansch');
+    return { n: plan.length, mins: EXP.mins(plan, kid), list, exList: ex.slice(0, 4), alsoList: also.slice(0, 3), stations: st, light: !!plan.light, plan, C };
   },
   // Framsteg med betydelse (Grow/Achieve): motorns barnetiketter för koncept som barnet har övat. Inga procent.
   progress(kid) { const C = LE.state(kid); const now = LE.now(); const out = { 'Säker': 0, 'På väg': 0, 'Tränar': 0, 'Behöver repetition': 0 }; for (const [id, c] of Object.entries(C.L.c)) { const d = C.cat[id]; if (!d || d.active === false || d.kind === 'deck' || !c.n) continue; const l = LE2.childLabel(c, now, C.pol, C.L); if (l in out) out[l]++; } return out; },
@@ -69,13 +80,13 @@ const EXP = {
     const canMore = EXP.canFlow(kid); const rest = EXP.flowsToday(p) >= EXP.FLOW_MAX;
     return `<section class="card pad-lg mission done stack" aria-label="${esc(title)}"><div class="mission-icon" aria-hidden="true">✅</div><div class="eyebrow">${esc(title)}</div>
       <div class="mission-sub">${sub}</div>
-      ${canMore ? `<button class="btn big wide secondary" data-v2="flow">${esc(flowLabel)}</button>` : `<div class="muted">${rest ? 'Bra jobbat idag! Det du har övat sätter sig bäst om du vilar nu.' : 'Allt för idag är gjort.'}</div>`}</section>`;
+      ${canMore ? `<button class="btn big wide secondary" data-v2="flow">${esc(flowLabel)} · cirka ${EXP.flowMins(kid)} min</button>` : `<div class="muted">${rest ? 'Bra jobbat idag! Det du har övat sätter sig bäst om du vilar nu.' : 'Allt för idag är gjort.'}</div>`}</section>`;
   },
   exploreHome(kid, p) {
     if (EXP.coreDone(p)) return EXP.doneCard(kid, p, 'ÄVENTYRET KLART!', 'Du är klar för idag.', 'ETT ÄVENTYR TILL');
     const s = EXP.summary(kid);
     return `<section class="card pad-lg mission explore stack" aria-label="Dagens äventyr"><div class="eyebrow">DAGENS ÄVENTYR</div>
-      <div class="mission-title">${s.n} små utmaningar</div><div class="muted">cirka ${s.mins} min</div>${EXP.chips(s.stations)}
+      <div class="mission-title">${s.n} små utmaningar</div><div class="muted">cirka ${s.mins} min${s.list.filter(x => x !== 'Repetition' && x !== 'Revansch').length ? ` · ${s.list.filter(x => x !== 'Repetition' && x !== 'Revansch').slice(0, 2).map(esc).join(' och ')}` : ''}</div>${EXP.chips(s.stations)}
       ${EXP.go(kid, LBL(kid).go.toUpperCase())}</section>`;
   },
   growHome(kid, p) {
@@ -103,9 +114,10 @@ const EXP = {
     const s = EXP.summary(kid);
     const head = m ? `<div class="eyebrow">NÄSTA MÅL</div><div class="goal-title">${esc(m.e.title.toUpperCase())}</div><div class="goal-date">${esc(fmtDate(m.e.date).toUpperCase())} · ${m.d === 0 ? 'idag' : m.d === 1 ? 'imorgon' : `om ${m.d} dagar`}</div>`
       : `<div class="eyebrow">DAGENS PLAN</div>${s.list[0] ? `<div class="goal-title">${esc(s.list[0].toUpperCase())}</div>` : ''}`;
-    const list = m ? s.list : s.list.slice(1);   // utan prov: dagens starkaste mål är rubriken, resten listas under
+    const main = m ? s.exList : s.list.slice(1); const also = m ? s.alsoList : [];   // utan prov: dagens starkaste mål är rubriken
     return `<section class="card pad-lg mission achieve stack" aria-label="Dagens plan">${head}
-      ${list.length ? `<div class="train"><div class="eyebrow">${m ? 'DET HÄR TRÄNAR VI IDAG' : 'OCKSÅ IDAG'}</div><ul>${list.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
+      ${main.length ? `<div class="train"><div class="eyebrow">${m ? 'DET HÄR TRÄNAR VI IDAG' : 'OCKSÅ IDAG'}</div><ul>${main.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
+      ${also.length ? `<div class="muted" style="font-size:.95rem">${main.length ? 'Också idag' : 'Idag'}: ${also.map(esc).join(' · ')}</div>` : ''}
       <div class="muted">cirka ${s.mins} min</div>
       ${EXP.go(kid, LBL(kid).go.toUpperCase())}${sedan}</section>` + EXP.goalDetail(kid, m);
   },
@@ -137,7 +149,7 @@ const EXP = {
   // Upplevelsens etikett för uppgiften. Explore: aktiviteten. Achieve/Grow: rytmen UPPTÄCK · GÖR · HITTA FELET · MINNS · PROVLÄGE · BOSS.
   chipFor(item) {
     const V = S.v2; if (!V.exp || !item || item.cat === 'learn') return null;
-    if (item.paper) return V.exam ? EXP.ACT.exampaper : item.spec && item.spec.role === 'boss' ? EXP.ACT.bosspaper : V.exp === 'explore' ? EXP.ACT.paper : ['GÖR · RÄKNA PÅ PAPPER', '✏️'];
+    if (item.paper) return V.exam ? EXP.ACT.exampaper : item.spec && item.spec.role === 'boss' ? EXP.ACT.bosspaper : V.exp === 'explore' ? EXP.ACT.paper : ['RÄKNA PÅ PAPPER', '✏️'];
     if (item.rhythm) return item.rhythm === 'spot' ? ['HITTA FELET', '🔍'] : ['BAKLÄNGES', '↩️'];
     if (V.exam || !item.spec) return null;
     const role = item.spec.role;
@@ -145,9 +157,13 @@ const EXP = {
     const ui = EXP.uiOf(item); if (ui === 'num' && V.exp !== 'explore') return null; if (EXP.ACT[ui]) return EXP.ACT[ui];
     return null;
   },
+  EXTRA: new Set(['retry', 'rescue', 'easy']),
+  isExtra(it) { return !!(it && it.spec && EXP.EXTRA.has(it.spec.role)); },
+  // Hur många av passets planerade platser som är klara (omförsök, Rescue och LÄR-kort räknas inte)
+  done() { let n = 0; for (let i = 0; i < S.i; i++) { const x = S.queue[i]; if (x && x._slotEnd && !EXP.isExtra(x)) n++; } return n; },
   uiOf(item) { if (!item) return 'none'; if (item.cat === 'word') return 'word:' + item.kind; if (item.cat === 'learn') return 'learn'; if (item.paper) return 'paper'; if (item.build) return 'build'; if (item.type === 'sort' || item.type === 'match' || item.type === 'order') return item.type; if (item.ui === 'tap') return 'tap'; if (item.type === 'choicetext' || item.choices) return 'choice'; return item.type === 'text' ? 'type' : item.type || 'type'; },
   // Hur många textval i rad (Explore: aldrig fler än två när kunskapen finns som aktivitet)
-  vary(V) { if (!V.exp || V.exp === 'achieve') return null; const q = S.queue.filter(x => x.cat !== 'learn'); let run = 0; for (let i = q.length - 1; i >= 0; i--) { const u = EXP.uiOf(q[i]); if (u === 'choice' || u === 'word:pick' || u === 'word:listen') run++; else break; } const last = q.length ? EXP.uiOf(q[q.length - 1]) : null; return { choiceRun: V.exp === 'explore' ? run : Math.max(0, run - 1), last, boost: V.exp === 'explore' ? 2.5 : 1.5 }; },   // Grow: högst tre textval i rad
+  vary(V, spec) { if (!V.exp || V.exp === 'achieve') return null; const q = S.queue.filter(x => x.cat !== 'learn'); let run = 0; for (let i = q.length - 1; i >= 0; i--) { const u = EXP.uiOf(q[i]); if (u === 'choice' || u === 'word:pick' || u === 'word:listen') run++; else break; } const last = q.length ? EXP.uiOf(q[q.length - 1]) : null; return { choiceRun: V.exp === 'explore' ? run : Math.max(0, run - 1), last, boost: V.exp === 'explore' ? 2.5 : 1.5, stretch: V.exp === 'explore' && !!spec && spec.role === 'boss' }; },   // Explore-Bossen: gärna en aktivitet (Bossen får vara en nivå svårare)   // Grow: högst tre textval i rad
   // Bygg ordet (Explore): eget svar med bokstavsbrickor i stället för tangentbord – för korta, enkla ord. Rättas med samma funktion.
   buildable(q) { if (q.type !== 'text' || !Array.isArray(q.answer)) return false; const w = String(q.display || q.answer[0] || '').trim(); return /^[a-zåäöéü]{2,9}$/i.test(w); },
   /* ---------- Papper och penna (Learning Recipe för matematik) ----------
@@ -185,7 +201,7 @@ const EXP = {
   paperFeedback(q, correct, raw) {
     const steps = (q.steps || []).map((s, i) => `<li>${safeHtml(s)}</li>`).join('');
     if (correct) return `<div class="feedback ok"><span style="font-size:1.4rem">✅</span><div><div class="big">Ditt svar stämmer.</div><div class="sub">Svar: <b>${esc(answerDisplay(q))}</b>. Jämför gärna din uträkning med lösningen.</div></div></div><details class="steps"><summary><b>Visa lösningen steg för steg</b></summary><ol>${steps}</ol></details>`;
-    const pick = (q.steps || []).length >= 2 ? `<div class="selfcheck" role="group" aria-label="I vilket steg skilde det sig?"><div style="font-weight:700">I vilket steg skilde det sig? <span class="muted" style="font-weight:400">(frivilligt)</span></div><div class="row wrap" style="gap:8px;margin-top:6px">${q.steps.map((_, i) => `<button class="btn ghost sc" data-sc="${i + 1}">Steg ${i + 1}</button>`).join('')}<button class="btn ghost sc" data-sc="0">Vet inte</button></div></div>` : '';
+    const pick = (q.steps || []).length >= 2 ? `<div class="selfcheck" role="group" aria-label="I vilket steg skilde det sig?"><div style="font-weight:700">I vilket steg skilde det sig? <span class="muted" style="font-weight:400">(frivilligt)</span></div><div class="row row-wrap" style="gap:8px;margin-top:6px">${q.steps.map((st, i) => /^\s*(<[^>]+>\s*)*(Eller|Kontroll|Svar)/i.test(String(st)) ? '' : `<button class="btn ghost sc" data-sc="${i + 1}">Steg ${i + 1}</button>`).join('')}<button class="btn ghost sc" data-sc="0">Vet inte</button></div></div>` : '';
     return `<div class="feedback no"><span style="font-size:1.4rem">✏️</span><div><div class="big">Svaret stämmer inte.</div><div class="sub">Rätt svar: <b>${esc(answerDisplay(q))}</b>${raw ? ` · Du skrev: ${esc(raw)}` : ''}</div></div></div><div class="steps"><div class="eyebrow">Jämför med din uträkning</div><ol>${steps}</ol></div>${pick}`;
   },
   // Barnets egen jämförelse: bara visning för föräldern ("Steg som barnet valde vid egen jämförelse"). Aldrig bevis, aldrig schemaläggning.
@@ -213,7 +229,7 @@ const EXP = {
     const t = e.target;
     if (q.type === 'sort' && S.sort) {
       const it = t.closest('[data-sitem]'); const bin = t.closest('[data-sbin]'); const X = S.sort;
-      if (it) { if (it.classList.contains('placed')) { const pool = document.getElementById('sortPool'); delete X.placed[it.dataset.sitem]; it.classList.remove('placed'); delete it.dataset.bin; if (pool) pool.appendChild(it); pool && pool.classList.remove('empty'); const sb0 = document.getElementById('submit'); if (sb0) sb0.disabled = true; }   // ångra: tryck på ett placerat kort så går det tillbaka
+      if (it) { EXP.hear(q, it.textContent); if (it.classList.contains('placed')) { const pool = document.getElementById('sortPool'); delete X.placed[it.dataset.sitem]; it.classList.remove('placed'); delete it.dataset.bin; if (pool) pool.appendChild(it); pool && pool.classList.remove('empty'); const sb0 = document.getElementById('submit'); if (sb0) sb0.disabled = true; }   // ångra: tryck på ett placerat kort så går det tillbaka
         document.querySelectorAll('.stile.sel').forEach(x => { x.classList.remove('sel'); x.setAttribute('aria-pressed', 'false'); }); X.sel = Number(it.dataset.sitem); it.classList.add('sel'); it.setAttribute('aria-pressed', 'true'); return true; }
       if (bin && X.sel != null) { const b = Number(bin.dataset.sbin); X.placed[X.sel] = b; const el = document.querySelector(`[data-sitem="${X.sel}"]`); if (el) { el.classList.remove('sel'); el.setAttribute('aria-pressed', 'false'); el.classList.add('placed'); el.dataset.bin = b; document.getElementById('sbin' + b).appendChild(el); } X.sel = null; beep('tick');
         const pool = document.getElementById('sortPool'); if (pool) pool.classList.toggle('empty', !pool.querySelector('.stile')); const sb = document.getElementById('submit'); if (sb) sb.disabled = Object.keys(X.placed).length !== q.items.length; return true; }
@@ -221,7 +237,7 @@ const EXP = {
     }
     if (q.type === 'match' && S.match2) {
       const mt = t.closest('[data-m2]'); if (!mt) return false; const M = S.match2; const side = mt.dataset.m2; const i = Number(mt.dataset.mi);
-      if (!M.sel || M.sel.side === side) { document.querySelectorAll('.mtile.sel').forEach(x => x.classList.remove('sel')); M.sel = { side, i, el: mt }; mt.classList.add('sel'); return true; }
+      EXP.hear(q, mt.textContent); if (!M.sel || M.sel.side === side) { document.querySelectorAll('.mtile.sel').forEach(x => x.classList.remove('sel')); M.sel = { side, i, el: mt }; mt.classList.add('sel'); return true; }
       if (M.sel.i === i) { mt.classList.add('done'); M.sel.el.classList.add('done'); M.sel.el.classList.remove('sel'); M.done.add(i); M.sel = null; beep('tick'); if (M.done.size === q.pairs.length) submitMath(); return true; }
       M.mistakes++; beep('no'); mt.classList.add('no'); const a = M.sel.el; a.classList.add('no'); a.classList.remove('sel'); M.sel = null; setTimeout(() => { mt.classList.remove('no'); a.classList.remove('no'); }, 450); return true;
     }
@@ -232,6 +248,8 @@ const EXP = {
     if (t.closest('[data-sc]')) { EXP.selfCheck(t.closest('[data-sc]')); return true; }
     return false;
   },
+  // Explore: ett tryck på ett kort läser upp det (Yngre, när uppläsning är tillåten för frågan) – ingen läsning krävs för att välja
+  hear(q, text) { try { if (S.v2 && S.v2.exp === 'explore' && S.v2.C.pol.name === 'younger' && V2.canSpeak(q) && text) TTS.speak(String(text).trim(), 'sv'); } catch (e) { /* ingen röst */ } },
   raw(q) {
     if (q.type === 'sort') { const m = {}; for (const [i, b] of Object.entries((S.sort && S.sort.placed) || {})) m[q.items[i]] = q.bins[b]; return JSON.stringify(m); }
     if (q.type === 'match') return JSON.stringify({ done: S.match2 ? S.match2.done.size : 0, mistakes: S.match2 ? S.match2.mistakes : 0 });
@@ -258,7 +276,7 @@ const EXP = {
   finish(kid, V, sum, won, extraCards) {
     const e = V.exp; const p = prof(kid.id); const flow = V.mode === 'flow';
     const g = e === 'achieve' ? EXP.goalOf(kid).now : null;
-    const title = e === 'explore' ? 'ÄVENTYRET KLART!' : e === 'grow' ? (flow ? 'EXTRARUNDAN KLAR!' : 'RUNDAN KLAR!') : flow ? 'BLOCKET KLART' : 'DAGENS PLAN KLAR';
+    const title = e === 'explore' ? 'ÄVENTYRET KLART!' : e === 'grow' ? (flow ? 'EXTRARUNDAN KLAR!' : 'RUNDAN KLAR!') : flow ? 'EXTRAPASSET KLART' : 'DAGENS PLAN KLAR';
     const flowLabel = e === 'explore' ? 'ETT ÄVENTYR TILL' : e === 'grow' ? 'EN RUNDA TILL' : g && EXP.isExam(g.e) ? 'FORTSÄTT MOT PROVET' : 'FORTSÄTT';
     const kinds = []; for (const r of V.rewards) if (EXP.DELIGHT[r.k] && !kinds.includes(r.k)) kinds.push(r.k);
     const delights = kinds.slice(0, 3).map(k => `<div class="delight">${esc(EXP.DELIGHT[k])}</div>`).join('');
@@ -267,7 +285,6 @@ const EXP = {
     const gems = V.rewards.reduce((a, r) => a + r.gems, 0);
     const canMore = EXP.canFlow(kid); const rested = EXP.flowsToday(p) >= EXP.FLOW_MAX;
     const fb = LE2.felbokChild(V.C.L, V.C.pol, LE.now()); const todo = fb.items.filter(x => x.state === 'todo').length;
-    if (e === 'explore') confetti(40);
     render(`${topbar('Klart', 'home')}
     <div class="stack" style="margin-top:6px">
       <section class="card pad-lg summary-hero stack klar" style="gap:8px;text-align:center" aria-label="${esc(title)}">
@@ -277,14 +294,21 @@ const EXP = {
         ${trail}
         ${e !== 'explore' ? `<div style="font-weight:700">${sum.ok} av ${sum.n} rätt</div>` : ''}
         ${(() => { const up = [...V.stageUps].filter(cid => ((V.C.L.c[cid] || {}).st || 0) >= 2).length; return up && e !== 'explore' ? `<div>${up === 1 ? 'Ett område' : `${up} områden`} sitter bättre nu</div>` : ''; })()}
-        ${delights}${gems ? `<div>+${gems} 💎</div>` : ''}
+        ${delights}${gems && e === 'grow' ? `<div>+${gems} 💎</div>` : ''}
       </section>
       ${back.length ? `<div class="card stack" style="gap:4px"><div class="eyebrow">Det här behöver komma tillbaka</div>${back.map(b => `<div>${esc(b.name)} – kommer tillbaka ${esc(b.when)}.</div>`).join('')}</div>` : ''}
       ${extraCards}
-      ${canMore ? `<button class="btn big wide" data-v2="flow">${esc(flowLabel)}</button>` : `<div class="card muted" style="text-align:center">${rested ? 'Bra jobbat idag! Det du har övat sätter sig bäst om du vilar nu.' : 'Allt för idag är gjort.'}</div>`}
+      ${canMore ? `<button class="btn big wide secondary" data-v2="flow">${esc(flowLabel)} · cirka ${EXP.flowMins(kid)} min</button>` : `<div class="card muted" style="text-align:center">${rested ? 'Bra jobbat idag! Det du har övat sätter sig bäst om du vilar nu.' : 'Allt för idag är gjort.'}</div>`}
       ${e === 'grow' && todo && canMore ? `<button class="btn ghost wide" data-v2="revansch">Revansch i stället · ${todo} ${todo === 1 ? 'sak' : 'saker'}</button>` : ''}
-      <button class="btn ${canMore ? 'ghost' : 'big'} wide" data-go="home">Klar för idag</button>
+      <button class="btn big wide ${canMore ? 'secondary' : ''}" data-go="home">Klar för idag</button>
     </div>`);
+  },
+  // Avklarade dagsuppdrag hämtas automatiskt på KLAR (samma belöning som knappen "Hämta" – utan att barnet måste göra något mer)
+  autoClaim(kid, list) {
+    if (!list.length) return ''; const p = prof(kid.id);
+    for (const q of list) { const it = p.quests.items.find(x => x.id === q.id); if (!it || !it.done || it.claimed) continue; it.claimed = true; p.xp += it.reward.xp; p.gems += it.reward.gems; }
+    if (p.quests.items.every(x => x.claimed) && p.claimedAll !== todayKey()) { p.claimedAll = todayKey(); p.gems += 15; }
+    save(); return `<div class="card muted" style="font-size:.9rem">Uppdrag klart: ${list.map(q => esc(q.text)).join(' · ')}</div>`;
   },
   /* ---------- Testa mig: rapport per målområde (aldrig en prognos) ---------- */
   examReport(kid, V) {
