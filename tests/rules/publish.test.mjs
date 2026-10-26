@@ -10,8 +10,8 @@ const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'publish-')); const f = (n) =>
 const bundle = (tag) => JSON.stringify({ v: 1, updatedAt: Date.now(), packs: [], work: [{ id: tag, kid: 'k1', type: 'exam', title: 'syntetiskt prov ' + MARK, date: '2030-01-01' }] });
 fs.writeFileSync(f('a.json'), bundle('a')); fs.writeFileSync(f('b.json'), bundle('b')); fs.writeFileSync(f('c.json'), bundle('c'));
 let fails = 0; const out = [];
-const run = (...args) => { const r = spawnSync(process.execPath, [path.join(ROOT, 'scripts/content.mjs'), ...args], { encoding: 'utf8', env: { ...process.env, FAMILY_CODE: FAM, FIREBASE_PROJECT: 'demo-pluggappen' } }); const txt = r.stdout + r.stderr; if (txt.includes(FAM) || txt.includes(MARK)) { fails++; out.push('FAIL utskriften innehåller familjekoden eller innehållet: ' + args[0]); } return { code: r.status, txt: txt.trim() }; };
-const check = (name, cond, extra = '') => { out.push(`${cond ? 'ok  ' : 'FAIL'} ${name}${extra ? ' – ' + extra : ''}`); if (!cond) fails++; };
+const run = (...args) => { const r = spawnSync(process.execPath, [path.join(ROOT, 'scripts/content.mjs'), ...args], { encoding: 'utf8', env: { ...process.env, FAMILY_CODE: FAM, FIREBASE_PROJECT: 'demo-pluggappen' } }); const txt = r.stdout + r.stderr; last = `kod ${r.status}: ${txt.trim().replace(/\s+/g, ' ')}`; if (txt.includes(FAM) || txt.includes(MARK)) { fails++; out.push('FAIL utskriften innehåller familjekoden eller innehållet: ' + args[0]); } return { code: r.status, txt: txt.trim() }; };
+let last = ''; const check = (name, cond, extra = '') => { if (!cond) extra = (extra ? extra + ' – ' : '') + last.slice(0, 160); out.push(`${cond ? 'ok  ' : 'FAIL'} ${name}${extra ? ' – ' + extra : ''}`); if (!cond) fails++; };
 const ut = (file) => JSON.parse(fs.readFileSync(file, 'utf8'));
 
 let r = run('fetch', f('bk0.json')); check('backup när inget dokument finns', r.code === 0 && ut(f('bk0.json')).exists === false);
@@ -37,4 +37,5 @@ fs.rmSync(dir, { recursive: true, force: true });
 const head = `Nyckelfri publicering i emulatorn: ${out.filter(x => x.startsWith('ok')).length} av ${out.length} som förväntat`;
 console.log(head); for (const x of out) console.log('  ' + x);
 if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `### ${head}\n\n${out.map(x => '- ' + x).join('\n')}\n\n`);
+if (process.env.GITHUB_ACTIONS) console.log(`::${fails ? 'error' : 'notice'} title=Nyckelfri publicering::${head}${fails ? ' | ' + out.filter(x => x.startsWith('FAIL')).join(' | ').slice(0, 900) : ''}`);
 process.exit(fails ? 1 : 0);
