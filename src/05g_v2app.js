@@ -138,7 +138,7 @@ const V2 = {
     }
     if (mode === 'flow') return EXP.flowPlan(kid, C, now, id);   // Experience v3: frivilligt extrablock – samma motor, kortare, dygnets gräns för nytt
     // Hotfix 2.1.1: "Öva inför provet" – samma motor och samma regler (förfallet, nytt inom dygnets gräns, Revansch), men bara provets koncept
-    if (mode === 'mission') { const e = LE.exams(kid, p).find(x => x.id === extra.examId); if (!e) return []; const cids = V2.examCidsActive(kid, e); if (!cids.length) return []; const plan0 = LE.plan(kid, V2.n(kid, C), now, id, { only: cids, newCap: V2.newCapToday(C, now, p) }).plan; const set = new Set(cids);
+    if (mode === 'mission') { const e = LE.exams(kid, p).find(x => x.id === extra.examId); if (!e) return []; const cids = V2.examCidsActive(kid, e); if (!cids.length) return []; const plan0 = LE.plan(kid, V2.n(kid, C), now, id, { only: cids, newCap: V2.newCapToday(C, now, EXP.on(kid) ? p : null) }).plan; const set = new Set(cids);
       // Granskning: bara provets koncept (även Bossen), och inget pass alls när inget av provet går att öva just nu (t.ex. kvällen före provet
       // med opåbörjade områden) – då visas en ärlig text i stället för en knapp som startar något annat
       const plan = plan0.filter(s => set.has(s.cid)); if (!plan.some(s => s.role !== 'boss')) return [];
@@ -146,7 +146,7 @@ const V2 = {
     if (mode === 'readclose') { const cids = LE.cidsOfSkill(C, extra.skillId); if (!cids.length) return []; const start = Math.floor(Math.random() * cids.length); const plan = [0, 1, 2].map(i => ({ cid: cids[(start + i) % cids.length], role: 'readclose', why: 'läst, stängt – minns du?' })); plan.maxItems = 3; return plan; }
     // v3 (granskning M2) och 2.1.1: ett nytt Kör! efter dagens CORE eller efter provträning samma dag får bara det som är kvar av dygnets gräns för nytt
     const later = (EXP.on(kid) && EXP.coreDone(p)) || V2.missionToday(p);
-    return LE.plan(kid, V2.n(kid, C), now, id, later ? { newCap: V2.newCapToday(C, now, p) } : {}).plan;
+    return LE.plan(kid, V2.n(kid, C), now, id, later ? { newCap: V2.newCapToday(C, now, EXP.on(kid) ? p : null) } : {}).plan;
   },
   start(kid, mode = 'kor', extra = {}) {
     const p = prof(kid.id);
@@ -209,11 +209,11 @@ const V2 = {
       let q = ask();
       // v3 (UX-granskning): samma faktum ska inte komma tillbaka samma dag i en annan form (t.ex. först flerval, sedan som Boss i eget svar).
       // Bara valet av variant – formatet och nivån som motorn bad om gäller. Finns ingen annan variant: samma faktum hellre än ingen uppgift.
-      if (V.exp && !V.exam) { const dk = EXP.dayFacts(kid); for (let t = 0; t < 4 && q && q.fk && dk.has(q.fk); t++) { avoid.add(LECAT.itemId(q)); const q2 = ask(); if (!q2 || q2.onlyVariant) break; q = q2; } if (q && q.fk) dk.add(q.fk); }
+      if (V.exp && !V.exam) { const dk = EXP.dayFacts(kid); for (let t = 0; t < 4 && q && q.fk && dk.has(q.fk); t++) { avoid.add(LECAT.itemId(q)); const q2 = ask(); const fits = q2 && !q2.onlyVariant && (fmt !== 'recall' || q2.form === 'recall') && (fmt !== 'depth' || PACKS.DEPTH.has(q2.form)) && (q2.level || 1) <= Math.max(q.level || 1, spec.lvl || 1); if (!fits) break; q = q2; } if (q && q.fk) dk.add(q.fk); }   // bytet tas bara när varianten har samma format och nivå (verifieringspass)
       if (!q && spec.mode === 'challenge') q = PACKS.question(spec.cid, { lvl: 3, format: 'depth', pol: pol.name, avoid, rnd: Math.random, itemId: LECAT.itemId });
       if (!q) return [];
       q = { ...q, skill, cat: 'math', level: q.level || spec.lvl };
-      if (V.exp === 'explore' && !V.exam && spec.format !== 'recall' && EXP.buildable(q)) q.build = true;   // v3: bygg ordet med brickor (samma rättning, loggas som flerval) – aldrig när motorn ber om eget svar. UX: även stavningsord (brickorna kräver rätt stavning; 7-åringar slipper tangentbordet)
+      if (V.exp === 'explore' && !V.exam && spec.format !== 'recall' && EXP.buildable(q) && !(q.accept && q.accept.exact)) q.build = true;   // v3: bygg ordet med brickor (samma rättning) – aldrig när motorn ber om eget svar eller stavningen är själva frågan (brickorna avslöjar t.ex. dubbelteckning – verifieringspass)
       V.seen.add(V2.iid(q)); return [{ ...q, spec, _slotEnd: true }];
     }
     let q;

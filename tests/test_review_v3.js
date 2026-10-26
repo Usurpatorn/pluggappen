@@ -66,6 +66,15 @@ const golden = () => { const f = path.join(os.tmpdir(), `g210-rv-${process.pid}.
       for (const sid of ['forenkla', 'ekvation', 'multin']) { const sk = k.skills.find(s => s.id === sid); if (!sk) continue; for (let i = 0; i < 40; i++) { const q = PA.EXP.rhythmItem('spot', sk, 2); if (q) pos[q.answer] = (pos[q.answer] || 0) + 1; } }
       console.log('  Hitta felet – rätt svar per position:', JSON.stringify(pos)); ok([0, 1, 2].every(i => (pos[i] || 0) > 5), '5: Hitta felet – felet hamnar i A, B och C'); }
 
+    /* 10. Verifieringspasset: Bossens djupare form aldrig över motorns nivå; stavningsord byggs inte med brickor; inget FLOW efter ett CORE på ≤ 2 */
+    { const w = mkWin({ seed: 4, fixedClock: true }); await sleep(40); const T = tools(w); const PA = T.PA; PA().FAMILY.apply(FIX); PA().load(); PA().rerender(); const D = v2tools(w, T);
+      let over = 0, n = 0; for (const cid of Object.keys(PA().PACKS.REG.kp)) for (const pol of ['middle', 'older']) for (const lvl of [1, 2]) { const q = PA().PACKS.question(cid, { lvl, format: 'any', pol, rnd: Math.random, vary: { choiceRun: 0, boost: 1, depthBoss: true } }); if (!q) continue; n++; if ((q.level || 1) > lvl) over++; }
+      ok(n > 50 && over / n < 0.05, `10: Bossens djupare form håller motorns nivå (${over} av ${n} över – bara när ingen variant på nivån finns)`);
+      let exactBuilt = 0, exactSeen = 0; for (let d = 0; d < 6; d++) { openKid(T, 'k2'); T.click(T.$('.go-btn[data-v2="kor"]')); let g = 0; while (PA().S && PA().S.v2 && T.$('#qcard') && g++ < 40) { const it = PA().S.queue[PA().S.i]; if (it.accept && it.accept.exact) { exactSeen++; if (it.build) exactBuilt++; } D.answer(() => false); w.__advance(4000); } w.__advance(DAY); }
+      ok(exactBuilt === 0, `10: stavningsord byggs aldrig med brickor i Explore (${exactBuilt} av ${exactSeen})`);
+      openKid(T, 'k8'); T.click(T.$('.go-btn[data-v2="kor"]')); D.run(false); const p8 = PA().DB.profiles.k8; const rec = p8.le.shadow.filter(r => r.m === 'kor').slice(-1)[0]; const keep = rec.v2; rec.v2 = rec.v2.slice(0, 2);
+      ok(PA().EXP.peekFlow(PA().KIDS.find(k => k.id === 'k8')).length === 0, '10: inget FLOW när dagens CORE hade högst två platser'); rec.v2 = keep; }
+
     /* 7. Uppgifts-id för algebrauttryck oförändrade mot 2.1.0 */
     { const q = { type: 'expr', text: 'Förenkla 2(x + 3)', answer: { x: 2, '': 6 } };
       const w = mkWin({ seed: 1 }); await sleep(40); const a = tools(w).PA().LECAT.itemId(q);

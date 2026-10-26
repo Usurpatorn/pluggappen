@@ -41,6 +41,7 @@ const EXP = {
     const p = prof(kid.id); const newCap = V2.newCapToday(C, now, p);
     // FLOW är kortare än dagens CORE (granskning: policyns längd räckte inte – CORE kan vara 3–5 uppgifter)
     const d0 = LE2.dayIdx(now); const core = V2.v2recs(p).filter(r => r.m === 'kor' && LE2.dayIdx(r.t * 1000) === d0).slice(-1)[0]; const coreN = core && core.v2 ? core.v2.length : 0;
+    if (coreN && coreN <= 2) return [];   // dagens CORE var mycket kort (t.ex. dagen före provet): inget extrablock som är lika långt (verifieringspass)
     const base = Math.round(V2.n(kid, C) * 0.6); const n = coreN ? Math.max(2, Math.min(base, coreN - 1)) : Math.max(3, base);
     let plan = LE.plan(kid, n, now, id, { newCap }).plan;
     // Motorns pass har en minsta längd per policy; FLOW visar bara början av planen (samma ordning, Bossen sist) så att extrablocket
@@ -123,8 +124,8 @@ const EXP = {
   /* Hotfix 2.1.1-principen i v3: en provmärkt knapp startar ett pass som verkligen innehåller provets områden. examShare räknar hur
      stor del av en plan som hör till provet; missionBtn erbjuder provets egen träning (bara provets koncept) – eller säger ärligt att
      provets områden inte är inlagda ännu. Inget tyst utbyte mot annat innehåll. */
-  // v3: andelen räknas över ALLA platser (även Bossen) – samma antal som passets räknare "Uppgift 1 av N" (UX-granskning). Klassisk: som 2.1.1.
-  examShare(kid, m, plan) { if (!m) return { cids: [], n: 0, of: 0 }; const cids = V2.examCidsActive(kid, m.e); const set = new Set(cids); const pl = plan || []; return { cids, n: pl.filter(s => set.has(s.cid)).length, of: pl.length }; },
+  // v3: "N av M": M = alla platser (samma antal som passets räknare "Uppgift 1 av M", UX-granskning); N räknar inte Bossen. Klassisk: som 2.1.1.
+  examShare(kid, m, plan) { if (!m) return { cids: [], n: 0, of: 0 }; const cids = V2.examCidsActive(kid, m.e); const set = new Set(cids); const pl = plan || []; return { cids, n: pl.filter(s => s.role !== 'boss' && set.has(s.cid)).length, of: pl.length }; },   // Bossens plats väljs om under passet – räknas inte som prov (verifieringspass), men passets längd gäller
   mostly(sh) { return sh.n > 0 && sh.n * 2 >= sh.of; },   // "MOT PROVET" på FLOW-knappen bara när minst hälften av extrapasset hör till provet (granskning)
   shareText(sh) { return sh.n === sh.of ? 'Allt inför provet' : `${sh.n} av ${sh.of} uppgifter inför provet`; },
   missionBtn(kid, m, cls = 'btn big wide secondary') {
