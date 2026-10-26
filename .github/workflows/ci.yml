@@ -86,6 +86,8 @@ jobs:
           git show f91366f036d9a1bdf45340cd97d285a492ee8588:firestore.rules > /tmp/rules.v21
       - name: Nuvarande regler (måste hålla)
         run: npx firebase emulators:exec --project demo-pluggappen --only firestore "node tests/rules/rules.test.mjs"
+      - name: Nyckelfri publicering (backup, konfliktskydd, återläsning, rollback)
+        run: npx firebase emulators:exec --project demo-pluggappen --only firestore "node tests/rules/publish.test.mjs"
       - name: Regler 2.0.0 (kända hål förväntas)
         run: npx firebase emulators:exec --project demo-pluggappen --only firestore "node tests/rules/rules.test.mjs"
         env:

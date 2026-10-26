@@ -5,6 +5,11 @@ const clean = (v) => (v || '').trim().replace(/^["']|["']$/g, '').trim();
 const cleanKey = (v) => { let k = clean(v); const m = k.match(/"privateKey"\s*:\s*"([^"]+)"/); if (m) k = m[1]; k = k.replace(/\s+/g, '').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); const pk = k.match(/[A-Za-z0-9_-]{43}/); return pk ? pk[0] : k; };
 const FAMILY_CODE = clean(process.env.FAMILY_CODE), VAPID_PRIVATE_KEY = cleanKey(process.env.VAPID_PRIVATE_KEY), VAPID_PUBLIC_KEY = clean(process.env.VAPID_PUBLIC_KEY), FIREBASE_PROJECT = clean(process.env.FIREBASE_PROJECT), FIREBASE_KEY = clean(process.env.FIREBASE_KEY), FORCE_SLOT = clean(process.env.FORCE_SLOT);
 const log = []; const say = (...a) => { const line = a.join(' '); console.log(line); log.push(line); };
+// Repot är publikt och Actions-loggarna kan läsas av alla: barnens id (ofta förnamn) och prenumerations-id skrivs aldrig ut i konsolen.
+// Den fullständiga raden sparas bara i familjens privata push_log (som föräldern ser i appen).
+const sayPriv = (pub, priv) => { console.log(pub); log.push(priv); };
+const anonKid = (kid) => (kid === 'parent' ? 'förälder' : 'barn ' + ((Object.keys(KIDS).indexOf(kid) + 1) || '?'));
+const anonSub = (id) => { let h = 0; for (const c of String(id)) h = (h * 31 + c.charCodeAt(0)) >>> 0; return 'enhet ' + h.toString(36).slice(0, 4); };
 // ---- Autentisering mot Firestore ----
 // Reglerna kräver medlemskap; jobbet använder därför ett servicekonto (secret FIREBASE_SERVICE_ACCOUNT = hela JSON-nyckelfilen).
 // Access-token hämtas med en egen-signerad RS256-JWT (inga extra beroenden). Saknas secreten används API-nyckeln (fungerar bara under övergångsperioden).
@@ -34,7 +39,7 @@ const slot = FORCE_SLOT || (hour < 19 || (hour === 19 && stockholm.getMinutes() 
 say('Stockholm', stockholm.toString(), 'slot', slot);
 // Tysta timmar: GitHubs schemaläggning kan vara timmar försenad – skicka aldrig sent på kvällen eller på natten (testläge undantaget).
 if (slot !== 'test' && (hour >= 21 || hour < 7)) { say('tyst timme (' + hour + ':xx) – skickar inget'); await writeStatus({ ok: true, sent: 0, slot, subs: 0, quiet: true }); process.exit(0); }
-let list; try { list = await fsFetch(`${base}?key=${FIREBASE_KEY}&pageSize=100`).then(r => r.json()); if (list.error) throw new Error(JSON.stringify(list.error)); } catch (e) { say('Kunde inte läsa Firestore: ' + e.message); await writeStatus({ ok: false }); process.exit(0); }
+let list; try { list = await fsFetch(`${base}?key=${FIREBASE_KEY}&pageSize=100`).then(r => r.json()); if (list.error) throw new Error(JSON.stringify(list.error)); } catch (e) { const fam = encodeURIComponent(FAMILY_CODE); sayPriv('Kunde inte läsa Firestore: ' + String(e.message).split(FAMILY_CODE).join('<familj>').split(fam).join('<familj>').slice(0, 300), 'Kunde inte läsa Firestore: ' + e.message); await writeStatus({ ok: false }); process.exit(0); }   // felmeddelandet kan innehålla dokumentsökvägen
 const docs = list.documents || [];
 const profiles = {}; const subs = [];
 for (const d of docs) {
@@ -58,8 +63,8 @@ for (const s of subs) {
     if (slot === 'evening' && !practicedToday(p) && p && p.streak > 0 && (p.settings && p.settings.engine === 'v1')) msgs.push({ title: `Streaken går ut ikväll`, body: `${p.streak} dagar i rad – en kort sprint räddar den.`, tag: 'streak', url: `./#${s.kid}-kor` });
   }
   for (const m of msgs) {
-    try { await webpush.sendNotification(s.sub, JSON.stringify(m), { TTL: 3600 * 6 }); sent++; say('skickade till', s.kid, m.tag); }
-    catch (e) { say('fel', s.id, e.statusCode, (e.body || e.message || '').toString().slice(0, 120)); if (e.statusCode === 404 || e.statusCode === 410) { await fsFetch(`${base}/${s.id}?key=${FIREBASE_KEY}`, { method: 'DELETE' }).catch(() => {}); say('tog bort död prenumeration', s.id); } }
+    try { await webpush.sendNotification(s.sub, JSON.stringify(m), { TTL: 3600 * 6 }); sent++; sayPriv(`skickade till ${anonKid(s.kid)} ${m.tag}`, `skickade till ${s.kid} ${m.tag}`); }
+    catch (e) { const why = (e.body || e.message || '').toString().slice(0, 120); sayPriv(`fel ${anonSub(s.id)} ${e.statusCode}`, `fel ${s.id} ${e.statusCode} ${why}`); if (e.statusCode === 404 || e.statusCode === 410) { await fsFetch(`${base}/${s.id}?key=${FIREBASE_KEY}`, { method: 'DELETE' }).catch(() => {}); sayPriv(`tog bort död prenumeration (${anonSub(s.id)})`, `tog bort död prenumeration ${s.id}`); } }
   }
 }
 say('skickade totalt', sent); await writeStatus({ ok: true, sent, slot, subs: subs.length });
