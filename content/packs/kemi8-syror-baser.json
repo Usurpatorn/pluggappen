@@ -1597,19 +1597,19 @@
     },
     {
      "k": "group",
-     "sq": "Saltsyra och natriumhydroxid neutraliserar varandra. Sortera: före eller efter reaktionen?",
+     "sq": "Saltsyra och natriumhydroxid neutraliserar varandra. Sortera: vad reagerar och vad bildas?",
      "groups": [
       {
-       "q": "Saltsyra neutraliseras med natriumhydroxid. Vilket ämne fanns FÖRE reaktionen?",
-       "label": "Före reaktionen",
+       "q": "Saltsyra neutraliseras med natriumhydroxid. Vilket ämne reagerar (förbrukas)?",
+       "label": "Reagerar",
        "items": [
         "Saltsyra",
         "Natriumhydroxid"
        ]
       },
       {
-       "q": "Saltsyra neutraliseras med natriumhydroxid. Vilket ämne BILDAS?",
-       "label": "Efter reaktionen",
+       "q": "Saltsyra neutraliseras med natriumhydroxid. Vilket ämne bildas?",
+       "label": "Bildas",
        "items": [
         "Natriumklorid",
         "Vatten"

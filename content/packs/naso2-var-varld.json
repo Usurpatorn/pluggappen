@@ -959,7 +959,7 @@
        "label": "Dag",
        "items": [
         "Vår sida av jorden är vänd mot solen",
-        "Det är ljust ute"
+        "Solen lyser på oss"
        ]
       },
       {
@@ -967,7 +967,7 @@
        "label": "Natt",
        "items": [
         "Vår sida av jorden är vänd bort från solen",
-        "Det är mörkt ute"
+        "Solen lyser inte på oss"
        ]
       }
      ],
