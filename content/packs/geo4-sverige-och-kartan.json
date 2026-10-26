@@ -1,0 +1,2723 @@
+{
+ "pluggPackVersion": 1,
+ "id": "geo4-sverige-och-kartan",
+ "title": "Geografi åk 4: kartan, Sverige och naturen",
+ "subject": "so",
+ "topic": "Geografi",
+ "grades": [
+  4,
+  5
+ ],
+ "policies": [
+  "middle"
+ ],
+ "templates": [
+  "ak4"
+ ],
+ "rev": 2,
+ "sources": [
+  {
+   "id": "lgr22",
+   "label": "Lgr22 Geografi åk 4–6: geografins metoder och verktyg, livsmiljöer, hållbar utveckling",
+   "kind": "lgr22"
+  }
+ ],
+ "skills": [
+  {
+   "id": "geo_kartor_forr",
+   "existing": true
+  },
+  {
+   "id": "geo_lasa_karta",
+   "existing": true
+  },
+  {
+   "id": "geo_hitta",
+   "existing": true
+  },
+  {
+   "id": "geo_sverige_lage",
+   "existing": true
+  },
+  {
+   "id": "geo_indelning",
+   "existing": true
+  },
+  {
+   "id": "geo_befolkning",
+   "existing": true
+  },
+  {
+   "id": "geo_klimat",
+   "existing": true
+  },
+  {
+   "id": "geo_naturtyper",
+   "existing": true
+  },
+  {
+   "id": "geo_naturresurser",
+   "existing": true
+  },
+  {
+   "id": "geo_miljo",
+   "existing": true
+  }
+ ],
+ "kps": [
+  {
+   "id": "kartor-forr-nu",
+   "skill": "geo_kartor_forr",
+   "name": "Kartor förr och nu",
+   "explain": "Förr ritades kartor för hand av sjömän och upptäcktsresande som mätte och ritade det de såg – de blev ofta fel. I dag görs kartor med satellitbilder och GPS. Jorden är rund, så en platt världskarta kan aldrig bli helt rätt: något måste töjas ut. En jordglob visar jorden i rätt form.",
+   "facts": [
+    {
+     "k": "qa",
+     "q": "Hur ritades kartor för flera hundra år sedan?",
+     "a": "För hand, utifrån vad sjömän och upptäcktsresande såg och mätte",
+     "not": [
+      "Med satellitbilder",
+      "Från flygplan med kamera",
+      "Med GPS i mobilen"
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Hur görs kartor i dag?",
+     "a": "Med satellitbilder och GPS-mätningar",
+     "not": [
+      "För hand av sjömän",
+      "Genom att gissa",
+      "Bara genom att fråga folk"
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Varför kan en platt världskarta aldrig bli helt rätt?",
+     "a": "Jorden är rund och går inte att platta ut utan att något töjs",
+     "not": [
+      "Papperet är för litet",
+      "Länderna flyttar på sig",
+      "Haven syns inte på papper"
+     ],
+     "form": "cause",
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Vad händer med Grönland på många platta världskartor?",
+     "a": "Det ser mycket större ut än det är",
+     "not": [
+      "Det försvinner helt",
+      "Det ser mindre ut än det är",
+      "Det hamnar i Afrika"
+     ],
+     "form": "cause",
+     "lvl": 2
+    },
+    {
+     "k": "term",
+     "term": "jordglob",
+     "q": "Vad visar jorden i rätt form och med rätt storlek på länderna?",
+     "alias": [
+      "glob",
+      "en jordglob"
+     ],
+     "not": [
+      "Platt världskarta",
+      "Stadskarta",
+      "Karta i mobilen"
+     ],
+     "cls": "karta"
+    },
+    {
+     "k": "stmt",
+     "s": "Gamla kartor var ofta fel eftersom de ritades för hand efter det man såg.",
+     "f": [
+      "Gamla kartor var mer exakta än dagens kartor."
+     ]
+    },
+    {
+     "k": "stmt",
+     "s": "En jordglob visar jordens form bättre än en platt karta.",
+     "f": [
+      "En platt karta visar jordens form bättre än en jordglob."
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "order",
+     "q": "Sätt i ordning från äldst till nyast.",
+     "items": [
+      "Kartor ritade för hand efter sjömäns resor",
+      "Kartor från flygfoton",
+      "Kartor från satellitbilder och GPS"
+     ],
+     "lvl": 2
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "karttyper",
+   "skill": "geo_kartor_forr",
+   "name": "Olika sorters kartor",
+   "explain": "En topografisk karta visar hur landskapet ser ut: höjder, vatten och vägar. En tematisk karta visar en enda sak, till exempel var människor bor eller hur klimatet är. En stadskarta eller digital karta hjälper dig att hitta gator.",
+   "facts": [
+    {
+     "k": "term",
+     "term": "topografisk karta",
+     "q": "Vilken sorts karta visar landskapet som det ser ut: höjder, vatten och vägar?",
+     "alias": [
+      "topografisk",
+      "terrängkarta"
+     ],
+     "not": [
+      "Tematisk karta",
+      "Stadskarta",
+      "Sjökort"
+     ],
+     "cls": "karttyp",
+     "recall": false
+    },
+    {
+     "k": "term",
+     "term": "tematisk karta",
+     "q": "Vad kallas en karta som visar en enda sak, till exempel var människor bor?",
+     "alias": [
+      "tematisk"
+     ],
+     "not": [
+      "Topografisk karta",
+      "Stadskarta",
+      "Jordglob"
+     ],
+     "cls": "karttyp",
+     "recall": false
+    },
+    {
+     "k": "pairs",
+     "q": "Vilken karta passar bäst när du vill {a}?",
+     "items": [
+      [
+       "hitta en gata i en stad",
+       "Stadskarta eller digital karta"
+      ],
+      [
+       "se var det bor mest människor i Sverige",
+       "Tematisk karta över befolkningen"
+      ],
+      [
+       "vandra i fjällen och se höjder och stigar",
+       "Topografisk karta"
+      ],
+      [
+       "se hur hela jorden ser ut på riktigt",
+       "Jordglob"
+      ]
+     ],
+     "lvl": 2,
+     "form": "application"
+    },
+    {
+     "k": "stmt",
+     "s": "En tematisk karta visar en enda sak, till exempel klimatet.",
+     "f": [
+      "En tematisk karta visar allt som finns i ett område."
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Du ska cykla till en ny kompis och vill veta vilken väg som går snabbast. Vilken karta är bäst?",
+     "a": "En digital karta som visar vägen och tiden",
+     "not": [
+      "En jordglob",
+      "En klimatkarta",
+      "En gammal handritad karta"
+     ],
+     "form": "application",
+     "lvl": 2
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "karttecken",
+   "skill": "geo_lasa_karta",
+   "name": "Karttecken och färger",
+   "explain": "Karttecken är små symboler för till exempel kyrka, väg och järnväg. Teckenförklaringen talar om vad de betyder. På en terrängkarta över Sverige är blått vatten, grönt skog och gult åker och öppen mark. På en höjdkarta över världen betyder färgerna höjd: grönt är låg mark och brunt högt land och berg. Kartan visar också sådant som människor har bestämt, som gränser.",
+   "facts": [
+    {
+     "k": "term",
+     "term": "karttecken",
+     "q": "Vad kallas de små symbolerna på en karta som visar till exempel kyrka eller järnväg?",
+     "not": [
+      "Skala",
+      "Register",
+      "Gradnät"
+     ],
+     "cls": "kartbegrepp"
+    },
+    {
+     "k": "term",
+     "term": "teckenförklaring",
+     "q": "Vad kallas rutan som förklarar vad karttecknen betyder?",
+     "alias": [
+      "teckenförklaringen"
+     ],
+     "not": [
+      "Register",
+      "Skala",
+      "Rubrik"
+     ],
+     "cls": "kartbegrepp"
+    },
+    {
+     "k": "pairs",
+     "q": "Vad betyder {a} färg på en terrängkarta över Sverige?",
+     "items": [
+      [
+       "blå",
+       "Vatten"
+      ],
+      [
+       "grön",
+       "Skog"
+      ],
+      [
+       "gul",
+       "Åker och öppen mark"
+      ]
+     ],
+     "rq": "Vilken färg har {b_lower} på en terrängkarta?"
+    },
+    {
+     "k": "qa",
+     "q": "Vad betyder brunt på en höjdkarta över världen?",
+     "a": "Högt land och berg",
+     "not": [
+      "Skog",
+      "Öken",
+      "Vatten"
+     ],
+     "lvl": 2,
+     "why": "På en höjdkarta visar färgerna höjden: grönt är låg mark, gult och brunt allt högre land."
+    },
+    {
+     "k": "qa",
+     "q": "Vilket av detta finns INTE i naturen utan är något människor har bestämt?",
+     "a": "En gräns mellan två län",
+     "not": [
+      "En sjö",
+      "Ett berg",
+      "En skog"
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "group",
+     "groups": [
+      {
+       "q": "Vilket av detta finns på riktigt i naturen?",
+       "items": [
+        "En sjö",
+        "Ett berg",
+        "En älv"
+       ],
+       "odd": "Vilket av detta finns INTE i naturen?"
+      },
+      {
+       "q": "Vilket av detta har människor bestämt?",
+       "items": [
+        "En landsgräns",
+        "En kommungräns",
+        "Ett län"
+       ]
+      }
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Du ser ett blått streck som slingrar sig på kartan. Vad är det troligen?",
+     "a": "En å eller älv",
+     "not": [
+      "En väg",
+      "En järnväg",
+      "En gräns"
+     ],
+     "form": "application",
+     "lvl": 2
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "skala",
+   "skill": "geo_lasa_karta",
+   "name": "Skala och avstånd",
+   "explain": "Skalan talar om hur mycket kartan är förminskad. Skala 1:50 000 betyder att 1 cm på kartan är 50 000 cm (500 m) i verkligheten. Räkna så här: mät på kartan, gånger skalans tal, gör om centimeter till meter (÷100) och kilometer (÷1000).",
+   "facts": [
+    {
+     "k": "term",
+     "term": "skala",
+     "q": "Vad heter det som talar om hur mycket kartan är förminskad jämfört med verkligheten?",
+     "alias": [
+      "skalan"
+     ],
+     "not": [
+      "Teckenförklaring",
+      "Register",
+      "Gradnät"
+     ],
+     "cls": "kartbegrepp"
+    },
+    {
+     "k": "qa",
+     "q": "Skala 1:100 000. Hur långt är 1 cm på kartan i verkligheten?",
+     "a": "1 km",
+     "not": [
+      "100 m",
+      "10 km",
+      "100 km"
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "num",
+     "q": "Kartan har skala 1:50 000. Två byar ligger 4 cm från varandra på kartan. Hur många kilometer är det i verkligheten?",
+     "a": 2,
+     "form": "multistep",
+     "lvl": 2,
+     "why": "4 · 50 000 = 200 000 cm = 2 000 m = 2 km."
+    },
+    {
+     "k": "num",
+     "q": "Kartan har skala 1:100 000. Avståndet på kartan är 3 cm. Hur många kilometer är det i verkligheten?",
+     "a": 3,
+     "form": "multistep",
+     "lvl": 2,
+     "why": "3 · 100 000 = 300 000 cm = 3 km."
+    },
+    {
+     "k": "num",
+     "q": "Skala 1:10 000. På kartan är det 5 cm. Hur många meter är det i verkligheten?",
+     "a": 500,
+     "form": "multistep",
+     "lvl": 3,
+     "why": "5 · 10 000 = 50 000 cm = 500 m."
+    },
+    {
+     "k": "num",
+     "q": "Skala 1:200 000. På kartan är det 2 cm. Hur många kilometer är det i verkligheten?",
+     "a": 4,
+     "form": "multistep",
+     "lvl": 3,
+     "why": "2 · 200 000 = 400 000 cm = 4 km."
+    },
+    {
+     "k": "order",
+     "q": "Sätt stegen i rätt ordning för att räkna ut ett avstånd med skalan 1:50 000.",
+     "items": [
+      "Mät avståndet på kartan med linjal, till exempel 4 cm",
+      "Multiplicera med skalans tal: 4 · 50 000 = 200 000 cm",
+      "Gör om till meter: 200 000 cm = 2 000 m",
+      "Gör om till kilometer: 2 000 m = 2 km"
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "stmt",
+     "s": "På en karta i skala 1:10 000 är saker mer förminskade än i skala 1:1 000.",
+     "f": [
+      "På en karta i skala 1:10 000 är saker mindre förminskade än i skala 1:1 000."
+     ],
+     "lvl": 3
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "register",
+   "skill": "geo_hitta",
+   "name": "Registret i kartboken",
+   "explain": "Längst bak i kartboken finns ett register: alla orter i bokstavsordning med sida och ruta, till exempel 'Visby 22 D4'. Slå upp sidan och leta i rätt ruta. En digital karta kan också visa vägen och hur lång tid det tar.",
+   "facts": [
+    {
+     "k": "term",
+     "term": "register",
+     "q": "Vad kallas listan längst bak i kartboken där alla orter står i bokstavsordning?",
+     "alias": [
+      "registret",
+      "ortregister"
+     ],
+     "not": [
+      "Teckenförklaring",
+      "Innehållsförteckning",
+      "Skala"
+     ],
+     "cls": "kartbegrepp"
+    },
+    {
+     "k": "qa",
+     "q": "I registret står 'Visby 22 D4'. Vad betyder det?",
+     "a": "Sidan 22, i rutan D4",
+     "not": [
+      "22 km till Visby",
+      "Visby har 22 invånare",
+      "Sidan 4, rad 22"
+     ],
+     "form": "application",
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Var i kartboken hittar du en lista över alla orter?",
+     "a": "I registret längst bak",
+     "not": [
+      "På första sidan",
+      "I teckenförklaringen",
+      "På omslaget"
+     ]
+    },
+    {
+     "k": "order",
+     "q": "Sätt stegen i rätt ordning för att hitta en stad i kartboken.",
+     "items": [
+      "Slå upp registret längst bak i boken",
+      "Leta upp staden i bokstavsordning",
+      "Läs av sidan och rutan, till exempel 22 D4",
+      "Bläddra till sidan",
+      "Leta i rätt ruta i rutnätet"
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Vad kan en digital karta göra som en papperskarta inte kan?",
+     "a": "Visa snabbaste vägen och hur lång tid den tar",
+     "not": [
+      "Visa sjöar",
+      "Visa länder",
+      "Visa berg"
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "stmt",
+     "s": "Orterna i registret står i bokstavsordning.",
+     "f": [
+      "Orterna i registret står i storleksordning."
+     ]
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "gradnat",
+   "skill": "geo_hitta",
+   "name": "Gradnätet och ekvatorn",
+   "explain": "Gradnätet är ett nät av breddgrader och längdgrader på kartan och jordgloben. Breddgrader går runt jorden parallellt med ekvatorn och visar hur långt norr eller söder om ekvatorn en plats ligger. Längdgrader går från Nordpolen till Sydpolen. Ekvatorn delar jorden i norra och södra halvklotet.",
+   "facts": [
+    {
+     "k": "term",
+     "term": "breddgrader",
+     "q": "Vad kallas linjerna som går runt jorden parallellt med ekvatorn?",
+     "alias": [
+      "breddgrad",
+      "breddgraderna"
+     ],
+     "not": [
+      "Längdgrader",
+      "Polcirklar",
+      "Gränser"
+     ],
+     "cls": "grad"
+    },
+    {
+     "k": "term",
+     "term": "längdgrader",
+     "q": "Vad kallas linjerna som går från Nordpolen till Sydpolen?",
+     "alias": [
+      "längdgrad",
+      "longitud",
+      "meridianer"
+     ],
+     "not": [
+      "Breddgrader",
+      "Ekvatorer",
+      "Vändkretsar"
+     ],
+     "cls": "grad"
+    },
+    {
+     "k": "term",
+     "term": "ekvatorn",
+     "q": "Vad heter den tänkta linjen runt jordens mitt som delar jorden i två halvklot?",
+     "def": "En tänkt linje runt jordens mitt",
+     "rq": "Vad är ekvatorn?",
+     "alias": [
+      "ekvator"
+     ],
+     "not": [
+      "Polcirkeln",
+      "Nollmeridianen",
+      "Datumgränsen"
+     ],
+     "notDef": [
+      "En stor flod i Afrika",
+      "Linjen där midnattssolen syns",
+      "Gränsen mellan Europa och Asien"
+     ],
+     "cls": "linje"
+    },
+    {
+     "k": "qa",
+     "q": "Vad är gradnätet?",
+     "a": "Rutnätet av linjer som hjälper dig att ange ett läge på kartan",
+     "not": [
+      "En sorts karttecken",
+      "Kartans skala",
+      "Ett register över orter"
+     ]
+    },
+    {
+     "k": "stmt",
+     "s": "Breddgraderna visar hur långt norr eller söder om ekvatorn en plats ligger.",
+     "f": [
+      "Breddgraderna visar hur högt ett berg är."
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Två städer ligger på samma breddgrad. Vad vet du då?",
+     "a": "De ligger lika långt från ekvatorn",
+     "not": [
+      "De ligger lika långt västerut",
+      "De är lika stora",
+      "De ligger i samma land"
+     ],
+     "form": "application",
+     "lvl": 3
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "sverige-varlden",
+   "skill": "geo_sverige_lage",
+   "name": "Sverige i världen",
+   "explain": "Sverige ligger i norra Europa, på norra halvklotet, långt norr om ekvatorn. Tillsammans med Norge ligger Sverige på Skandinaviska halvön.",
+   "facts": [
+    {
+     "k": "qa",
+     "q": "På vilket halvklot ligger Sverige?",
+     "a": "Norra halvklotet",
+     "not": [
+      "Södra halvklotet",
+      "Precis på ekvatorn",
+      "Både norra och södra"
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "I vilken världsdel ligger Sverige?",
+     "a": "Europa",
+     "not": [
+      "Asien",
+      "Nordamerika",
+      "Afrika"
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Vilken del av Europa ligger Sverige i?",
+     "a": "Norra Europa",
+     "not": [
+      "Södra Europa",
+      "Östra Asien",
+      "Västra Afrika"
+     ]
+    },
+    {
+     "k": "term",
+     "term": "Skandinaviska halvön",
+     "q": "Vilken halvö ligger Sverige på tillsammans med Norge?",
+     "alias": [
+      "skandinaviska halvön",
+      "skandinavien"
+     ],
+     "not": [
+      "Iberiska halvön",
+      "Jylland",
+      "Kolahalvön"
+     ],
+     "cls": "halvo",
+     "recall": false
+    },
+    {
+     "k": "stmt",
+     "s": "Sverige ligger långt norr om ekvatorn.",
+     "f": [
+      "Sverige ligger söder om ekvatorn."
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Varför är det mycket kallare i Sverige än i länder vid ekvatorn?",
+     "a": "Sverige ligger långt norrut, där solen står lägre och värmer mindre",
+     "not": [
+      "Sverige ligger nära Sydpolen",
+      "Sverige har inga hav",
+      "Solen lyser aldrig i Sverige"
+     ],
+     "form": "cause",
+     "lvl": 3
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "grannar-hav",
+   "skill": "geo_sverige_lage",
+   "name": "Grannländer och hav",
+   "explain": "Sverige gränsar på land till Norge och Finland. Danmark når man över Öresundsbron. Östersjön ligger öster och sydost om Götaland och Svealand. Bottniska viken ligger längs Norrlands kust, mellan Sverige och Finland. Kattegatt och Skagerrak ligger i väster. Danmark ligger söder och sydväst om Sverige.",
+   "facts": [
+    {
+     "k": "qa",
+     "q": "Vilka två länder gränsar till Sverige på land?",
+     "a": "Norge och Finland",
+     "not": [
+      "Danmark och Tyskland",
+      "Norge och Danmark",
+      "Finland och Ryssland"
+     ]
+    },
+    {
+     "k": "pairs",
+     "q": "Var ligger {a} i förhållande till Sverige?",
+     "items": [
+      [
+       "Östersjön",
+       "Öster och sydost om Götaland och Svealand"
+      ],
+      [
+       "Bottniska viken",
+       "Längs Norrlands kust, mellan Sverige och Finland"
+      ],
+      [
+       "Kattegatt och Skagerrak",
+       "Väster om Sverige"
+      ]
+     ],
+     "why": "Östersjön ligger öster och sydost om södra Sverige, Bottniska viken längs Norrlands kust och Kattegatt och Skagerrak i väster."
+    },
+    {
+     "k": "pairs",
+     "q": "Åt vilket håll från Sverige ligger {a}?",
+     "items": [
+      [
+       "Norge",
+       "Väster"
+      ],
+      [
+       "Finland",
+       "Öster"
+      ],
+      [
+       "Danmark",
+       "Sydväst"
+      ]
+     ],
+     "lvl": 2,
+     "why": "Norge ligger i väster, Finland i öster och Danmark i sydväst."
+    },
+    {
+     "k": "qa",
+     "q": "Hur kan man åka bil från Sverige till Danmark?",
+     "a": "Över Öresundsbron",
+     "not": [
+      "Genom en tunnel till Finland",
+      "Över fjällen",
+      "Det går inte alls"
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "stmt",
+     "s": "Norge och Finland gränsar till Sverige på land.",
+     "f": [
+      "Danmark gränsar till Sverige på land."
+     ]
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "landsdelar",
+   "skill": "geo_indelning",
+   "name": "Sveriges tre landsdelar",
+   "explain": "Sverige har tre landsdelar: Götaland i söder, Svealand i mitten och Norrland i norr. Norrland är störst till ytan men har minst antal invånare.",
+   "facts": [
+    {
+     "k": "qa",
+     "q": "Vilka är Sveriges tre landsdelar?",
+     "a": "Götaland, Svealand och Norrland",
+     "not": [
+      "Skåne, Småland och Lappland",
+      "Norr, mitten och söder",
+      "Län, kommun och region"
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Vilken landsdel är störst till ytan?",
+     "a": "Norrland",
+     "not": [
+      "Svealand",
+      "Götaland",
+      "De är lika stora"
+     ]
+    },
+    {
+     "k": "pairs",
+     "q": "I vilken landsdel ligger {a}?",
+     "items": [
+      [
+       "Malmö",
+       "Götaland"
+      ],
+      [
+       "Uppsala",
+       "Svealand"
+      ],
+      [
+       "Umeå",
+       "Norrland"
+      ],
+      [
+       "Linköping",
+       "Götaland"
+      ],
+      [
+       "Örebro",
+       "Svealand"
+      ],
+      [
+       "Sundsvall",
+       "Norrland"
+      ],
+      [
+       "Kiruna",
+       "Norrland"
+      ],
+      [
+       "Karlstad",
+       "Svealand"
+      ]
+     ],
+     "why": "Götaland i söder, Svealand i mitten, Norrland i norr."
+    },
+    {
+     "k": "order",
+     "q": "Sätt landsdelarna i ordning från söder till norr.",
+     "items": [
+      "Götaland",
+      "Svealand",
+      "Norrland"
+     ]
+    },
+    {
+     "k": "stmt",
+     "s": "Norrland är störst till ytan men har färre invånare än Götaland och Svealand.",
+     "f": [
+      "Norrland har flest invånare av landsdelarna."
+     ],
+     "lvl": 2
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "landskap",
+   "skill": "geo_indelning",
+   "name": "Landskapen",
+   "explain": "Sverige har 25 landskap – den gamla indelningen som många fortfarande använder. Lappland är störst och ligger längst norrut. Skåne ligger längst söderut. Gotland och Öland är öar i Östersjön och egna landskap – Gotland är Sveriges största ö.",
+   "facts": [
+    {
+     "k": "qa",
+     "q": "Hur många landskap finns det i Sverige?",
+     "a": "25",
+     "not": [
+      "21",
+      "290",
+      "3"
+     ]
+    },
+    {
+     "k": "pairs",
+     "q": "I vilket landskap ligger {a}?",
+     "items": [
+      [
+       "Malmö",
+       "Skåne"
+      ],
+      [
+       "Kiruna",
+       "Lappland"
+      ],
+      [
+       "Visby",
+       "Gotland"
+      ],
+      [
+       "Uppsala",
+       "Uppland"
+      ],
+      [
+       "Kalmar",
+       "Småland"
+      ],
+      [
+       "Falun",
+       "Dalarna"
+      ],
+      [
+       "Östersund",
+       "Jämtland"
+      ],
+      [
+       "Karlstad",
+       "Värmland"
+      ]
+     ],
+     "rq": "Vilken stad ligger i landskapet {b}?",
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Vilket är Sveriges nordligaste och till ytan största landskap?",
+     "a": "Lappland",
+     "not": [
+      "Norrbotten",
+      "Jämtland",
+      "Dalarna"
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Vilket landskap är Sveriges största ö?",
+     "a": "Gotland",
+     "not": [
+      "Öland",
+      "Skåne",
+      "Blekinge"
+     ],
+     "lvl": 2,
+     "why": "Gotland är Sveriges största ö. Öland är också ett landskap och en ö, men mindre."
+    },
+    {
+     "k": "stmt",
+     "s": "Skåne är Sveriges sydligaste landskap.",
+     "f": [
+      "Skåne är Sveriges nordligaste landskap."
+     ]
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "lan-kommun",
+   "skill": "geo_indelning",
+   "name": "Län, regioner och kommuner",
+   "explain": "Sverige har 21 län och ungefär 290 kommuner. Kommunen sköter skolor, förskolor, äldreomsorg, vatten och sopor. Regionen ansvarar för sjukvården och kollektivtrafiken. Politiker som valts i val bestämmer.",
+   "facts": [
+    {
+     "k": "qa",
+     "q": "Hur många län finns det i Sverige?",
+     "a": "21",
+     "not": [
+      "25",
+      "290",
+      "3"
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Ungefär hur många kommuner finns det i Sverige?",
+     "a": "290",
+     "not": [
+      "21",
+      "25",
+      "1 000"
+     ]
+    },
+    {
+     "k": "group",
+     "groups": [
+      {
+       "q": "Vad sköter kommunen?",
+       "items": [
+        "Skolor och förskolor",
+        "Äldreomsorg",
+        "Vatten och sopor"
+       ],
+       "odd": "Vad sköter INTE kommunen?"
+      },
+      {
+       "q": "Vad ansvarar regionen för?",
+       "items": [
+        "Sjukvården",
+        "Bussar och tåg i länet"
+       ]
+      }
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Vem bestämmer i en kommun?",
+     "a": "Politiker som valts i val (kommunfullmäktige)",
+     "not": [
+      "Kungen",
+      "Rektorn",
+      "Den som bor längst"
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Du blir sjuk och behöver åka till sjukhuset. Vem ansvarar för sjukhuset?",
+     "a": "Regionen",
+     "not": [
+      "Kommunen",
+      "Skolan",
+      "Länsstyrelsen"
+     ],
+     "form": "application",
+     "lvl": 3
+    },
+    {
+     "k": "stmt",
+     "s": "Kommunen ansvarar för skolan.",
+     "f": [
+      "Regionen ansvarar för skolan."
+     ],
+     "lvl": 2
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "var-vi-bor",
+   "skill": "geo_befolkning",
+   "name": "Var människor bor",
+   "explain": "De flesta i Sverige bor i södra Sverige, längs kusterna och i städer, där klimatet är mildare och det finns fler jobb. Norrlands inland är glesbefolkat. Tätbefolkat betyder att många bor nära varandra, glesbefolkat att få bor på en stor yta.",
+   "facts": [
+    {
+     "k": "qa",
+     "q": "Var bor de flesta människor i Sverige?",
+     "a": "I södra Sverige, längs kusterna och i städer",
+     "not": [
+      "I fjällen",
+      "I Norrlands inland",
+      "På öarna i Östersjön"
+     ]
+    },
+    {
+     "k": "term",
+     "term": "tätbefolkat",
+     "q": "Vad kallas ett område där många människor bor nära varandra?",
+     "def": "Många människor bor nära varandra",
+     "rq": "Vad betyder tätbefolkat?",
+     "not": [
+      "Glesbefolkat",
+      "Obefolkat",
+      "Landsbygd"
+     ],
+     "notDef": [
+      "Få människor bor på en stor yta",
+      "Ingen bor där",
+      "Bara barn bor där"
+     ],
+     "cls": "befolkning"
+    },
+    {
+     "k": "term",
+     "term": "glesbefolkat",
+     "q": "Vad kallas ett område där få människor bor på en stor yta?",
+     "alias": [
+      "glesbygd"
+     ],
+     "not": [
+      "Tätbefolkat",
+      "Storstad",
+      "Förort"
+     ],
+     "cls": "befolkning"
+    },
+    {
+     "k": "qa",
+     "q": "Vilken del av Sverige är mest glesbefolkad?",
+     "a": "Norrlands inland",
+     "not": [
+      "Skåne",
+      "Stockholm",
+      "Västkusten"
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Varför bor det få människor i Norrlands inland?",
+     "a": "Kallt klimat, långa avstånd och färre jobb",
+     "not": [
+      "Det är förbjudet att bo där",
+      "Sjöarna tar upp all plats",
+      "Sommaren är för varm"
+     ],
+     "form": "cause",
+     "lvl": 2
+    },
+    {
+     "k": "term",
+     "term": "befolkningstäthet",
+     "q": "Vad kallas det hur tätt människor bor, alltså hur många som bor på varje kvadratkilometer?",
+     "not": [
+      "Befolkningsökning",
+      "Folkräkning",
+      "Skala"
+     ],
+     "cls": "befolkning",
+     "lvl": 2,
+     "recall": false
+    },
+    {
+     "k": "qa",
+     "q": "Varför byggdes många städer vid kusten och vid älvar?",
+     "a": "Där var det lätt att resa, handla och fiska",
+     "not": [
+      "Där var det kallast",
+      "Där fanns inga människor",
+      "Där var det högst"
+     ],
+     "form": "cause",
+     "lvl": 3
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "stader-flytt",
+   "skill": "geo_befolkning",
+   "name": "Städer och flyttningar",
+   "explain": "I Sverige bor ungefär 10,5 miljoner människor. De största städerna är Stockholm, Göteborg och Malmö. Att allt fler flyttar från landsbygden till städerna kallas urbanisering. Att flytta till ett annat land kallas att migrera.",
+   "facts": [
+    {
+     "k": "qa",
+     "q": "Vilka är Sveriges tre största städer?",
+     "a": "Stockholm, Göteborg och Malmö",
+     "not": [
+      "Uppsala, Umeå och Kiruna",
+      "Stockholm, Luleå och Visby",
+      "Malmö, Lund och Ystad"
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Ungefär hur många människor bor i Sverige?",
+     "a": "Cirka 10,5 miljoner",
+     "not": [
+      "Cirka 1 miljon",
+      "Cirka 100 miljoner",
+      "Cirka 50 000"
+     ]
+    },
+    {
+     "k": "term",
+     "term": "urbanisering",
+     "q": "Vad kallas det när allt fler flyttar från landsbygden till städer?",
+     "def": "Allt fler flyttar från landsbygden till städer",
+     "rq": "Vad betyder urbanisering?",
+     "alias": [
+      "urbaniseringen"
+     ],
+     "not": [
+      "Migration",
+      "Turism",
+      "Pendling"
+     ],
+     "notDef": [
+      "Allt fler flyttar från städer till landsbygden",
+      "Människor reser på semester",
+      "Fler barn föds"
+     ],
+     "cls": "flytt",
+     "lvl": 2
+    },
+    {
+     "k": "term",
+     "term": "migration",
+     "q": "Vad kallas det när människor flyttar från ett land till ett annat?",
+     "alias": [
+      "migrera"
+     ],
+     "not": [
+      "Urbanisering",
+      "Pendling",
+      "Turism"
+     ],
+     "cls": "flytt",
+     "lvl": 2
+    },
+    {
+     "k": "term",
+     "term": "pendla",
+     "q": "Vad kallas det att resa fram och tillbaka mellan hemmet och jobbet varje dag?",
+     "alias": [
+      "pendling",
+      "pendlar"
+     ],
+     "not": [
+      "Migrera",
+      "Urbanisera",
+      "Semestra"
+     ],
+     "cls": "flytt",
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Varför flyttar många unga till städerna?",
+     "a": "Där finns fler jobb och utbildningar",
+     "not": [
+      "Där är det billigare att bo",
+      "Där finns mer skog",
+      "Där är det tystare"
+     ],
+     "form": "cause",
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Vad kan hända i en liten by när många flyttar därifrån?",
+     "a": "Affärer och skolor kan behöva stänga",
+     "not": [
+      "Det byggs fler skolor",
+      "Det blir trångt på gatorna",
+      "Byn blir en storstad"
+     ],
+     "form": "cause",
+     "lvl": 3
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "vader-klimat",
+   "skill": "geo_klimat",
+   "name": "Väder och klimat",
+   "explain": "Väder är hur det är just nu eller idag – sol, regn, vind. Klimat är det vanliga vädret på en plats under många år.",
+   "facts": [
+    {
+     "k": "qa",
+     "q": "Vad är skillnaden mellan väder och klimat?",
+     "a": "Väder är just nu, klimat är det vanliga vädret under många år",
+     "not": [
+      "Väder är på sommaren, klimat på vintern",
+      "Det är samma sak",
+      "Klimat är bara regn"
+     ]
+    },
+    {
+     "k": "group",
+     "groups": [
+      {
+       "q": "Vilket handlar om VÄDER?",
+       "items": [
+        "Det regnar i dag",
+        "I morgon blir det blåsigt",
+        "Just nu är det 3 grader"
+       ]
+      },
+      {
+       "q": "Vilket handlar om KLIMAT?",
+       "items": [
+        "I norra Sverige är vintrarna långa och kalla",
+        "Somrarna i Skåne brukar vara milda",
+        "Det snöar varje vinter i fjällen"
+       ]
+      }
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "stmt",
+     "s": "Klimat är det vanliga vädret på en plats under många år.",
+     "f": [
+      "Klimat är vädret just den här veckan."
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Vad behöver man för att beskriva klimatet på en plats?",
+     "a": "Mätningar av vädret under många år",
+     "not": [
+      "Väderleken en enda dag",
+      "En bild från i går",
+      "Hur många som bor där"
+     ],
+     "form": "application",
+     "lvl": 3
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "solen-arstider",
+   "skill": "geo_klimat",
+   "name": "Solen, årstiderna och midnattssolen",
+   "explain": "Det är kallare i norr för att solen står lägre och värmer mindre, och vintern är längre. Norr om polcirkeln går solen inte ner på sommaren – midnattssol – och på vintern går den inte upp: polarnatt. Sverige har fyra årstider.",
+   "facts": [
+    {
+     "k": "term",
+     "term": "midnattssol",
+     "q": "Vad kallas det när solen inte går ner alls på sommaren?",
+     "alias": [
+      "midnattssolen"
+     ],
+     "not": [
+      "Polarnatt",
+      "Norrsken",
+      "Solförmörkelse"
+     ],
+     "cls": "sol"
+    },
+    {
+     "k": "term",
+     "term": "polarnatt",
+     "q": "Vad kallas det när solen inte går upp alls på vintern?",
+     "alias": [
+      "polarnatten",
+      "mörkertid"
+     ],
+     "not": [
+      "Midnattssol",
+      "Norrsken",
+      "Dagsljus"
+     ],
+     "cls": "sol",
+     "lvl": 2
+    },
+    {
+     "k": "term",
+     "term": "polcirkeln",
+     "q": "Vad heter den tänkta linjen norr om vilken man kan se midnattssol?",
+     "alias": [
+      "norra polcirkeln"
+     ],
+     "not": [
+      "Ekvatorn",
+      "Kräftans vändkrets",
+      "Nollmeridianen"
+     ],
+     "cls": "linje",
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Varför är det kallare i norra Sverige än i södra?",
+     "a": "Solen står lägre och värmer mindre, och vintern är längre",
+     "not": [
+      "Det finns fler sjöar i norr",
+      "Norra Sverige ligger närmare solen",
+      "Det blåser alltid i norr"
+     ],
+     "form": "cause",
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Var i Sverige är vintern längst?",
+     "a": "I norra Sverige och fjällen",
+     "not": [
+      "I Skåne",
+      "På Gotland",
+      "Vid västkusten"
+     ]
+    },
+    {
+     "k": "order",
+     "q": "Sätt årstiderna i ordning, börja med våren.",
+     "items": [
+      "Vår",
+      "Sommar",
+      "Höst",
+      "Vinter"
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Du är i Kiruna i juni klockan 24. Vad ser du troligen?",
+     "a": "Solen på himlen – det är midnattssol",
+     "not": [
+      "Kolsvart natt",
+      "Norrsken",
+      "Solnedgång klockan åtta"
+     ],
+     "form": "application",
+     "lvl": 3
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "golfstrommen",
+   "skill": "geo_klimat",
+   "name": "Golfströmmen",
+   "explain": "Golfströmmen är en varm havsström från Mexikanska golfen. Den värmer luften över Norden, så Sverige har mycket mildare klimat än andra platser lika långt norrut, som Alaska och Sibirien.",
+   "facts": [
+    {
+     "k": "term",
+     "term": "Golfströmmen",
+     "q": "Vad heter den varma havsström som gör Sveriges klimat mildare?",
+     "alias": [
+      "golfströmmen",
+      "golfström"
+     ],
+     "not": [
+      "Labradorströmmen",
+      "Östersjön",
+      "Passadvinden"
+     ],
+     "cls": "strom"
+    },
+    {
+     "k": "qa",
+     "q": "Var kommer Golfströmmen ifrån?",
+     "a": "Mexikanska golfen",
+     "not": [
+      "Nordpolen",
+      "Östersjön",
+      "Medelhavet"
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Hur påverkar Golfströmmen Sverige?",
+     "a": "Den gör klimatet mildare",
+     "not": [
+      "Den gör vintrarna kallare",
+      "Den gör att det aldrig regnar",
+      "Den gör haven saltare"
+     ],
+     "form": "cause",
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Varför är det varmare i Sverige än i Sibirien, som ligger lika långt norrut?",
+     "a": "Golfströmmen värmer luften över Norden",
+     "not": [
+      "Sverige har fler hus",
+      "Sibirien ligger närmare ekvatorn",
+      "Det är inte varmare i Sverige"
+     ],
+     "form": "cause",
+     "lvl": 3
+    },
+    {
+     "k": "stmt",
+     "s": "Golfströmmen är en varm havsström.",
+     "f": [
+      "Golfströmmen är en kall havsström från Nordpolen."
+     ]
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "fjall-skog",
+   "skill": "geo_naturtyper",
+   "name": "Fjäll och skogar",
+   "explain": "I nordväst finns fjällen: höga berg med kalfjäll ovanför trädgränsen. Sveriges högsta berg är Kebnekaise. Barrskog med gran och tall täcker det mesta av Norrland. Lövskog med ek och bok finns mest i södra Sverige.",
+   "facts": [
+    {
+     "k": "term",
+     "term": "fjäll",
+     "q": "Vilken naturtyp finns i nordvästra Sverige med höga berg där inga träd växer högst upp?",
+     "alias": [
+      "fjällen",
+      "fjällvärlden"
+     ],
+     "not": [
+      "Slätt",
+      "Skärgård",
+      "Lövskog"
+     ],
+     "cls": "naturtyp"
+    },
+    {
+     "k": "qa",
+     "q": "Vilket är Sveriges högsta berg?",
+     "a": "Kebnekaise",
+     "not": [
+      "Åreskutan",
+      "Sylarna",
+      "Kinnekulle"
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Vilken skog täcker den största delen av Norrland?",
+     "a": "Barrskog (gran och tall)",
+     "not": [
+      "Lövskog (ek och bok)",
+      "Regnskog",
+      "Palmskog"
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Var i Sverige finns mest lövskog med ek och bok?",
+     "a": "I södra Sverige",
+     "not": [
+      "I fjällen",
+      "I Lappland",
+      "Ovanför trädgränsen"
+     ]
+    },
+    {
+     "k": "term",
+     "term": "trädgränsen",
+     "q": "Vad kallas gränsen på fjället där träden slutar växa?",
+     "alias": [
+      "trädgräns"
+     ],
+     "not": [
+      "Polcirkeln",
+      "Snögränsen",
+      "Landsgränsen"
+     ],
+     "cls": "naturbegrepp",
+     "lvl": 2
+    },
+    {
+     "k": "group",
+     "groups": [
+      {
+       "q": "Vilket träd är ett barrträd?",
+       "items": [
+        "Gran",
+        "Tall"
+       ]
+      },
+      {
+       "q": "Vilket träd är ett lövträd?",
+       "items": [
+        "Ek",
+        "Bok",
+        "Björk"
+       ],
+       "odd": "Vilket träd är INTE ett lövträd?"
+      }
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Varför växer det inga träd högst upp på fjällen?",
+     "a": "Det är för kallt och blåsigt",
+     "not": [
+      "Det finns för mycket vatten",
+      "Någon har huggit ner dem",
+      "Det är för varmt"
+     ],
+     "form": "cause",
+     "lvl": 3
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "vatten-slatt",
+   "skill": "geo_naturtyper",
+   "name": "Sjöar, slätter, myrar och skärgård",
+   "explain": "Sveriges största sjö är Vänern, näst störst Vättern. Slätter med åkrar finns i Skåne och runt Vänern och Vättern. Myrar är blöta våtmarker med mossa. Skärgård är kusten med tusentals öar.",
+   "facts": [
+    {
+     "k": "qa",
+     "q": "Vilken är Sveriges största sjö?",
+     "a": "Vänern",
+     "not": [
+      "Vättern",
+      "Mälaren",
+      "Storsjön"
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Vilken är Sveriges näst största sjö?",
+     "a": "Vättern",
+     "not": [
+      "Vänern",
+      "Siljan",
+      "Mälaren"
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "term",
+     "term": "slätt",
+     "q": "Vad kallas ett stort, platt område med åkrar?",
+     "alias": [
+      "slätter",
+      "slätten"
+     ],
+     "not": [
+      "Myr",
+      "Fjäll",
+      "Skärgård"
+     ],
+     "cls": "naturtyp"
+    },
+    {
+     "k": "term",
+     "term": "myr",
+     "q": "Vad kallas en blöt våtmark med mossa?",
+     "alias": [
+      "myrar",
+      "mosse"
+     ],
+     "not": [
+      "Slätt",
+      "Fjäll",
+      "Skärgård"
+     ],
+     "cls": "naturtyp"
+    },
+    {
+     "k": "term",
+     "term": "skärgård",
+     "q": "Vad kallas kusten med många små öar?",
+     "alias": [
+      "skärgården"
+     ],
+     "not": [
+      "Slätt",
+      "Myr",
+      "Fjäll"
+     ],
+     "cls": "naturtyp"
+    },
+    {
+     "k": "qa",
+     "q": "Var i Sverige finns stora slätter med åkrar?",
+     "a": "I Skåne och runt Vänern och Vättern",
+     "not": [
+      "I fjällen",
+      "I Norrlands inland",
+      "I skärgården"
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Varför odlas det mycket i Skåne?",
+     "a": "Platt mark, bra jord och milt klimat",
+     "not": [
+      "Det finns mycket berg",
+      "Vintrarna är längst där",
+      "Marken är full av sten"
+     ],
+     "form": "cause",
+     "lvl": 3
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "resurser",
+   "skill": "geo_naturresurser",
+   "name": "Naturresurser och råvaror",
+   "explain": "En naturresurs är något i naturen som människor har nytta av. En råvara är det vi tar från naturen för att tillverka saker. Sveriges viktigaste naturresurser är skog, järnmalm, vattenkraft, åkermark och fisk.",
+   "facts": [
+    {
+     "k": "term",
+     "term": "naturresurs",
+     "q": "Vad kallas något i naturen som människor har nytta av?",
+     "def": "Något i naturen som vi människor har nytta av",
+     "rq": "Vad är en naturresurs?",
+     "alias": [
+      "naturresurser"
+     ],
+     "not": [
+      "Råvara",
+      "Produkt",
+      "Avfall"
+     ],
+     "notDef": [
+      "Något som tillverkas i en fabrik",
+      "Sopor som slängs",
+      "En sorts karta"
+     ],
+     "cls": "resurs"
+    },
+    {
+     "k": "term",
+     "term": "råvara",
+     "q": "Vad kallas det vi tar från naturen för att tillverka saker, till exempel trä och malm?",
+     "alias": [
+      "råvaror"
+     ],
+     "not": [
+      "Naturresurs",
+      "Produkt",
+      "Avfall"
+     ],
+     "cls": "resurs",
+     "lvl": 2
+    },
+    {
+     "k": "pairs",
+     "q": "Vad får vi från {a}?",
+     "items": [
+      [
+       "skogen",
+       "Trä, papper och möbler"
+      ],
+      [
+       "järnmalmen",
+       "Stål"
+      ],
+      [
+       "vattenkraften i älvarna",
+       "Elektricitet"
+      ],
+      [
+       "åkermarken",
+       "Mat, till exempel spannmål och potatis"
+      ],
+      [
+       "havet",
+       "Fisk"
+      ]
+     ],
+     "rq": "Vilken naturresurs ger oss {b_lower}?"
+    },
+    {
+     "k": "qa",
+     "q": "Var i Sverige bryts mest järnmalm?",
+     "a": "Kiruna och Malmberget i Lappland (Norrbottens län)",
+     "not": [
+      "Skåne",
+      "Gotland",
+      "Göteborg"
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Vilket av detta är INTE en naturresurs?",
+     "a": "En mobiltelefon",
+     "not": [
+      "Skog",
+      "Järnmalm",
+      "Vatten"
+     ],
+     "lvl": 2,
+     "why": "Mobilen är tillverkad av råvaror – den är en färdig vara."
+    },
+    {
+     "k": "order",
+     "q": "Sätt stegen i rätt ordning: från malm i berget till stål.",
+     "items": [
+      "Järnmalm bryts i gruvan",
+      "Malmen krossas och anrikas",
+      "Den fraktas med tåg till hamn och stålverk",
+      "Malmen smälts i en masugn",
+      "Det blir stål till bilar, broar och maskiner"
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Varför är skogen viktig för Sverige?",
+     "a": "Den ger trä och papper som säljs till många länder",
+     "not": [
+      "Den ger olja",
+      "Den ger salt",
+      "Den ger guld"
+     ],
+     "form": "cause",
+     "lvl": 3
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "fornybar",
+   "skill": "geo_miljo",
+   "name": "Förnybart och icke förnybart",
+   "explain": "Förnybara naturresurser tar inte slut eller växer upp igen: skog, vind, vatten och sol. Icke förnybara tar slut när vi har använt dem: olja, kol och järnmalm.",
+   "facts": [
+    {
+     "k": "term",
+     "term": "förnybar",
+     "q": "Vad kallas en naturresurs som inte tar slut eller som växer upp igen, till exempel vind och skog?",
+     "alias": [
+      "förnybara",
+      "förnyelsebar"
+     ],
+     "not": [
+      "Icke förnybar",
+      "Ändlig",
+      "Konstgjord"
+     ],
+     "cls": "fornybar"
+    },
+    {
+     "k": "group",
+     "groups": [
+      {
+       "q": "Vilken av dessa är förnybar?",
+       "items": [
+        "Vindkraft",
+        "Solenergi",
+        "Vattenkraft",
+        "Skog"
+       ],
+       "odd": "Vilken av dessa är INTE förnybar?"
+      },
+      {
+       "q": "Vilken av dessa är icke förnybar?",
+       "items": [
+        "Olja",
+        "Kol",
+        "Järnmalm",
+        "Naturgas"
+       ],
+       "odd": "Vilken av dessa är förnybar?"
+      }
+     ]
+    },
+    {
+     "k": "stmt",
+     "s": "Olja tar slut när vi har använt den.",
+     "f": [
+      "Olja bildas igen på några veckor."
+     ],
+     "why": "Olja bildades under miljontals år."
+    },
+    {
+     "k": "qa",
+     "q": "Varför räknas skogen som förnybar?",
+     "a": "Nya träd kan planteras och växa upp",
+     "not": [
+      "Träden växer upp på en natt",
+      "Skogen tar aldrig slut hur mycket vi än hugger",
+      "Skogen är gjord av plast"
+     ],
+     "form": "cause",
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Vilket val är bäst för att spara på icke förnybara resurser?",
+     "a": "Cykla i stället för att åka bil korta sträckor",
+     "not": [
+      "Ha lampan tänd hela natten",
+      "Slänga saker som går att laga",
+      "Köra bil till brevlådan"
+     ],
+     "form": "application",
+     "lvl": 3
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "paverkan",
+   "skill": "geo_miljo",
+   "name": "Hur människan påverkar landskapet",
+   "explain": "När vi använder naturresurser förändras landskapet: gruvor ger stora hål och stenhögar, kalhyggen uppstår när all skog huggs ner, och dammar dämmer upp älvar för vattenkraft.",
+   "facts": [
+    {
+     "k": "qa",
+     "q": "Hur påverkas landskapet av en gruva?",
+     "a": "Det blir stora hål och högar av sten",
+     "not": [
+      "Det växer mer skog",
+      "Det bildas nya fjäll",
+      "Ingenting händer"
+     ],
+     "form": "cause"
+    },
+    {
+     "k": "term",
+     "term": "kalhygge",
+     "q": "Vad kallas ett område där all skog har huggits ner?",
+     "alias": [
+      "kalhyggen"
+     ],
+     "not": [
+      "Slätt",
+      "Myr",
+      "Gläntan"
+     ],
+     "cls": "paverkan"
+    },
+    {
+     "k": "qa",
+     "q": "Varför byggs dammar i älvarna?",
+     "a": "För att få el från vattenkraft",
+     "not": [
+      "För att få mer fisk",
+      "För att älvarna ska bli varmare",
+      "För att kunna åka skidor"
+     ],
+     "form": "cause",
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Vad gör man efter ett kalhygge för att det ska bli skog igen?",
+     "a": "Man planterar nya träd som får växa i många år",
+     "not": [
+      "Man asfalterar marken",
+      "Man låter marken vara bar för alltid",
+      "Man bygger en stad"
+     ],
+     "form": "application",
+     "lvl": 2
+    },
+    {
+     "k": "stmt",
+     "s": "En gruva kan förändra landskapet så mycket att en stad behöver flyttas.",
+     "f": [
+      "En gruva påverkar aldrig landskapet."
+     ],
+     "lvl": 2,
+     "why": "I Kiruna flyttas delar av staden på grund av gruvan."
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "hallbarhet",
+   "skill": "geo_miljo",
+   "name": "Hållbar utveckling",
+   "explain": "Hållbar utveckling betyder att använda jordens resurser så att de räcker till dem som lever efter oss. Vi kan återvinna, återanvända, laga saker, spara energi och välja förnybar energi.",
+   "facts": [
+    {
+     "k": "qa",
+     "q": "Vad betyder hållbar utveckling?",
+     "a": "Att använda resurser så att de räcker till dem som lever efter oss",
+     "not": [
+      "Att bygga hållbara hus",
+      "Att använda allt så fort som möjligt",
+      "Att aldrig använda naturen"
+     ]
+    },
+    {
+     "k": "group",
+     "groups": [
+      {
+       "q": "Vilket är ett bra sätt att hushålla med jordens resurser?",
+       "items": [
+        "Återvinna förpackningar",
+        "Laga saker i stället för att köpa nytt",
+        "Släcka lampan när man går ut ur rummet"
+       ],
+       "odd": "Vilket är INTE ett bra sätt att hushålla med resurser?"
+      },
+      {
+       "q": "Vilket slösar med jordens resurser?",
+       "items": [
+        "Slänga mat",
+        "Låta datorn stå på hela natten",
+        "Köpa nya kläder varje vecka"
+       ]
+      }
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "term",
+     "term": "återvinning",
+     "q": "Vad kallas det när gamla saker blir råvara till nya saker?",
+     "alias": [
+      "återvinna",
+      "återvinner"
+     ],
+     "not": [
+      "Avfall",
+      "Förbränning",
+      "Försurning"
+     ],
+     "cls": "hallbar",
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Varför är det bra att återvinna aluminiumburkar?",
+     "a": "Då behöver vi bryta mindre ny metall",
+     "not": [
+      "Då blir burkarna tyngre",
+      "Då växer det mer skog",
+      "Det spelar ingen roll"
+     ],
+     "form": "cause",
+     "lvl": 3
+    },
+    {
+     "k": "stmt",
+     "s": "Att återanvända saker sparar på jordens resurser.",
+     "f": [
+      "Att slänga saker som fortfarande fungerar sparar resurser."
+     ]
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  }
+ ],
+ "legacy": [
+  [
+   "kartor-forr-nu",
+   "choicetext",
+   "Hur ritades kartor för flera hundra år sedan?",
+   "För hand, utifrån vad sjömän och upptäcktsresande såg och mätte"
+  ],
+  [
+   "kartor-forr-nu",
+   "choicetext",
+   "Hur ritas kartor idag?",
+   "Med satellitbilder och GPS-mätningar"
+  ],
+  [
+   "kartor-forr-nu",
+   "choicetext",
+   "Varför kan en platt världskarta aldrig vara helt korrekt?",
+   "Jorden är rund och går inte att platta ut utan att något töjs"
+  ],
+  [
+   "kartor-forr-nu",
+   "choicetext",
+   "Vad händer med Grönland på många platta världskartor?",
+   "Det ser mycket större ut än det egentligen är"
+  ],
+  [
+   "karttyper",
+   "choicetext",
+   "Vilken karta visar landskapet som det ser ut: höjder, vatten och vägar?",
+   "Topografisk karta"
+  ],
+  [
+   "karttyper",
+   "choicetext",
+   "En karta som visar en enda sak, t.ex. var människor bor eller klimatet, kallas …",
+   "Tematisk karta"
+  ],
+  [
+   "kartor-forr-nu",
+   "choicetext",
+   "Vad visar jorden i rätt form och med rätt storlek på länderna?",
+   "En jordglob"
+  ],
+  [
+   "karttyper",
+   "choicetext",
+   "Vilken karta är bäst när du ska hitta en gata i en stad?",
+   "Stadskarta eller digital karta"
+  ],
+  [
+   "kartor-forr-nu",
+   "open",
+   "Förklara varför en platt världskarta aldrig kan vara helt korrekt.",
+   "Jorden är rund som ett klot. När man plattar ut en rund yta på ett papper måste något töjas ut, så vissa länder ser större ut än de är (t.ex. Grönland)."
+  ],
+  [
+   "kartor-forr-nu",
+   "open",
+   "Beskriv skillnaden mellan hur kartor ritades förr och hur de ritas idag.",
+   "Förr ritades kartor för hand av sjömän och upptäcktsresande som mätte och ritade det de såg, så de blev ofta fel. Idag ritas kartor med satellitbilder och GPS och blir mycket exakta."
+  ],
+  [
+   "karttecken",
+   "choicetext",
+   "Vad kallas de små symbolerna på en karta som visar t.ex. kyrka eller järnväg?",
+   "Karttecken"
+  ],
+  [
+   "karttecken",
+   "choicetext",
+   "Vad betyder blå färg på en karta?",
+   "Vatten"
+  ],
+  [
+   "karttecken",
+   "choicetext",
+   "Vad betyder grön färg på de flesta kartor?",
+   "Skog"
+  ],
+  [
+   "karttecken",
+   "choicetext",
+   "Vad är ofta gult på en karta över Sverige?",
+   "Åkermark och öppen mark"
+  ],
+  [
+   "karttecken",
+   "choicetext",
+   "Vad visar brun färg på en världskarta?",
+   "Högt land och berg"
+  ],
+  [
+   "karttecken",
+   "choicetext",
+   "Vad är en teckenförklaring?",
+   "En ruta som förklarar vad karttecknen betyder"
+  ],
+  [
+   "karttecken",
+   "choicetext",
+   "Vilket av detta finns INTE i naturen utan är något människor har bestämt?",
+   "Gränsen mellan två län"
+  ],
+  [
+   "skala",
+   "choicetext",
+   "Vad talar skalan om?",
+   "Hur mycket kartan är förminskad jämfört med verkligheten"
+  ],
+  [
+   "skala",
+   "choicetext",
+   "Skala 1:100 000. Hur långt är 1 cm på kartan i verkligheten?",
+   "1 km"
+  ],
+  [
+   "skala",
+   "num",
+   "Kartan har skala 1:50 000. Två byar ligger 4 cm från varandra på kartan. Hur många kilometer är det i verkligheten?",
+   "2"
+  ],
+  [
+   "skala",
+   "num",
+   "Kartan har skala 1:100 000. Avståndet på kartan är 3 cm. Hur många kilometer är det i verkligheten?",
+   "3"
+  ],
+  [
+   "skala",
+   "num",
+   "Skala 1:10 000. På kartan är det 5 cm. Hur många meter i verkligheten?",
+   "500"
+  ],
+  [
+   "skala",
+   "num",
+   "Skala 1:200 000. På kartan är det 2 cm. Hur många kilometer i verkligheten?",
+   "4"
+  ],
+  [
+   "skala",
+   "open",
+   "Förklara vad skala är och ge ett exempel på hur den används.",
+   "Skalan talar om hur mycket kartan är förminskad jämfört med verkligheten. Skala 1:50 000 betyder att 1 cm på kartan är 50 000 cm, alltså 500 m, i verkligheten. Då kan man räkna ut avstånd."
+  ],
+  [
+   "karttecken",
+   "open",
+   "Ge exempel på något som kartan visar som finns i verkligheten och något som människor har bestämt.",
+   "I verkligheten finns t.ex. sjöar, berg och skogar. Gränser mellan länder, län och kommuner är sådant som människor har bestämt – de syns inte i naturen."
+  ],
+  [
+   "skala",
+   "order",
+   "Sätt stegen i rätt ordning för att räkna ut ett avstånd med skalan 1:50 000.",
+   "Mät avståndet på kartan med linjal, t.ex. 4 cm"
+  ],
+  [
+   "register",
+   "choicetext",
+   "Var i kartboken hittar du en lista över alla orter?",
+   "I registret längst bak"
+  ],
+  [
+   "gradnat",
+   "choicetext",
+   "Vad är gradnätet?",
+   "Rutnätet av linjer som hjälper dig att ange ett läge på kartan"
+  ],
+  [
+   "gradnat",
+   "choicetext",
+   "Vilka linjer går runt jorden parallellt med ekvatorn?",
+   "Breddgrader"
+  ],
+  [
+   "gradnat",
+   "choicetext",
+   "Vilka linjer går från Nordpolen till Sydpolen?",
+   "Längdgrader"
+  ],
+  [
+   "register",
+   "choicetext",
+   "Registret säger \"Luleå 14 C3\". Vad betyder det?",
+   "Sidan 14, i rutan C3"
+  ],
+  [
+   "register",
+   "choicetext",
+   "Vad kan en digital karta göra som en papperskarta inte kan?",
+   "Visa vägen dit och hur lång tid det tar"
+  ],
+  [
+   "register",
+   "open",
+   "Förklara hur du använder registret och gradnätet för att hitta en ort i en kartbok.",
+   "I registret längst bak står orterna i bokstavsordning med sidnummer och en ruta, t.ex. Luleå 14 C3. Då slår man upp sidan 14 och letar i rutan C3 i gradnätet."
+  ],
+  [
+   "register",
+   "order",
+   "Sätt stegen i rätt ordning för att hitta Luleå i kartboken.",
+   "Slå upp registret längst bak i boken"
+  ],
+  [
+   "sverige-varlden",
+   "choicetext",
+   "På vilket halvklot ligger Sverige?",
+   "Norra halvklotet"
+  ],
+  [
+   "sverige-varlden",
+   "choicetext",
+   "I vilken världsdel ligger Sverige?",
+   "Europa"
+  ],
+  [
+   "gradnat",
+   "choicetext",
+   "Vad är ekvatorn?",
+   "En tänkt linje runt jordens mitt som delar jorden i två halvklot"
+  ],
+  [
+   "grannar-hav",
+   "choicetext",
+   "Vilka två länder gränsar till Sverige på land?",
+   "Norge och Finland"
+  ],
+  [
+   "sverige-varlden",
+   "choicetext",
+   "Vilken halvö ligger Sverige på?",
+   "Skandinaviska halvön"
+  ],
+  [
+   "grannar-hav",
+   "choicetext",
+   "Vilket hav ligger öster om Sverige?",
+   "Östersjön"
+  ],
+  [
+   "grannar-hav",
+   "choicetext",
+   "Vilka hav ligger väster om Sverige, mot Danmark och Norge?",
+   "Kattegatt och Skagerrak"
+  ],
+  [
+   "sverige-varlden",
+   "choicetext",
+   "Vilken del av Europa ligger Sverige i?",
+   "Norra Europa"
+  ],
+  [
+   "sverige-varlden",
+   "open",
+   "Beskriv var Sverige ligger på världskartan. Använd begrepp som halvklot, världsdel och ekvatorn.",
+   "Sverige ligger i norra Europa på norra halvklotet, långt norr om ekvatorn. Tillsammans med Norge ligger det på Skandinaviska halvön."
+  ],
+  [
+   "landsdelar",
+   "choicetext",
+   "Vilka är Sveriges tre landsdelar?",
+   "Götaland, Svealand och Norrland"
+  ],
+  [
+   "landsdelar",
+   "choicetext",
+   "Vilken landsdel är störst till ytan?",
+   "Norrland"
+  ],
+  [
+   "landsdelar",
+   "choicetext",
+   "I vilken landsdel ligger Luleå?",
+   "Norrland"
+  ],
+  [
+   "landsdelar",
+   "choicetext",
+   "I vilken landsdel ligger Stockholm?",
+   "Svealand"
+  ],
+  [
+   "landsdelar",
+   "choicetext",
+   "I vilken landsdel ligger Göteborg och Malmö?",
+   "Götaland"
+  ],
+  [
+   "landskap",
+   "choicetext",
+   "Hur många landskap finns det i Sverige?",
+   "25"
+  ],
+  [
+   "lan-kommun",
+   "choicetext",
+   "Hur många län finns det i Sverige?",
+   "21"
+  ],
+  [
+   "lan-kommun",
+   "choicetext",
+   "Ungefär hur många kommuner finns det i Sverige?",
+   "290"
+  ],
+  [
+   "lan-kommun",
+   "choicetext",
+   "Vad ansvarar regionerna för?",
+   "Sjukvården och kollektivtrafiken"
+  ],
+  [
+   "lan-kommun",
+   "choicetext",
+   "Vilket av detta är en uppgift för kommunen?",
+   "Skolor, förskolor och äldreomsorg"
+  ],
+  [
+   "lan-kommun",
+   "choicetext",
+   "Vem bestämmer i en kommun?",
+   "Politiker som valts i val (kommunfullmäktige)"
+  ],
+  [
+   "landskap",
+   "choicetext",
+   "I vilket landskap ligger Luleå?",
+   "Norrbotten"
+  ],
+  [
+   "landskap",
+   "choicetext",
+   "I vilket landskap ligger Malmö?",
+   "Skåne"
+  ],
+  [
+   "landskap",
+   "choicetext",
+   "Vilket landskap är en ö i Östersjön?",
+   "Gotland"
+  ],
+  [
+   "landskap",
+   "choicetext",
+   "Vilket är Sveriges nordligaste och till ytan största landskap?",
+   "Lappland"
+  ],
+  [
+   "landsdelar",
+   "open",
+   "Berätta om Sveriges tre landsdelar och var de ligger.",
+   "Sverige har tre landsdelar: Götaland i söder, Svealand i mitten och Norrland i norr. Norrland är störst till ytan men har färre invånare."
+  ],
+  [
+   "lan-kommun",
+   "open",
+   "Vad har kommunen ansvar för, och vad har regionen ansvar för?",
+   "Kommunen sköter skolor, förskolor, äldreomsorg, vatten och sopor. Regionen ansvarar för sjukvården (sjukhus och vårdcentraler) och ofta bussar och tåg."
+  ],
+  [
+   "var-vi-bor",
+   "choicetext",
+   "Var bor de flesta människor i Sverige?",
+   "I södra Sverige, längs kusterna och i städer"
+  ],
+  [
+   "stader-flytt",
+   "choicetext",
+   "Vilka är Sveriges tre största städer?",
+   "Stockholm, Göteborg, Malmö"
+  ],
+  [
+   "stader-flytt",
+   "choicetext",
+   "Ungefär hur många människor bor i Sverige?",
+   "Cirka 10,5 miljoner"
+  ],
+  [
+   "var-vi-bor",
+   "choicetext",
+   "Vilken del av Sverige är mest glesbefolkad?",
+   "Norrlands inland"
+  ],
+  [
+   "var-vi-bor",
+   "choicetext",
+   "Varför bor det få människor i Norrlands inland?",
+   "Kallt klimat, långa avstånd och färre jobb"
+  ],
+  [
+   "var-vi-bor",
+   "choicetext",
+   "Vad betyder att ett område är tätbefolkat?",
+   "Många människor bor nära varandra"
+  ],
+  [
+   "var-vi-bor",
+   "open",
+   "Beskriv var i Sverige de flesta människor bor och varför.",
+   "De flesta bor i södra Sverige, längs kusterna och i städer som Stockholm, Göteborg och Malmö. Där är klimatet mildare, det finns mer åkermark och fler jobb. Norrlands inland är glesbefolkat."
+  ],
+  [
+   "vader-klimat",
+   "choicetext",
+   "Vad är skillnaden mellan väder och klimat?",
+   "Väder är just nu, klimat är det vanliga vädret under många år"
+  ],
+  [
+   "solen-arstider",
+   "choicetext",
+   "Varför är det kallare i norra Sverige än i södra?",
+   "Solen står lägre och värmer mindre, och vintern är längre"
+  ],
+  [
+   "golfstrommen",
+   "choicetext",
+   "Vad är Golfströmmen?",
+   "En varm havsström som gör Sveriges klimat mildare"
+  ],
+  [
+   "golfstrommen",
+   "choicetext",
+   "Var kommer Golfströmmen ifrån?",
+   "Mexikanska golfen"
+  ],
+  [
+   "solen-arstider",
+   "choicetext",
+   "Var i Sverige är vintern längst?",
+   "I norra Sverige och fjällen"
+  ],
+  [
+   "solen-arstider",
+   "choicetext",
+   "Vad kallas det när solen inte går ner alls på sommaren?",
+   "Midnattssol"
+  ],
+  [
+   "solen-arstider",
+   "choicetext",
+   "Vad kallas den tänkta linjen norr om vilken man kan se midnattssol?",
+   "Polcirkeln"
+  ],
+  [
+   "solen-arstider",
+   "choicetext",
+   "Hur många årstider har Sverige?",
+   "Fyra"
+  ],
+  [
+   "vader-klimat",
+   "open",
+   "Förklara skillnaden mellan väder och klimat.",
+   "Väder är hur det är just nu eller idag – sol, regn, vind. Klimat är det vanliga vädret på en plats under många år."
+  ],
+  [
+   "golfstrommen",
+   "open",
+   "Beskriv hur Golfströmmen påverkar klimatet i Sverige.",
+   "Golfströmmen är en varm havsström som kommer från Mexikanska golfen över Atlanten. Den värmer luften över Norden, så Sverige får ett mycket mildare klimat än andra platser lika långt norrut."
+  ],
+  [
+   "fjall-skog",
+   "choicetext",
+   "Vilken naturtyp finns i nordvästra Sverige med höga berg och kalfjäll?",
+   "Fjäll"
+  ],
+  [
+   "fjall-skog",
+   "choicetext",
+   "Vilken skog täcker den största delen av Norrland?",
+   "Barrskog (gran och tall)"
+  ],
+  [
+   "fjall-skog",
+   "choicetext",
+   "Var i Sverige finns mest lövskog med ek och bok?",
+   "I södra Sverige"
+  ],
+  [
+   "vatten-slatt",
+   "choicetext",
+   "Vad kallas ett stort, platt område med åkrar?",
+   "Slätt"
+  ],
+  [
+   "vatten-slatt",
+   "choicetext",
+   "Vad är en myr?",
+   "En blöt våtmark med mossa"
+  ],
+  [
+   "vatten-slatt",
+   "choicetext",
+   "Vad kallas kusten med många öar, t.ex. utanför Stockholm och Luleå?",
+   "Skärgård"
+  ],
+  [
+   "vatten-slatt",
+   "choicetext",
+   "Vilken är Sveriges största sjö?",
+   "Vänern"
+  ],
+  [
+   "fjall-skog",
+   "choicetext",
+   "Vilket är Sveriges högsta berg?",
+   "Kebnekaise"
+  ],
+  [
+   "fjall-skog",
+   "open",
+   "Beskriv två av Sveriges naturtyper och var i landet de finns.",
+   "Till exempel fjäll: höga berg i nordvästra Sverige där det inte växer träd på toppen. Och barrskog: gran- och tallskog som täcker större delen av Norrland. Slätter med åkrar finns i Skåne, skärgård längs kusterna."
+  ],
+  [
+   "resurser",
+   "choicetext",
+   "Vad är en naturresurs?",
+   "Något i naturen som människor har nytta av"
+  ],
+  [
+   "resurser",
+   "choicetext",
+   "Vad är en råvara?",
+   "Något vi tar från naturen för att tillverka saker"
+  ],
+  [
+   "resurser",
+   "choicetext",
+   "Vad kan vi tillverka av skogen?",
+   "Papper, trä, möbler och hus"
+  ],
+  [
+   "resurser",
+   "choicetext",
+   "Var i Sverige bryts mest järnmalm?",
+   "Kiruna och Malmberget i Norrbotten"
+  ],
+  [
+   "resurser",
+   "choicetext",
+   "Vad tillverkar vi av järnmalm?",
+   "Stål"
+  ],
+  [
+   "resurser",
+   "choicetext",
+   "Vad får vi från vattenkraften i älvarna?",
+   "Elektricitet"
+  ],
+  [
+   "resurser",
+   "choicetext",
+   "Vad får vi från åkermarken?",
+   "Mat, t.ex. spannmål och potatis"
+  ],
+  [
+   "resurser",
+   "choicetext",
+   "Vilken älv i Norrbotten ger mycket vattenkraft?",
+   "Luleälven"
+  ],
+  [
+   "resurser",
+   "choicetext",
+   "Vilket av detta är INTE en naturresurs?",
+   "En mobiltelefon"
+  ],
+  [
+   "resurser",
+   "open",
+   "Ge exempel på tre naturresurser i Sverige och vad vi använder dem till.",
+   "Skog ger trä, papper och hus. Järnmalm från Kiruna och Malmberget blir stål. Vattenkraft i älvarna ger elektricitet. Åkermark ger mat."
+  ],
+  [
+   "resurser",
+   "order",
+   "Sätt stegen i rätt ordning: från malm i berget till stål.",
+   "Järnmalm bryts i gruvan i Kiruna"
+  ],
+  [
+   "fornybar",
+   "choicetext",
+   "Vad betyder att en naturresurs är förnybar?",
+   "Den kan bildas igen, t.ex. skog och vindkraft"
+  ],
+  [
+   "fornybar",
+   "choicetext",
+   "Vilken av dessa är en icke förnybar naturresurs?",
+   "Olja"
+  ],
+  [
+   "fornybar",
+   "choicetext",
+   "Vilken av dessa är en förnybar naturresurs?",
+   "Vattenkraft"
+  ],
+  [
+   "paverkan",
+   "choicetext",
+   "Hur påverkas landskapet av en gruva?",
+   "Det blir stora hål och högar av sten"
+  ],
+  [
+   "paverkan",
+   "choicetext",
+   "Vad är ett kalhygge?",
+   "Ett område där all skog har huggits ner"
+  ],
+  [
+   "hallbarhet",
+   "choicetext",
+   "Vad betyder hållbar utveckling?",
+   "Att använda resurser så att de räcker till dem som lever efter oss"
+  ],
+  [
+   "hallbarhet",
+   "choicetext",
+   "Vilket är ett bra sätt att hushålla med jordens resurser?",
+   "Återvinna och återanvända saker"
+  ],
+  [
+   "fornybar",
+   "choicetext",
+   "Vilken energi är förnybar?",
+   "Vind- och solenergi"
+  ],
+  [
+   "fornybar",
+   "open",
+   "Förklara skillnaden mellan förnybara och icke förnybara naturresurser. Ge exempel.",
+   "Förnybara resurser kan bildas igen, t.ex. skog, vind, sol och vatten. Icke förnybara tar slut när vi använt dem, t.ex. olja, kol och järnmalm."
+  ],
+  [
+   "hallbarhet",
+   "open",
+   "Ge förslag på hur vi människor kan hushålla med jordens resurser.",
+   "Vi kan återvinna och återanvända saker, spara energi, välja förnybar energi som sol och vind, köpa färre nya saker och laga det som går sönder."
+  ],
+  [
+   "paverkan",
+   "order",
+   "Sätt händelserna i rätt ordning när en sjö försuras.",
+   "Fabriker och bilar släpper ut svaveldioxid och kväveoxider"
+  ]
+ ]
+}

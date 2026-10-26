@@ -43,9 +43,12 @@ service cloud.firestore {
       }
 
       // Barnens profiler, familjekonfigurationen (_config), push-prenumerationer (push_*) och körlogg (push_log).
+      // _content (familjens privata innehåll: paket, skoluppgifter, facit, provdatum) är SKRIVSKYDDAT för alla appklienter –
+      // även för medlemmar och för övergångsvägen med gammal kod. Det skrivs bara med Google-servicekontot (scripts/content.mjs deploy),
+      // som går förbi reglerna. Appen läser det och skriver det aldrig. Föräldern får radera det (radera familjens data).
       match /profiles/{doc} {
         allow read: if isMember() || legacyGrace();
-        allow create, update: if (isMember() || legacyGrace())
+        allow create, update: if doc != '_content' && (isMember() || legacyGrace())
           && request.resource.data.keys().hasOnly(['json', 'updatedAt', 'kid'])
           && request.resource.data.json is string
           && request.resource.data.json.size() < 900000;

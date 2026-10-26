@@ -7,7 +7,7 @@
 const LE2 = (() => {
   'use strict';
   const DAY = 86400000;
-  const RULES = '3H.2';
+  const RULES = '3I.2';   // 3I (2.1): formmedvetna bevis (3I.2: djupbevis från två olika dygn) – djupgrind för kunskapspunkter, form i bevisloggen, vilande moment leds vidare
   // Lokala dygn: förfallodagar ligger på lokala dygnsgränser.
   const tzOff = (t) => new Date(t).getTimezoneOffset() * 60000;
   const dayIdx = (t) => Math.floor((t - tzOff(t)) / DAY);
@@ -51,6 +51,16 @@ const LE2 = (() => {
     session: { restartDays: 10, absentWarmDays: 7, klarMax: 4, klarValuable: 1, bossMinItems: 5, warmMinItems: 6, revansch: 2, revanschExamEve: 1, range: { younger: [5, 8], middle: [6, 12], older: [5, 15] } },
     rescue: { maxPerSession: 2, seq: { younger: ['teach', 'supported', 'easier', 'normal'], middle: ['teach', 'supported', 'normal'], older: ['teach', 'normal'] }, insightCount: 2, insightDays: 7 },
     challenge: { minStage: 3, ceilingStage: 4, every: 2 },
+    // 3I: djupgrind för kunskapspunkter med fördjupande former (samband, hitta felet, orsak, tillämpning, förklaring, flerstegs).
+    // Djupbevis dp: +1 per dygn för en flervalsfråga i djupform, +2 för eget svar/ordning i djupform (rätt, utan hjälp, första försöket).
+    // dpn = antal olika dygn med djupbevis. askStage: från stadium 3 ber motorn om en fördjupande fråga tills kravet är uppfyllt.
+    // gateStage: stadium 4 → 5 (30 och 60 dygns intervall) kräver dp ≥ need OCH dpn ≥ days, och "Säker" (etikett, belöning, STYRKOR)
+    // kräver detsamma. Ett enda dygn räcker alltså aldrig, inte heller med eget svar (+2).
+    // Valt i simulering (tests/le/forms.js, 20 frön): grind på 4 med frågor från 3 gav samma hållbarhet som 2.0 (±2 p) men nästan
+    // ingen "falsk säkerhet" och 6–23 p bättre förståelse. Grind på 3 kostade mer hållbarhet.
+    // Release-kontroll 2.1: kravet är dp ≥ need OCH djupbevis från minst `days` olika dygn (dpn). Före kontrollen räckte ett enda dygn
+    // med eget svar/ordning (+2) – i strid med regeln "två olika dygn" som rapporten och föräldern utgår från (tests/test_le_forms.js 4b).
+    depth: { gateStage: 4, askStage: 3, need: 2, days: 2, forms: 'lmxaes' },
     reward: { REMEMBERED: { xp: 5 }, COMEBACK: { gems: 3 }, CHALLENGE: { gems: 2 }, MASTERY: { gems: 5 }, FOCUS: { gems: 2 }, CONSISTENCY: { gems: 5, days: 3 } },
   };
 
@@ -80,6 +90,9 @@ const LE2 = (() => {
   // Granskning H3: motorn räknar med HÄNDELSENS egen tid (samma live som vid omspelning). Förut max(enhet, senaste, server) –
   // ett pass med klockan framställd förgiftade då alla senare beräkningar (live ≠ omspelning, belöningar varje dag). clock.last = högvattenmärke.
   function engineNow(L, deviceNow) { L.clock.last = Math.max(deviceNow, L.clock.last || 0); return deviceNow; }
+  const isDepthForm = (f) => !!f && CFG.depth.forms.includes(f);
+  const depthMet = (c) => (c.dp || 0) >= CFG.depth.need && (c.dpn || 0) >= (CFG.depth.days || 1);   // poäng OCH olika dygn
+  const depthOk = (c) => !c.dz || depthMet(c);   // 3I: säker = stadium ≥ 4 och (vid djupformer) visad förståelse
   const isRecallCapable = (def, c) => def.recall === true || (def.recall == null && !!c.kf) || (def.kinds || []).some(k => k !== 'mc');
 
   /* Registrera ett svar. Deterministisk. Returnerar { diff, reasons, rewards, weight }. */
@@ -112,8 +125,13 @@ const LE2 = (() => {
     if (ev.role === 'X' && sess && c.rsSess !== sess.id) { c.rsSess = sess.id; D.rescues++; c.rescueDays = [...(c.rescueDays || []).filter(d => today - d <= 14), today].slice(-4); }
     const I = intervalDays(c.st, pol, L); const elapsedD = c.lastOk ? (now - c.lastOk) / DAY : Infinity;
     const recallCapable = isRecallCapable(def, c);
+    // 3I: djupbevis (fördjupande form, rätt utan hjälp, första försöket i passet) – högst en gång per dygn
+    const depthEv = !!def.depth && isDepthForm(ev.form) && independent && firstInSess;
+    if (depthEv && c.dpd !== today) { c.dp = Math.min(4, (c.dp || 0) + (ev.kind === 'mc' ? 1 : 2)); c.dpn = Math.min(4, (c.dpn || 0) + 1); c.dpd = today; }
+    if (def.depth) c.dz = 1; else if (c.dz) delete c.dz;   // konceptet har djupformer → "Säker" kräver djupbevis
+    const gateOpen = !def.depth || c.st !== CFG.depth.gateStage || depthMet(c);
     if (ev.ok) {
-      const mcBlocked = ev.kind === 'mc' && c.st >= pol.mcMaxStage && recallCapable;
+      const mcBlocked = ev.kind === 'mc' && c.st >= pol.mcMaxStage && recallCapable && !(depthEv && c.st === CFG.depth.gateStage && gateOpen);
       c.ok++; if (independent) { c.okInd++; if (countsForLevel && !mcBlocked) { c.okRun++; c.runItems = [...(c.runItems || []).filter(x => x !== ev.item), ev.item].slice(-4); } }
       if (countsForLevel) c.failRun = 0;
       const mcOnlyNeedsTwo = ev.kind === 'mc' && !recallCapable && c.st >= pol.mcMaxStage;
@@ -123,6 +141,7 @@ const LE2 = (() => {
       else if (qualifying && mcOnlyNeedsTwo && !c.mcOk) { c.mcOk = 1; reasons.push('flervalskoncept: första fördröjda träffen noterad, nästa avgör'); }
       else if (qualifying) {
         if (c.st === 0) { c.st = 1; reasons.push('lärt idag → kommer tillbaka imorgon'); }
+        else if (elapsedD >= CFG.early * I && !gateOpen) { reasons.push(`hämtat efter ${elapsedD.toFixed(1)} d men stadium ${c.st} kräver djupare förståelse först (djupbevis ${c.dp || 0}/${CFG.depth.need}, ${c.dpn || 0}/${CFG.depth.days} dygn)`); }
         else if (elapsedD >= CFG.early * I) { c.st = Math.min(6, c.st + 1); reasons.push(`hämtat efter ${elapsedD.toFixed(1)} d (intervall ${I} d) → stadium ${c.st}`); rewards.push('REMEMBERED'); if (ev.kind === 'mc') D.mcAdv++; else D.freeAdv++; if (mcOnlyNeedsTwo) c.mcOk = 0; }
         else reasons.push(`för tidig hämtning (${elapsedD.toFixed(1)} d < ${(CFG.early * I).toFixed(1)} d) → räknas som övning`);
         c.lastOk = now;
@@ -130,7 +149,11 @@ const LE2 = (() => {
     } else {
       c.okRun = 0; c.runItems = [];
       if (countsForLevel) c.failRun++;
-      if (ev.ctx !== 'retry' && ev.help !== 'rescue') {
+      // 3I: fel på en fördjupande fråga (tillämpning, hitta felet, orsak …) på ett koncept som redan minns är en FÖRSTÅELSElucka, inte glömska:
+      // stadiet sänks inte, men konceptet kommer tillbaka om två dygn (och Felboken öppnas som vanligt). Simuleringen visade att en sänkning
+      // här kostade hållbarhet utan att ge något (tests/le/forms.js).
+      if (def.depth && isDepthForm(ev.form) && c.st >= 2 && ev.ctx !== 'retry' && ev.help !== 'rescue' && ev.ctx !== 'exam') { reasons.push('fel på en fördjupande fråga → förståelsen tränas mer (räknas inte som glömt)'); if (c.dpMiss !== today) c.dp = Math.max(0, (c.dp || 0) - 1); c.dpMiss = today; }   // granskning 2.1 (M6): upprepade djupmissar tar bort "Säker" 
+      else if (ev.ctx !== 'retry' && ev.help !== 'rescue') {
         const old = c.st; const early = c.lastOk && elapsedD < CFG.early * I;
         if (ev.ctx === 'exam' && c.exDay === today) reasons.push('fel i Testa mig igen samma dygn → ingen ytterligare sänkning');   // granskning M4
         else if (ev.ctx === 'exam' && old >= 3) { c.st = old - CFG.lapse.examDrop; c.lap++; D.lapses++; c.exDay = today; reasons.push(`fel i Testa mig → stadium ${old} → ${c.st} (ett provfel skriver inte över långtidsbevis)`); }
@@ -143,6 +166,7 @@ const LE2 = (() => {
       } else reasons.push('fel vid omförsök → ingen extra sänkning');
     }
     c.due = dayStart(now) + Math.max(1, intervalDays(c.st, pol, L)) * DAY;
+    if (c.dpMiss === today && !ev.ok) c.due = Math.min(c.due, dayStart(now) + 2 * DAY);   // 3I: förståelselucka → tillbaka snart
     if (ev.ok && !independent && c.st > 0) c.due = Math.min(c.due, dayStart(now) + Math.max(1, Math.ceil(intervalDays(c.st, pol, L) / 2)) * DAY);
     // 3D: adaptiv svårighet per koncept – variation krävs, en ändring per pass, ingen pendling samma dygn
     const maxLvl = def.maxLvl || 3;
@@ -175,7 +199,7 @@ const LE2 = (() => {
     if (ev.role === 'L') { c.teach = 0; c.taughtDay = today; }
     else if (!ev.ok && !ev.restart && c.st <= 1 && recentFailDays >= F.failDaysToOpen && ev.ctx !== 'exam' && today - (c.taughtDay == null ? -99 : c.taughtDay) >= CFG.fb.teachEveryDays) c.teach = 1;
     else if (independent && c.st >= 2) c.teach = 0;
-    if (independent && c.st >= 4 && !c.mastered) { c.mastered = 1; rewards.push('MASTERY'); }
+    if (independent && c.st >= 4 && !c.mastered && depthOk(c)) { c.mastered = 1; rewards.push('MASTERY'); }
     if (independent && ev.role === 'B' && ev.stretch) rewards.push('CHALLENGE');
     if (ev.item) c.items = [...c.items.filter(x => x !== ev.item), ev.item].slice(-6);
     c.ev = [...c.ev, [Math.round(now / 1000), ev.ok ? 1 : 0, KCODE[ev.kind] || 'f', HCODE[ev.help || 'none'] || 'n', XCODE[ev.ctx || 'first'] || 'f']].slice(-12);
@@ -189,6 +213,12 @@ const LE2 = (() => {
 
   function apply(L, cat, e, pol) {
     if (e.sess && L.lastSess !== e.sess) { if (L.lastSess) calibrate(L); L.lastSess = e.sess; L.sessN = (L.sessN || 0) + 1; }
+    // 3I: ett vilande moment (Concept Pack) leder beviset till kunskapspunkten frågan prövar. Loggen ändras aldrig (rollback läser originalet).
+    // Granskning 2.1 (H2): har det vilande momentet en olöst Felboks-post (från 2.0) stannar beviset där tills posten är löst – annars kunde
+    // Revansch aldrig verifiera den. Deterministiskt: beror bara på tillståndet vid omspelningen.
+    const d = cat[e.cid]; const to = d && d.route && e.item ? d.route[e.item] : null; const src = L.c[e.cid];
+    const fbHold = !!(src && src.fb && src.fb.s !== 'resolved' && fbLive(src, dayIdx(e.t)));
+    if (to && cat[to] && to !== e.cid && !fbHold) e = { ...e, cid: to };
     return recordEvidence(L, cat, e.cid, e, e.t, pol, { id: e.sess });
   }
 
@@ -204,7 +234,7 @@ const LE2 = (() => {
     if (fb && fb.s === 'verified') return 'verified';
     const I = intervalDays(c.st, pol, L);
     if (c.st >= 2 && c.due && now > c.due + I * DAY) return 'weakening';
-    if (c.st >= 4) return 'stable';
+    if (c.st >= 4 && depthOk(c)) return 'stable';
     if (c.st >= 2) return 'consolidating';
     return c.fs && today - dayIdx(c.fs * 1000) <= 1 ? 'introduced' : 'learning';
   }
@@ -221,7 +251,7 @@ const LE2 = (() => {
     const overdue = c.due && now > c.due + intervalDays(c.st, pol, L) * DAY;
     if (fbS(c, now) === 'open') return 'Tränar';
     if (overdue && c.st >= 2) return 'Behöver repetition';
-    if (c.st >= 4) return 'Säker'; if (c.st >= 2) return 'På väg'; return 'Tränar';
+    if (c.st >= 4 && depthOk(c)) return 'Säker'; if (c.st >= 2) return 'På väg'; return 'Tränar';
   }
   function delayedOks(c, sinceMs) { return c.ev.filter((e, i) => e[1] === 1 && e[3] === 'n' && (e[4] === 'f' || e[4] === 'e') && e[0] * 1000 >= sinceMs && i > 0 && (e[0] - c.ev[i - 1][0]) >= 86400 * 0.9).length; }
   function readiness(c, now) {
@@ -236,7 +266,7 @@ const LE2 = (() => {
       const name = (cat[id] || {}).name || id;
       if (c.n < 4) { if (c.n > 0) thin.push(name); continue; }
       const d30 = delayedOks(c, now - 30 * DAY);
-      if (c.st >= 4 || (c.st >= 3 && d30 >= 2)) strong.push(name);
+      if ((c.st >= 4 || (c.st >= 3 && d30 >= 2)) && depthOk(c)) strong.push(name);
       else if ((fbS(c, now) === 'open' && c.fb.wrong >= 2 && dayIdx(now) - dayIdx(c.fb.at) >= 1) || c.lap >= 1 && c.st <= 2 || rescueCount(c, now) >= CFG.rescue.insightCount) weak.push(name);
     }
     return { strong, weak, thin };
@@ -303,7 +333,8 @@ const LE2 = (() => {
   }
   // K-14: hur mycket "pågående inlärning" (stadium ≤1) barnet bär just nu, och när kom senast något nytt?
   // Pågående, ännu inte säker inlärning: stadium ≤1, eller stadium 2 som är förfallen, eller öppen Felbok.
-  function learningLoad(L, cat, now) { return Object.entries(L.c).filter(([id, c]) => c.n > 0 && (!cat[id] || cat[id].kind !== 'deck') && (c.st <= 1 || (c.st === 2 && now != null && c.due <= now) || ['open', 'awaiting'].includes(fbS(c, now)))).length; }
+  // Granskning 2.1 (M7): bara koncept som finns i katalogen räknas (en borttagen kunskapspunkt låg annars kvar som last för alltid)
+  function learningLoad(L, cat, now) { return Object.entries(L.c).filter(([id, c]) => c.n > 0 && cat[id] && cat[id].kind !== 'deck' && cat[id].active !== false && (c.st <= 1 || (c.st === 2 && now != null && c.due <= now) || ['open', 'awaiting'].includes(fbS(c, now)))).length; }
   function lastNewAt(L) { return Math.max(0, ...Object.values(L.c).map(c => (c.fs || 0) * 1000)); }
   function dueBacklog(L, cat, now) { return Object.entries(L.c).filter(([id, c]) => cat[id] && cat[id].kind !== 'deck' && cat[id].active !== false && c.n > 0 && c.due && c.due <= now).length; }
   function challengeEligible(L, cat, cid) { const c = L.c[cid]; const d = cat[cid]; if (!c || !d || d.challenge === false || d.kind === 'deck') return false; return c.st >= CFG.challenge.ceilingStage || (c.st >= CFG.challenge.minStage && c.lvl >= (d.maxLvl || 3)); }
@@ -387,7 +418,7 @@ const LE2 = (() => {
     // 5) 3H Utmaning: fördjupning på redan säkra koncept – inte varje pass, och den gör aldrig passet längre (ersätter en övningsplats)
     let challenge = null;
     if (opts.challenge !== false && (light || ((opts.sessionNo || 0) % CFG.challenge.every === 0))) {
-      const elig = Object.keys(cat).filter(id => challengeEligible(L, cat, id) && (subjects.has(subjOf(id)) || subjects.size < pol.maxSubjects))
+      const elig = Object.keys(cat).filter(id => cat[id].active !== false && challengeEligible(L, cat, id) && (subjects.has(subjOf(id)) || subjects.size < pol.maxSubjects))
         .sort((a, b) => ((L.c[a].ch || {}).n || 0) - ((L.c[b].ch || {}).n || 0) || ((L.c[a].ch || {}).d || 0) - ((L.c[b].ch || {}).d || 0) || (a < b ? -1 : 1));
       if (elig.length) {
         challenge = { cid: elig[0], role: 'challenge', why: WHY_TEXT.challenge, P: 0, parts: {}, mode: 'challenge' };
@@ -411,7 +442,7 @@ const LE2 = (() => {
   function pickBoss(L, sessState, slots, pol, cat) {
     const ex = sessState.examC || []; const okC = Object.entries(sessState.byC).filter(([cid, s]) => s.fails === 0 && s.n > 0 && L.c[cid] && !(cat && cat[cid] && cat[cid].kind === 'deck')).map(([cid]) => cid).sort((a, b) => (ex.includes(b) - ex.includes(a)) || (L.c[b].okRun - L.c[a].okRun) || (L.c[b].st - L.c[a].st) || (a < b ? -1 : 1));
     if (okC.length) { const cid = okC[0]; const stretch = L.c[cid].okRun >= pol.bossStretchRun; return { cid, stretch, why: stretch ? 'utmaning (nivå upp)' : 'utmaning' }; }
-    const strong = Object.entries(L.c).filter(([id, c]) => c.st >= 2 && !(cat && cat[id] && cat[id].kind === 'deck') && !(cat && !cat[id])).sort((a, b) => b[1].st - a[1].st || (a[0] < b[0] ? -1 : 1))[0];
+    const strong = Object.entries(L.c).filter(([id, c]) => c.st >= 2 && !(cat && cat[id] && (cat[id].kind === 'deck' || cat[id].active === false)) && !(cat && !cat[id])).sort((a, b) => b[1].st - a[1].st || (a[0] < b[0] ? -1 : 1))[0];
     return strong ? { cid: strong[0], stretch: false, why: 'gulduppgift' } : null;
   }
   function rescueTrigger(sessState, cid, pol) {
@@ -423,7 +454,9 @@ const LE2 = (() => {
     return null;
   }
   // 3E: vilken svarsform behövs som bevis? Flerval räcker i början; därefter eget svar när ämnet har det.
-  function formatFor(L, cat, cid, pol, role) { const c = L.c[cid]; const d = cat[cid] || {}; if (!c || role === 'warmup' || role === 'rescue') return 'any'; return c.st >= pol.mcMaxStage && isRecallCapable(d, c) ? 'recall' : 'any'; }
+  function formatFor(L, cat, cid, pol, role) { const c = L.c[cid]; const d = cat[cid] || {}; if (!c || role === 'warmup' || role === 'rescue') return 'any';
+    if (d.depth && c.st >= (CFG.depth.askStage || CFG.depth.gateStage) && !depthMet(c)) return 'depth';   // 3I: djupgrinden behöver en fördjupande fråga
+    return c.st >= pol.mcMaxStage && isRecallCapable(d, c) ? 'recall' : 'any'; }
 
   /* ---------- 3G: provstatus och föräldrainsikter ---------- */
   function examStatus(L, cat, exam, now, pol) {
@@ -437,7 +470,7 @@ const LE2 = (() => {
       const d = cat[id]; if (!d || d.kind === 'deck' || d.active === false) continue;
       if (c.n < 4) { if (c.n > 0) out.thin.push(id); continue; }
       const failedToday = c.failDays && c.failDays.includes(today);
-      if (c.st >= 4 || (c.st >= 3 && delayedOks(c, now - 30 * DAY) >= 2)) { (failedToday ? out.temporary : out.strengths).push(id); }
+      if ((c.st >= 4 || (c.st >= 3 && delayedOks(c, now - 30 * DAY) >= 2)) && depthOk(c)) { (failedToday ? out.temporary : out.strengths).push(id); }
       else if (['open', 'awaiting'].includes(fbS(c, now)) || (c.lap >= 1 && c.st <= 2) || phase(c, now, pol, L) === 'weakening') out.practise.push(id);
       if (c.due && c.due <= now && c.st >= 1) out.due.push(id);
       if (rescueCount(c, now) >= CFG.rescue.insightCount) out.rescue.push(id);
@@ -463,13 +496,14 @@ const LE2 = (() => {
   function encodeEv(e) {
     const base = [Math.round(e.t / 1000), e.dev, e.seq, e.cid, e.ok ? 1 : 0, KCODE[e.kind] || 'f', e.k || 0, HCODE[e.help || 'none'] || 'n', XCODE[e.ctx || 'first'] || 'f', e.item || '', e.fast ? 1 : 0, e.sess || '', e.lvl || 1, e.restart ? 1 : 0];
     if (e.mode === 'challenge') { base[7] = 'r'; base[8] = 'r'; }
-    if (e.mode || e.role || e.stretch || e.onlyVariant) base.push(MCODE[e.mode] || '', e.role || '', e.stretch ? 1 : 0, e.mode === 'challenge' ? (HCODE[e.help || 'none'] || 'n') : '');
-    if (e.onlyVariant) base.push(1);   // 18: frågebanken saknade en annan uppgift (Felboken får verifiera med samma fråga efter några dygn)
+    if (e.mode || e.role || e.stretch || e.onlyVariant || e.form) base.push(MCODE[e.mode] || '', e.role || '', e.stretch ? 1 : 0, e.mode === 'challenge' ? (HCODE[e.help || 'none'] || 'n') : '');
+    if (e.onlyVariant || e.form) base.push(e.onlyVariant ? 1 : 0);   // 18: frågebanken saknade en annan uppgift (Felboken får verifiera med samma fråga efter några dygn)
+    if (e.form) base.push(e.form);   // 19 (3I): frågeform r/c/v/l/m/x/a/e/s (äldre versioner läser inte fältet)
     return base;
   }
   function decodeEv(a) {
     const e = { t: a[0] * 1000, dev: a[1], seq: a[2], cid: a[3], ok: !!a[4], kind: KDEC[a[5]] || 'free', k: a[6], help: HDEC[a[7]] || 'none', ctx: XDEC[a[8]] || 'first', item: a[9], fast: !!a[10], sess: a[11], lvl: a[12], restart: !!a[13] };
-    if (a.length > 14) { if (a[14]) e.mode = MDEC[a[14]]; if (a[15]) e.role = a[15]; if (a[16]) e.stretch = true; if (e.mode === 'challenge') { e.help = HDEC[a[17]] || 'none'; e.ctx = 'first'; } if (a[18]) e.onlyVariant = true; }
+    if (a.length > 14) { if (a[14]) e.mode = MDEC[a[14]]; if (a[15]) e.role = a[15]; if (a[16]) e.stretch = true; if (e.mode === 'challenge') { e.help = HDEC[a[17]] || 'none'; e.ctx = 'first'; } if (a[18]) e.onlyVariant = true; if (a[19] && typeof a[19] === 'string') e.form = a[19].slice(0, 1); }
     return e;
   }
   const evKey = (e) => Array.isArray(e) ? e[1] + ':' + e[2] : e.dev + ':' + e.seq;
@@ -483,7 +517,7 @@ const LE2 = (() => {
   /* Sammanslagning av två enheters le (kommutativ, idempotent). Bas: flest inbakade händelser vinner; lika → tidigast t0; lika → hash.
      Loggarna förenas på dev:seq (vid krock på samma nyckel väljs deterministiskt). Skuggposter och v2-passposter förenas på id.
      Belöningsmarkörer (rw) förenas som union – samma belöning delas aldrig ut två gånger efter synk. */
-  const SHADOW_MAX = 40, LOG_SOFT = 300, LOG_HARD = 450, FOLD_AGE = 14 * DAY, RW_MAX = 400, RW_DAYS = 21, RW_AHEAD = 7;   // RW_AHEAD: markörer mer än en vecka fram i tiden (fel klocka) tas bort
+  const SHADOW_MAX = 40, LOG_SOFT = 300, LOG_HARD = 450, FOLD_AGE = 14 * DAY, RW_MAX = 400, RW_DAYS = 21, RW_AHEAD = 7, LOG_HARD_PIN = 900;   // RW_AHEAD: markörer mer än en vecka fram i tiden (fel klocka) tas bort
   /* Belöningsmarkörer "TYP:dygn[:nyckel]" (MA:koncept saknar dygn och behålls alltid – en per koncept). Gallras efter ÅLDER, inte antal:
      en dags- eller veckomarkör får aldrig falla bort medan den gäller (annars kunde samma belöning delas ut igen). Deterministiskt: åldern
      räknas från den nyaste markörens dygn, inte från klockan, så två enheter gallrar likadant. */
@@ -496,6 +530,18 @@ const LE2 = (() => {
     keep.sort((a, b) => ((rwDay(a) == null ? -1 : rwDay(a)) - (rwDay(b) == null ? -1 : rwDay(b))) || (a < b ? -1 : a > b ? 1 : 0));
     return keep.length > RW_MAX ? [...keep.filter(k => rwDay(k) == null), ...keep.filter(k => rwDay(k) != null)].slice(-RW_MAX) : keep;
   }
+  /* 2.1 Innehållshälsa: barnets "Den här frågan är konstig" sparas som "dygn|uppgifts-id|koncept-id" i le.qr (inget annat – ingen fritext,
+     ingen svarstid). Förenas som union mellan enheter, högst en markering per uppgift och dygn, gallras deterministiskt på ålder (räknat från
+     den nyaste markeringen, inte klockan) och antal. Ändrar aldrig bevis, stadier eller innehåll. 2.0 bär fältet orört vidare (rollback). */
+  const QR_MAX = 150, QR_DAYS = 120;
+  const qrOk = (k) => typeof k === 'string' && /^\d{1,6}\|[A-Za-z0-9:_\/-]{1,90}\|[A-Za-z0-9:_\/-]{1,110}$/.test(k);
+  function pruneQr(list, today) {
+    const day = (k) => Number(k.split('|')[0]);
+    const u = [...new Set((list || []).filter(qrOk))].filter(k => today == null || day(k) <= today + RW_AHEAD); if (!u.length) return u;   // fel klocka: markeringar långt fram i tiden tas bort när passets dygn är känt
+    const top = Math.max(...u.map(day));
+    return u.filter(k => day(k) >= top - QR_DAYS).sort((a, b) => day(a) - day(b) || (a < b ? -1 : a > b ? 1 : 0)).slice(-QR_MAX);
+  }
+  function reportItem(le, day, item, cid) { const k = `${day}|${item}|${cid}`; if (!qrOk(k)) return false; le.qr = le.qr || []; if (le.qr.includes(k)) return false; le.qr = pruneQr([...le.qr, k], day); return le.qr.includes(k); }
   function mergeLE(a, b) {
     if (!a || !a.v) return b && b.v ? b : (a || b || null); if (!b || !b.v) return a;
     if (a.v !== b.v) return a.v > b.v ? a : b;   // granskning M9: blanda aldrig versioner – den senare versionen lämnas orörd
@@ -512,13 +558,19 @@ const LE2 = (() => {
     const rw = pruneRw([...(a.rw || []), ...(b.rw || [])]);
     const out = { ...other, ...pick, log, seqs, shadow, srv: Math.max(a.srv || 0, b.srv || 0) || undefined };
     if (rw.length) out.rw = rw; else delete out.rw;
+    const qr = pruneQr([...(a.qr || []), ...(b.qr || [])]); if (qr.length) out.qr = qr; else delete out.qr;
     return out;
   }
   function compact(le, cat, pol, now) {
     if (!le || (le.log || []).length <= LOG_SOFT) return false;
     const log = le.log.slice().sort(evOrder); let cut = 0;
-    while (cut < log.length - 200 && evT(log[cut]) < now - FOLD_AGE) cut++;
-    if (log.length - cut > LOG_HARD) cut = log.length - LOG_SOFT;
+    /* Granskning 2.1 (H3): ett bevis på ett vilande moment (route → kunskapspunkt) får inte bakas in i basen i onödan – basen räknas med
+       2.1-katalogen, så 2.0 (rollback) skulle tappa beviset. Den vanliga gallringen stannar därför före det första sådana beviset, och taket
+       höjs till LOG_HARD_PIN. Först över det taket bakas allt in som förut (dokumenterad gräns, docs/CONCEPT_PACKS.md §7). Basens tidsgräns
+       t0 ligger alltid före alla bevis som är kvar i loggen – så 2.0:s sammanslagning kan aldrig kasta något. */
+    const pinned = (e) => { const d = cat[Array.isArray(e) ? e[3] : e.cid]; return !!(d && d.route); };
+    while (cut < log.length - 200 && evT(log[cut]) < now - FOLD_AGE && !pinned(log[cut])) cut++;
+    if (log.length - cut > (log.some(pinned) ? LOG_HARD_PIN : LOG_HARD)) cut = log.length - LOG_SOFT;
     if (cut <= 0) return false;
     while (cut < log.length && evT(log[cut]) === evT(log[cut - 1])) cut++;
     const folded = log.slice(0, cut); const base = replay(folded, cat, pol, le.base);
@@ -546,7 +598,7 @@ const LE2 = (() => {
 
   return { DAY, RULES, CFG, dayIdx, dayStart, DECISIONS, POLICIES, STAGE_DAYS, intervalDays, calibrate, evidenceWeight, newConcept, cstate, newLE, engineNow, recordEvidence, apply,
     PHASES, phase, felbokVisible, felbokDisplay, felbokRecentWins, felbokChild, childLabel, readiness, parentInsights, delayedOks, rescueCount, W, WHY_TEXT, examUrgency, examReady, examStatus, insights, priority, rankAll, withCtx,
-    learningLoad, lastNewAt, dueBacklog, fbOpenCount, challengeEligible, planSession, pickBoss, rescueTrigger, formatFor, isRecallCapable,
-    encodeEv, decodeEv, mergeLog, replay, mergeLE, compact, rewardOnce, pruneRw, rwDay, migrateV1, stable, hash, SHADOW_MAX, LOG_SOFT, LOG_HARD, RW_MAX, RW_DAYS };
+    learningLoad, lastNewAt, dueBacklog, fbOpenCount, challengeEligible, planSession, pickBoss, rescueTrigger, formatFor, isRecallCapable, isDepthForm, depthOk,
+    encodeEv, decodeEv, mergeLog, replay, mergeLE, compact, rewardOnce, pruneRw, pruneQr, reportItem, QR_MAX, QR_DAYS, rwDay, migrateV1, stable, hash, SHADOW_MAX, LOG_SOFT, LOG_HARD, LOG_HARD_PIN, RW_MAX, RW_DAYS };
 })();
 if (typeof module !== 'undefined') module.exports = LE2;

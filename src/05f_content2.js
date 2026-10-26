@@ -109,8 +109,11 @@ const CHG = (() => {
     },
   };
   // Faktabanker: vilket påstående är FEL? (tre frågor ur banken, en med ett felalternativ som svar)
-  function falseStatement(skill, lvl, k) {
-    const qs = candidates(skill.gen, lvl, 3, (q) => q.type === 'choicetext' && !q.fig && Array.isArray(q.choices) && q.choices.length >= 2 && !RECALL.NEEDS_OPTIONS.test(RECALL.strip(q.text)) && plainLen(q) <= 140); if (qs.length < 3) return null;
+  // young (2.1): korta svenskfrågor för yngre – "Vilket ord rimmar på hus? → mus" fungerar som påstående; bara negationer utesluts
+  function falseStatement(skill, lvl, k, young) {
+    const okQ = young ? (q) => q.type === 'choicetext' && !q.fig && Array.isArray(q.choices) && q.choices.length >= 2 && !/\binte\b|\bfel\b/i.test(RECALL.strip(q.text)) && plainLen(q) <= 70 && q.choices.every(c => RECALL.strip(c).length <= 24)
+      : (q) => q.type === 'choicetext' && !q.fig && Array.isArray(q.choices) && q.choices.length >= 2 && !RECALL.NEEDS_OPTIONS.test(RECALL.strip(q.text)) && plainLen(q) <= 140;
+    const qs = candidates(skill.gen, lvl, 3, okQ); if (qs.length < 3) return null;
     const bad = k % 3; const shownIdx = qs.map((q, i) => (i === bad ? q.choices.findIndex((_, j) => j !== q.answer) : q.answer));
     const rows = qs.map((q, i) => `<div style="margin:6px 0"><b>${L3[i]}.</b> ${q.text} → <b>${RECALL.strip(q.choices[shownIdx[i]]).replace(/[<>&]/g, '')}</b></div>`).join('');
     return { type: 'choicetext', text: `<b>Vilket påstående är FEL?</b>${rows}`, choices: L3.map(x => `Påstående ${x}`), answer: bad,
@@ -122,11 +125,12 @@ const CHG = (() => {
   function make(skill, lvl, k = 0, opts = {}) {
     if (!skill || typeof skill.gen !== 'function') return null;
     const math = (skill.group || 'math') === 'math';
-    const kinds = opts.young ? (math ? ['combine', 'spot'] : []) : math ? MATH_ORDER : ['false'];
+    // 2.1: yngre får också Utmaningar i svenska (hitta felet bland tre korta, besvarade frågor) – Läs upp hjälper vid behov
+    const kinds = opts.young ? (math ? ['combine', 'spot'] : (skill.group === 'sv' ? ['false'] : [])) : math ? MATH_ORDER : ['false'];
     if (!kinds.length) return null;
     for (let j = 0; j < kinds.length; j++) {
       const kind = kinds[(k + j) % kinds.length];
-      const q = kind === 'false' ? falseStatement(skill, lvl, k) : MATH[kind](skill, lvl, k);
+      const q = kind === 'false' ? falseStatement(skill, lvl, k, !!opts.young) : MATH[kind](skill, lvl, k);
       if (q) { q.level = lvl; return q; }
     }
     const f = math && !opts.young ? falseStatement(skill, lvl, k) : null; if (f) f.level = lvl; return f;

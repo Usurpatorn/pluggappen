@@ -26,6 +26,15 @@ const suites = [
   ['Motor v2: djuplänk från påminnelse (även trasig data)', 'test_le_deeplink.js'],
   ['Skuggläge: barnen får v1, fångst, föräldravy, täckning', 'test_le_shadow.js'],
   ['Skuggläge: flera enheter, Felboken-synk', 'test_le_sync.js'],
+  ['2.1 Concept Packs: kvalitetsgrind (varje variant, migrering, id:n)', 'test_packs.js'],
+  ['2.1 Formmedvetna bevis: regler + simulering mot 2.0', 'test_le_forms.js'],
+  ['2.1 Paket i appen: Kör!, Testa mig, migrering, v1, rollback till 2.0.0', 'test_le_packs_app.js'],
+  ['2.1 Läs upp: behörighet per fråga, Yngre-knapp, ingen extern tjänst', 'test_readaloud.js'],
+  ['2.1 Små mattebanker åk 2 (former, bråk) – bara v2', 'test_gen2.js'],
+  ['2.2 Study Mission: skoluppgifter, lärarfrågor, uppdrag, innehållshälsa', 'test_study_mission.js'],
+  ['2.1 Kodgranskningens fynd (XSS, Felboken, kompaktering, privat innehåll)', 'test_review21.js'],
+  ['2.1 Innehållsgranskningens sakfel får aldrig komma tillbaka', 'test_content_facts.js'],
+  ['2.1 Learning Recipes: aktivitet efter stadium, ingen uppblåst behärskning', 'test_recipes.js'],
 ];
 let failed = 0; const rows = [];
 for (const [name, file, opts = {}] of suites) {
@@ -39,6 +48,9 @@ for (const [name, file, opts = {}] of suites) {
   if (!ok) failed++;
   rows.push([name, `${ok ? 'OK ' : 'FEL'} ${((Date.now() - t0) / 1000).toFixed(1)}s  ${summary.slice(0, 90)}`]);
   if (!ok) { console.log(`\n===== ${name} (${file}) =====\n` + lines.slice(-40).join('\n') + '\n'); }
+  // CI: en annotering per fallen svit (läsbar via API:t även när loggarna inte är det). Bara svitens namn och sista rad – testerna skriver
+  // aldrig ut privata termer (test_privacy anger "privat term #n").
+  if (!ok && process.env.GITHUB_ACTIONS) { const fl = lines.filter(l => /FAIL|fel|Error/.test(l)).slice(0, 3).map(l => l.slice(0, 160)); console.log(`::error title=${file} föll::${[summary.slice(0, 160), ...fl].join(' | ').replace(/[\r\n%]/g, ' ')}`); }
 }
 const w = Math.max(...rows.map(r => r[0].length));
 console.log('\nTestsvit – resultat'); for (const [n, s] of rows) console.log(`  ${n.padEnd(w)}  ${s}`);

@@ -1,0 +1,2746 @@
+{
+ "pluggPackVersion": 1,
+ "id": "kemi8-syror-baser",
+ "title": "Syror, baser och salter",
+ "subject": "no",
+ "topic": "Kemi",
+ "grades": [
+  7,
+  9
+ ],
+ "policies": [
+  "older"
+ ],
+ "templates": [
+  "ak8"
+ ],
+ "rev": 2,
+ "sources": [
+  {
+   "id": "lgr22",
+   "label": "Lgr22 Kemi åk 7–9: kemin i vardagen och samhället, kemin och världsbilden",
+   "kind": "lgr22"
+  }
+ ],
+ "skills": [
+  {
+   "id": "kemi_syror",
+   "existing": true
+  },
+  {
+   "id": "kemi_baser",
+   "existing": true
+  },
+  {
+   "id": "kemi_ph",
+   "existing": true
+  },
+  {
+   "id": "kemi_starka",
+   "existing": true
+  },
+  {
+   "id": "kemi_neutral",
+   "existing": true
+  },
+  {
+   "id": "kemi_vardag",
+   "existing": true
+  },
+  {
+   "id": "kemi_kropp_natur",
+   "existing": true
+  },
+  {
+   "id": "kemi_saker",
+   "existing": true
+  }
+ ],
+ "kps": [
+  {
+   "id": "syra-kanne",
+   "skill": "kemi_syror",
+   "name": "Vad som gör en lösning sur",
+   "explain": "En syra avger vätejoner (H⁺) när den löses i vatten. Det är vätejonerna som gör lösningen sur – ju fler, desto lägre pH (under 7).",
+   "facts": [
+    {
+     "k": "term",
+     "term": "vätejoner",
+     "q": "Vilka joner avger en syra när den löses i vatten?",
+     "def": "Gör den sur",
+     "rq": "Vad gör vätejoner (H⁺) med en lösning?",
+     "alias": [
+      "vätejon",
+      "h+",
+      "h⁺",
+      "h+ joner",
+      "vätejonerna",
+      "vätejon h+",
+      "oxoniumjoner",
+      "oxoniumjon"
+     ],
+     "not": [
+      "Hydroxidjoner",
+      "Kloridjoner",
+      "Natriumjoner"
+     ],
+     "notDef": [
+      "Gör den basisk",
+      "Gör den neutral",
+      "Gör den salt"
+     ],
+     "cls": "jon"
+    },
+    {
+     "k": "qa",
+     "q": "Vilket pH-värde har en sur lösning?",
+     "a": "Under 7",
+     "not": [
+      "Exakt 7",
+      "Över 7",
+      "Över 14"
+     ],
+     "why": "pH 7 är neutralt. Allt under 7 är surt."
+    },
+    {
+     "k": "stmt",
+     "s": "En syra avger vätejoner i vatten.",
+     "f": [
+      "En syra avger hydroxidjoner i vatten.",
+      "En syra tar upp alla vätejoner ur vattnet."
+     ]
+    },
+    {
+     "k": "stmt",
+     "s": "Sura lösningar har pH under 7.",
+     "f": [
+      "Sura lösningar har pH över 7.",
+      "Sura lösningar har alltid pH exakt 7."
+     ]
+    },
+    {
+     "k": "stmt",
+     "s": "Starka syror är frätande.",
+     "f": [
+      "Alla syror är ofarliga att röra vid."
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "stmt",
+     "s": "Syror smakar surt – men man ska aldrig smaka på kemikalier i labbet.",
+     "f": [
+      "Syror smakar sött."
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Vad händer med pH när fler vätejoner kommer ut i en lösning?",
+     "a": "pH sjunker",
+     "not": [
+      "pH stiger",
+      "pH blir exakt 7",
+      "pH ändras inte"
+     ],
+     "form": "cause",
+     "lvl": 2,
+     "why": "Fler vätejoner = surare = lägre pH."
+    },
+    {
+     "k": "qa",
+     "q": "Hur kan du visa att en okänd lösning är sur, utan att smaka på den?",
+     "a": "Droppa i en indikator, t.ex. BTB, som blir gul",
+     "not": [
+      "Lukta försiktigt på den",
+      "Känna om den är hal",
+      "Väga lösningen"
+     ],
+     "form": "application",
+     "lvl": 2,
+     "why": "En indikator byter färg efter pH. BTB blir gul i sur lösning."
+    },
+    {
+     "k": "qa",
+     "q": "Vad är det som avgör hur sur en lösning är?",
+     "a": "Hur många vätejoner den innehåller – många vätejoner ger lågt pH",
+     "not": [
+      "Hur varm lösningen är",
+      "Hur mycket lösningen väger",
+      "Vilken färg lösningen har"
+     ],
+     "form": "explanation",
+     "lvl": 3,
+     "why": "Det är mängden vätejoner per liter som avgör surheten. pH är ett mått på den."
+    }
+   ],
+   "mistakes": [
+    {
+     "wrong": "Syror innehåller hydroxidjoner.",
+     "right": "Det är baser som ger hydroxidjoner (OH⁻). Syror ger vätejoner (H⁺)."
+    }
+   ],
+   "related": [
+    {
+     "kp": "bas-kanne",
+     "how": "motsats"
+    },
+    {
+     "kp": "ph-skalan",
+     "how": "mäts med"
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "syra-exempel",
+   "skill": "kemi_syror",
+   "name": "Vanliga syror och var de finns",
+   "explain": "Saltsyra finns i magsäcken, svavelsyra i bilbatterier, kolsyra i kolsyrat vatten och läsk, citronsyra i citrusfrukter, ättiksyra i ättika och vinäger, mjölksyra i filmjölk och i trötta muskler, myrsyra hos myror och brännässlor.",
+   "facts": [
+    {
+     "k": "pairs",
+     "q": "Var finns {a_lower}?",
+     "items": [
+      [
+       "Saltsyra",
+       "I magsäcken"
+      ],
+      [
+       "Svavelsyra",
+       "I bilbatterier"
+      ],
+      [
+       "Kolsyra",
+       "I kolsyrat vatten (bubblorna)"
+      ],
+      [
+       "Citronsyra",
+       "I citroner och apelsiner"
+      ],
+      [
+       "Ättiksyra",
+       "I ättika och vinäger"
+      ],
+      [
+       "Mjölksyra",
+       "I filmjölk och yoghurt"
+      ],
+      [
+       "Myrsyra",
+       "I myrors gift och i brännässlor"
+      ]
+     ],
+     "rq": "Vilken syra finns {b_lower}?",
+     "why": "Syror finns överallt – i maten, i kroppen och i naturen.",
+     "recall": true
+    },
+    {
+     "k": "term",
+     "term": "kolsyra",
+     "q": "Vilken syra bildas när koldioxid löses i vatten?",
+     "not": [
+      "Saltsyra",
+      "Svavelsyra",
+      "Citronsyra"
+     ],
+     "cls": "syra",
+     "why": "Det är därför läsk är lite sur – och därför haven försuras när de tar upp koldioxid."
+    },
+    {
+     "k": "term",
+     "term": "mjölksyra",
+     "q": "Vilken syra bildas i musklerna när du tränar mycket hårt?",
+     "not": [
+      "Saltsyra",
+      "Kolsyra",
+      "Svavelsyra"
+     ],
+     "cls": "syra",
+     "why": "Mjölksyra bildas när musklerna arbetar hårt. Den finns också i filmjölk och yoghurt."
+    },
+    {
+     "k": "term",
+     "term": "salpetersyra",
+     "q": "Vilken stark syra används för att tillverka gödsel och sprängämnen?",
+     "not": [
+      "Ättiksyra",
+      "Citronsyra",
+      "Mjölksyra"
+     ],
+     "cls": "syra",
+     "lvl": 2,
+     "why": "Salpetersyra (HNO₃) är en stark syra. Den används för att tillverka gödsel (nitrater) och sprängämnen."
+    },
+    {
+     "k": "term",
+     "term": "fosforsyra",
+     "q": "Vilken syra finns i cola-drycker?",
+     "not": [
+      "Svavelsyra",
+      "Salpetersyra",
+      "Mjölksyra"
+     ],
+     "cls": "syra",
+     "lvl": 2,
+     "why": "Cola innehåller fosforsyra (och kolsyra).",
+     "recall": false
+    },
+    {
+     "k": "qa",
+     "q": "Brännässlans brännhår innehåller bland annat en syra som också finns hos myror. Vilken?",
+     "a": "Myrsyra",
+     "not": [
+      "Saltsyra",
+      "Svavelsyra",
+      "Kolsyra"
+     ],
+     "lvl": 2,
+     "why": "Myrsyra finns i myrors gift och, tillsammans med andra ämnen, i brännässlans brännhår."
+    },
+    {
+     "k": "qa",
+     "q": "Varför tål magsäcken saltsyran som finns där?",
+     "a": "Magsäcken skyddas av ett slemlager",
+     "not": [
+      "Saltsyran är ofarlig",
+      "Magsäcken är basisk",
+      "Saltsyran späds alltid ut till pH 7"
+     ],
+     "form": "explanation",
+     "lvl": 3,
+     "why": "Slemmet skyddar magsäckens vägg. Saltsyran behövs för att bryta ner mat och döda bakterier."
+    }
+   ],
+   "related": [
+    {
+     "kp": "syra-kanne",
+     "how": "exempel på"
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "syra-formler",
+   "skill": "kemi_syror",
+   "name": "Syrornas namn och formler",
+   "explain": "Alla syror innehåller väte (H). Saltsyra HCl, svavelsyra H₂SO₄, salpetersyra HNO₃, kolsyra H₂CO₃ och ättiksyra CH₃COOH.",
+   "facts": [
+    {
+     "k": "pairs",
+     "q": "Vilken formel har {a}?",
+     "items": [
+      [
+       "saltsyra",
+       "HCl"
+      ],
+      [
+       "svavelsyra",
+       "H₂SO₄"
+      ],
+      [
+       "salpetersyra",
+       "HNO₃"
+      ],
+      [
+       "kolsyra",
+       "H₂CO₃"
+      ],
+      [
+       "ättiksyra",
+       "CH₃COOH"
+      ]
+     ],
+     "rq": "Vilken syra har formeln {b}?",
+     "lvl": 2,
+     "why": "Formeln visar vilka atomer som finns i syran. Alla syror innehåller väte (H) som kan lossna som vätejoner. I ättiksyra CH₃COOH är det bara H:t i COOH-gruppen som lossnar."
+    },
+    {
+     "k": "qa",
+     "q": "Vilket grundämne finns i alla syror?",
+     "a": "Väte (H)",
+     "not": [
+      "Syre (O)",
+      "Klor (Cl)",
+      "Natrium (Na)"
+     ],
+     "why": "Det är vätet som kan lossna som vätejoner."
+    },
+    {
+     "k": "stmt",
+     "s": "Saltsyra är väteklorid (HCl) löst i vatten.",
+     "f": [
+      "Saltsyra är koksalt löst i vatten."
+     ],
+     "lvl": 2,
+     "why": "Namnet lurar: saltsyra innehåller inget koksalt."
+    },
+    {
+     "k": "qa",
+     "q": "Vad betyder 'aq' i HCl(aq)?",
+     "a": "Att ämnet är löst i vatten",
+     "not": [
+      "Att ämnet är en gas",
+      "Att ämnet är fast",
+      "Att ämnet är en bas"
+     ],
+     "lvl": 3,
+     "why": "aq kommer från latinets aqua = vatten."
+    }
+   ],
+   "requires": [
+    "syra-exempel"
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "bas-kanne",
+   "skill": "kemi_baser",
+   "name": "Vad som gör en lösning basisk",
+   "explain": "En basisk lösning har många hydroxidjoner (OH⁻) och pH över 7. Den känns hal och tvålig och kallas också alkalisk. Starka baser är minst lika frätande som starka syror – särskilt farliga för ögonen.",
+   "facts": [
+    {
+     "k": "term",
+     "term": "hydroxidjoner",
+     "q": "Vilka joner finns det gott om i en basisk lösning?",
+     "def": "Gör den basisk",
+     "rq": "Vad gör hydroxidjoner (OH⁻) med en lösning?",
+     "alias": [
+      "hydroxidjon",
+      "oh-",
+      "oh- joner",
+      "hydroxidjonerna"
+     ],
+     "not": [
+      "Vätejoner",
+      "Kloridjoner",
+      "Kalciumjoner"
+     ],
+     "notDef": [
+      "Gör den sur",
+      "Gör den neutral",
+      "Gör den salt"
+     ],
+     "cls": "jon"
+    },
+    {
+     "k": "term",
+     "term": "alkalisk",
+     "q": "Vad kallas en basisk lösning med ett annat ord?",
+     "not": [
+      "Sur",
+      "Neutral",
+      "Mättad"
+     ],
+     "cls": "egenskap"
+    },
+    {
+     "k": "qa",
+     "q": "Vilket pH-värde har en basisk lösning?",
+     "a": "Över 7",
+     "not": [
+      "Under 7",
+      "Exakt 7",
+      "Under 0"
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Hur känns en basisk lösning mot huden?",
+     "a": "Hal och tvålig",
+     "not": [
+      "Klibbig",
+      "Sträv",
+      "Kall"
+     ],
+     "why": "Basen börjar lösa upp fettet i huden – skölj alltid bort den. Känn aldrig med fingrarna på en okänd kemikalie."
+    },
+    {
+     "k": "stmt",
+     "s": "Baser löser upp fett.",
+     "f": [
+      "Baser gör fett hårdare."
+     ],
+     "why": "Därför finns baser i många rengöringsmedel."
+    },
+    {
+     "k": "stmt",
+     "s": "Starka baser är minst lika frätande som starka syror.",
+     "f": [
+      "Baser är alltid ofarliga eftersom de inte är sura."
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Varför är baser vanliga i rengöringsmedel?",
+     "a": "De löser upp fett och smuts",
+     "not": [
+      "De luktar gott",
+      "De gör ytor sura",
+      "De är helt ofarliga"
+     ],
+     "form": "cause",
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Du testar ett rengöringsmedel med pH-papper och får pH 11. Vad betyder det?",
+     "a": "Att det är basiskt",
+     "not": [
+      "Att det är surt",
+      "Att det är neutralt",
+      "Att det är ett salt"
+     ],
+     "form": "application",
+     "lvl": 2,
+     "why": "Över 7 är basiskt. Testa alltid med indikator eller pH-papper – aldrig genom att känna eller smaka."
+    }
+   ],
+   "mistakes": [
+    {
+     "wrong": "Baser är ofarliga eftersom de inte är sura.",
+     "right": "Starka baser som natriumhydroxid fräter minst lika mycket som starka syror."
+    }
+   ],
+   "related": [
+    {
+     "kp": "syra-kanne",
+     "how": "motsats"
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "bas-exempel",
+   "skill": "kemi_baser",
+   "name": "Vanliga baser och vad de används till",
+   "explain": "Natriumhydroxid (lut) finns i propplösare och används för att tillverka tvål. Ammoniak finns i fönsterputs. Kalciumhydroxid (släckt kalk) finns i murbruk. Bikarbonat är ett salt som reagerar som en svag bas – det finns i bakpulver.",
+   "facts": [
+    {
+     "k": "pairs",
+     "q": "Var används {a_lower}?",
+     "items": [
+      [
+       "Natriumhydroxid (lut)",
+       "I propplösare"
+      ],
+      [
+       "Ammoniak",
+       "I fönsterputs"
+      ],
+      [
+       "Kalciumhydroxid (släckt kalk)",
+       "I murbruk"
+      ],
+      [
+       "Natriumvätekarbonat (bikarbonat)",
+       "I bakpulver"
+      ],
+      [
+       "Kaliumhydroxid",
+       "I alkaliska batterier"
+      ]
+     ],
+     "rq": "Vilken bas används {b_lower}?",
+     "why": "Baser är vanliga i hemmet, mest i rengöring."
+    },
+    {
+     "k": "term",
+     "term": "natriumhydroxid",
+     "q": "Vilken stark bas kallas lut och finns i propplösare?",
+     "alias": [
+      "lut",
+      "naoh"
+     ],
+     "not": [
+      "Ammoniak",
+      "Bikarbonat",
+      "Kalk"
+     ],
+     "cls": "bas"
+    },
+    {
+     "k": "term",
+     "term": "ammoniak",
+     "q": "Vilken bas luktar starkt och används i fönsterputs?",
+     "not": [
+      "Natriumhydroxid",
+      "Kalciumhydroxid",
+      "Saltsyra"
+     ],
+     "cls": "bas"
+    },
+    {
+     "k": "qa",
+     "q": "Vad tillverkas av fett och natriumhydroxid?",
+     "a": "Tvål",
+     "not": [
+      "Socker",
+      "Glas",
+      "Plast"
+     ],
+     "lvl": 2,
+     "why": "Fett + stark bas ger tvål – därför löser baser upp fett."
+    },
+    {
+     "k": "qa",
+     "q": "Proppen i diskhon består av fett och hår. Varför hjälper propplösare?",
+     "a": "Den starka basen löser upp fett och hår",
+     "not": [
+      "Den gör proppen hårdare",
+      "Den kyler ner röret",
+      "Den luktar så att proppen försvinner"
+     ],
+     "form": "cause",
+     "lvl": 2,
+     "why": "Propplösare innehåller natriumhydroxid, en stark bas som bryter ner fett och hår. Den är frätande – använd skyddshandskar."
+    }
+   ],
+   "requires": [
+    "bas-kanne"
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "bas-formler",
+   "skill": "kemi_baser",
+   "name": "Basernas namn och formler",
+   "explain": "Natriumhydroxid NaOH, kaliumhydroxid KOH och kalciumhydroxid Ca(OH)₂ ger hydroxidjoner i vatten. Ammoniak har formeln NH₃.",
+   "facts": [
+    {
+     "k": "pairs",
+     "q": "Vilken formel har {a}?",
+     "items": [
+      [
+       "natriumhydroxid",
+       "NaOH"
+      ],
+      [
+       "kaliumhydroxid",
+       "KOH"
+      ],
+      [
+       "kalciumhydroxid",
+       "Ca(OH)₂"
+      ],
+      [
+       "ammoniak",
+       "NH₃"
+      ]
+     ],
+     "rq": "Vilken bas har formeln {b}?",
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Vilken jon har alla hydroxider gemensamt?",
+     "a": "OH⁻ (hydroxidjon)",
+     "not": [
+      "H⁺ (vätejon)",
+      "Cl⁻ (kloridjon)",
+      "Na⁺ (natriumjon)"
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "stmt",
+     "s": "Namnet 'hydroxid' visar att ämnet ger hydroxidjoner (OH⁻).",
+     "f": [
+      "Namnet 'hydroxid' visar att ämnet ger vätejoner."
+     ],
+     "lvl": 2
+    }
+   ],
+   "requires": [
+    "bas-exempel"
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "ph-skalan",
+   "skill": "kemi_ph",
+   "name": "pH-skalan",
+   "explain": "pH-skalan går från 0 till 14. 7 är neutralt (rent vatten), under 7 är surt och över 7 är basiskt. Skalan är logaritmisk: ett steg är 10 gånger fler eller färre vätejoner.",
+   "facts": [
+    {
+     "k": "qa",
+     "q": "Vilket pH-värde är neutralt?",
+     "a": "7",
+     "not": [
+      "0",
+      "14",
+      "1"
+     ],
+     "why": "Rent vatten har pH 7."
+    },
+    {
+     "k": "qa",
+     "q": "Mellan vilka värden går pH-skalan oftast?",
+     "a": "0 och 14",
+     "not": [
+      "1 och 10",
+      "0 och 100",
+      "−7 och 7"
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Vad visar pH-värdet?",
+     "a": "Hur sur eller basisk en lösning är – hur många vätejoner den har",
+     "not": [
+      "Hur varm lösningen är",
+      "Hur mycket lösningen väger",
+      "Hur mycket salt den har"
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "pH 4 jämfört med pH 5 – hur mycket surare är pH 4?",
+     "a": "10 gånger surare",
+     "not": [
+      "Dubbelt så surt",
+      "Lika surt",
+      "100 gånger surare"
+     ],
+     "lvl": 2,
+     "why": "Varje steg på skalan är 10 gånger."
+    },
+    {
+     "k": "num",
+     "q": "Hur många gånger surare är en lösning med pH 3 än en med pH 5?",
+     "a": 100,
+     "form": "multistep",
+     "lvl": 3,
+     "why": "Två steg: 10 · 10 = 100 gånger surare."
+    },
+    {
+     "k": "num",
+     "q": "Hur många gånger surare är pH 2 än pH 5?",
+     "a": 1000,
+     "form": "multistep",
+     "lvl": 3,
+     "why": "Tre steg: 10 · 10 · 10 = 1 000.",
+     "ch": true
+    },
+    {
+     "k": "group",
+     "groups": [
+      {
+       "q": "Vilket pH-värde betyder att lösningen är sur?",
+       "items": [
+        "pH 2",
+        "pH 4",
+        "pH 6"
+       ],
+       "odd": "Vilket pH-värde är INTE surt?"
+      },
+      {
+       "q": "Vilket pH-värde betyder att lösningen är basisk?",
+       "items": [
+        "pH 8",
+        "pH 10",
+        "pH 13"
+       ],
+       "odd": "Vilket pH-värde är INTE basiskt?"
+      }
+     ]
+    },
+    {
+     "k": "order",
+     "q": "Ordna lösningarna från surast till mest basisk.",
+     "items": [
+      "Magsaft (pH 1–2)",
+      "Läsk (pH 2–3)",
+      "Rent vatten (pH 7)",
+      "Blod (pH 7,4)",
+      "Tvålvatten (pH 9–10)",
+      "Propplösare (pH 13–14)"
+     ],
+     "lvl": 2,
+     "why": "Lågt pH = surt, 7 = neutralt, högt pH = basiskt."
+    },
+    {
+     "k": "stmt",
+     "s": "Ju lägre pH, desto surare lösning.",
+     "f": [
+      "Ju högre pH, desto surare lösning."
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "En lösning har pH 7. Du tillsätter lite saltsyra. Vad händer med pH?",
+     "a": "pH sjunker under 7",
+     "not": [
+      "pH stiger över 7",
+      "pH stannar på 7",
+      "pH blir 14"
+     ],
+     "form": "cause",
+     "lvl": 2
+    }
+   ],
+   "mistakes": [
+    {
+     "wrong": "pH 4 är dubbelt så surt som pH 8.",
+     "right": "Skalan är logaritmisk: pH 4 är 10 000 gånger surare än pH 8."
+    }
+   ],
+   "related": [
+    {
+     "kp": "indikatorer",
+     "how": "mäts med"
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "indikatorer",
+   "skill": "kemi_ph",
+   "name": "Indikatorer",
+   "explain": "En indikator byter färg beroende på pH. BTB: gul i sur, grön i neutral och blå i basisk lösning. Lackmus: röd i sur, blå i basisk. Fenolftalein: färglös i sur, neutral och svagt basisk lösning, rosa när pH är över cirka 8. Rödkålssaft är en naturlig indikator.",
+   "facts": [
+    {
+     "k": "term",
+     "term": "indikator",
+     "q": "Vad kallas ett ämne som byter färg beroende på pH?",
+     "def": "Ett ämne som byter färg beroende på pH",
+     "rq": "Vad är en indikator?",
+     "not": [
+      "Katalysator",
+      "Lösningsmedel",
+      "Salt"
+     ],
+     "notDef": [
+      "En stark syra",
+      "En mätare för temperatur",
+      "Ett ämne som gör lösningen neutral"
+     ],
+     "cls": "begrepp"
+    },
+    {
+     "k": "pairs",
+     "q": "Vilken färg får BTB i {a} lösning?",
+     "items": [
+      [
+       "sur",
+       "Gul"
+      ],
+      [
+       "neutral",
+       "Grön"
+      ],
+      [
+       "basisk",
+       "Blå"
+      ]
+     ],
+     "why": "BTB: gul (sur) – grön (neutral) – blå (basisk)."
+    },
+    {
+     "k": "qa",
+     "q": "Vilken färg får lackmuspapper i en sur lösning?",
+     "a": "Röd",
+     "not": [
+      "Blå",
+      "Grön",
+      "Svart"
+     ],
+     "why": "Lackmus: röd i sur, blå i basisk."
+    },
+    {
+     "k": "qa",
+     "q": "Vilken färg får lackmuspapper i en basisk lösning?",
+     "a": "Blå",
+     "not": [
+      "Röd",
+      "Gul",
+      "Färglös"
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Vilken färg får fenolftalein i en basisk lösning?",
+     "a": "Rosa",
+     "not": [
+      "Gul",
+      "Blå",
+      "Grön"
+     ],
+     "why": "Fenolftalein blir rosa först när pH är över cirka 8. I sur och neutral lösning är den färglös."
+    },
+    {
+     "k": "qa",
+     "q": "Vilket vardagligt ämne kan användas som indikator?",
+     "a": "Rödkålssaft",
+     "not": [
+      "Socker",
+      "Salt",
+      "Mjöl"
+     ],
+     "why": "Rödkålssaft blir röd i sur, lila i neutral, blå–grön i basisk och gul i mycket basisk lösning."
+    },
+    {
+     "k": "qa",
+     "q": "Du droppar BTB i en okänd lösning och den blir blå. Vad vet du då?",
+     "a": "Lösningen är basisk",
+     "not": [
+      "Lösningen är sur",
+      "Lösningen är neutral",
+      "Lösningen är saltvatten"
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Fenolftalein är färglös i en lösning. Vilken slutsats kan du dra?",
+     "a": "Lösningen är sur, neutral eller bara svagt basisk – du behöver en annan indikator för att veta mer",
+     "not": [
+      "Lösningen är säkert basisk",
+      "Lösningen är säkert sur",
+      "Lösningen är säkert neutral"
+     ],
+     "form": "explanation",
+     "lvl": 3,
+     "why": "Fenolftalein blir rosa först vid pH över cirka 8. Under det är den färglös, så den skiljer inte sur från neutral.",
+     "ch": true
+    },
+    {
+     "k": "qa",
+     "q": "Varför är pH-papper (universalindikator) bättre än lackmus när du vill veta ungefärligt pH?",
+     "a": "Det har en färgskala för många pH-värden, inte bara sur/basisk",
+     "not": [
+      "Det är billigare",
+      "Det fungerar bara i vatten",
+      "Det ändrar pH i lösningen"
+     ],
+     "form": "explanation",
+     "lvl": 3
+    }
+   ],
+   "requires": [
+    "ph-skalan"
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "stark-svag",
+   "skill": "kemi_starka",
+   "name": "Starka och svaga syror och baser",
+   "explain": "I en stark syra avger (nästan) alla syramolekyler en vätejon i vatten (saltsyra, svavelsyra, salpetersyra). En svag syra avger bara en del (ättiksyra, citronsyra, kolsyra). Natriumhydroxid är en stark bas, ammoniak en svag.",
+   "facts": [
+    {
+     "k": "group",
+     "groups": [
+      {
+       "q": "Vilken av dessa är en stark syra?",
+       "items": [
+        "Saltsyra",
+        "Svavelsyra",
+        "Salpetersyra"
+       ],
+       "odd": "Vilken av dessa är INTE en stark syra?"
+      },
+      {
+       "q": "Vilken av dessa är en svag syra?",
+       "items": [
+        "Ättiksyra",
+        "Citronsyra",
+        "Kolsyra",
+        "Mjölksyra"
+       ],
+       "odd": "Vilken av dessa är INTE en svag syra?"
+      }
+     ]
+    },
+    {
+     "k": "group",
+     "groups": [
+      {
+       "q": "Vilken bas är stark?",
+       "items": [
+        "Natriumhydroxid",
+        "Kaliumhydroxid"
+       ]
+      },
+      {
+       "q": "Vilken bas är svag?",
+       "items": [
+        "Ammoniak",
+        "Bikarbonat"
+       ]
+      }
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Vad kännetecknar en stark syra?",
+     "a": "Nästan alla syramolekyler avger en vätejon i vatten",
+     "not": [
+      "Den smakar starkt",
+      "Lösningen är alltid koncentrerad",
+      "Syran har pH över 7"
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Vad kännetecknar en svag syra?",
+     "a": "Bara en del av syramolekylerna avger vätejoner",
+     "not": [
+      "Lösningen är alltid utspädd",
+      "Syran har pH över 7",
+      "Den innehåller inget väte"
+     ]
+    },
+    {
+     "k": "stmt",
+     "s": "Ättiksyra är en svag syra.",
+     "f": [
+      "Ättiksyra är en stark syra."
+     ]
+    },
+    {
+     "k": "stmt",
+     "s": "Saltsyra är en stark syra.",
+     "f": [
+      "Saltsyra är en svag syra."
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Två lösningar har samma koncentration: saltsyra och ättiksyra. Vilken har lägst pH?",
+     "a": "Saltsyran, eftersom nästan alla dess molekyler avger vätejoner",
+     "not": [
+      "Ättiksyran, eftersom den är svag",
+      "De har samma pH",
+      "Det går inte att veta"
+     ],
+     "form": "explanation",
+     "lvl": 3,
+     "ch": true
+    }
+   ],
+   "mistakes": [
+    {
+     "wrong": "En stark syra är samma sak som en koncentrerad syra.",
+     "right": "Stark/svag handlar om hur många vätejoner syran avger. Koncentrerad/utspädd handlar om hur mycket syra det finns per liter."
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "koncentration",
+   "skill": "kemi_starka",
+   "name": "Koncentrerad och utspädd",
+   "explain": "Koncentrerad betyder mycket syra (eller bas) och lite vatten. Utspädd betyder lite syra och mycket vatten. När du späder en syra stiger pH mot 7 – men den blir aldrig basisk av vatten.",
+   "facts": [
+    {
+     "k": "term",
+     "term": "utspädd",
+     "q": "Vad kallas en lösning med lite syra och mycket vatten?",
+     "def": "Lite syra och mycket vatten",
+     "rq": "Vad betyder att en syra är utspädd?",
+     "alias": [
+      "utspädd lösning",
+      "spädd",
+      "utspätt",
+      "utspädda"
+     ],
+     "not": [
+      "Koncentrerad",
+      "Stark",
+      "Basisk"
+     ],
+     "notDef": [
+      "Mycket syra och lite vatten",
+      "Syran är svag",
+      "Syran är varm"
+     ],
+     "cls": "konc"
+    },
+    {
+     "k": "term",
+     "term": "koncentrerad",
+     "q": "Vad kallas en lösning med mycket syra och lite vatten?",
+     "def": "Mycket syra och lite vatten",
+     "rq": "Vad betyder att en syra är koncentrerad?",
+     "not": [
+      "Utspädd",
+      "Svag",
+      "Neutral"
+     ],
+     "notDef": [
+      "Syran är stark",
+      "Syran är kall",
+      "Lite syra och mycket vatten"
+     ],
+     "cls": "konc"
+    },
+    {
+     "k": "qa",
+     "q": "Vad händer med pH när du späder en syra med vatten?",
+     "a": "pH stiger mot 7",
+     "not": [
+      "pH sjunker",
+      "pH ändras inte",
+      "pH blir över 7"
+     ],
+     "form": "cause",
+     "lvl": 2,
+     "why": "Färre vätejoner per liter ger högre pH, men vatten gör aldrig lösningen basisk."
+    },
+    {
+     "k": "qa",
+     "q": "Vad händer med pH när du späder en bas med vatten?",
+     "a": "pH sjunker mot 7",
+     "not": [
+      "pH stiger",
+      "pH blir under 7",
+      "pH ändras inte"
+     ],
+     "form": "cause",
+     "lvl": 2,
+     "why": "Färre hydroxidjoner per liter – pH sjunker mot 7 men lösningen blir aldrig sur av vatten."
+    },
+    {
+     "k": "qa",
+     "q": "Koncentrerad svavelsyra är …",
+     "a": "stark och koncentrerad",
+     "not": [
+      "svag och utspädd",
+      "svag och koncentrerad",
+      "stark och utspädd"
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Vinäger är utspädd ättiksyra. Hur beskrivs den bäst?",
+     "a": "Svag och utspädd",
+     "not": [
+      "Stark och koncentrerad",
+      "Stark och utspädd",
+      "Svag och koncentrerad"
+     ],
+     "form": "application",
+     "lvl": 3
+    },
+    {
+     "k": "stmt",
+     "s": "En utspädd stark syra kan ha högre pH än en koncentrerad svag syra.",
+     "f": [
+      "En stark syra har alltid lägre pH än en svag, oavsett mängd vatten."
+     ],
+     "lvl": 3
+    }
+   ],
+   "requires": [
+    "stark-svag"
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "neutralisation",
+   "skill": "kemi_neutral",
+   "name": "Neutralisation",
+   "explain": "När en syra och en bas blandas neutraliserar de varandra: vätejoner (H⁺) och hydroxidjoner (OH⁻) bildar vatten, och resten blir ett salt. Syra + bas → salt + vatten.",
+   "facts": [
+    {
+     "k": "term",
+     "term": "neutralisation",
+     "q": "Vad kallas reaktionen när en syra och en bas tar ut varandra?",
+     "def": "En syra och en bas reagerar och bildar salt och vatten",
+     "rq": "Vad är en neutralisation?",
+     "alias": [
+      "neutralisering"
+     ],
+     "not": [
+      "Förbränning",
+      "Destillation",
+      "Oxidation"
+     ],
+     "notDef": [
+      "Ett ämne brinner i syre",
+      "Vatten kokar bort",
+      "En metall rostar"
+     ],
+     "cls": "reaktion"
+    },
+    {
+     "k": "qa",
+     "q": "Vad bildas när en syra och en bas reagerar med varandra?",
+     "a": "Ett salt och vatten",
+     "not": [
+      "Bara vatten",
+      "En starkare syra",
+      "Vätgas och syrgas"
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Vilka joner bildar vatten vid en neutralisation?",
+     "a": "H⁺ och OH⁻",
+     "not": [
+      "Na⁺ och Cl⁻",
+      "H⁺ och Cl⁻",
+      "Na⁺ och OH⁻"
+     ],
+     "why": "H⁺ + OH⁻ → H₂O"
+    },
+    {
+     "k": "pairs",
+     "q": "Vilket salt bildas av {a}?",
+     "items": [
+      [
+       "saltsyra och natriumhydroxid",
+       "Natriumklorid (NaCl)"
+      ],
+      [
+       "saltsyra och kaliumhydroxid",
+       "Kaliumklorid (KCl)"
+      ],
+      [
+       "svavelsyra och natriumhydroxid",
+       "Natriumsulfat (Na₂SO₄)"
+      ],
+      [
+       "salpetersyra och kaliumhydroxid",
+       "Kaliumnitrat (KNO₃)"
+      ]
+     ],
+     "lvl": 3,
+     "why": "Metalljonen kommer från basen och den negativa jonen från syran."
+    },
+    {
+     "k": "order",
+     "q": "Sätt stegen i rätt ordning för att neutralisera en syra i labbet.",
+     "items": [
+      "Mät upp syran i en bägare",
+      "Tillsätt några droppar BTB – lösningen blir gul",
+      "Droppa i bas lite i taget och rör om",
+      "Stanna när färgen slår om till grön",
+      "Nu finns ett salt löst i vattnet"
+     ],
+     "lvl": 2,
+     "why": "Indikatorn visar när pH når 7."
+    },
+    {
+     "k": "order",
+     "q": "Vad händer när saltsyra och natriumhydroxid blandas? Sätt i ordning.",
+     "items": [
+      "Lösningen innehåller H⁺ och Cl⁻ från saltsyran och Na⁺ och OH⁻ från natriumhydroxiden",
+      "H⁺ och OH⁻ bildar vatten (H₂O)",
+      "Kvar i lösningen finns Na⁺ och Cl⁻ – saltvatten",
+      "När vattnet avdunstar bildas kristaller av natriumklorid"
+     ],
+     "lvl": 3,
+     "gap": false
+    },
+    {
+     "k": "qa",
+     "q": "Du har spillt ut lite syra på labbänken. Vad kan neutralisera den?",
+     "a": "En svag bas, t.ex. bikarbonat",
+     "not": [
+      "Mer syra",
+      "Socker",
+      "Olja"
+     ],
+     "form": "application",
+     "lvl": 2,
+     "why": "Bikarbonat är en svag bas som neutraliserar syran utan att reagera våldsamt."
+    },
+    {
+     "k": "qa",
+     "q": "Du har halsbränna (sura uppstötningar) och tar en tablett. Varför hjälper den?",
+     "a": "Tabletten innehåller en bas som neutraliserar magsyran",
+     "not": [
+      "Tabletten innehåller syra",
+      "Tabletten kyler magen",
+      "Tabletten tar bort vatten"
+     ],
+     "form": "cause",
+     "lvl": 2
+    },
+    {
+     "k": "stmt",
+     "s": "Vid en neutralisation blir lösningen neutral (pH 7) om man tar lagom mycket syra och bas.",
+     "f": [
+      "Vid en neutralisation blir lösningen alltid sur."
+     ],
+     "lvl": 2
+    }
+   ],
+   "requires": [
+    "syra-kanne",
+    "bas-kanne"
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "salter",
+   "skill": "kemi_neutral",
+   "name": "Salter och jonföreningar",
+   "explain": "Ett salt är en jonförening: positiva joner (ofta en metall) och negativa joner sitter i ett regelbundet mönster – en kristall. Salter har hög smältpunkt, många löser sig i vatten, och löst eller smält salt leder ström eftersom jonerna kan röra sig.",
+   "facts": [
+    {
+     "k": "term",
+     "term": "jonförening",
+     "q": "Vad kallas ett ämne som består av positiva och negativa joner?",
+     "def": "Ett ämne som består av positiva och negativa joner",
+     "rq": "Vad är ett salt?",
+     "alias": [
+      "salt",
+      "jonföreningar"
+     ],
+     "not": [
+      "Molekyl",
+      "Grundämne",
+      "Legering"
+     ],
+     "notDef": [
+      "En sorts syra",
+      "En metall",
+      "En molekyl av två atomer"
+     ],
+     "cls": "begrepp"
+    },
+    {
+     "k": "term",
+     "term": "kristall",
+     "q": "Vad kallas det regelbundna mönster som jonerna i ett salt bildar?",
+     "alias": [
+      "kristaller",
+      "jongitter",
+      "kristallgitter",
+      "gitter"
+     ],
+     "not": [
+      "Lösning",
+      "Molekyl",
+      "Gas"
+     ],
+     "cls": "begrepp"
+    },
+    {
+     "k": "qa",
+     "q": "Varför leder löst eller smält salt elektrisk ström?",
+     "a": "Jonerna kan röra sig fritt",
+     "not": [
+      "Saltet innehåller metall",
+      "Vattnet blir varmt",
+      "Det bildas vätgas"
+     ],
+     "form": "explanation",
+     "lvl": 2,
+     "why": "I fast salt sitter jonerna fast och då leder saltet inte ström."
+    },
+    {
+     "k": "stmt",
+     "s": "Fast salt leder inte ström.",
+     "f": [
+      "Fast salt leder ström lika bra som en metall."
+     ],
+     "lvl": 2,
+     "why": "Jonerna sitter fast i kristallen."
+    },
+    {
+     "k": "stmt",
+     "s": "Salter har hög smältpunkt.",
+     "f": [
+      "Salter smälter redan vid rumstemperatur."
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Natriumklorid består av natriumjoner och kloridjoner. Vilken laddning har natriumjonen?",
+     "a": "Positiv (Na⁺)",
+     "not": [
+      "Negativ",
+      "Ingen laddning",
+      "Dubbelt negativ"
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Du löser salt i vatten och sätter i två elektroder kopplade till en lampa. Vad händer?",
+     "a": "Lampan lyser, eftersom jonerna leder strömmen",
+     "not": [
+      "Ingenting – vatten med salt leder aldrig ström",
+      "Saltet blir en metall",
+      "Vattnet blir surt"
+     ],
+     "form": "application",
+     "lvl": 3
+    }
+   ],
+   "requires": [
+    "neutralisation"
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "syra-metall",
+   "skill": "kemi_neutral",
+   "name": "Syror med metaller och karbonater",
+   "explain": "En syra och en oädel metall (t.ex. zink eller magnesium) bildar ett salt och vätgas. Ädla metaller som koppar och guld reagerar inte med saltsyra. En syra och ett karbonat (t.ex. kalksten) bildar salt, vatten och koldioxid.",
+   "facts": [
+    {
+     "k": "qa",
+     "q": "Vad bildas när saltsyra reagerar med zink?",
+     "a": "Ett salt och vätgas",
+     "not": [
+      "Ett salt och vatten",
+      "Bara vatten",
+      "Syrgas"
+     ],
+     "why": "Vätgasen kan påvisas med knallgasprovet – ett litet 'poff'."
+    },
+    {
+     "k": "term",
+     "term": "vätgas",
+     "q": "Vilken gas bildas när en syra reagerar med en oädel metall?",
+     "alias": [
+      "väte",
+      "h2",
+      "h₂"
+     ],
+     "not": [
+      "Syrgas",
+      "Koldioxid",
+      "Kvävgas"
+     ],
+     "cls": "gas"
+    },
+    {
+     "k": "term",
+     "term": "koldioxid",
+     "q": "Vilken gas bildas när syra hälls på kalksten?",
+     "not": [
+      "Vätgas",
+      "Syrgas",
+      "Kvävgas"
+     ],
+     "cls": "gas",
+     "lvl": 2,
+     "why": "Kalksten är kalciumkarbonat. Det fräser av koldioxid."
+    },
+    {
+     "k": "group",
+     "groups": [
+      {
+       "q": "Vilken metall reagerar med saltsyra och bildar vätgas?",
+       "items": [
+        "Zink",
+        "Magnesium",
+        "Järn"
+       ]
+      },
+      {
+       "q": "Vilken metall reagerar INTE med saltsyra?",
+       "items": [
+        "Koppar",
+        "Guld",
+        "Silver"
+       ]
+      }
+     ],
+     "lvl": 2,
+     "why": "Oädla metaller reagerar med syror, ädla gör det inte."
+    },
+    {
+     "k": "qa",
+     "q": "Hur kan du visa att gasen som bildas är vätgas?",
+     "a": "Gasen säger 'poff' när man håller en brinnande sticka vid den",
+     "not": [
+      "Gasen gör kalkvatten grumligt",
+      "Gasen luktar starkt",
+      "Gasen färgar BTB blå"
+     ],
+     "form": "application",
+     "lvl": 2,
+     "why": "Knallgasprovet."
+    },
+    {
+     "k": "qa",
+     "q": "Varför fräser det när man droppar saltsyra på marmor eller kalksten?",
+     "a": "Syran reagerar med karbonatet och koldioxid bildas",
+     "not": [
+      "Stenen smälter",
+      "Syran kokar",
+      "Stenen avger vätgas"
+     ],
+     "form": "cause",
+     "lvl": 3
+    }
+   ],
+   "requires": [
+    "salter"
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "salter-vardag",
+   "skill": "kemi_vardag",
+   "name": "Salter i vardagen",
+   "explain": "Koksalt (natriumklorid) används i mat och som vägsalt. Bikarbonat (natriumvätekarbonat) finns i bakpulver och mot halsbränna. Kalciumkarbonat är kalksten, krita och äggskal. Natriumfluorid finns i tandkräm. Nitrater används som gödsel.",
+   "facts": [
+    {
+     "k": "pairs",
+     "q": "Vad används {a_lower} till?",
+     "items": [
+      [
+       "Natriumklorid (koksalt)",
+       "Smaksättning och vägsalt"
+      ],
+      [
+       "Natriumvätekarbonat (bikarbonat)",
+       "Bakpulver och mot halsbränna"
+      ],
+      [
+       "Natriumfluorid",
+       "Skydd mot karies i tandkräm"
+      ],
+      [
+       "Kaliumnitrat",
+       "Gödsel"
+      ],
+      [
+       "Kalciumkarbonat",
+       "Kalkning av sjöar och skolkrita"
+      ]
+     ],
+     "rq": "Vilket salt används till {b_lower}?"
+    },
+    {
+     "k": "term",
+     "term": "natriumklorid",
+     "q": "Vad är det kemiska namnet på vanligt koksalt?",
+     "alias": [
+      "nacl"
+     ],
+     "not": [
+      "Kaliumnitrat",
+      "Kalciumkarbonat",
+      "Natriumhydroxid"
+     ],
+     "cls": "salt"
+    },
+    {
+     "k": "term",
+     "term": "kalciumkarbonat",
+     "q": "Vilket salt är kalksten, krita och äggskal gjorda av?",
+     "not": [
+      "Natriumklorid",
+      "Natriumfluorid",
+      "Ammoniumnitrat"
+     ],
+     "cls": "salt"
+    },
+    {
+     "k": "qa",
+     "q": "Varför finns fluorid i tandkräm?",
+     "a": "Fluorid gör tandemaljen starkare mot syra",
+     "not": [
+      "Det smakar sött",
+      "Fluorid färgar tänderna vita",
+      "Tandkrämen skummar mer"
+     ],
+     "form": "cause",
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Varför saltar man vägarna på vintern?",
+     "a": "Saltet sänker fryspunkten så isen smälter",
+     "not": [
+      "Saltet gör vägen vit",
+      "Saltet värmer vägen",
+      "Saltet gör däcken bättre"
+     ],
+     "form": "cause",
+     "lvl": 2,
+     "why": "Saltvatten fryser först vid lägre temperatur än vanligt vatten."
+    },
+    {
+     "k": "qa",
+     "q": "Bakpulver innehåller bikarbonat och en syra. Varför jäser degen i ugnen?",
+     "a": "Syran och bikarbonatet reagerar och bildar koldioxid",
+     "not": [
+      "Degen kokar",
+      "Bikarbonatet smälter",
+      "Det bildas vätgas"
+     ],
+     "form": "explanation",
+     "lvl": 3
+    }
+   ],
+   "related": [
+    {
+     "kp": "salter",
+     "how": "exempel på"
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "jonnamn",
+   "skill": "kemi_vardag",
+   "name": "Jonernas och saltens namn",
+   "explain": "Saltets namn = den positiva jonen (ofta en metall) + den negativa jonens namn. Na⁺ natrium, K⁺ kalium, Ca²⁺ kalcium. Cl⁻ klorid, F⁻ fluorid, NO₃⁻ nitrat, SO₄²⁻ sulfat, CO₃²⁻ karbonat. NaCl = natriumklorid.",
+   "facts": [
+    {
+     "k": "pairs",
+     "q": "Vad heter jonen {a}?",
+     "items": [
+      [
+       "Cl⁻",
+       "Kloridjon"
+      ],
+      [
+       "F⁻",
+       "Fluoridjon"
+      ],
+      [
+       "NO₃⁻",
+       "Nitratjon"
+      ],
+      [
+       "SO₄²⁻",
+       "Sulfatjon"
+      ],
+      [
+       "CO₃²⁻",
+       "Karbonatjon"
+      ],
+      [
+       "OH⁻",
+       "Hydroxidjon"
+      ]
+     ],
+     "rq": "Vilken formel har {b_lower}en?",
+     "lvl": 2
+    },
+    {
+     "k": "pairs",
+     "q": "Vad heter saltet {a}?",
+     "items": [
+      [
+       "NaCl",
+       "Natriumklorid"
+      ],
+      [
+       "CaCO₃",
+       "Kalciumkarbonat"
+      ],
+      [
+       "KNO₃",
+       "Kaliumnitrat"
+      ],
+      [
+       "Na₂SO₄",
+       "Natriumsulfat"
+      ],
+      [
+       "NaF",
+       "Natriumfluorid"
+      ],
+      [
+       "CaCl₂",
+       "Kalciumklorid"
+      ]
+     ],
+     "rq": "Vilken formel har {b_lower}?",
+     "lvl": 3
+    },
+    {
+     "k": "qa",
+     "q": "Vilken jon behövs mest för att bygga upp skelettet?",
+     "a": "Kalciumjoner (Ca²⁺)",
+     "not": [
+      "Kloridjoner (Cl⁻)",
+      "Nitratjoner (NO₃⁻)",
+      "Natriumjoner (Na⁺)"
+     ],
+     "why": "Skelettet består till stor del av kalciumföreningar."
+    },
+    {
+     "k": "qa",
+     "q": "Hur bildas namnet på ett salt?",
+     "a": "Den positiva jonens namn + den negativa jonens namn, t.ex. natrium + klorid",
+     "not": [
+      "Syrans namn + 'salt'",
+      "Bara metallens namn",
+      "Basens namn + 'id'"
+     ],
+     "form": "explanation",
+     "lvl": 3
+    }
+   ],
+   "requires": [
+    "salter-vardag"
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "ph-kroppen",
+   "skill": "kemi_kropp_natur",
+   "name": "pH i kroppen",
+   "explain": "Magsäcken har pH 1–2 (saltsyra). Blodet ligger på pH 7,4 och kroppen håller värdet mycket stabilt. Tandemaljen börjar lösas upp när pH i munnen går under 5,5. Syran i läsk och syror som bakterierna bildar av socker sänker pH – därför ger mycket läsk och godis hål i tänderna.",
+   "facts": [
+    {
+     "k": "pairs",
+     "q": "Vilket pH har {a}?",
+     "items": [
+      [
+       "blodet",
+       "Cirka 7,4"
+      ],
+      [
+       "magsäcken",
+       "1–2"
+      ],
+      [
+       "rent vatten",
+       "7"
+      ]
+     ],
+     "why": "Kroppen håller blodets pH mycket stabilt."
+    },
+    {
+     "k": "qa",
+     "q": "Vid vilket pH börjar tandemaljen lösas upp?",
+     "a": "Under cirka 5,5",
+     "not": [
+      "Under 7",
+      "Under 2",
+      "Över 7"
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Varför får man hål i tänderna av att dricka mycket läsk?",
+     "a": "Syran i läsken och syror som bakterierna bildar av sockret sänker pH i munnen, så att emaljen löses upp",
+     "not": [
+      "Läsken är kall",
+      "Bubblorna sliter på tänderna",
+      "Läsk innehåller salt"
+     ],
+     "form": "cause",
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Vilket råd skyddar tänderna bäst?",
+     "a": "Inte småäta socker hela dagen, så att pH i munnen hinner återhämta sig",
+     "not": [
+      "Borsta tänderna med läsk",
+      "Dricka läsk mellan måltiderna",
+      "Äta godis ofta i små portioner"
+     ],
+     "form": "application",
+     "lvl": 3
+    },
+    {
+     "k": "qa",
+     "q": "Hur kan för mycket salt i maten påverka hälsan?",
+     "a": "Det kan ge högt blodtryck",
+     "not": [
+      "Det ger lågt blodsocker",
+      "Det ger bättre syn",
+      "Det ger starkare tänder"
+     ],
+     "why": "Rekommendationen är högst cirka 6 gram salt per dag."
+    },
+    {
+     "k": "stmt",
+     "s": "Blodet är svagt basiskt.",
+     "f": [
+      "Blodet är surt, med pH cirka 2."
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "stmt",
+     "s": "Huden är svagt sur.",
+     "f": [
+      "Huden är starkt basisk."
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Hur hjälper saliven tänderna efter en måltid?",
+     "a": "Saliven neutraliserar syror så att pH i munnen stiger igen",
+     "not": [
+      "Saliven gör munnen surare",
+      "Saliven löser upp emaljen",
+      "Saliven tar bort allt socker direkt"
+     ],
+     "form": "explanation",
+     "lvl": 3
+    },
+    {
+     "k": "qa",
+     "q": "Varför är det farligt om blodets pH ändras mycket?",
+     "a": "Kroppens processer fungerar bara inom ett smalt pH-intervall",
+     "not": [
+      "Blodet blir då för tjockt att pumpa",
+      "Blodet fryser",
+      "Det är inte farligt"
+     ],
+     "form": "explanation",
+     "lvl": 3
+    },
+    {
+     "k": "order",
+     "q": "Ordna från surast till minst surt.",
+     "items": [
+      "Magsaft (pH 1–2)",
+      "Läsk (pH 2–3)",
+      "Kritiskt pH för tandemaljen (5,5)",
+      "Blod (pH 7,4)"
+     ],
+     "lvl": 2
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "forsurning",
+   "skill": "kemi_kropp_natur",
+   "name": "Försurning av sjöar och hav",
+   "explain": "Svaveldioxid och kväveoxider från förbränning löser sig i regnvattnet och blir surt regn. Sjöar försuras: rom och yngel dör först, och metaller som aluminium frigörs från marken. Kalkning neutraliserar. Haven försuras när de tar upp koldioxid som bildar kolsyra.",
+   "facts": [
+    {
+     "k": "qa",
+     "q": "Vad orsakar surt regn?",
+     "a": "Svaveldioxid och kväveoxider från förbränning löser sig i regnvattnet",
+     "not": [
+      "Koksalt från havet",
+      "Kalk från bergen",
+      "Syre från växter"
+     ],
+     "form": "cause",
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Hur motverkar man försurning av sjöar?",
+     "a": "Genom att kalka – basisk kalk neutraliserar syran",
+     "not": [
+      "Genom att hälla i mer syra",
+      "Genom att salta sjön",
+      "Genom att tömma sjön"
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Varför måste kalkningen av en sjö göras om efter några år?",
+     "a": "Så länge det sura nedfallet fortsätter sänks pH igen",
+     "not": [
+      "Kalken blir sur av sig själv",
+      "Fiskarna äter upp kalken",
+      "Kalk löser sig aldrig i vatten"
+     ],
+     "form": "application",
+     "lvl": 3,
+     "why": "Kalkning behandlar symptomen. Det som löser problemet på riktigt är att minska utsläppen."
+    },
+    {
+     "k": "term",
+     "term": "kalkning",
+     "q": "Vad kallas det när man sprider kalk i en sjö för att höja pH?",
+     "not": [
+      "Saltning",
+      "Gödsling",
+      "Rening"
+     ],
+     "cls": "atgard",
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Varför försuras haven?",
+     "a": "De tar upp koldioxid från luften som bildar kolsyra",
+     "not": [
+      "De tar upp salt",
+      "De blir varmare",
+      "Fiskarna andas ut syra"
+     ],
+     "form": "cause",
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Vilka djur drabbas särskilt när haven blir surare?",
+     "a": "Djur med kalkskal, som koraller, musslor och snäckor",
+     "not": [
+      "Valar",
+      "Sjöfåglar",
+      "Sälar"
+     ],
+     "form": "cause",
+     "lvl": 3,
+     "why": "Syran löser upp kalk – det blir svårare att bygga skal."
+    },
+    {
+     "k": "order",
+     "q": "Sätt händelserna i rätt ordning när en sjö försuras.",
+     "items": [
+      "Förbränning släpper ut svaveldioxid och kväveoxider",
+      "Gaserna löser sig i regnvattnet – det blir surt regn",
+      "Regnet rinner ner i sjön och sänker pH",
+      "Rom och yngel dör, sedan fiskar",
+      "Sjön kalkas för att höja pH igen"
+     ],
+     "lvl": 2,
+     "why": "Orsak → verkan: utsläpp, surt regn, lägre pH, skador, åtgärd."
+    },
+    {
+     "k": "stmt",
+     "s": "Kalkning är en tillfällig åtgärd – det viktigaste är att minska utsläppen.",
+     "f": [
+      "Kalkning löser försurningen för alltid."
+     ],
+     "lvl": 3
+    },
+    {
+     "k": "stmt",
+     "s": "I sura sjöar frigörs aluminium från marken, och det är giftigt för fiskar.",
+     "f": [
+      "Aluminium gör sura sjöar friskare."
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Vad kan hända med en sjö som försuras?",
+     "a": "Den blir surare – fiskar och andra djur dör och aluminium frigörs",
+     "not": [
+      "Den blir varmare",
+      "Den får mer fisk",
+      "Den blir saltare"
+     ],
+     "form": "cause",
+     "lvl": 2
+    }
+   ],
+   "requires": [
+    "neutralisation"
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "labbsakerhet",
+   "skill": "kemi_saker",
+   "name": "Säkerhet i labbet",
+   "explain": "Använd alltid skyddsglasögon. Häll syran i vattnet, aldrig tvärtom (SIV). Får du syra eller bas på huden: skölj genast med mycket vatten länge och säg till läraren. Läs faropiktogrammen och blanda aldrig olika rengöringsmedel.",
+   "facts": [
+    {
+     "k": "qa",
+     "q": "Vad ska du alltid ha på dig när du arbetar med syror och baser?",
+     "a": "Skyddsglasögon",
+     "not": [
+      "Mössa",
+      "Hörlurar",
+      "Handskar av ull"
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Vad gör du först om du får syra på huden?",
+     "a": "Sköljer genast med mycket vatten",
+     "not": [
+      "Torkar med papper",
+      "Häller på bas",
+      "Väntar och ser om det svider"
+     ],
+     "why": "Vatten späder ut syran snabbt. Säg också till läraren."
+    },
+    {
+     "k": "qa",
+     "q": "Vad betyder regeln SIV?",
+     "a": "Syra I Vatten – häll syran i vattnet, aldrig tvärtom",
+     "not": [
+      "Skölj I Vatten",
+      "Syror Innehåller Väte",
+      "Spola In Vätska"
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Varför ska man hälla syran i vattnet och inte tvärtom?",
+     "a": "Blandningen blir mycket varm – vatten i koncentrerad syra kan koka och stänka",
+     "not": [
+      "Annars blir syran svagare",
+      "Annars bildas ett salt",
+      "Det spelar ingen roll"
+     ],
+     "form": "explanation",
+     "lvl": 3
+    },
+    {
+     "k": "pairs",
+     "q": "Vad betyder faropiktogrammet som visar {a}?",
+     "items": [
+      [
+       "en hand och en yta som fräts sönder",
+       "Frätande"
+      ],
+      [
+       "en dödskalle",
+       "Akut giftig"
+      ],
+      [
+       "en flamma",
+       "Brandfarlig"
+      ],
+      [
+       "en död fisk och ett dött träd",
+       "Miljöfarlig"
+      ],
+      [
+       "en exploderande bomb",
+       "Explosiv"
+      ]
+     ],
+     "rq": "Hur ser faropiktogrammet för {b_lower} ut?",
+     "lvl": 2
+    },
+    {
+     "k": "order",
+     "q": "Du har fått syra på handen. Sätt stegen i rätt ordning.",
+     "items": [
+      "Skölj genast med mycket vatten – ropa på läraren",
+      "Ta av smycken och kläder med syra på medan du fortsätter skölja",
+      "Fortsätt skölja länge, gärna 15 minuter",
+      "Låt läraren titta på huden och sök vård vid behov"
+     ],
+     "lvl": 2,
+     "why": "Det första är alltid att späda ut syran med vatten – och att fortsätta skölja länge."
+    },
+    {
+     "k": "stmt",
+     "s": "Man ska aldrig blanda olika rengöringsmedel – farliga gaser kan bildas.",
+     "f": [
+      "Det blir alltid starkare och bättre om man blandar rengöringsmedel."
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "qa",
+     "q": "Var ska kemikalier förvaras hemma?",
+     "a": "I originalförpackningen, oåtkomligt för små barn",
+     "not": [
+      "I en läskflaska",
+      "I kylskåpet bredvid maten",
+      "Utan lock så att de vädras"
+     ],
+     "lvl": 2
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  },
+  {
+   "id": "kallkritik",
+   "skill": "kemi_saker",
+   "name": "Källkritik om kemi",
+   "explain": "Fråga dig: Vem står bakom källan och varför finns den? När skrevs den? Stämmer uppgifterna med andra källor? Myndigheter som Kemikalieinspektionen och läroböcker är oftast mer tillförlitliga än reklam och anonyma inlägg.",
+   "facts": [
+    {
+     "k": "qa",
+     "q": "Vilken fråga hör till källkritik?",
+     "a": "Vem står bakom källan och varför?",
+     "not": [
+      "Hur många sidor har texten?",
+      "Vilken färg har hemsidan?",
+      "Hur många bilder finns det?"
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Vilken källa är oftast mest tillförlitlig om kemikalier?",
+     "a": "En myndighet som Kemikalieinspektionen",
+     "not": [
+      "En anonym kommentar",
+      "En reklamfilm för rengöringsmedel",
+      "Ett inlägg från en okänd person"
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Varför ska man jämföra flera källor?",
+     "a": "För att se om uppgifterna stämmer överens",
+     "not": [
+      "För att det tar längre tid",
+      "För att få fler bilder",
+      "Det behöver man inte"
+     ]
+    },
+    {
+     "k": "qa",
+     "q": "Ett företag skriver att deras rengöringsmedel är 'helt kemikaliefritt'. Vad är rimligast att tänka?",
+     "a": "Allt består av kemikalier – det är reklam som vill sälja",
+     "not": [
+      "Det måste vara sant eftersom det står så",
+      "Medlet innehåller inga ämnen alls",
+      "Det är farligare än andra medel"
+     ],
+     "form": "application",
+     "lvl": 3
+    },
+    {
+     "k": "stmt",
+     "s": "En källas syfte kan vara att sälja något, och då kan den vara vinklad.",
+     "f": [
+      "Alla källor på internet är lika tillförlitliga."
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "stmt",
+     "s": "En gammal text kan innehålla uppgifter som inte längre stämmer.",
+     "f": [
+      "Ju äldre en källa är, desto mer tillförlitlig är den."
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "stmt",
+     "s": "Om flera oberoende källor säger samma sak är uppgiften troligare.",
+     "f": [
+      "Om en enda källa säger något räcker det alltid."
+     ],
+     "lvl": 2
+    },
+    {
+     "k": "term",
+     "term": "källkritik",
+     "q": "Vad kallas det att granska om en källa är trovärdig?",
+     "not": [
+      "Källsortering",
+      "Faktaresistens",
+      "Reklam"
+     ],
+     "cls": "begrepp",
+     "recall": false
+    },
+    {
+     "k": "qa",
+     "q": "En video säger att du ska blanda klorin och ättika för att städa bättre. Vad är klokast?",
+     "a": "Låta bli och kontrollera med en tillförlitlig källa – blandningen kan bilda giftig gas",
+     "not": [
+      "Prova direkt eftersom videon har många visningar",
+      "Blanda ännu mer för att det ska bli starkare",
+      "Fråga en kompis som också såg videon"
+     ],
+     "form": "application",
+     "lvl": 3
+    },
+    {
+     "k": "qa",
+     "q": "Vad betyder det att en text är vinklad?",
+     "a": "Den lyfter fram en sida av saken och tonar ner annat",
+     "not": [
+      "Den är skriven snett på sidan",
+      "Den innehåller bara fakta",
+      "Den är skriven av en myndighet"
+     ],
+     "form": "explanation",
+     "lvl": 2
+    }
+   ],
+   "src": [
+    {
+     "ref": "lgr22"
+    }
+   ]
+  }
+ ],
+ "legacy": [
+  [
+   "syra-kanne",
+   "choicetext",
+   "Vilka joner gör en lösning sur?",
+   "Vätejoner, H⁺"
+  ],
+  [
+   "syra-kanne",
+   "choicetext",
+   "Vilket pH-värde har en syra?",
+   "Under 7"
+  ],
+  [
+   "syra-exempel",
+   "choicetext",
+   "Vilken syra finns naturligt i magsäcken?",
+   "Saltsyra, HCl"
+  ],
+  [
+   "syra-exempel",
+   "choicetext",
+   "Vilken syra används i bilbatterier?",
+   "Svavelsyra, H₂SO₄"
+  ],
+  [
+   "syra-exempel",
+   "choicetext",
+   "Vilken syra bildas när koldioxid löses i vatten?",
+   "Kolsyra"
+  ],
+  [
+   "syra-exempel",
+   "choicetext",
+   "Vilken syra finns i vinäger?",
+   "Ättiksyra"
+  ],
+  [
+   "labbsakerhet",
+   "choicetext",
+   "Vad betyder säkerhetsregeln SIV?",
+   "Syra I Vatten – häll syran i vattnet, aldrig tvärtom"
+  ],
+  [
+   "syra-exempel",
+   "choicetext",
+   "Vilken syra bildas i musklerna när du tränar hårt?",
+   "Mjölksyra"
+  ],
+  [
+   "syra-formler",
+   "choicetext",
+   "Vad är den kemiska beteckningen för saltsyra?",
+   "HCl"
+  ],
+  [
+   "syra-kanne",
+   "open",
+   "Förklara med kemins begrepp vad som gör en lösning sur.",
+   "En syra avger vätejoner (H⁺) när den löses i vatten. Det är vätejonerna som gör lösningen sur, och ju fler vätejoner desto lägre pH (under 7)."
+  ],
+  [
+   "syra-exempel",
+   "open",
+   "Ge exempel på tre syror vi träffar på i vardagen och var de finns.",
+   "Citronsyra i citrusfrukter, ättiksyra i vinäger, kolsyra i läsk, mjölksyra i filmjölk och saltsyra i magsäcken."
+  ],
+  [
+   "bas-kanne",
+   "choicetext",
+   "Vilka joner finns det gott om i en basisk lösning?",
+   "Hydroxidjoner, OH⁻"
+  ],
+  [
+   "bas-kanne",
+   "choicetext",
+   "Vilket pH-värde har en bas?",
+   "Över 7"
+  ],
+  [
+   "bas-kanne",
+   "choicetext",
+   "Hur känns en basisk lösning mot huden?",
+   "Hal och tvålig"
+  ],
+  [
+   "bas-exempel",
+   "choicetext",
+   "Vilken bas kallas lut och används i propplösare?",
+   "Natriumhydroxid, NaOH"
+  ],
+  [
+   "bas-exempel",
+   "choicetext",
+   "Vilken bas luktar starkt och används i fönsterputs?",
+   "Ammoniak, NH₃"
+  ],
+  [
+   "forsurning",
+   "choicetext",
+   "Vilket ämne används för att kalka försurade sjöar?",
+   "Kalk (kalciumkarbonat/kalciumhydroxid)"
+  ],
+  [
+   "bas-kanne",
+   "choicetext",
+   "Vad kallas en basisk lösning också?",
+   "Alkalisk"
+  ],
+  [
+   "bas-kanne",
+   "choicetext",
+   "Varför används baser ofta i rengöringsmedel?",
+   "De löser upp fett"
+  ],
+  [
+   "bas-kanne",
+   "open",
+   "Förklara vad som gör en lösning basisk och ge två exempel på baser i vardagen.",
+   "En basisk lösning innehåller många hydroxidjoner (OH⁻) och har pH över 7. Exempel: natriumhydroxid (lut) i propplösare, ammoniak i fönsterputs, bikarbonat i bakpulver, tvål."
+  ],
+  [
+   "ph-skalan",
+   "choicetext",
+   "Vilket pH-värde är neutralt?",
+   "7"
+  ],
+  [
+   "ph-skalan",
+   "choicetext",
+   "Vilka värden går pH-skalan mellan?",
+   "0 och 14"
+  ],
+  [
+   "ph-skalan",
+   "choicetext",
+   "pH 4 jämfört med pH 5 – hur mycket surare är pH 4?",
+   "10 gånger surare"
+  ],
+  [
+   "indikatorer",
+   "choicetext",
+   "Vilken färg får BTB i en sur lösning?",
+   "Gul"
+  ],
+  [
+   "indikatorer",
+   "choicetext",
+   "Vilken färg får BTB i en basisk lösning?",
+   "Blå"
+  ],
+  [
+   "indikatorer",
+   "choicetext",
+   "Vilken färg får fenolftalein i en basisk lösning?",
+   "Rosa"
+  ],
+  [
+   "indikatorer",
+   "choicetext",
+   "Vad är en indikator?",
+   "Ett ämne som byter färg beroende på pH"
+  ],
+  [
+   "indikatorer",
+   "choicetext",
+   "Vilken färg får lackmuspapper i en syra?",
+   "Röd"
+  ],
+  [
+   "indikatorer",
+   "choicetext",
+   "Vilket vardagligt ämne kan användas som indikator?",
+   "Rödkålssaft"
+  ],
+  [
+   "ph-skalan",
+   "choicetext",
+   "Vad visar pH-värdet egentligen?",
+   "Hur många vätejoner det finns i lösningen"
+  ],
+  [
+   "ph-skalan",
+   "open",
+   "Förklara vad pH-skalan visar och vad som menas med att den är logaritmisk.",
+   "pH-skalan går från 0 till 14 och visar hur många vätejoner en lösning har: under 7 surt, 7 neutralt, över 7 basiskt. Varje steg betyder 10 gånger fler eller färre vätejoner – pH 3 är 100 gånger surare än pH 5."
+  ],
+  [
+   "indikatorer",
+   "open",
+   "Vad är en indikator? Ge ett exempel och beskriv vilka färger den ger.",
+   "En indikator är ett ämne som byter färg beroende på pH. BTB är gul i sur lösning, grön i neutral och blå i basisk. Fenolftalein är färglös i surt och rosa i basiskt."
+  ],
+  [
+   "ph-skalan",
+   "order",
+   "Ordna lösningarna från surast till mest basisk.",
+   "Magsyra (pH 1–2)"
+  ],
+  [
+   "stark-svag",
+   "choicetext",
+   "Vad kännetecknar en stark syra?",
+   "Alla syramolekyler avger sina vätejoner i vatten"
+  ],
+  [
+   "stark-svag",
+   "choicetext",
+   "Vilken av dessa är en svag syra?",
+   "Ättiksyra"
+  ],
+  [
+   "stark-svag",
+   "choicetext",
+   "Vilken av dessa är en stark syra?",
+   "Saltsyra"
+  ],
+  [
+   "koncentration",
+   "choicetext",
+   "Vad betyder att en syra är utspädd?",
+   "Det är lite syra och mycket vatten"
+  ],
+  [
+   "stark-svag",
+   "choicetext",
+   "Vilken bas är stark?",
+   "Natriumhydroxid"
+  ],
+  [
+   "stark-svag",
+   "choicetext",
+   "Vilken bas är svag?",
+   "Ammoniak"
+  ],
+  [
+   "koncentration",
+   "choicetext",
+   "Vad händer med pH när du späder en syra med vatten?",
+   "pH stiger mot 7"
+  ],
+  [
+   "koncentration",
+   "choicetext",
+   "Koncentrerad svavelsyra är …",
+   "Stark och koncentrerad"
+  ],
+  [
+   "stark-svag",
+   "open",
+   "Förklara skillnaden mellan en stark och en svag syra.",
+   "I en stark syra avger alla syramolekyler sina vätejoner i vatten (t.ex. saltsyra). I en svag syra avger bara en del av molekylerna sina vätejoner (t.ex. ättiksyra)."
+  ],
+  [
+   "koncentration",
+   "open",
+   "Förklara skillnaden mellan koncentrerad och utspädd syra. Är det samma sak som stark och svag?",
+   "Koncentrerad betyder mycket syra och lite vatten, utspädd betyder lite syra och mycket vatten – det handlar om mängd. Stark/svag handlar i stället om hur stor del av molekylerna som avger vätejoner. Det är inte samma sak: en utspädd stark syra kan ha högre pH än en koncentrerad svag."
+  ],
+  [
+   "neutralisation",
+   "choicetext",
+   "Vad bildas när en syra och en bas reagerar med varandra?",
+   "Ett salt och vatten"
+  ],
+  [
+   "neutralisation",
+   "choicetext",
+   "Vad kallas reaktionen mellan en syra och en bas?",
+   "Neutralisation"
+  ],
+  [
+   "neutralisation",
+   "choicetext",
+   "Vilket salt bildas av saltsyra och natriumhydroxid?",
+   "Natriumklorid, NaCl (vanligt koksalt)"
+  ],
+  [
+   "salter",
+   "choicetext",
+   "Vad är ett salt?",
+   "En jonförening av positiva och negativa joner"
+  ],
+  [
+   "salter",
+   "choicetext",
+   "Varför leder smält eller löst salt elektrisk ström?",
+   "Jonerna kan röra sig fritt"
+  ],
+  [
+   "syra-metall",
+   "choicetext",
+   "Vad bildas när en syra reagerar med en metall, t.ex. zink?",
+   "Ett salt och vätgas"
+  ],
+  [
+   "salter",
+   "choicetext",
+   "Vilken form har salter i fast tillstånd?",
+   "Kristaller med regelbundet mönster"
+  ],
+  [
+   "neutralisation",
+   "choicetext",
+   "Vilka joner bildar vatten vid en neutralisation?",
+   "H⁺ och OH⁻"
+  ],
+  [
+   "neutralisation",
+   "open",
+   "Förklara vad som händer vid en neutralisation och skriv ett exempel med ord eller formler.",
+   "När en syra och en bas blandas bildar vätejonerna och hydroxidjonerna vatten, och resten av jonerna bildar ett salt: syra + bas → salt + vatten. Exempel: HCl + NaOH → NaCl + H₂O."
+  ],
+  [
+   "salter",
+   "open",
+   "Förklara vad ett salt är med kemins begrepp.",
+   "Ett salt är en jonförening: positiva joner (ofta en metall, t.ex. natrium) och negativa joner (t.ex. klorid) som hålls ihop av att laddningarna drar i varandra, ordnade i ett regelbundet mönster – en kristall."
+  ],
+  [
+   "neutralisation",
+   "order",
+   "Sätt stegen i rätt ordning för att neutralisera en syra i labbet.",
+   "Mät upp syran i en bägare"
+  ],
+  [
+   "neutralisation",
+   "order",
+   "Sätt stegen i rätt ordning: vad händer när saltsyra och natriumhydroxid blandas?",
+   "Saltsyran bidrar med vätejoner (H⁺) och kloridjoner (Cl⁻)"
+  ],
+  [
+   "salter-vardag",
+   "choicetext",
+   "Vad är det kemiska namnet på vanligt koksalt?",
+   "Natriumklorid, NaCl"
+  ],
+  [
+   "salter-vardag",
+   "choicetext",
+   "Vilket salt finns i bakpulver och används mot halsbränna?",
+   "Natriumvätekarbonat (bikarbonat)"
+  ],
+  [
+   "salter-vardag",
+   "choicetext",
+   "Vilket salt är kalksten, krita och äggskal gjorda av?",
+   "Kalciumkarbonat"
+  ],
+  [
+   "salter-vardag",
+   "choicetext",
+   "Vilka salter används som gödsel?",
+   "Kaliumnitrat och ammoniumnitrat"
+  ],
+  [
+   "salter-vardag",
+   "choicetext",
+   "Varför finns natriumfluorid i tandkräm?",
+   "Fluorid gör tandemaljen starkare mot syra"
+  ],
+  [
+   "neutralisation",
+   "choicetext",
+   "Vad är antacida (medicin mot halsbränna)?",
+   "Baser som neutraliserar magsyran"
+  ],
+  [
+   "salter-vardag",
+   "choicetext",
+   "Varför saltar man vägarna på vintern?",
+   "Saltet sänker fryspunkten så isen smälter"
+  ],
+  [
+   "jonnamn",
+   "choicetext",
+   "Vilken jon i kroppen är viktig för skelettet?",
+   "Kalcium"
+  ],
+  [
+   "salter-vardag",
+   "open",
+   "Ge exempel på tre jonföreningar (salter) och hur vi använder dem i vardagen.",
+   "Natriumklorid (koksalt) till mat och vägsalt, natriumvätekarbonat i bakpulver och mot halsbränna, kalciumkarbonat i kalksten och tandkräm, natriumfluorid i tandkräm, kaliumnitrat som gödsel."
+  ],
+  [
+   "ph-kroppen",
+   "choicetext",
+   "Vilket pH har blodet normalt?",
+   "Cirka 7,4"
+  ],
+  [
+   "ph-kroppen",
+   "choicetext",
+   "Vilket pH har magsäcken?",
+   "1–2"
+  ],
+  [
+   "ph-kroppen",
+   "choicetext",
+   "Vid vilket pH börjar tandemaljen lösas upp?",
+   "Under cirka 5,5"
+  ],
+  [
+   "forsurning",
+   "choicetext",
+   "Vad orsakar surt regn?",
+   "Svaveldioxid och kväveoxider från förbränning löser sig i regnvattnet"
+  ],
+  [
+   "forsurning",
+   "choicetext",
+   "Vad kan hända med en sjö som försuras?",
+   "Fiskar och andra djur dör, och metaller som aluminium frigörs"
+  ],
+  [
+   "forsurning",
+   "choicetext",
+   "Hur motverkar man försurning av sjöar?",
+   "Kalkning – basisk kalk neutraliserar syran"
+  ],
+  [
+   "forsurning",
+   "choicetext",
+   "Varför försuras haven?",
+   "De tar upp koldioxid som bildar kolsyra"
+  ],
+  [
+   "ph-kroppen",
+   "choicetext",
+   "Hur kan för mycket salt i maten påverka hälsan?",
+   "Högt blodtryck"
+  ],
+  [
+   "ph-kroppen",
+   "choicetext",
+   "Varför får man hål i tänderna av att dricka mycket läsk?",
+   "Syran och sockret sänker pH så emaljen löses upp"
+  ],
+  [
+   "forsurning",
+   "open",
+   "Beskriv vilka konsekvenser ett förändrat pH-värde kan få i naturen.",
+   "Utsläpp av svaveldioxid och kväveoxider ger surt regn som försurar sjöar och mark: fiskar och andra djur dör, näring lakas ur marken och giftiga metaller frigörs. Haven försuras av koldioxid, vilket skadar koraller och skaldjur. Motåtgärder är att minska utsläppen och kalka sjöar."
+  ],
+  [
+   "ph-kroppen",
+   "open",
+   "Beskriv hur pH påverkar kroppen – ge två exempel.",
+   "Magsäcken har pH 1–2 av saltsyra som bryter ner maten. Tandemaljen löses upp när pH i munnen går under 5,5, t.ex. av läsk och syra från bakterier – då bildas karies. Blodet måste hålla pH 7,4."
+  ],
+  [
+   "ph-kroppen",
+   "open",
+   "Beskriv hur saltet vi äter kan påverka vår hälsa.",
+   "För mycket salt (natriumklorid) höjer blodtrycket, vilket på sikt ökar risken för hjärt- och kärlsjukdomar. Rekommendationen är max cirka 6 gram per dag, ungefär en tesked."
+  ],
+  [
+   "labbsakerhet",
+   "choicetext",
+   "Vad ska du alltid ha på dig när du arbetar med syror och baser i labbet?",
+   "Skyddsglasögon"
+  ],
+  [
+   "labbsakerhet",
+   "choicetext",
+   "Vad gör du först om du får syra på huden?",
+   "Skölj rikligt med vatten"
+  ],
+  [
+   "labbsakerhet",
+   "choicetext",
+   "Vad visar faropiktogrammet med en hand som fräts sönder?",
+   "Frätande ämne"
+  ],
+  [
+   "kallkritik",
+   "choicetext",
+   "Vilken fråga hör till källkritik?",
+   "Vem står bakom källan och varför?"
+  ],
+  [
+   "kallkritik",
+   "choicetext",
+   "Vilken källa är oftast mest tillförlitlig om syror och baser?",
+   "En lärobok eller en myndighet som Kemikalieinspektionen"
+  ],
+  [
+   "kallkritik",
+   "choicetext",
+   "Varför ska man jämföra flera källor?",
+   "För att se om uppgifterna stämmer överens"
+  ],
+  [
+   "labbsakerhet",
+   "open",
+   "Förklara varför regeln \"SIV\" är viktig i labbet.",
+   "SIV betyder Syra I Vatten: man häller alltid syran i vattnet, aldrig tvärtom. Blandningen blir mycket varm, och häller man vatten i koncentrerad syra kan det koka och stänka frätande syra."
+  ],
+  [
+   "kallkritik",
+   "open",
+   "Nämn tre frågor du ska ställa för att vara källkritisk när du söker information om kemi.",
+   "Vem står bakom källan? Varför finns den – för att informera, sälja eller påverka? När skrevs den? Stämmer uppgifterna med andra oberoende källor?"
+  ],
+  [
+   "labbsakerhet",
+   "order",
+   "Du har fått syra på handen. Sätt stegen i rätt ordning.",
+   "Säg till läraren direkt"
+  ]
+ ]
+}

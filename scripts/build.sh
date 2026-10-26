@@ -6,13 +6,16 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SRC="$ROOT/src"; DIST="$ROOT/dist"; mkdir -p "$DIST"
 VERSION="$(tr -d '[:space:]' < "$ROOT/VERSION")"
 # Bygg-id = innehållshash av källorna (inte commit-sha), så att samma källor alltid ger samma bundle oavsett commit.
-SHA="${BUILD_SHA:-$(cat "$SRC"/*.js "$SRC"/*.html "$ROOT/VERSION" "$ROOT/sw.js" | sha256sum | cut -c1-7)}"
+# Inbyggda Concept Packs (content/packs/*.json, sorterade) ingår i bygget och i hashen.
+PACKS_DIR="$ROOT/content/packs"; PACK_FILES="$(cd "$PACKS_DIR" 2>/dev/null && LC_ALL=C ls -1 *.json 2>/dev/null || true)"
+SHA="${BUILD_SHA:-$( { cat "$SRC"/*.js "$SRC"/*.html "$ROOT/VERSION" "$ROOT/sw.js"; for f in $PACK_FILES; do cat "$PACKS_DIR/$f"; done; } | sha256sum | cut -c1-7)}"
 BUILD_ID="v${VERSION} (${SHA})"
 # Ordningen spelar roll: hjälpfunktioner → innehåll → synk/familj/auth/push → appkärnan sist.
-JS="01_math.js 02_content.js 02b_lang.js 02c_so.js 02d_kemi.js 02e_open.js 02g_visual.js 02f_math_more.js 02h_svenska.js 02i_naso.js 02j_math_ak2.js 04_sync.js 04a_family.js 04b_auth.js 05_push.js 05a_concepts.js 05b_engine2.js 05e_runner.js 05c_shadow.js 05f_content2.js 05g_v2app.js 03_app.js"
+JS="01_math.js 02_content.js 02b_lang.js 02c_so.js 02d_kemi.js 02e_open.js 02g_visual.js 02f_math_more.js 02h_svenska.js 02i_naso.js 02j_math_ak2.js 02k_math_ak2_v2.js 04_sync.js 04a_family.js 04b_auth.js 05_push.js 05a_concepts.js 05d_packs.js 05b_engine2.js 05e_runner.js 05c_shadow.js 05f_content2.js 05g_v2app.js 03_app.js"
 cd "$SRC"
 for f in $JS 00_head.html 00b_style.html 99_body.html; do [ -f "$f" ] || { echo "saknar $f" >&2; exit 1; }; done
-js_bundle() { for f in $JS; do grep -v "module.exports" "$f"; echo; done; }
+pack_data() { local pf; echo "const PACK_DATA = ["; for pf in $PACK_FILES; do cat "$PACKS_DIR/$pf"; echo ","; done; echo "];"; }
+js_bundle() { for f in $JS; do [ "$f" = "05d_packs.js" ] && pack_data; grep -v "module.exports" "$f"; echo; done; }
 
 # Fristående variant (ingen molnkoppling) – används av testerna
 { cat 00_head.html 00b_style.html 99_body.html; echo "<script>window.PLUGG_BUILD = '$BUILD_ID';</script>"; echo '<script>'; js_bundle; echo '</script>'; } > "$DIST/pluggappen.html"

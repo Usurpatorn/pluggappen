@@ -82,7 +82,7 @@ function clearMistake(p, id) {
   const c = { ...(p.mistakesCleared || {}), [id]: Math.max(Date.now(), at) }; const ids = Object.keys(c).sort((a, b) => c[b] - c[a]).slice(0, 300); p.mistakesCleared = Object.fromEntries(ids.map(k => [k, c[k]]));
 }
 function recordAnswer(kidId, skillId, correct, level, usedHelp) {
-  const p = prof(kidId); const s = skillState(p, skillId); const maxLvl = (KIDS.find(k => k.id === kidId)?.skills.find(x => x.id === skillId) || {}).maxLvl || 3;
+  const p = prof(kidId); const s = skillState(p, skillId); const kk = KIDS.find(k => k.id === kidId); const maxLvl = ((kk && [...kk.skills, ...(kk.v2skills || [])].find(x => x.id === skillId)) || {}).maxLvl || 3;
   s.att++; s.last = Date.now();
   let xp;
   if (correct) {
@@ -473,9 +473,10 @@ VIEWS.home = () => {
     ${PUSH.card(kid.id, 'kid')}
     ${v2 ? V2.felbokCard(kid) : (p.mistakes || []).length ? `<button class="card tap row" data-act="felbok" style="gap:12px"><div class="ic" style="width:44px;height:44px;border-radius:12px;background:var(--bad-soft);color:var(--bad);display:grid;place-items:center;font-size:1.3rem">📕</div><div class="grow"><div style="font-weight:800;font-family:var(--display)">Felboken · ${p.mistakes.length} ${p.mistakes.length === 1 ? 'uppgift' : 'uppgifter'}</div><div class="muted" style="font-size:.9rem">Allt du svarat fel på. Klara dem för att tömma boken.</div></div><span class="chev">›</span></button>` : ''}
     ${(() => {
-      const subjects = [['math', 'Matte', '🔢'], ['sv', 'Svenska', '📖'], ['en', 'Engelska', '🇬🇧'], ['no', 'NO', '🔬'], ['so', 'SO', '🌍'], ['lang', 'Språk', '🗣️']].filter(([g]) => g === 'lang' || kid.skills.some(s => (s.group || 'math') === g));
+      const shown = v2 ? [...kid.skills, ...(kid.v2skills || [])] : kid.skills;   // 2.1: nya moment ur Concept Packs bara i v2 (v1 är frusen reserv)
+      const subjects = [['math', 'Matte', '🔢'], ['sv', 'Svenska', '📖'], ['en', 'Engelska', '🇬🇧'], ['no', 'NO', '🔬'], ['so', 'SO', '🌍'], ['lang', 'Språk', '🗣️']].filter(([g]) => g === 'lang' || shown.some(s => (s.group || 'math') === g));
       const cur = subjects.some(([g]) => g === state.subj) ? state.subj : subjects[0][0];
-      const avg = (g) => { const list = kid.skills.filter(s => (s.group || 'math') === g); return list.length ? Math.round(list.reduce((a, s) => a + skillState(p, s.id).m, 0) / list.length) : 0; };
+      const avg = (g) => { const list = shown.filter(s => (s.group || 'math') === g); return list.length ? Math.round(list.reduce((a, s) => a + skillState(p, s.id).m, 0) / list.length) : 0; };
       const tabs = `<div class="subj-tabs" role="tablist">${subjects.map(([g, label, icon]) => `<button class="subj ${g === cur ? 'on' : ''}" role="tab" data-subj="${g}"><span class="si">${icon}</span><span class="sl">${label}</span>${g !== 'lang' ? `<span class="sp"><i style="width:${avg(g)}%"></i></span>` : ''}</button>`).join('')}</div>`;
       if (cur === 'lang') return `<div class="subject-wrap">${tabs}${decks.length ? `<div style="margin-top:12px">
       <div class="section-h"><h3>Språk & glosor</h3><button class="link" data-go="courses">Alla kurser</button></div>
@@ -484,12 +485,12 @@ VIEWS.home = () => {
     </div>` : `<div class="card row"><div class="grow"><b>Språk & glosor</b><div class="muted" style="font-size:.9rem">Spanska, engelska eller egna glosor.</div></div><button class="btn secondary" data-go="courses">Välj kurser</button></div>`}}</div>`;
       const g = cur; const label = subjects.find(x => x[0] === g)[1];
       return `<div class="subject-wrap">${tabs}
-      <div class="section-h"><h3>${label}</h3>${g === 'math' ? `<button class="link" data-go="blitz">Blixtläge</button>` : `<span class="muted" style="font-size:.85rem">${kid.skills.filter(s => (s.group || 'math') === g).length} moment</span>`}</div>
+      <div class="section-h"><h3>${label}</h3>${g === 'math' ? `<button class="link" data-go="blitz">Blixtläge</button>` : `<span class="muted" style="font-size:.85rem">${shown.filter(s => (s.group || 'math') === g).length} moment</span>`}</div>
       <div class="skill-list">
-        ${kid.skills.filter(s => (s.group || 'math') === g).map(s => { const st = skillState(p, s.id); const mv = Math.round(st.m); return `
+        ${shown.filter(s => (s.group || 'math') === g).map(s => { const st = skillState(p, s.id); const mv = Math.round(st.m); return `
         <div class="card" style="padding:12px 14px">
           <div class="skill">
-            <div class="ic">${s.icon}</div>
+            <div class="ic">${esc(s.icon)}</div>
             <div class="grow" style="min-width:0">
               <div class="nm">${esc(s.name)}</div>
               <div class="sub"><span>${masteryLabel(st)}</span><span>·</span><span class="lvl-dots" title="Svårighet">${Array.from({ length: s.maxLvl || 3 }, (_, i) => i + 1).map(i => `<i class="${i <= st.lvl ? 'on' : ''}"></i>`).join('')}</span>${st.att ? `<span>· ${st.cor}/${st.att} rätt</span>` : ''}</div>
@@ -530,10 +531,10 @@ VIEWS.courses = () => {
 };
 
 VIEWS.method = () => {
-  const kid = kidById(state.kid); const s = kid.skills.find(x => x.id === state.skillId);
+  const kid = kidById(state.kid); const s = skillById(kid, state.skillId);
   render(`${topbar(esc(s.name), 'home')}
   <div class="stack" style="margin-top:6px">
-    <div class="card pad-lg method"><div class="eyebrow" style="margin-bottom:8px">${(s.group || 'math') === 'math' ? 'Så gör man' : 'Läs på'}</div>${s.lgr ? `<p class="muted" style="font-size:.85rem;margin:0 0 10px"><b>Lgr22 · åk 1–3:</b> <i>${s.lgr}</i></p>` : ''}${s.method}</div>
+    <div class="card pad-lg method"><div class="eyebrow" style="margin-bottom:8px">${(s.group || 'math') === 'math' ? 'Så gör man' : 'Läs på'}</div>${s.lgr ? `<p class="muted" style="font-size:.85rem;margin:0 0 10px"><b>Lgr22 · åk 1–3:</b> <i>${s.lgr}</i></p>` : ''}${s.pack ? safeHtml(s.method) : s.method}</div>
     ${V2.on(kid) ? `<button class="btn big wide" data-v2="rc" data-skill="${s.id}">🙈 Stäng texten och testa dig själv</button><p class="muted" style="font-size:.85rem;text-align:center;margin-top:-4px">Läs, stäng, försök minnas – sedan jämför du. Det är så kunskap fastnar.</p><button class="btn ghost wide" data-skill="${s.id}">Öva på det här</button>` : `<button class="btn big wide" data-skill="${s.id}">Öva på det här</button>`}
   </div>`);
 };
@@ -624,7 +625,7 @@ const d_new = (p, d) => d.words.filter(w => !p.words[w.id]).length;
 let S = null;
 function pickSkills(kid, ids, n) {
   const p = prof(kid.id); const out = [];
-  const pool = ids.map(id => kid.skills.find(s => s.id === id)).filter(Boolean);
+  const pool = ids.map(id => skillById(kid, id)).filter(Boolean);
   if (!pool.length) return out;
   if (pool.length === 1) return Array(n).fill(pool[0]);
   const weights = pool.map(s => { const st = skillState(p, s.id); const stale = Math.min(3, (Date.now() - st.last) / DAYMS); return 20 + (100 - st.m) + stale * 10 + (s.focus ? 10 : 0); });
@@ -637,9 +638,13 @@ function pickSkills(kid, ids, n) {
   }
   return out;
 }
+const skillById = (kid, id) => kid.skills.find(s => s.id === id) || (kid.v2skills || []).find(s => s.id === id);
 function makeQuestion(kid, skill, levelOverride, genOpts) {
   const st = skillState(prof(kid.id), skill.id); const lvl = levelOverride || st.lvl;
-  let q = skill.gen(lvl, genOpts || {});
+  // 2.1: med motor v2 kommer frågorna på moment med ett Concept Pack från paketets granskade innehåll (även vid manuell övning); v1 oförändrad
+  const pq = typeof PACKS !== 'undefined' && typeof V2 !== 'undefined' && !(genOpts && genOpts.noPack) && V2.engineOf(prof(kid.id)) === 'v2' ? V2.safe(() => PACKS.practiceQuestion(kid, skill, lvl, LE.policyName(kid, prof(kid.id))), 'practiceQ', null) : null;
+  if (pq) { pq.skill = skill; pq.level = pq.level || lvl; pq.cat = 'math'; return pq; }
+  let q = (genOpts && genOpts.v2 && skill.gen2 ? skill.gen2 : skill.gen)(lvl, genOpts || {});   // 2.1: v2 får rikare generatorer (gen2), v1 oförändrad
   if (!genOpts?.noOpen && ['ekvation', 'forenkla', 'problemekv'].includes(skill.id) && q.steps && q.steps.length >= 4 && R.chance(0.15)) {
     const items = q.steps.slice(0, -1).map(st => st.replace(/^<b>[^<]*<\/b>\s*/, ''));
     q = { type: 'order', text: `Sätt lösningens steg i rätt ordning:<br><span class="muted" style="font-size:1rem">${q.text}</span>`, items, answer: items, steps: [`<b>Rätt ordning:</b><ol style="margin:6px 0 0;padding-left:20px">${items.map(i => `<li>${i}</li>`).join('')}</ol>`], hint: 'Vad måste göras först? Oftast: ta bort parenteser, förenkla, samla, dela.', level: lvl };
@@ -653,12 +658,12 @@ function startSession(kid, opts) {
     const list = R.shuffle((p.mistakes || []).slice()).slice(0, opts.n || 10);
     for (const mi of list) {
       if (mi.cat === 'word') { const d = deckById(p, mi.deckId); const w = d && d.words.find(x => x.id === mi.wordId); if (d && w) queue.push({ ...makeWordExercise(d, w, R.pick(['pick', 'type'])), cat: 'word' }); }
-      else { const sk = kid.skills.find(x => x.id === mi.skillId); if (sk) queue.push({ ...mi.q, skill: sk, cat: 'math', mistakeId: mi.id }); }
+      else { const sk = skillById(kid, mi.skillId); if (sk) queue.push({ ...mi.q, skill: sk, cat: 'math', mistakeId: mi.id }); }
     }
     if (!queue.length) { toast('Felboken är tom!'); return go('home'); }
   } else if (opts.mode === 'test') {
     const exam = p.exams.find(e => e.id === opts.examId);
-    const skills = exam.skillIds.map(id => kid.skills.find(s => s.id === id)).filter(Boolean);
+    const skills = exam.skillIds.map(id => skillById(kid, id)).filter(Boolean);
     const mathSkills = skills.filter(s => (s.group || 'math') === 'math'), quizSkills = skills.filter(s => (s.group || 'math') !== 'math');
     const decks = exam.deckIds.map(id => deckById(p, id)).filter(Boolean);
     const parts = (mathSkills.length ? 1 : 0) + (quizSkills.length ? 1 : 0) + (decks.length ? 1 : 0);
@@ -748,7 +753,7 @@ function mathBody(q, kid, isTest) {
            ${kid.template === 'ak2' || q.answer < 0 ? `<div class="keys" style="margin-top:8px;grid-template-columns:repeat(6,1fr)">${['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'].map(k => `<button class="key" data-key="${k}">${k}</button>`).join('')}<button class="key" data-key="−">−</button><button class="key" data-key="⌫">⌫</button></div>` : ''}`
         : `<input class="answer-input" id="ans" autocomplete="off" autocapitalize="off" placeholder="Skriv svaret" aria-label="Ditt svar">`;
   const p = prof(kid.id);
-  return `<div class="row" style="justify-content:space-between"><span class="eyebrow">Uppgift ${S.i + 1} av ${S.v2 ? V2.total() : S.queue.length}${isTest && q.part ? ` · ${q.part}-nivå` : ''}${!isTest && !p.settings.focus ? ` · ${esc(q.skill.short || '')}` : ''}</span><span class="row" style="gap:8px">${TTS.ok && p.settings.tts ? `<button class="icon-btn" data-speak="${esc(q.text.replace(/<[^>]+>/g, ''))}" data-lang="sv" data-highlight="1" style="width:36px;height:36px" aria-label="Läs upp">${ICON.speaker}</button>` : ''}<span class="lvl-dots" aria-label="Svårighet ${q.level}">${[1, 2, 3].map(i => `<i class="${i <= q.level ? 'on' : ''}"></i>`).join('')}</span></span></div>
+  return `<div class="row" style="justify-content:space-between"><span class="eyebrow">Uppgift ${S.i + 1} av ${S.v2 ? V2.total() : S.queue.length}${isTest && q.part ? ` · ${q.part}-nivå` : ''}${!isTest && !p.settings.focus ? ` · ${esc(q.skill.short || '')}` : ''}</span><span class="row" style="gap:8px">${S.v2 ? V2.speakBtn(q, p) : TTS.ok && p.settings.tts ? `<button class="icon-btn" data-speak="${esc(q.text.replace(/<[^>]+>/g, ''))}" data-lang="sv" data-highlight="1" style="width:36px;height:36px" aria-label="Läs upp">${ICON.speaker}</button>` : ''}<span class="lvl-dots" aria-label="Svårighet ${q.level}">${[1, 2, 3].map(i => `<i class="${i <= q.level ? 'on' : ''}"></i>`).join('')}</span></span></div>
       ${q.fig ? `<div class="figwrap">${safeHtml(q.fig)}</div>` : ''}
       <div class="question" id="qtext">${safeHtml(q.text)}</div>
       <div id="inputArea">${inputHtml}</div>
@@ -940,7 +945,7 @@ function submitMath() {
   else if (S.revealed) { fb.innerHTML = `<div class="feedback warn"><span style="font-size:1.4rem">👀</span><div><div class="big">Nu vet du hur man gör</div><div class="sub">Du får en liknande uppgift igen om en stund.</div></div></div>`; }
   else { beep('no'); fb.innerHTML = `<div class="feedback no"><span style="font-size:1.4rem">❌</span><div><div class="big">Inte riktigt</div><div class="sub">Rätt svar: <b>${esc(answerDisplay(q))}</b>${q.choices || q.type === 'choicetext' || !raw ? '' : ` · Du svarade: ${esc(raw)}`}</div></div></div>`; if (!isTest) showSteps(q, false); }
   document.getElementById('hintBtn')?.remove(); document.getElementById('explainBtn')?.remove();
-  if (S.v2) V2.feedbackExtra(v2evs, v2rw);
+  if (S.v2) V2.feedbackExtra(v2evs, v2rw, q);
   document.getElementById('actions').innerHTML = `<button class="btn grow" id="next">${(S.v2 ? V2.hasNext() : S.i + 1 < S.queue.length) ? 'Nästa →' : 'Visa resultat'}</button>${!correct && !isTest ? `<button class="btn ghost" id="stepsBtn2">Visa lösning</button>` : ''}`;
   document.getElementById('stepsBtn2')?.addEventListener('click', () => showSteps(q, false));
   document.getElementById('next').focus({ preventScroll: true });
@@ -1028,7 +1033,7 @@ VIEWS.blitz = () => {
   render(`${topbar('Blixtläge ⚡', 'home')}
   <div class="stack" style="margin-top:6px">
     <div class="card pad-lg" style="text-align:center"><h2>60 sekunder. Så många rätt du kan.</h2><p class="muted" style="margin-top:6px">Snabba svar med knappar. Fel kostar 2 sekunder. Rekord ger märke!</p></div>
-    <div class="skill-list">${kid.skills.filter(s => (s.group || 'math') === 'math' && s.id !== 'andragrad').map(s => `<button class="card tap skill" data-blitz="${s.id}"><div class="ic">${s.icon}</div><div class="grow"><div class="nm">${esc(s.short)}</div><div class="sub">Rekord: ${p.blitz[s.id] || 0}</div></div><span class="chev">›</span></button>`).join('')}</div>
+    <div class="skill-list">${kid.skills.filter(s => (s.group || 'math') === 'math' && s.id !== 'andragrad').map(s => `<button class="card tap skill" data-blitz="${s.id}"><div class="ic">${esc(s.icon)}</div><div class="grow"><div class="nm">${esc(s.short)}</div><div class="sub">Rekord: ${p.blitz[s.id] || 0}</div></div><span class="chev">›</span></button>`).join('')}</div>
   </div>`);
 };
 function startBlitz(kid, skillId) {
@@ -1080,7 +1085,7 @@ VIEWS.parent = () => {
     if (sub === 'overview') body += parentOverview(kid, p);
     else if (sub === 'exams') body += parentExams(kid, p);
     else if (sub === 'decks') body += parentDecks(kid, p);
-    else if (sub === 'v2') body += V2.engineCard(kid) + (V2.engineOf(p) === 'v2' ? V2.insightsCard(kid) + V2.explainCard(kid) : '') + LE.view(kid);
+    else if (sub === 'v2') body += V2.engineCard(kid) + (V2.engineOf(p) === 'v2' ? V2.insightsCard(kid) + V2.explainCard(kid) + V2.healthCard(kid) : '') + LE.view(kid);
     else body += parentSettings(kid, p);
   } else {
     body = `<div class="card stack" style="gap:12px"><div class="eyebrow">Inställningar</div>
@@ -1251,7 +1256,7 @@ async function deleteFamilyData() {
   await del(AUTH.doc('meta/info')); await del(AUTH.doc('members/' + AUTH.uid));
   // lokalt: koppla bort och glöm familjen
   for (const k of KIDS) DB.profiles[k.id] = defaultProfile(k.id);
-  DB.settings.family = ''; DB.settings.member = null; DB.settings.joinCode = null; DB.settings.push = null; FAMILY.cfg = null; FAMILY.saveLocal(); buildKids();
+  DB.settings.family = ''; DB.settings.member = null; DB.settings.joinCode = null; DB.settings.push = null; FAMILY.cfg = null; FAMILY.saveLocal(); FAMILY.clearContent(); buildKids();
   try { localStorage.setItem(STORE_KEY, JSON.stringify(DB)); } catch (e) { /* ignore */ }
   return n;
 }
@@ -1340,13 +1345,13 @@ async function ensureMembership() {
 }
 function boot(snap) {
   FAMILY.loadLocal(); buildKids();
-  load(); TTS.init();
+  load(); FAMILY.loadContentLocal(); TTS.init();   // 2.1: familjens privata innehåll från förra synken (efter load: kopian måste höra till samma familj)
   try { window.claude?.hot?.snapshot?.(() => ({ screen: state.screen, kid: state.kid })); } catch (e) { /* no hot */ }
   let h = (location.hash || '').replace('#', '');
   if (h.startsWith('fam-') && SYNC.cfg) { const pr = AUTH.parsePair(h.slice(4)); if (pr) { DB.settings.family = pr.fam; DB.settings.joinCode = pr.code; try { localStorage.setItem(STORE_KEY, JSON.stringify(DB)); } catch (e) { /* ignore */ } } h = ''; }
   if (SYNC.cfg && SYNC.family) { try { history.replaceState(null, '', location.pathname + '#fam-' + SYNC.family); } catch (e) { /* ignore */ } } // bara familje-id i adressfältet – aldrig parkopplingskoden
   AUTH.load();
-  if (SYNC.active) { ensureMembership().then(() => FAMILY.pull()).then((cfgChanged) => { if (cfgChanged) { load(); if (state.screen === 'start') VIEWS.start(); } return SYNC.refreshAll(); }).then((changed) => { if (state.screen === 'start' || (changed && state.screen === 'home')) VIEWS[state.screen](); }); document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && SYNC.active && state.screen !== 'practice' && state.screen !== 'blitzplay') SYNC.refreshAll().then((changed) => { if (changed && VIEWS[state.screen]) VIEWS[state.screen](); }); }); }
+  if (SYNC.active) { ensureMembership().then(() => FAMILY.pull()).then((cfgChanged) => FAMILY.pullContent().then(cc => cfgChanged || cc, () => cfgChanged)).then((cfgChanged) => { if (cfgChanged) { load(); if (state.screen === 'start') VIEWS.start(); } return SYNC.refreshAll(); }).then((changed) => { if (state.screen === 'start' || (changed && state.screen === 'home')) VIEWS[state.screen](); }); document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && SYNC.active && state.screen !== 'practice' && state.screen !== 'blitzplay') SYNC.refreshAll().then((changed) => { if (changed && VIEWS[state.screen]) VIEWS[state.screen](); }); }); }
   const [hk, hact] = h.split('-');
   if (snap && snap.kid && kidById(snap.kid)) { state.kid = snap.kid; go('home'); }
   else if (kidById(hk) && hact === 'kor') { state.kid = hk; applyLook(kidById(hk)); const kid = kidById(hk); const p = prof(hk); if (!p.pet) { p.pet = isTeen(kid) || isSport(kid) ? 'none' : PETS[0].id; save(); } if (V2.on(kid)) { go('home'); V2.click({ dataset: { v2: 'kor' } }, kid); } else { LE.nextSrc = 'kor'; startSession(kid, recommendSprint(kid).opts); } }
@@ -1356,4 +1361,4 @@ function boot(snap) {
   else go('start');
 }
 window.claude?.hot?.ready ? window.claude.hot.ready(boot) : boot(window.claude?.hot?.data ?? null);
-window.PA = { LE, LE2, LECAT, LER, V2, RECALL, CHG, checkAnswer, answerDisplay, makeQuestion, mergeProfiles, get S() { return S; }, get DB() { return DB; }, get B() { return B; }, Poly, KIDS, TEMPLATES, FAMILY, AUTH, deleteKidData, deleteFamilyData, buildKids, load, flushSave, rerender: () => VIEWS[state.screen] && VIEWS[state.screen](), BUILTIN_DECKS, SYNC, save, setKid: (id) => { state.kid = id; }, version: '3.0' };
+window.PA = { LE, LE2, LECAT, LER, V2, RECALL, CHG, PACKS, checkAnswer, answerDisplay, makeQuestion, mergeProfiles, get S() { return S; }, get DB() { return DB; }, get B() { return B; }, Poly, KIDS, TEMPLATES, FAMILY, AUTH, deleteKidData, deleteFamilyData, buildKids, load, flushSave, rerender: () => VIEWS[state.screen] && VIEWS[state.screen](), BUILTIN_DECKS, SYNC, save, setKid: (id) => { state.kid = id; }, version: '3.0' };

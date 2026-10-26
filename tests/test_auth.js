@@ -28,7 +28,7 @@ function rules(method, path, uid, body) {
   }
   if (coll === 'profiles') {
     if (method === 'GET') return isMember || legacy ? 200 : 403;
-    if (method === 'PATCH') { const ok = Object.keys(body.fields).every(k => ['json', 'updatedAt', 'kid'].includes(k)); return (isMember || legacy) && ok ? 200 : 403; }
+    if (method === 'PATCH') { const ok = Object.keys(body.fields).every(k => ['json', 'updatedAt', 'kid'].includes(k)); return id !== '_content' && (isMember || legacy) && ok ? 200 : 403; }   // _content: bara servicekontot
     if (method === 'DELETE') return isParent ? 200 : 403;
   }
   return 403;
@@ -70,6 +70,20 @@ let fails = 0; const check = (c, m) => { console.log((c ? 'ok   ' : 'FAIL ') + m
   B.PA.DB.settings.family = 'legacy-fam-001'; B.PA.DB.settings.joinCode = 'legacy-fam-001'; const jb = await B.PA.AUTH.join('legacy-fam-001', 'kid');
   check(jb.ok, 'B joined with correct code: ' + jb.msg); await B.PA.FAMILY.pull(); B.PA.load(); await B.PA.SYNC.refreshAll();
   check(B.PA.KIDS.length === 3 && B.PA.DB.profiles.k2.xp === 120, 'B pulled config and profile as member');
+  // 2b. Release-kontroll 2.1: familjens privata innehåll (_content: paket, facit, provdatum) kan inte skrivas av någon appklient –
+  //     varken av en barnenhet som är medlem eller av en gammal klient under övergången. Bara servicekontot (utanför reglerna) skriver.
+  {
+    cloud['families/legacy-fam-001/profiles/_content'] = { fields: { json: { stringValue: '{"v":1,"packs":[],"work":[]}' }, updatedAt: { integerValue: '1' } } };
+    const body = JSON.stringify({ fields: { json: { stringValue: '{"v":1,"packs":[],"work":[{"id":"x","kid":"k2","type":"exam","title":"falskt prov"}]}' }, updatedAt: { integerValue: '2' } } });
+    const wB = await B.PA.AUTH.fetch(B.PA.AUTH.doc('profiles/_content'), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body });
+    check(wB.status === 403, `_content: barnenhet (medlem) får inte skriva (${wB.status})`);
+    const rB = await B.PA.AUTH.fetch(B.PA.AUTH.doc('profiles/_content')); check(rB.ok, '_content: medlem får läsa');
+    check(rules('PATCH', 'families/legacy-fam-001/profiles/_content', null, JSON.parse(body)) === 403, '_content: gammal klient under övergången får inte skriva');
+    check(rules('PATCH', 'families/legacy-fam-001/profiles/_content', 'uid1', JSON.parse(body)) === 403, '_content: inte heller enheten som skapade familjen');
+    check(rules('PATCH', 'families/legacy-fam-001/profiles/k2', null, { fields: { json: {}, updatedAt: {} } }) === 200, 'vanliga profiler: övergångsvägen oförändrad');
+    check(fieldStr(cloud['families/legacy-fam-001/profiles/_content'], 'json').includes('"work":[]'), '_content oförändrat efter försöken');
+    delete cloud['families/legacy-fam-001/profiles/_content'];
+  }
   // 3. Attacker C: wrong code, and no membership
   grace = false;
   const C = device('C'); C.PA.DB.settings.family = 'legacy-fam-001'; const jc = await C.PA.AUTH.join('wrong-code-999', 'parent');
