@@ -46,7 +46,10 @@ async function seed() {
     await setDoc(doc(db, `families/${FAM_OTHER}/members/otherFamilyDevice`), { role: 'parent', device: 'annan familj', joinedAt: 1 });
   });
 }
-const as = (uid) => (uid ? env.authenticatedContext(uid) : env.unauthenticatedContext()).firestore();
+// En Firestore-instans per identitet (en batch får bara innehålla referenser från sin egen instans).
+const DBS = {}; const as = (uid) => DBS[uid || '-'] || (DBS[uid || '-'] = (uid ? env.authenticatedContext(uid) : env.unauthenticatedContext()).firestore());
+// withSecurityRulesDisabled returnerar inget värde – läs därför in i en variabel.
+async function adminRead(path) { let data = null; await env.withSecurityRulesDisabled(async (ctx) => { const s = await getDoc(doc(ctx.firestore(), path)); data = s.exists() ? s.data() : null; }); return data; }
 
 await seed();
 for (const fam of [FAM_SHORT, FAM_LONG]) {
@@ -67,6 +70,7 @@ for (const fam of [FAM_SHORT, FAM_LONG]) {
   await check(`[${label}] medlem i en annan familj kan inte skriva _content`, writeHole && fam === FAM_LONG, () => setDoc(doc(as('otherFamilyDevice'), C), content('falskt')));
   // --- indirekt: en batch med en vanlig profil + _content nekas helt; vanliga profilskrivningar rör inte _content
   await check(`[${label}] batch (profil + _content) nekas i sin helhet`, writeHole, () => { const b = writeBatch(as('kidDevice')); b.set(doc(as('kidDevice'), `families/${fam}/profiles/k1`), profile('{"xp":2}')); b.set(doc(as('kidDevice'), C), content('falskt')); return b.commit(); });
+  await check(`[${label}] kontroll: batch med bara en vanlig profil tillåts`, true, () => { const b = writeBatch(as('kidDevice')); b.set(doc(as('kidDevice'), `families/${fam}/profiles/k1`), profile('{"xp":5}')); return b.commit(); });
   await check(`[${label}] underdokument under _content nekas`, false, () => setDoc(doc(as('kidDevice'), `${C}/rev/1`), content('falskt')));
   await check(`[${label}] framtida revisionssamling nekas för appklienter`, false, () => setDoc(doc(as('parentDevice'), `families/${fam}/content_rev/r1`), content('falskt')));
   // --- vanlig profilsynk fungerar som förut
@@ -74,7 +78,7 @@ for (const fam of [FAM_SHORT, FAM_LONG]) {
   await check(`[${label}] profil med otillåtna fält nekas`, false, () => setDoc(doc(as('kidDevice'), `families/${fam}/profiles/k1`), { ...profile(), extra: 1 }));
   await check(`[${label}] icke-medlem kan bara synka en profil under övergången (avsiktligt till 2026-11-09)`, fam === FAM_LONG, () => setDoc(doc(as('stranger'), `families/${fam}/profiles/k1`), profile('{"xp":4}')));
   // --- _content är orört efter alla nekade skrivförsök
-  if (!writeHole) { const cur = await env.withSecurityRulesDisabled(async (ctx) => (await getDoc(doc(ctx.firestore(), C))).data());
+  if (!writeHole) { const cur = await adminRead(C);
     results.push(`${cur && cur.json.includes('original') ? 'ok  ' : 'FAIL'} [${label}] _content har kvar originalinnehållet efter försöken`); if (!(cur && cur.json.includes('original'))) fails++; }
   // --- radering
   await check(`[${label}] barnenhet kan inte radera _content`, false, () => deleteDoc(doc(as('kidDevice'), C)));
