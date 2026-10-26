@@ -51,7 +51,9 @@ const V2 = {
   examCidsActive(kid, e) { const C = LE.state(kid); const cat = LE.activeCat(C, prof(kid.id)); return LE.examCids(C, e).filter(cid => cat[cid] && cat[cid].active !== false).concat((e.deckIds || []).map(LECAT.deckCid).filter(cid => cat[cid])); },
   // Hur många av passets uppgifter (utom Bossen) som hör till provet
   // Provträningen följer dygnets gräns för nytt: bara det som är kvar av policyns maxNew efter dagens tidigare pass
-  newCapToday(C, now) { const d = LE2.dayIdx(now); const n = Object.entries(C.L.c).filter(([id, c]) => c.fs && LE2.dayIdx(c.fs * 1000) === d && C.cat[id] && C.cat[id].kind !== 'deck').length; return Math.max(0, C.pol.maxNew - n); },
+  newToday(C, now) { const d = LE2.dayIdx(now); return Object.entries(C.L.c).filter(([id, c]) => c.fs && LE2.dayIdx(c.fs * 1000) === d && C.cat[id] && C.cat[id].kind !== 'deck').length; },
+  // Dygnets gräns för nytt: policyns gräns – eller motorns egen lägre gräns för dagen (t.ex. provveckan), sparad av dygnets första pass (rec.mx)
+  newCapToday(C, now, p) { const d = LE2.dayIdx(now); let cap = C.pol.maxNew; if (p) for (const r of V2.v2recs(p)) if (typeof r.mx === 'number' && LE2.dayIdx(r.t * 1000) === d) cap = Math.min(cap, r.mx); return Math.max(0, cap - V2.newToday(C, now)); },
   missionShare(plan, cids) { const set = new Set(cids); const slots = plan.filter(s => s.role !== 'boss'); return { n: slots.filter(s => set.has(s.cid)).length, of: slots.length }; },
   /* 2.2: uppdraget = närmaste prov/läxa/glosförhör med datum inom MISSION_DAYS (familjens skoluppgifter eller förälderns prov) */
   MISSION_DAYS: 28,
@@ -136,7 +138,7 @@ const V2 = {
     }
     if (mode === 'flow') return EXP.flowPlan(kid, C, now, id);   // Experience v3: frivilligt extrablock – samma motor, kortare, dygnets gräns för nytt
     // Hotfix 2.1.1: "Öva inför provet" – samma motor och samma regler (förfallet, nytt inom dygnets gräns, Revansch), men bara provets koncept
-    if (mode === 'mission') { const e = LE.exams(kid, p).find(x => x.id === extra.examId); if (!e) return []; const cids = V2.examCidsActive(kid, e); if (!cids.length) return []; const plan0 = LE.plan(kid, V2.n(kid, C), now, id, { only: cids, newCap: V2.newCapToday(C, now) }).plan; const set = new Set(cids);
+    if (mode === 'mission') { const e = LE.exams(kid, p).find(x => x.id === extra.examId); if (!e) return []; const cids = V2.examCidsActive(kid, e); if (!cids.length) return []; const plan0 = LE.plan(kid, V2.n(kid, C), now, id, { only: cids, newCap: V2.newCapToday(C, now, p) }).plan; const set = new Set(cids);
       // Granskning: bara provets koncept (även Bossen), och inget pass alls när inget av provet går att öva just nu (t.ex. kvällen före provet
       // med opåbörjade områden) – då visas en ärlig text i stället för en knapp som startar något annat
       const plan = plan0.filter(s => set.has(s.cid)); if (!plan.some(s => s.role !== 'boss')) return [];
@@ -144,7 +146,7 @@ const V2 = {
     if (mode === 'readclose') { const cids = LE.cidsOfSkill(C, extra.skillId); if (!cids.length) return []; const start = Math.floor(Math.random() * cids.length); const plan = [0, 1, 2].map(i => ({ cid: cids[(start + i) % cids.length], role: 'readclose', why: 'läst, stängt – minns du?' })); plan.maxItems = 3; return plan; }
     // v3 (granskning M2) och 2.1.1: ett nytt Kör! efter dagens CORE eller efter provträning samma dag får bara det som är kvar av dygnets gräns för nytt
     const later = (EXP.on(kid) && EXP.coreDone(p)) || V2.missionToday(p);
-    return LE.plan(kid, V2.n(kid, C), now, id, later ? { newCap: V2.newCapToday(C, now) } : {}).plan;
+    return LE.plan(kid, V2.n(kid, C), now, id, later ? { newCap: V2.newCapToday(C, now, p) } : {}).plan;
   },
   start(kid, mode = 'kor', extra = {}) {
     const p = prof(kid.id);
@@ -156,6 +158,7 @@ const V2 = {
     const cat0 = LE.activeCat(C, p); const cat = plan.only ? Object.fromEntries(Object.entries(cat0).filter(([cid]) => plan.only.has(cid))) : cat0;   // provträning: lätta uppgifter och Bossen bara ur provet
     const R = LER.create(C.L, cat, plan, C.pol, { sessId: id, mode: exam ? 'exam' : 'practice', maxItems: plan.maxItems });
     const rec = { id, t: Math.round(now / 1000), src: 'v2', e: 2, m: mode, mode: 'v2', v1: [], v2: plan.map(s => [s.cid, LE.ROLE[s.role] || '?', LE.whyKey(s)]), light: plan.light ? 1 : 0, rst: plan.restart ? 1 : 0, pol: C.pn, a: [], w: [0, 0], done: 0 };
+    if (typeof plan.maxNew === 'number' && V2.newToday(C, now) === 0) rec.mx = plan.maxNew;   // dygnets första pass: motorns egen gräns för nytt idag (FLOW/provträning håller den)
     p.le.shadow = [...(p.le.shadow || []), rec].slice(-LE2.SHADOW_MAX);
     S = { kid, mode: 'v2', opts: { v2: mode, ...extra }, queue: [], i: 0, results: [], xp: 0, usedHelp: false, retried: false, startedAt: Date.now(), streak: 0, revealed: false, answered: false, examId: extra.examId, deadline: null, chain: null,
       v2: { R, C, id, mode, exam, start: now, k: 0, plan, planN: plan.length, light: !!plan.light, restart: !!plan.restart, rewards: [], answers: [], seen: new Set(), stageUps: new Set(), fbBefore: LE2.felbokVisible(C.L, now).length, extra, exp: EXP.on(kid) ? EXP.of(kid) : null, calm: !!plan.restart } };
