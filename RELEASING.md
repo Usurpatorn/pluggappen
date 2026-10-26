@@ -53,8 +53,13 @@ Settings → Pages → Source: **GitHub Actions**; Settings → Secrets and vari
   moment med paket blir *kunskapspunkter* `k:<paket>/<punkt>`; det gamla momentkonceptet vilar och leder gamla frågor vidare
   vid omspelning (loggen ändras aldrig). Kvalitetsgrind: `tests/test_packs.js` (`node scripts/content.mjs check`). Id-lås:
   `content/ids.lock.json` (`node scripts/content.mjs lock` när nya punkter släpps).
-- **Regler 3I.1** (formmedvetna bevis): formkod i bevisets index 19; djupgrind vid stadium 4 (två djupframgångar, frågor från
-  stadium 3); "Säker" kräver djup. 2.0.0 ignorerar fälten. Simulering: `tests/le/forms.js` (via `test_le_forms.js`).
+- **Regler 3I.2** (formmedvetna bevis): formkod i bevisets index 19; djupgrind vid stadium 4 med frågor från stadium 3. Kravet är
+  djupbevis från **två olika dygn** (`dpn ≥ 2`) **och** minst 2 poäng (`dp`: +1 flerval, +2 eget svar/ordning, högst en gång per dygn,
+  bara rätt utan hjälp och första försöket i passet); "Säker" kräver detsamma. 3I.1 lät ett enda dygn med eget svar/ordning räcka –
+  rättat i release-kontrollen (`test_le_forms.js` 4b). 2.0.0 ignorerar fälten. Simulering: `tests/le/forms.js` (syntetiska elever).
+- **Skrivskydd för `_content`:** `firestore.rules` nekar alla appklienter (medlemmar och övergångsvägen) att skapa/ändra
+  `profiles/_content`; bara servicekontot skriver. **Reglerna publiceras manuellt** i Firebase-konsolen (Firestore → Regler) – de
+  följer inte med CI. Kontrollera i Regel-lekplatsen att `update` på `families/<familj>/profiles/_content` som inloggad medlem nekas.
 - **Familjens innehåll** (`profiles/_content`): skoluppgifter och privata paket, skrivs av Claude med
   `scripts/content.mjs bundle/deploy` (kräver `FAMILY_CODE` + `FIREBASE_SERVICE_ACCOUNT`, aldrig i repot). Appen läser, tvättar och
   validerar (`FAMILY.cleanContent`) och sparar en lokal kopia. Flöde: `docs/CONTENT_WORKFLOW.md`.
@@ -64,7 +69,7 @@ Settings → Pages → Source: **GitHub Actions**; Settings → Secrets and vari
   bara i Motor v2. Innehållet ändras aldrig automatiskt.
 - **Läs upp** (Yngre, enhetens talsyntes, behörighet per fråga) och rikare `former`/`brak2` för åk 2 (bara v2, `src/02k`).
 - Tester: `test_packs`, `test_le_forms`, `test_le_packs_app` (inkl. rollback mot `tests/golden/pluggappen-2.0.0.html.gz`),
-  `test_readaloud`, `test_gen2`, `test_study_mission`.
+  `test_readaloud`, `test_gen2`, `test_study_mission`, `test_review21`, `test_content_facts`, `test_recipes`; `test_auth` (skrivskydd `_content`).
 - **Rollback:** Run workflow med `deploy_ref = release-2.0.0-6ca2933`. 2.0.0 kör 2.1-data utan fel: kunskapspunkternas bevis
   ligger kvar orörda (2.0.0 ser dem som vilande okända koncept), `qr` och formkoder bärs vidare. Publiceras 2.1.x igen fortsätter
   allt där det slutade. Per barn finns fortfarande v1-reserven.

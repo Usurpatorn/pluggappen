@@ -22,17 +22,32 @@ const at = (d) => d * DAY + 17 * 3600000;
 // 4) grinden: stadium 4 → 5 kräver djupbevis; utan går det inte, med två djupdygn går det
 { const { L, c } = mk(4, { lastOk: at(0) }); E.recordEvidence(L, CAT, 'a', ev({ kind: 'free', form: 'c' }), at(20), pol, { id: 'g1' }); ok(c.st === 4, 'eget svar efter intervallet men utan djupbevis → stannar på 4');
   E.recordEvidence(L, CAT, 'a', ev({ form: 'a' }), at(21), pol, { id: 'g2' }); ok(c.st === 4 && c.dp === 1, 'ett djupdygn: grinden fortfarande stängd (flerval spärrat)');
-  E.recordEvidence(L, CAT, 'a', ev({ form: 'm' }), at(40), pol, { id: 'g3' }); ok(c.dp >= 2 && c.st === 5, 'andra djupdygnet öppnar grinden och räknas som hämtning → stadium 5');
+  E.recordEvidence(L, CAT, 'a', ev({ form: 'm' }), at(40), pol, { id: 'g3' }); ok(c.dp >= 2 && c.dpn === 2 && c.st === 5, 'andra djupdygnet öppnar grinden och räknas som hämtning → stadium 5');
   E.recordEvidence(L, CAT, 'a', ev({ kind: 'free', form: 'c' }), at(60), pol, { id: 'g4' }); ok(c.st === 6, 'därefter vanliga regler (eget svar efter intervallet → 6)'); }
+// 4b) Release-kontroll: djupbeviset måste komma från TVÅ OLIKA DYGN. Ett enda dygn – även ett eget svar/ordning som ger +2 – räcker inte,
+//     varken för grinden (4 → 5), för "Säker" eller för formatet (motorn fortsätter be om en djupfråga).
+{ const { L, c } = mk(4, { lastOk: at(0) }); E.recordEvidence(L, CAT, 'a', ev({ form: 'l', kind: 'order' }), at(20), pol, { id: 'd1' });
+  ok(c.dp >= 2, `ett dygn med ordning i djupform ger ${c.dp} poäng djupbevis`);
+  ok(c.st === 4, `ett enda djupdygn öppnar inte grinden (stadium ${c.st})`);
+  ok(!E.depthOk(c) && E.childLabel(c, at(20), pol, L) !== 'Säker', 'ett enda djupdygn ger inte "Säker"');
+  ok(E.formatFor(L, CAT, 'a', pol, 'focus') === 'depth', 'efter ett djupdygn ber motorn fortfarande om en djupfråga');
+  E.recordEvidence(L, CAT, 'a', ev({ form: 'a', kind: 'free' }), at(20) + 3600000, pol, { id: 'd2' });
+  ok(c.st === 4 && !E.depthOk(c), 'ett andra pass samma dygn räknas inte som ett andra djupdygn');
+  E.recordEvidence(L, CAT, 'a', ev({ form: 'a', kind: 'free' }), at(22), pol, { id: 'd3' });
+  ok(E.depthOk(c) && E.formatFor(L, CAT, 'a', pol, 'focus') === 'recall', 'andra dygnet: djupkravet uppfyllt, motorn går tillbaka till eget svar');
+  E.recordEvidence(L, CAT, 'a', ev({ kind: 'free', form: 'c' }), at(60), pol, { id: 'd4' });
+  ok(c.st === 5 && E.childLabel(c, at(60), pol, L) === 'Säker', `nästa fördröjda hämtning går genom grinden (stadium ${c.st}) och punkten är "Säker"`);
+  // replay ger samma sak som stegvis (regeln bor i tillståndet, inte i loggen)
+  const log = [{ t: at(1), cid: 'a', form: 'l', kind: 'order' }].map(o => E.encodeEv(ev(o))); const R = E.replay(log, CAT, pol); ok(!E.depthOk(R.c.a), 'omspelning: ett dygn räcker inte heller där'); }
 // 5) "Säker" och MASTERY kräver djupbevis för djupkoncept, inte för koncept utan djupformer
 { const { L, c } = mk(3, { lastOk: at(0) }); const r = E.recordEvidence(L, CAT, 'a', ev({ kind: 'free', form: 'c' }), at(10), pol, { id: 'm1' }); ok(c.st === 4 && !r.rewards.includes('MASTERY') && E.childLabel(c, at(10), pol, L) !== 'Säker', 'stadium 4 utan djupbevis: inte "Säker", ingen MASTERY');
-  c.dp = 2; ok(E.childLabel(c, at(10), pol, L) === 'Säker', 'med djupbevis: "Säker"');
+  c.dp = 2; c.dpn = 2; ok(E.childLabel(c, at(10), pol, L) === 'Säker', 'med djupbevis: "Säker"');
   const L2 = E.newLE(); const c2 = E.cstate(L2, 'b'); Object.assign(c2, { st: 3, n: 6, lastOk: at(0) }); const r2 = E.recordEvidence(L2, CAT, 'b', ev({ cid: 'b', kind: 'free' }), at(10), pol, { id: 'm2' }); ok(c2.st === 4 && r2.rewards.includes('MASTERY'), 'koncept utan djupformer: som i 2.0'); }
 // 6) fel på en djupfråga är en förståelselucka – ingen sänkning, tillbaka om två dygn; samma fel i eget svar sänker som vanligt
 { const { L, c } = mk(3, { lastOk: at(0) }); E.recordEvidence(L, CAT, 'a', ev({ ok: false, form: 'a' }), at(10), pol, { id: 'f1' }); ok(c.st === 3 && c.due === E.dayStart(at(10)) + 2 * DAY, 'djupfel: stadium kvar, tillbaka om två dygn');
   const m = mk(3, { lastOk: at(0) }); E.recordEvidence(m.L, CAT, 'a', ev({ ok: false, kind: 'free', form: 'c' }), at(10), pol, { id: 'f2' }); ok(m.c.st === 1, 'fel i eget svar efter intervallet: glömt → sänks som i 2.0'); }
 // 7) formatFor: djup från stadium 3 tills djupbeviset finns, sedan eget svar; aldrig för uppvärmning/Rescue
-{ const { L, c } = mk(3); ok(E.formatFor(L, CAT, 'a', pol, 'focus') === 'depth', 'stadium 3 utan djupbevis → djupfråga'); c.dp = 2; ok(E.formatFor(L, CAT, 'a', pol, 'focus') === 'recall', 'med djupbevis → eget svar');
+{ const { L, c } = mk(3); ok(E.formatFor(L, CAT, 'a', pol, 'focus') === 'depth', 'stadium 3 utan djupbevis → djupfråga'); c.dp = 2; c.dpn = 2; ok(E.formatFor(L, CAT, 'a', pol, 'focus') === 'recall', 'med djupbevis → eget svar');
   c.dp = 0; ok(E.formatFor(L, CAT, 'a', pol, 'warmup') === 'any' && E.formatFor(L, CAT, 'a', pol, 'rescue') === 'any', 'uppvärmning och Rescue: ingen djupfråga'); }
 // 8) vilande moment leder beviset till kunskapspunkten (route) – deterministiskt, loggen orörd
 { const cat = { 's:x': { id: 's:x', subject: 'no', active: false, route: { iOLD: 'k:p/a' } }, 'k:p/a': { id: 'k:p/a', subject: 'no', maxLvl: 3, recall: true } };

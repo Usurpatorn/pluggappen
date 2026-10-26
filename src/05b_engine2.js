@@ -7,7 +7,7 @@
 const LE2 = (() => {
   'use strict';
   const DAY = 86400000;
-  const RULES = '3I.1';   // 3I (2.1): formmedvetna bevis – djupgrind för kunskapspunkter, form i bevisloggen, vilande moment leds vidare
+  const RULES = '3I.2';   // 3I (2.1): formmedvetna bevis (3I.2: djupbevis från två olika dygn) – djupgrind för kunskapspunkter, form i bevisloggen, vilande moment leds vidare
   // Lokala dygn: förfallodagar ligger på lokala dygnsgränser.
   const tzOff = (t) => new Date(t).getTimezoneOffset() * 60000;
   const dayIdx = (t) => Math.floor((t - tzOff(t)) / DAY);
@@ -53,11 +53,14 @@ const LE2 = (() => {
     challenge: { minStage: 3, ceilingStage: 4, every: 2 },
     // 3I: djupgrind för kunskapspunkter med fördjupande former (samband, hitta felet, orsak, tillämpning, förklaring, flerstegs).
     // Djupbevis dp: +1 per dygn för en flervalsfråga i djupform, +2 för eget svar/ordning i djupform (rätt, utan hjälp, första försöket).
-    // askStage: från stadium 3 ber motorn om en fördjupande fråga tills dp ≥ need. gateStage: stadium 4 → 5 (30 och 60 dygns intervall)
-    // kräver dp ≥ need, och "Säker" (etikett, belöning, STYRKOR) kräver detsamma. Tur på flerval skyddas: två olika dygn krävs.
+    // dpn = antal olika dygn med djupbevis. askStage: från stadium 3 ber motorn om en fördjupande fråga tills kravet är uppfyllt.
+    // gateStage: stadium 4 → 5 (30 och 60 dygns intervall) kräver dp ≥ need OCH dpn ≥ days, och "Säker" (etikett, belöning, STYRKOR)
+    // kräver detsamma. Ett enda dygn räcker alltså aldrig, inte heller med eget svar (+2).
     // Valt i simulering (tests/le/forms.js, 20 frön): grind på 4 med frågor från 3 gav samma hållbarhet som 2.0 (±2 p) men nästan
     // ingen "falsk säkerhet" och 6–23 p bättre förståelse. Grind på 3 kostade mer hållbarhet.
-    depth: { gateStage: 4, askStage: 3, need: 2, forms: 'lmxaes' },
+    // Release-kontroll 2.1: kravet är dp ≥ need OCH djupbevis från minst `days` olika dygn (dpn). Före kontrollen räckte ett enda dygn
+    // med eget svar/ordning (+2) – i strid med regeln "två olika dygn" som rapporten och föräldern utgår från (tests/test_le_forms.js 4b).
+    depth: { gateStage: 4, askStage: 3, need: 2, days: 2, forms: 'lmxaes' },
     reward: { REMEMBERED: { xp: 5 }, COMEBACK: { gems: 3 }, CHALLENGE: { gems: 2 }, MASTERY: { gems: 5 }, FOCUS: { gems: 2 }, CONSISTENCY: { gems: 5, days: 3 } },
   };
 
@@ -88,7 +91,8 @@ const LE2 = (() => {
   // ett pass med klockan framställd förgiftade då alla senare beräkningar (live ≠ omspelning, belöningar varje dag). clock.last = högvattenmärke.
   function engineNow(L, deviceNow) { L.clock.last = Math.max(deviceNow, L.clock.last || 0); return deviceNow; }
   const isDepthForm = (f) => !!f && CFG.depth.forms.includes(f);
-  const depthOk = (c) => !c.dz || (c.dp || 0) >= CFG.depth.need;   // 3I: säker = stadium ≥ 4 och (vid djupformer) visad förståelse
+  const depthMet = (c) => (c.dp || 0) >= CFG.depth.need && (c.dpn || 0) >= (CFG.depth.days || 1);   // poäng OCH olika dygn
+  const depthOk = (c) => !c.dz || depthMet(c);   // 3I: säker = stadium ≥ 4 och (vid djupformer) visad förståelse
   const isRecallCapable = (def, c) => def.recall === true || (def.recall == null && !!c.kf) || (def.kinds || []).some(k => k !== 'mc');
 
   /* Registrera ett svar. Deterministisk. Returnerar { diff, reasons, rewards, weight }. */
@@ -123,9 +127,9 @@ const LE2 = (() => {
     const recallCapable = isRecallCapable(def, c);
     // 3I: djupbevis (fördjupande form, rätt utan hjälp, första försöket i passet) – högst en gång per dygn
     const depthEv = !!def.depth && isDepthForm(ev.form) && independent && firstInSess;
-    if (depthEv && c.dpd !== today) { c.dp = Math.min(4, (c.dp || 0) + (ev.kind === 'mc' ? 1 : 2)); c.dpd = today; }
+    if (depthEv && c.dpd !== today) { c.dp = Math.min(4, (c.dp || 0) + (ev.kind === 'mc' ? 1 : 2)); c.dpn = Math.min(4, (c.dpn || 0) + 1); c.dpd = today; }
     if (def.depth) c.dz = 1; else if (c.dz) delete c.dz;   // konceptet har djupformer → "Säker" kräver djupbevis
-    const gateOpen = !def.depth || c.st !== CFG.depth.gateStage || (c.dp || 0) >= CFG.depth.need;
+    const gateOpen = !def.depth || c.st !== CFG.depth.gateStage || depthMet(c);
     if (ev.ok) {
       const mcBlocked = ev.kind === 'mc' && c.st >= pol.mcMaxStage && recallCapable && !(depthEv && c.st === CFG.depth.gateStage && gateOpen);
       c.ok++; if (independent) { c.okInd++; if (countsForLevel && !mcBlocked) { c.okRun++; c.runItems = [...(c.runItems || []).filter(x => x !== ev.item), ev.item].slice(-4); } }
@@ -137,7 +141,7 @@ const LE2 = (() => {
       else if (qualifying && mcOnlyNeedsTwo && !c.mcOk) { c.mcOk = 1; reasons.push('flervalskoncept: första fördröjda träffen noterad, nästa avgör'); }
       else if (qualifying) {
         if (c.st === 0) { c.st = 1; reasons.push('lärt idag → kommer tillbaka imorgon'); }
-        else if (elapsedD >= CFG.early * I && !gateOpen) { reasons.push(`hämtat efter ${elapsedD.toFixed(1)} d men stadium ${c.st} kräver djupare förståelse först (djupbevis ${c.dp || 0}/${CFG.depth.need})`); }
+        else if (elapsedD >= CFG.early * I && !gateOpen) { reasons.push(`hämtat efter ${elapsedD.toFixed(1)} d men stadium ${c.st} kräver djupare förståelse först (djupbevis ${c.dp || 0}/${CFG.depth.need}, ${c.dpn || 0}/${CFG.depth.days} dygn)`); }
         else if (elapsedD >= CFG.early * I) { c.st = Math.min(6, c.st + 1); reasons.push(`hämtat efter ${elapsedD.toFixed(1)} d (intervall ${I} d) → stadium ${c.st}`); rewards.push('REMEMBERED'); if (ev.kind === 'mc') D.mcAdv++; else D.freeAdv++; if (mcOnlyNeedsTwo) c.mcOk = 0; }
         else reasons.push(`för tidig hämtning (${elapsedD.toFixed(1)} d < ${(CFG.early * I).toFixed(1)} d) → räknas som övning`);
         c.lastOk = now;
@@ -451,7 +455,7 @@ const LE2 = (() => {
   }
   // 3E: vilken svarsform behövs som bevis? Flerval räcker i början; därefter eget svar när ämnet har det.
   function formatFor(L, cat, cid, pol, role) { const c = L.c[cid]; const d = cat[cid] || {}; if (!c || role === 'warmup' || role === 'rescue') return 'any';
-    if (d.depth && c.st >= (CFG.depth.askStage || CFG.depth.gateStage) && (c.dp || 0) < CFG.depth.need) return 'depth';   // 3I: djupgrinden behöver en fördjupande fråga
+    if (d.depth && c.st >= (CFG.depth.askStage || CFG.depth.gateStage) && !depthMet(c)) return 'depth';   // 3I: djupgrinden behöver en fördjupande fråga
     return c.st >= pol.mcMaxStage && isRecallCapable(d, c) ? 'recall' : 'any'; }
 
   /* ---------- 3G: provstatus och föräldrainsikter ---------- */

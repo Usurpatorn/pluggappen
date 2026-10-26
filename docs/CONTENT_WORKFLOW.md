@@ -37,6 +37,12 @@ material sker här, hos Claude, med granskning innan något släpps.
    - Familjens material → **bara** familjens privata lagring: `node scripts/content.mjs deploy <ut.json>` med `FAMILY_CODE`
      och `FIREBASE_SERVICE_ACCOUNT` i miljön (skrivs aldrig ut, läggs aldrig i repot). Appen hämtar `_content` vid nästa
      synk och sparar en lokal kopia (fungerar offline).
+   - **Vem som får skriva:** `_content` är skrivskyddat för alla appklienter (`firestore.rules`) – bara servicekontot skriver.
+     Claude har aldrig nycklarna och ber aldrig om dem i chatten. Tills föräldern har valt en annan väg gäller:
+     Claude bygger och kontrollerar `bundle`-filen och skickar den till föräldern, som kör `deploy` på sin egen dator med ett
+     **eget servicekonto bara för innehåll** (rollen *Cloud Datastore User*, inget annat) vars nyckel bara finns där.
+     Nästa steg (förslag): ett privat innehållsrepo där varje ändring är en PR som föräldern mergar och en workflow med
+     servicekontot som hemlighet laddar upp – Claude får då bara push-rätt till det privata repot, aldrig nyckeln.
 8. **Rapportera kort** till föräldern: vad som finns i appen nu (t.ex. "Kemiprovet 20 november: 14 kunskapspunkter, 9 av
    lärarens frågor i Testa mig"), vad som var osäkert, och vad barnet ser ("KEMIPROV · 20 NOVEMBER / IDAG 8 minuter / KÖR").
 
