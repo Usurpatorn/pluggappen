@@ -36,6 +36,7 @@ const suites = [
   ['2.1 Innehållsgranskningens sakfel får aldrig komma tillbaka', 'test_content_facts.js'],
   ['2.1 Learning Recipes: aktivitet efter stadium, ingen uppblåst behärskning', 'test_recipes.js'],
   ['Experience v3: Explore/Grow/Achieve, aktiviteter, KLAR → FLOW, papper, golden cases, rollback', 'test_exp_v3.js'],
+  ['Experience v3: golden case A (algebra) och B (kemi) – syntetiska skoluppgifter, 34 dygn i appen', 'test_golden_cases.js'],
 ];
 let failed = 0; const rows = [];
 for (const [name, file, opts = {}] of suites) {

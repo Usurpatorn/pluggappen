@@ -137,6 +137,7 @@ const EXP = {
   chipFor(item) {
     const V = S.v2; if (!V.exp || !item || item.cat === 'learn') return null;
     if (item.paper) return V.exam ? EXP.ACT.exampaper : item.spec && item.spec.role === 'boss' ? EXP.ACT.bosspaper : V.exp === 'explore' ? EXP.ACT.paper : ['GÖR · RÄKNA PÅ PAPPER', '✏️'];
+    if (item.rhythm) return item.rhythm === 'spot' ? ['HITTA FELET', '🔍'] : ['BAKLÄNGES', '↩️'];
     if (V.exam || !item.spec) return null;
     const role = item.spec.role;
     if (['boss', 'revansch', 'remember', 'rescue'].includes(role) || item.spec.mode === 'challenge') return null;   // rollens egen etikett (MINNS, REVANSCH, BOSSEN …)
@@ -161,6 +162,23 @@ const EXP = {
     const last = S.queue.filter(x => x.cat !== 'learn').slice(-1)[0];
     if (last && last.paper && spec.role !== 'boss') return false;
     return done < Math.ceil((V.plan.length || 6) / 2);
+  },
+  /* Rytmen i Achieve/Grow-matte (brief §13): UPPTÄCK (löst exempel) · GÖR (papper) · HITTA FELET (digital analys) · BAKLÄNGES · MINNS.
+     Hitta felet och Baklänges använder Utmaningslagrets befintliga generatorer och registreras som Utmaning: fördjupning som aldrig ändrar
+     stadium, förfallodag eller Felboken (samma regel som 3H). Högst en av varje per pass, bara på moment som redan börjar sitta (stadium ≥ 2). */
+  rhythmKind(V, spec, skill, c) {
+    if (!V.exp || V.exp === 'explore' || V.exam || V.mode === 'revansch' || V.mode === 'readclose') return null;
+    if (!skill || (skill.group || 'math') !== 'math' || typeof skill.gen !== 'function' || !c || c.st < 2) return null;
+    if (spec.mode === 'challenge' || !['practice', 'focus'].includes(spec.role) || spec.help === 'rescue' || spec.help === 'hint') return null;
+    const done = new Set(S.queue.filter(x => x.rhythm).map(x => x.rhythm)); const last = S.queue.filter(x => x.cat !== 'learn').slice(-1)[0];
+    if (!done.has('spot') && last && last.paper) return 'spot';   // efter ett pappersproblem: analysera en annans lösning digitalt
+    if (!done.has('reverse') && S.queue.filter(x => x.cat === 'math').length >= 2 && last && !last.paper && !last.rhythm) return 'reverse';   // baklänges: när passet är igång
+    return null;
+  },
+  rhythmItem(kind, skill, lvl) {
+    const want = kind === 'spot' ? ['spot'] : ['create', 'equation'];
+    for (const k of kind === 'spot' ? [0] : /ekv/.test(skill.id) ? [3, 2] : [2]) { const q = CHG.make(skill, lvl, k); if (q && want.includes(q.challenge)) return q; }
+    return null;
   },
   paperNote(q) { return `<div class="paper-note" role="note"><span aria-hidden="true">✏️</span><div><b>Räkna på papper.</b> Skriv uträkningen på ditt papper${S.v2 && S.v2.exam ? '' : ' – i lugn och ro'}. Skriv bara svaret här.</div></div>`; },
   paperFeedback(q, correct, raw) {
