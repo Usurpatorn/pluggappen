@@ -41,6 +41,7 @@ För att pröva en gren på riktiga enheter före merge (t.ex. Experience v3): s
 - Egen lagring (prefix) – produktionens data på samma enhet rörs inte. Ingen service worker, inga push-påminnelser.
 - Det barnen gör i testversionen är riktiga bevis i familjens data (samma synk). Produktionen (2.1.1) läser och bevarar v3-data (rollbacktest).
 - Misslyckas förhandsbygget publiceras produktionen ändå, utan testadress.
+- Förhandsbygget körs i ett eget jobb med bara läsrätt (ingen publiceringsbehörighet). `PREVIEW_REF` måste vara en befintlig gren i repot (inte `main`); bara en kontrollerad fil (`preview/index.html`) förs över till publiceringen.
 - Uppdatera testadressen efter nya commits på grenen: kör workflowen igen. Ta bort: radera variabeln och kör workflowen igen.
 
 ## Learning Engine v2 – skuggläge (från 1.2.0, Fas 3B)
