@@ -253,7 +253,7 @@ function runLog(T, D, wrongFn = () => false) {
 
     /* ================= 6. v1-reserven per barn och lugn presentation ================= */
     { const { w, T, D } = await boot(81); T.w = w; const PA = T.PA;
-      setEngine(w, T, 'k2', 'v1'); openKid(T, 'k2'); ok(T.$('[data-rec]') && !T.$('.mission') && !T.$('[data-v2="kor"]'), 'v1 per barn: Clara får v1 – ingen v3-presentation');
+      setEngine(w, T, 'k2', 'v1'); openKid(T, 'k2'); ok(T.$('[data-rec]') && !T.$('.mission') && !T.$('[data-v2="kor"]'), 'v1 per barn: Yngre får v1 – ingen v3-presentation');
       setEngine(w, T, 'k2', 'v2'); openKid(T, 'k2'); ok(T.$('.mission.explore'), 'v2 igen: Explore tillbaka');
       // lugn presentation: efter motorns Rescue döljs räknare och nivåprickar
       T.click(T.$('.go-btn[data-v2="kor"]')); let calm = false, guard = 0;
