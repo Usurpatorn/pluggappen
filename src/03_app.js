@@ -754,7 +754,7 @@ function mathBody(q, kid, isTest) {
          </div>`
       : q.type === 'num'
         ? `<input class="answer-input" id="ans" inputmode="${q.answer < 0 ? 'text' : Number.isInteger(q.answer) ? 'numeric' : 'decimal'}" autocomplete="off" placeholder="${Number.isInteger(q.answer) ? '?' : 't.ex. 2,5'}" aria-label="Ditt svar">
-           ${kid.template === 'ak2' || q.answer < 0 ? `<div class="keys" style="margin-top:8px;grid-template-columns:repeat(6,1fr)">${['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'].map(k => `<button class="key" data-key="${k}">${k}</button>`).join('')}<button class="key" data-key="−">−</button><button class="key" data-key="⌫">⌫</button></div>` : ''}`
+           ${kid.template === 'ak2' || q.answer < 0 || q.keypad ? `<div class="keys" style="margin-top:8px;grid-template-columns:repeat(6,1fr)">${['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'].map(k => `<button class="key" data-key="${k}">${k}</button>`).join('')}<button class="key" data-key="−">−</button><button class="key" data-key="⌫">⌫</button></div>` : ''}`
         : `<input class="answer-input" id="ans" autocomplete="off" autocapitalize="off" placeholder="Skriv svaret" aria-label="Ditt svar">`;
   const p = prof(kid.id); const calm = !!(S.v2 && S.v2.calm && !isTest);   // v3 lugn presentation: färre siffror och mindre brus
   const head = calm || (v3 && S.v2.exp === 'explore') ? '' : `<span class="eyebrow">Uppgift ${S.i + 1} av ${S.v2 ? V2.total() : S.queue.length}${isTest && q.part ? ` · ${q.part}-nivå` : ''}${!isTest && !p.settings.focus ? ` · ${esc(q.skill.short || '')}` : ''}</span>`;

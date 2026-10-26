@@ -90,8 +90,9 @@ const EXP = {
       ${todo ? `<button class="link" data-v2="revansch" style="align-self:center">Hellre revansch först? · ${todo} ${todo === 1 ? 'sak' : 'saker'}</button>` : ''}</section>`;
   },
   goalOf(kid) {
-    const p = prof(kid.id); const list = LE.exams(kid, p).map(e => ({ e, d: daysUntil(e.date) })).filter(x => x.d >= 0 && x.d <= V2.MISSION_DAYS).sort((a, b) => a.d - b.d || (b.e.priority === 'high') - (a.e.priority === 'high') || (a.e.id < b.e.id ? -1 : 1));
-    return { now: list[0] || null, next: list[1] || null };
+    const p = prof(kid.id); const all = LE.exams(kid, p).map(e => ({ e, d: daysUntil(e.date) })).filter(x => x.d >= 0).sort((a, b) => a.d - b.d || (b.e.priority === 'high') - (a.e.priority === 'high') || (a.e.id < b.e.id ? -1 : 1));
+    const now = all.find(x => x.d <= V2.MISSION_DAYS) || null;   // nästa mål: inom uppdragets horisont (samma som Study Mission)
+    return { now, next: now ? all.find(x => x !== now && x.d <= 60) || null : null };   // "Sedan:" – bara en rad, aldrig en andra plan
   },
   isExam(e) { return e && (e.kind === 'exam' || /prov|förhör|test/i.test(e.title || '')); },
   achieveHome(kid, p) {
@@ -101,8 +102,9 @@ const EXP = {
     const s = EXP.summary(kid);
     const head = m ? `<div class="eyebrow">NÄSTA MÅL</div><div class="goal-title">${esc(m.e.title.toUpperCase())}</div><div class="goal-date">${esc(fmtDate(m.e.date).toUpperCase())} · ${m.d === 0 ? 'idag' : m.d === 1 ? 'imorgon' : `om ${m.d} dagar`}</div>`
       : `<div class="eyebrow">DAGENS PLAN</div>${s.list[0] ? `<div class="goal-title">${esc(s.list[0].toUpperCase())}</div>` : ''}`;
+    const list = m ? s.list : s.list.slice(1);   // utan prov: dagens starkaste mål är rubriken, resten listas under
     return `<section class="card pad-lg mission achieve stack" aria-label="Dagens plan">${head}
-      ${s.list.length ? `<div class="train"><div class="eyebrow">DET HÄR TRÄNAR VI IDAG</div><ul>${s.list.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
+      ${list.length ? `<div class="train"><div class="eyebrow">${m ? 'DET HÄR TRÄNAR VI IDAG' : 'OCKSÅ IDAG'}</div><ul>${list.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
       <div class="muted">cirka ${s.mins} min</div>
       ${EXP.go(kid, LBL(kid).go.toUpperCase())}${sedan}</section>` + EXP.goalDetail(kid, m);
   },
@@ -130,7 +132,7 @@ const EXP = {
     }, 'welcome', '');
   },
   /* ---------- Under passet ---------- */
-  ACT: { sort: ['SORTERA', '🗂️'], match: ['PARA IHOP', '🔗'], order: ['ORDNA', '🔢'], tap: ['TRYCK PÅ ORDET', '👆'], build: ['BYGG ORDET', '🧱'], paper: ['RÄKNA PÅ PAPPER', '✏️'], exampaper: ['PROVLÄGE · PAPPER', '✏️'], bosspaper: ['BOSS · PAPPER', '👑'] },
+  ACT: { num: ['SKRIV TALET', '✍️'], sort: ['SORTERA', '🗂️'], match: ['PARA IHOP', '🔗'], order: ['ORDNA', '🔢'], tap: ['TRYCK PÅ ORDET', '👆'], build: ['BYGG ORDET', '🧱'], paper: ['RÄKNA PÅ PAPPER', '✏️'], exampaper: ['PROVLÄGE · PAPPER', '✏️'], bosspaper: ['BOSS · PAPPER', '👑'] },
   // Upplevelsens etikett för uppgiften. Explore: aktiviteten. Achieve/Grow: rytmen UPPTÄCK · GÖR · HITTA FELET · MINNS · PROVLÄGE · BOSS.
   chipFor(item) {
     const V = S.v2; if (!V.exp || !item || item.cat === 'learn') return null;
@@ -138,7 +140,7 @@ const EXP = {
     if (V.exam || !item.spec) return null;
     const role = item.spec.role;
     if (['boss', 'revansch', 'remember', 'rescue'].includes(role) || item.spec.mode === 'challenge') return null;   // rollens egen etikett (MINNS, REVANSCH, BOSSEN …)
-    const ui = EXP.uiOf(item); if (EXP.ACT[ui]) return EXP.ACT[ui];
+    const ui = EXP.uiOf(item); if (ui === 'num' && V.exp !== 'explore') return null; if (EXP.ACT[ui]) return EXP.ACT[ui];
     return null;
   },
   uiOf(item) { if (!item) return 'none'; if (item.cat === 'word') return 'word:' + item.kind; if (item.cat === 'learn') return 'learn'; if (item.paper) return 'paper'; if (item.build) return 'build'; if (item.type === 'sort' || item.type === 'match' || item.type === 'order') return item.type; if (item.ui === 'tap') return 'tap'; if (item.type === 'choicetext' || item.choices) return 'choice'; return item.type === 'text' ? 'type' : item.type || 'type'; },
@@ -253,7 +255,7 @@ const EXP = {
         ${e === 'achieve' && !flow ? '<div>Appen håller koll på resten.</div>' : ''}
         ${trail}
         ${e !== 'explore' ? `<div style="font-weight:700">${sum.ok} av ${sum.n} rätt</div>` : ''}
-        ${V.stageUps.size && e !== 'explore' ? `<div>${V.stageUps.size === 1 ? 'Ett område' : `${V.stageUps.size} områden`} blev säkrare</div>` : ''}
+        ${(() => { const up = [...V.stageUps].filter(cid => ((V.C.L.c[cid] || {}).st || 0) >= 2).length; return up && e !== 'explore' ? `<div>${up === 1 ? 'Ett område' : `${up} områden`} sitter bättre nu</div>` : ''; })()}
         ${delights}${gems ? `<div>+${gems} 💎</div>` : ''}
       </section>
       ${back.length ? `<div class="card stack" style="gap:4px"><div class="eyebrow">Det här behöver komma tillbaka</div>${back.map(b => `<div>${esc(b.name)} – kommer tillbaka ${esc(b.when)}.</div>`).join('')}</div>` : ''}

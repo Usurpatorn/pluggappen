@@ -203,6 +203,8 @@ const V2 = {
     else if (wantRecall && q.choices && (q.type === 'num' || q.type === 'expr')) q = { ...q, choices: undefined };
     // v3 papper och penna: appen väljer uppgiften, barnet räknar på papper och skriver bara svaret (rättas som vanligt)
     if (EXP.paperFor(V, q, spec, skill)) q = { ...q, choices: undefined, paper: true };
+    // v3 Explore: efter två textval i rad blir ett taluppdrag "skriv talet" med sifferknappar i stället för fler knappar att välja bland
+    else if (V.exp === 'explore' && !V.exam && q.type === 'num' && q.choices && !['warmup', 'rescue', 'easy'].includes(spec.role) && spec.help !== 'rescue' && (EXP.vary(V) || {}).choiceRun >= 2) q = { ...q, choices: undefined, keypad: true };
     V.seen.add(V2.iid(q));
     return [{ ...q, spec, _slotEnd: true }];
   },
