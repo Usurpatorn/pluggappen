@@ -34,15 +34,13 @@ material sker här, hos Claude, med granskning innan något släpps.
    Åtgärda allt. Ett felaktigt faktum blir varaktigt inlärt – det är ett allvarligt fel.
 7. **Kontrollerat släpp.**
    - Allmän kursplanekunskap (utan familjedata) → `content/packs/`, `node scripts/content.mjs lock`, PR med CI.
-   - Familjens material → **bara** familjens privata lagring: `node scripts/content.mjs deploy <ut.json>` med `FAMILY_CODE`
-     och `FIREBASE_SERVICE_ACCOUNT` i miljön (skrivs aldrig ut, läggs aldrig i repot). Appen hämtar `_content` vid nästa
-     synk och sparar en lokal kopia (fungerar offline).
-   - **Vem som får skriva:** `_content` är skrivskyddat för alla appklienter (`firestore.rules`) och läses bara av familjens
-     medlemmar. Det skrivs bara med Googles serveråtkomst (IAM), som går förbi reglerna. **Obs:** ingen IAM-roll för Firestore kan
-     begränsas till ett dokument – t.ex. *Cloud Datastore User* ger läs- och skrivrätt till HELA databasen (alla familjer, medlemmar,
-     koder). Gränsen sätts därför av vem som får köra publiceringen och vilken kod den kör, inte av rollen. Claude har aldrig
-     nycklarna och ber aldrig om dem i chatten. Ingen privat skoluppgift laddas upp innan publiceringsvägen och reglerna är
-     verifierade och godkända (rapporten "2.1 Release & Security Closure").
+   - Familjens material → **bara** familjens privata lagring, via det privata innehållsrepot (väg B, vald av föräldern 2026-10-26):
+     Claude lägger paket och `work.json` i `content/` som en PR; CI kör kvalitetsgrinden; föräldern mergar (= godkännande);
+     workflowen publicerar nyckelfritt med backup, konfliktskydd, återläsning och rollback. Se `docs/CONTENT_PUBLISHING.md`.
+   - **Vem som får skriva:** `_content` är skrivskyddat för alla appklienter (`firestore.rules`). Bara tjänstekontot
+     `content-publisher` skriver – och det kan bara lånas av publiceringsworkflowen i miljön `production` (ingen nyckelfil finns).
+     Claude har aldrig några nycklar och ber aldrig om dem i chatten. `deploy` med en nyckelfil finns kvar som reserv men används inte.
+   - Inget verkligt skolmaterial publiceras förrän spärren `PUBLISH_ENABLED` har slagits på av föräldern.
 8. **Rapportera kort** till föräldern: vad som finns i appen nu (t.ex. "Kemiprovet 20 november: 14 kunskapspunkter, 9 av
    lärarens frågor i Testa mig"), vad som var osäkert, och vad barnet ser ("KEMIPROV · 20 NOVEMBER / IDAG 8 minuter / KÖR").
 
