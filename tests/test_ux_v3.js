@@ -64,17 +64,25 @@ const norm = (s) => String(s || '').replace(/\s+/g, ' ').trim();
           D.answer(() => false); w.__advance(4000); } }
       ok(sawKeys, 'en uttrycksuppgift med knappsats prövades');
       openKid(T, 'k8'); const tb = T.$('[data-v2="testa"]'); if (tb) { T.click(tb); D.run(() => false); ok(!/Testa mig · \d+:\d\d/.test(norm(T.$('#app').textContent)), 'Testa mig i v3: ingen klocka i resultatet'); } }
-    /* 8. N kvar och Ny chans: räknaren visar planerade uppgifter; en Ny chans/Rescue syns som extra och tar ingen planerad plats */
-    { const w = mkWin({ seed: 21, fixedClock: true }); await sleep(40); const T = tools(w); const PA = T.PA; PA().FAMILY.apply(FIX); PA().load(); PA().rerender(); const D = v2tools(w, T);
-      let extras = 0, consistent = 0, planned = 0, okPlanned = 0; const r8 = rng(8);
-      for (let d = 0; d < 4; d++) { for (const id of ['k2', 'k4']) { openKid(T, id); if (!T.$('.go-btn[data-v2="kor"]')) continue; T.click(T.$('.go-btn[data-v2="kor"]')); let g = 0, promised = null;
-        while (PA().S && PA().S.v2 && T.$('#qcard') && g++ < 60) { const it = PA().S.queue[PA().S.i]; const lc = norm((T.$('.left-count') || {}).textContent);
-          if (PA().EXP.isExtra(it)) { extras++; const m = lc.match(/^Ny chans · (?:sedan (\d+) kvar|extra)$/); ok(!!m, `Ny chans syns som extra: "${lc}"`); promised = m && m[1] ? +m[1] : 0; }
-          else { planned++; const m = lc.match(/^(\d+) kvar$/); if (m) okPlanned++; if (promised != null && m) { if (+m[1] === promised) consistent++; else ok(false, `efter Ny chans: ${m[1]} kvar, utlovat ${promised}`); } promised = null; }
-          D.answer(() => r8() < 0.5); w.__advance(4000); } w.__advance(0); }
-        w.__advance(DAY); }
-      console.log(`  N kvar: ${extras} Ny chans/Rescue, ${consistent} gånger stämde "sedan N kvar" med nästa uppgift`);
-      ok(extras > 0, 'minst en Ny chans/Rescue prövades'); ok(okPlanned === planned, `planerade uppgifter visar "N kvar" (${okPlanned}/${planned})`); }
+    /* 8. N kvar och Ny chans (slutverifieringen): räknaren visar de planerade uppgifter som faktiskt återstår. En Ny chans/Rescue/extra
+       lätt uppgift syns som extra ("Ny chans/Extra · sedan N kvar") och lovar aldrig mer än det som kommer. Räknaren ökar aldrig; den kan
+       minska mer än ett steg när motorns omförsök fyller passets tak (motorn ändras inte). Det som inte hanns med sägs på KLAR:
+       "Bossen väntar nästa gång" och/eller "N uppgifter från planen sparas till nästa gång". */
+    { let extras = 0, easy = 0, steps = 0, ends = 0, bossSkip = 0, drops = 0, savedN = 0;
+      for (const seed of [21, 5, 9]) for (const pw of [0.5, 0.75]) {
+        const w = mkWin({ seed, fixedClock: true }); await sleep(40); const T = tools(w); const PA = T.PA; PA().FAMILY.apply(FIX); PA().load(); PA().rerender(); const D = v2tools(w, T); const r8 = rng(seed * 3);
+        for (let d = 0; d < 3; d++) { for (const id of ['k2', 'k4', 'k8']) { openKid(T, id); if (!T.$('.go-btn[data-v2="kor"]')) continue; T.click(T.$('.go-btn[data-v2="kor"]')); let g = 0, after = null;
+          while (PA().S && PA().S.v2 && T.$('#qcard') && g++ < 80) { const it = PA().S.queue[PA().S.i]; const lc = norm((T.$('.left-count') || {}).textContent); const extra = PA().EXP.isExtra(it);
+            let now;
+            if (extra) { extras++; if (it.spec.role === 'easy') easy++; const m = lc.match(/^(Ny chans|Extra)(?: · sedan (\d+) kvar)?$/); ok(!!m && (m[1] === 'Extra') === (it.spec.role === 'easy'), `extra uppgift märkt som extra: "${lc}" (${it.spec.role})`); now = m && m[2] ? +m[2] : 0; if (after != null) { steps++; if (now !== after) { drops++; ok(now < after, `räknaren ökade: lovat ${after}, nu ${now} (${lc})`); } } after = now; }
+            else { const m = lc.match(/^(\d+) kvar$/); ok(!!m && +m[1] >= 1, `planerad uppgift visar "N kvar": "${lc}"`); now = m ? +m[1] : 0; if (after != null) { steps++; if (now !== after) { drops++; ok(now < after, `räknaren ökade: lovat ${after}, nu ${now}`); } } after = it._slotEnd ? now - 1 : now; }   // ett UPPTÄCK-kort före uppgiften är samma planerade plats
+            D.answer(() => r8() < pw); w.__advance(4000); }
+          ends++; const t = norm(T.$('#app').textContent); const skipped = /Bossen väntar nästa gång/.test(t); const saved = t.match(/(En uppgift|(\d+) uppgifter) från planen sparas till nästa gång/); if (skipped) bossSkip++; if (saved) savedN++;
+          if (after > 0) ok(after === (skipped ? 1 : 0) + (saved ? (saved[2] ? +saved[2] : 1) : 0), `passet slutade med ${after} utlovade kvar – KLAR säger varför (Boss senare: ${skipped}, sparas: ${saved && saved[0]})`);
+          w.__advance(0); }
+          w.__advance(DAY); } }
+      console.log(`  N kvar: ${ends} pass, ${extras} extra uppgifter (${easy} lätta), ${steps} steg kontrollerade, ${drops} gånger kortade motorns tak passet (räknaren minskade mer än en), ${bossSkip} Boss senare, ${savedN} pass med uppgifter sparade till nästa gång`);
+      ok(extras > 0 && easy >= 0 && ends > 20, 'tillräckligt många pass och extra uppgifter prövades'); }
   } catch (e) { fails++; console.log('EXC', e.stack); }
   console.log(`\n${checks} kontroller, ${fails} fel`); console.log(fails ? 'UX V3 TEST FAILED' : 'UX V3 TEST OK'); process.exit(fails ? 1 : 0);
 })();

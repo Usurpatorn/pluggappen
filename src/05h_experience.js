@@ -322,8 +322,12 @@ const EXP = {
     const kinds = []; for (const r of V.rewards) if (EXP.DELIGHT[r.k] && !kinds.includes(r.k)) kinds.push(r.k);
     const delights = kinds.slice(0, 3).map(k => `<div class="delight">${esc(EXP.DELIGHT[k])}</div>`).join('');
     const trail = e === 'explore' ? `<div class="trail done" aria-label="Det här gjorde du">${S.queue.slice(0, S.i + 1).map(x => `<span class="dot ok" aria-hidden="true">${(EXP.ACT[EXP.uiOf(x)] || EXP.ACT[x.paper ? 'paper' : ''] || [0, x.cat === 'learn' ? '🔎' : x.spec && x.spec.role === 'boss' ? '👑' : '⭐'])[1]}</span>`).join('')}</div>` : '';
-    // UX: Explore-hemmet visade 👑 – blev passet kortare (motorns Rescue/uppskjutning) sägs det, i stället för att kronan bara försvinner
-    const bossLater = e === 'explore' && V.plan.some(x => x.role === 'boss') && !S.queue.some(x => x.spec && x.spec.role === 'boss') ? '<div class="muted">👑 Bossen väntar nästa gång.</div>' : '';
+    // UX: Explore-hemmet visade 👑 (Grow/Achieve: N kvar räknade Bossen) – blev passet kortare (motorns Rescue/uppskjutning) sägs det, i stället för att kronan bara försvinner
+    const bossLater = V.plan.some(x => x.role === 'boss') && !S.queue.some(x => x.spec && x.spec.role === 'boss') ? `<div class="muted">${e === 'explore' ? '👑 ' : ''}Bossen väntar nästa gång.</div>` : '';
+    // Slutverifieringen: motorns omförsök och Rescue ryms inom passets tak – då kan planerade uppgifter bli kvar. Det sägs rakt ut (de
+    // kommer tillbaka i en senare plan; motorn har inte räknat dem som gjorda).
+    const playedPlan = S.queue.slice(0, S.i + 1).filter(x => x._slotEnd && !EXP.isExtra(x) && x.spec && x.spec.role !== 'boss').length; const missed = Math.max(0, V.plan.filter(x => x.role !== 'boss').length - playedPlan);
+    const savedLater = missed && !flow ? `<div class="muted">${missed === 1 ? 'En uppgift' : `${missed} uppgifter`} från planen sparas till nästa gång.</div>` : '';   // alla v3-lägen (slutverifieringen: räknaren räknar Bossen som planerad)
     const back = e === 'explore' ? [] : EXP.comeBack(kid, V);
     const gems = V.rewards.reduce((a, r) => a + r.gems, 0);
     const canMore = !corePending && EXP.canFlow(kid); const rested = EXP.flowsToday(p) >= EXP.FLOW_MAX;
@@ -334,7 +338,7 @@ const EXP = {
         <div style="font-size:2rem" aria-hidden="true">${e === 'explore' ? '🗺️' : '✅'}</div>
         <div class="klar-title">${esc(title)}</div>
         ${e === 'achieve' && V.mode === 'kor' ? '<div>Appen håller koll på resten.</div>' : ''}
-        ${trail}${bossLater}
+        ${trail}${bossLater}${savedLater}
         ${e !== 'explore' ? `<div style="font-weight:700">${sum.ok} av ${sum.n} rätt</div>` : ''}
         ${(() => { const up = [...V.stageUps].filter(cid => ((V.C.L.c[cid] || {}).st || 0) >= 2).length; return up && e !== 'explore' ? `<div>${up === 1 ? 'Ett område' : `${up} områden`} sitter bättre nu</div>` : ''; })()}
         ${delights}${gems && e === 'grow' ? `<div>+${gems} 💎</div>` : ''}

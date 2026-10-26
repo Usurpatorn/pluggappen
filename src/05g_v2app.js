@@ -282,15 +282,19 @@ const V2 = {
     return p.settings.tts ? `<button class="icon-btn" data-speak="${esc(q.text.replace(/<[^>]+>/g, ''))}" data-lang="sv" data-highlight="1" style="width:${S.v2.exp ? 44 : 36}px;height:${S.v2.exp ? 44 : 36}px" aria-label="Läs upp">${ICON.speaker}</button>` : '';
   },
   /* ---------- Visning under passet ---------- */
-  total() { if (S.v2.exp && !S.v2.exam) return Math.max(S.v2.planN || 1, EXP.done() + 1); const pr = LER.progress(S.v2.R); return Math.max(S.queue.length, S.i + Math.max(1, pr.left)); },
+  // v3 (slutverifieringen): planerade uppgifter som faktiskt återstår i passkörarens kö (utan Ny chans/Rescue/extra lätta), högst så många
+  // som passets tak (maxItems) rymmer – motorns omförsök kan korta passet, och då krymper siffran ärligt i stället för att lova för mycket.
+  // Bossplatsen räknas som planerad. Har motorn ingen Boss att ge när passet når dit hoppas den över, och KLAR säger "Bossen väntar nästa gång".
+  plannedLeft() { const R = S.v2.R; const left = R.queue.slice(R.i).filter(x => x.mode !== 'teach' && !EXP.EXTRA.has(x.role)).length; return Math.max(0, Math.min(left, R.maxItems - R.answered)); },
+  total() { if (S.v2.exp && !S.v2.exam) return Math.max(1, EXP.done() + V2.plannedLeft()); const pr = LER.progress(S.v2.R); return Math.max(S.queue.length, S.i + Math.max(1, pr.left)); },
   // v3: räknaren följer den planerade längden – omförsök och Rescue är "Ny chans" utan nummer (mållinjen flyttar sig inte)
-  num() { if (!(S.v2.exp && !S.v2.exam)) return S.i + 1; const it = S.queue[S.i]; return EXP.isExtra(it) ? 'Ny chans' : Math.min(V2.total(), EXP.done() + 1); },
+  num() { if (!(S.v2.exp && !S.v2.exam)) return S.i + 1; const it = S.queue[S.i]; return EXP.isExtra(it) ? (it.spec.role === 'easy' ? 'Extra' : 'Ny chans') : Math.min(V2.total(), EXP.done() + 1); },
   // Anropas efter svaret (passköraren har redan gått vidare): finns det något kvar i planen är det "Nästa", inte "Visa resultat"
   // (granskning v3: Bossen kom efter en knapp som sa "Visa resultat")
   hasNext() { const pr = LER.progress(S.v2.R); return S.i + 1 < S.queue.length || pr.left > 0; },
   title(item) { return S.v2.exam ? 'Testa mig' : S.v2.mode === 'mission' ? 'Inför ' + esc((LE.exams(S.kid, prof(S.kid.id)).find(e => e.id === S.v2.extra.examId) || {}).title || 'provet') : S.v2.mode === 'revansch' ? 'Revansch' : S.v2.mode === 'readclose' ? 'Minns du?' : item.cat === 'word' ? esc(item.deck.name) : item.skill && S.v2.exp === 'explore' ? ({ math: 'Matte', sv: 'Svenska', en: 'Engelska', no: 'NO', so: 'SO' })[item.skill.group || 'math'] || 'Äventyret' : item.skill ? esc(item.skill.short || item.skill.name) : 'Kör!'; },   // Explore: ämnet, inte momentets interna namn (UX)
   // v3: N kvar = planerade uppgifter; en Ny chans/Rescue syns som extra och tar inga planerade platser
-  topRight() { const pr = LER.progress(S.v2.R); if (S.v2.exp && !S.v2.exam) { const left = Math.max(0, V2.total() - EXP.done()); return EXP.isExtra(S.queue[S.i]) ? `<span class="left-count">${left ? `Ny chans · sedan ${left} kvar` : 'Ny chans · extra'}</span>` : `<span class="left-count">${left} kvar</span>`; } return S.v2.exam ? `<span class="pill">Inga ledtrådar · svar efteråt</span>` : `<span class="left-count">${Math.max(0, pr.left)} kvar</span>`; },
+  topRight() { const pr = LER.progress(S.v2.R); if (S.v2.exp && !S.v2.exam) { const it = S.queue[S.i]; const extra = EXP.isExtra(it); const left = extra ? Math.min(V2.plannedLeft(), Math.max(0, S.v2.R.maxItems - S.v2.R.answered - 1)) : V2.plannedLeft(); const lbl = extra && it.spec.role === 'easy' ? 'Extra' : 'Ny chans'; return extra ? `<span class="left-count">${left ? `${lbl} · sedan ${left} kvar` : lbl}</span>` : `<span class="left-count">${left} kvar</span>`; } return S.v2.exam ? `<span class="pill">Inga ledtrådar · svar efteråt</span>` : `<span class="left-count">${Math.max(0, pr.left)} kvar</span>`; },
   progressBar() { const tot = V2.total();
     if (S.v2.exp && !S.v2.exam) { const d = EXP.done();   // v3: planerade platser; ingen röd historik för fel svar
       if (S.v2.exp === 'explore') return `<div class="trail" role="progressbar" aria-valuemin="0" aria-valuemax="${tot}" aria-valuenow="${d}" aria-label="Äventyret">${Array.from({ length: tot }, (_, i) => `<span class="dot ${i < d ? 'ok' : i === d ? 'cur' : ''}" aria-hidden="true">${i === tot - 1 ? '👑' : ''}</span>`).join('')}</div>`;
