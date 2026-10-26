@@ -90,11 +90,11 @@ const norm = (s) => String(s || '').replace(/\s+/g, ' ').trim();
       while (PA().S && PA().S.v2 && T.$('#qcard') && g++ < 30) { const p = T.$('.progress.v3'); if (p) { pb++; ok(/Passet: \d+ av \d+/.test(p.getAttribute('aria-label') || ''), 'förloppet har ett namn'); } const ld = T.$('#qcard .lvl-dots[aria-label]'); if (ld) { dots++; ok(ld.getAttribute('role') === 'img', 'svårighetsprickarna har role=img'); } D.answer(() => false); w.__advance(4000); }
       ok(pb > 0, 'förloppet prövades');
       // liten skärm: efter svaret göms sifferknapparna så att svaret, lösningen och Nästa syns
-      { let h = 0, seenK = false; for (let d = 0; d < 4 && !seenK; d++) { w.__advance(DAY); openKid(T, 'k8'); if (!T.$('.go-btn[data-v2="kor"]')) continue; T.click(T.$('.go-btn[data-v2="kor"]'));
-          while (PA().S && PA().S.v2 && T.$('#qcard') && h++ < 60) { if (T.$('#qcard .keys') && T.$('#ans')) { seenK = true; T.$('#ans').value = '987654'; T.click(T.$('#submit')); if (T.$('#submit') && !T.$('#next')) { T.$('#ans').value = '987654'; T.click(T.$('#submit')); }
+      { let h = 0, seenK = false, invalidSeen = false; for (let d = 0; d < 4 && !seenK; d++) { w.__advance(DAY); openKid(T, 'k8'); if (!T.$('.go-btn[data-v2="kor"]')) continue; T.click(T.$('.go-btn[data-v2="kor"]'));
+          while (PA().S && PA().S.v2 && T.$('#qcard') && h++ < 60) { if (T.$('#qcard .keys') && T.$('#ans')) { seenK = true; T.$('#ans').value = '+ ) ('; T.click(T.$('#submit')); if (!T.$('#next')) { invalidSeen = true; ok([...T.$('#qcard').querySelectorAll('.keys')].every(k => k.style.display !== 'none'), 'ett ogiltigt svar: sifferknapparna syns kvar (barnet skriver igen)'); } T.$('#ans').value = '987654'; T.click(T.$('#submit')); if (T.$('#submit') && !T.$('#next')) { T.$('#ans').value = '987654'; T.click(T.$('#submit')); }
               ok([...T.$('#qcard').querySelectorAll('.keys')].every(k => k.style.display === 'none'), 'efter svaret syns inga sifferknappar (v3)'); T.click(T.$('#next')); break; }
             D.answer(() => false); w.__advance(4000); } }
-        ok(seenK, 'en uppgift med sifferknappar prövades'); }
+        ok(seenK, 'en uppgift med sifferknappar prövades'); ok(invalidSeen, 'ett ogiltigt svar prövades'); }
       openKid(T, 'k2'); T.click(T.$('.go-btn[data-v2="kor"]')); D.run(() => false); const tr = T.$('.trail.done'); ok(!tr || (tr.getAttribute('role') === 'img' && /Det här gjorde du: \d+/.test(tr.getAttribute('aria-label'))), 'KLAR-spåret har role=img och ett namn'); }
   } catch (e) { fails++; console.log('EXC', e.stack); }
   console.log(`\n${checks} kontroller, ${fails} fel`); console.log(fails ? 'UX V3 TEST FAILED' : 'UX V3 TEST OK'); process.exit(fails ? 1 : 0);
