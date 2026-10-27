@@ -274,6 +274,6 @@ med `PREVIEW=1` till `<sajten>/preview/`. Produktionen publiceras som vanligt. M
     osett dagen före algebraprovet.
   - Den bindande gränsen är inlärningstakten (ungefär ett nytt koncept per dag när mycket pågår). Det är därför risken visas för
     föräldern i stället för att barnet överbelastas.
-- **Mutationsprövat:** 13 avsiktliga fel i reglerna, rubriken och det tomma hemmet fångas av testet.
+- **Mutationsprövat:** 15 av 15 avsiktliga fel fångas av testet: reglerna, standard och förälderns val, M8, målrättvisa, rubriken, det tomma hemmet och förälderns kort.
 - **Rollback:** 3.3-bygget. Det tillagda fältet `weight` på prov ignoreras av äldre versioner, som då räknar alla mål som större
   (beteendet före 3.4). Inget annat i profilen ändras.
