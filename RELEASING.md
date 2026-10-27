@@ -327,8 +327,9 @@ med `PREVIEW=1` till `<sajten>/preview/`. Produktionen publiceras som vanligt. M
   enheternas övningsposter finns kvar.
 - **Simulering** (`tests/le/matrix.js`, långa pass med KÖR, 3 FLOW och 2 Öva mer varje dygn): se programrapporten. Samma-dygnssteg
   0, och dygnets gräns för nytt håller.
-- **Tester och mutationer:** `tests/test_ova_mer.js` (92 kontroller) täcker k8, k4 och k2, två enheter, köp, synk och uppdrag efter
-  ett block, gemensam gräns för extrablock, Testa mig och ärligt slut. Granskarens och egna mutationer fångas, utom räknaren för felfritt pass, ett märke som delas ut en gång.
+- **Tester och mutationer:** `tests/test_ova_mer.js` (101 kontroller) täcker k8, k4 och k2, två enheter, köp, synk och uppdrag efter
+  ett block, gemensam gräns för extrablock, Testa mig och ärligt slut. Granskarens och egna mutationer fångas, utom räknaren för felfritt pass (ett märke som delas ut en gång). Det gäller också ett
+  avbrutet block, granskarens fall med upprepning (k4, frö 41) och hemmet när provträningar använt dygnets extrablock.
 - **Känt:** märkesräknarna (rätt totalt, säker på ett område) räknar också övning. Ett sådant märke kan alltså nås något tidigare.
   Varje märke ges en gång.
 - **Kvar utanför v3:** Klassiskt läge och v1 har sina gamla regler för extra pass.

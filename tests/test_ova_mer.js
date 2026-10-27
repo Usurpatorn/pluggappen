@@ -87,7 +87,7 @@ const openKid = (T, id) => { toStart(T); T.click(T.$(`[data-kid="${id}"]`)); if 
     { const { T, D } = await boot(17); const { $, click, PA } = T; const kid = PA().KIDS.find(k => k.id === 'k8'); openKid(T, 'k8'); click($('.go-btn[data-v2="kor"]')); D.run(() => false);
       const ex = PA().LE.exams(kid, PA().DB.profiles.k8).find(e => e.id === 'w:syn-alg'); let m = 0;
       for (let i = 0; i < 3; i++) { PA().V2.start(kid, 'mission', { examId: ex.id }); if (PA().S && PA().S.v2) { m++; D.run(() => false); } }
-      openKid(T, 'k8'); ok(m === 3 && !$('[data-v2="flow"]'), `tre provträningar: inget belönat FLOW-block därefter (${m})`);
+      openKid(T, 'k8'); ok(m === 3 && !$('[data-v2="flow"]'), `tre provträningar: inget belönat FLOW-block därefter (${m})`); ok(/vilar nu/.test(txt(T)), 'tre provträningar: hemmet visar vila-läget (inte "Allt för idag är gjort" utan val)');
       PA().V2.start(kid, 'mission', { examId: ex.id }); ok(PA().S && PA().S.v2 && PA().S.v2.po === true, 'fjärde provträningen är utan poäng'); D.run(() => false);
       PA().V2.start(kid, 'exam', { examId: ex.id }); ok(PA().S.v2.po !== true, 'dagens första Testa mig ger poäng'); D.run(() => false);
       const x1 = PA().DB.profiles.k8.xp; PA().V2.start(kid, 'exam', { examId: ex.id }); ok(PA().S.v2.po === true, 'andra Testa mig samma dygn är utan poäng'); D.run(() => false);
@@ -96,6 +96,16 @@ const openKid = (T, id) => { toStart(T); T.click(T.$(`[data-kid="${id}"]`)); if 
     { const { T, D } = await boot(13); const { $, click } = T; openKid(T, 'k4'); click($('.go-btn[data-v2="kor"]')); D.run(() => false); click($('[data-go="home"]')); let f = 0; while ($('[data-v2="flow"]') && f++ < 5) { click($('[data-v2="flow"]')); D.run(() => false); click($('[data-go="home"]')); }
       const useful = T.PA().EXP.useful(T.PA().EXP.peekFlow(T.PA().KIDS.find(k => k.id === 'k4')), T.PA().KIDS.find(k => k.id === 'k4')); const t = txt(T);
       ok(useful ? !!$('[data-v2="ovamer"]') : (!$('[data-v2="ovamer"]') && /inget mer som gör nytta/.test(t)), `allt rätt idag: Öva mer bara om något återstår som inte redan blivit rätt (${useful ? 'återstår' : 'inget kvar – ärlig text'})`); }
+    // Ett avbrutet övningsblock spärrar inte senare belöningar
+    { const { T, D } = await boot(23); const { $, click, PA } = T; const kid = PA().KIDS.find(k => k.id === 'k8'); openKid(T, 'k8'); click($('.go-btn[data-v2="kor"]')); D.run(() => false);
+      const ex = PA().LE.exams(kid, PA().DB.profiles.k8).find(e => e.id === 'w:syn-alg'); for (let i = 0; i < 3; i++) { PA().V2.start(kid, 'mission', { examId: ex.id }); if (PA().S && PA().S.v2) D.run(() => false); }
+      PA().V2.start(kid, 'mission', { examId: ex.id }); ok(PA().EXP.poActive(), 'övningsblocket pågår'); D.answer(() => false); click($('[data-go="home"]') || $('[data-go="start"]'));
+      ok(!PA().EXP.poActive(), 'avbrutet block: spärren gäller inte utanför övningsskärmen'); }
+    // Granskarens fall (k4, frö 41, två dygn historik): Öva mer tar slut av sig själv
+    { const { T, D, w } = await boot(41); const { $, click } = T; for (let d = 0; d < 2; d++) { openKid(T, 'k4'); click($('.go-btn[data-v2="kor"]')); D.run((it) => it.cat !== 'learn' && D.log.items % 4 === 0); w.__advance(DAY); }
+      openKid(T, 'k4'); click($('.go-btn[data-v2="kor"]')); D.run(() => false); click($('[data-go="home"]')); let f = 0; while ($('[data-v2="flow"]') && f++ < 5) { click($('[data-v2="flow"]')); D.run(() => false); click($('[data-go="home"]')); }
+      let n = 0; while ($('[data-v2="ovamer"]') && n < 25) { click($('[data-v2="ovamer"]')); let k = 0; D.run(() => (++k % 2 === 0)); n++; openKid(T, 'k4'); }
+      ok(n < 25 && /inget mer som gör nytta/.test(txt(T)), `k4 frö 41: Öva mer tar slut även när varannan uppgift blir fel (${n} block)`); }
     // Ingen ändlös upprepning: Öva mer gång på gång (allt rätt) tar slut med ärlig text (granskning: samma plan erbjöds 25 gånger)
     for (const [kidId, seed] of [['k4', 41], ['k2', 41], ['k8', 41]]) { const { T, D } = await boot(seed); const { $, click } = T; openKid(T, kidId); let wk = 0; click($('.go-btn[data-v2="kor"]')); D.run((it) => it.cat !== 'learn' && (++wk % 2 === 0)); click($('[data-go="home"]'));
       let f = 0; while ($('[data-v2="flow"]') && f++ < 5) { click($('[data-v2="flow"]')); D.run((it) => it.cat !== 'learn' && (++wk % 2 === 0)); click($('[data-go="home"]')); }
