@@ -365,18 +365,20 @@ const PACKS = (() => {
     // går under både motorns nivå och det receptet helst ville ha, kommer efter alla som inte gör det – oavsett aktivitet och faktum.
     // Jämförelsen görs mot det val som gjorts utan variationen (första kandidaten som går att bygga och inte är nyss sedd).
     const order0 = weightedOrder(pool, wOf, rnd); let first = null;
-    // (provbygget använder en egen fast slump, så att passets slump – och därmed reservkedjan – är exakt som förut)
-    const fixedRnd = () => { let x = 7; return () => { x = (x * 1103515245 + 12345) & 0x7fffffff; return x / 0x7fffffff; }; };
-    if (bp) for (const v of order0) { const q = finish(ent, v, v.build(fixedRnd()), pol); if (q && !(opts.avoid && opts.avoid.has(iid(q)))) { first = v; break; } }
+    // Varje variant byggs högst en gång (samma byggda fråga återanvänds). Referensen byggs i exakt samma ordning och med samma slump som
+    // utan variationen, så den ÄR det val som annars hade gjorts; och går inget att använda har slumpen förbrukats exakt som förut,
+    // så reservkedjan nedan är också densamma.
+    const cache = new Map(); const builtC = (v) => { if (!cache.has(v)) cache.set(v, built(v)); return cache.get(v); };
+    if (bp) for (const v of order0) { const q = builtC(v); if (q && !(opts.avoid && opts.avoid.has(iid(q)))) { first = v; break; } }
     const weak = (v) => !!(bp && first && ((v.form === 'recognition' && first.form !== 'recognition') || v.lvl < Math.min(first.lvl, L0)));
     const order = bp ? [...tiered(order0.filter(v => !weak(v))), ...tiered(order0.filter(weak))] : order0;
     const tr = (t) => { if (opts.trace) opts.trace.tier = t; };   // för tester: vilket led valet kom ur (ordinarie kandidater eller reserv)
-    for (const v of order) { const q = built(v); if (q && !(opts.avoid && opts.avoid.has(iid(q)))) { tr('pool'); return q; } }
+    for (const v of order) { const q = builtC(v); if (q && !(opts.avoid && opts.avoid.has(iid(q)))) { tr('pool'); return q; } }
     // Allt i det önskade formatet är nyligen använt (t.ex. Felbokens frågor): en ANNAN fråga om samma kunskap går före samma fråga igen
     // v3 (slutverifieringen): först en annan variant på motorns nivå och i motorns format (före Explore-/Boss-valen), sedan resten
     if (!opts.challenge && pool !== base) for (const v of weightedOrder(base.filter(v => !pool.includes(v)), wOf, rnd)) { const q = built(v); if (q && !(opts.avoid && opts.avoid.has(iid(q)))) { tr('base'); return q; } }
     if (!opts.challenge && pool !== all0) for (const v of weightedOrder(all0.filter(v => !pool.includes(v) && !base.includes(v)), wOf, rnd)) { const q = built(v); if (q && !(opts.avoid && opts.avoid.has(iid(q)))) { tr('all0'); return q; } }
-    const q = built(order[0]); return q ? { ...q, onlyVariant: true } : null;
+    const q = built(order0[0]); return q ? { ...q, onlyVariant: true } : null;   // allt nyss sett: samma sista utväg som utan variationen
   }
   // Viktad ordning utan återläggning (deterministisk givet rnd): första elementet är det receptet helst vill ha
   function weightedOrder(list, wOf, rnd) { const rest = list.map(v => ({ v, w: Math.max(0.001, wOf(v)) })); const out = []; while (rest.length) { let t = rnd() * rest.reduce((a, x) => a + x.w, 0); let i = 0; while (i < rest.length - 1 && (t -= rest[i].w) > 0) i++; out.push(rest.splice(i, 1)[0].v); } return out; }
