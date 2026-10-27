@@ -284,6 +284,23 @@ const fsRequests = (cloud, from, dev) => cloud.log.slice(from).filter(x => x.dev
       ok(S.settings.goal === 9, 'E4: förälderns ändring finns också med');
       await exitProd(P, cloud, 56);
     }
+    // E5 (tredje isoleringsgranskningen): förälderns klocka går två timmar före. Barnets nya läge B har då en äldre tidsstämpel än
+    //     förälderns senaste synk – hämtningen före testet får ändå aldrig hoppa över B inför en villkorad skrivning.
+    {
+      const cloud = mkCloud(); const C = await childDevice(cloud, 40); await childPlays(C, 'k4', 0.2, 91);
+      const P = await parentDevice(cloud, 58, C.__now() + 2 * 3600000);
+      P.PA.setKid('k4'); P.PA.go('home'); P.PA.DB.profiles.k4.settings.goal = 8; P.PA.save(); await sleep(1800); P.PA.go('start');
+      ok(cloud.prof('k4').settings.goal === 8, 'E5: förälderns vanliga ändring synkad (med klockan före)');
+      C.__advance(3600000); await C.PA.SYNC.refresh('k4'); await childPlays(C, 'k4', 0.2, 92); const B = cloud.prof('k4');
+      ok((B.updatedAt || 0) <= (P.PA.DB.profiles.k4.syncedAt || 0), 'E5: barnets nya läge har en äldre tidsstämpel än förälderns senaste synk (klockskillnaden)');
+      P.__advance(60000); const cfg = P.PA.SYNC.cfg; P.PA.SYNC.cfg = { ...cfg, projectId: 'offline-test' };
+      P.PA.setKid('k4'); P.PA.go('home'); P.PA.DB.profiles.k4.settings.goal = 9; P.PA.save(); await sleep(1800); P.PA.SYNC.cfg = cfg; P.PA.go('start');
+      ok(await enterTest(P, 'k2'), 'E5: testet startar');
+      const S = cloud.prof('k4'); const sLog = new Set((S.le.log || []).map(e => JSON.stringify(e)));
+      ok((B.le.log || []).every(e => sLog.has(JSON.stringify(e))) && S.xp >= B.xp, `E5: barnets B finns kvar trots klockskillnaden (XP ${S.xp} ≥ ${B.xp})`);
+      ok(S.settings.goal === 9, 'E5: förälderns väntande ändring finns med');
+      await exitProd(P, cloud, 59);
+    }
   } catch (e) { fails++; console.log('EXC', e.stack); }
   finally { try { fs.rmSync(path.join(DIST, 'preview'), { recursive: true, force: true }); } catch (e) { /* ignore */ } }
   for (const l of info) console.log('  ·', l);

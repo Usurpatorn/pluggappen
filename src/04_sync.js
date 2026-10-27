@@ -42,7 +42,9 @@ const SYNC = {
   },
   schedulePush(kidId) { if (!SYNC.active || !kidId || SYNC.pv()) return; SYNC.pending.add(kidId); clearTimeout(SYNC.pushTimer); SYNC.pushTimer = setTimeout(async () => { const ids = [...SYNC.pending]; SYNC.pending.clear(); for (const id of ids) await SYNC.push(id); SYNC.render(); }, 1500); },
   // Pull remote for a kid and merge into local. Returns true if local changed.
-  async refresh(kidId) {
+  // mergeDirty (bara Testa som barnet före start): har enheten osynkade ändringar slås den hämtade versionen alltid ihop – även när
+  // enheternas klockor säger att den redan finns här (en klocka som går fel får aldrig hoppa över en nyare version före en villkorad skrivning).
+  async refresh(kidId, mergeDirty) {
     if (typeof V2 !== 'undefined' && V2.sandbox && V2.sandbox.kidId === kidId) return false; // förälderns förhandsvisning pågår
     const remote = await SYNC.pull(kidId); SYNC.lastPull[kidId] = Date.now();
     if (typeof V2 !== 'undefined' && V2.sandbox && V2.sandbox.kidId === kidId) return false; // förhandsvisningen startade medan hämtningen pågick
@@ -51,14 +53,14 @@ const SYNC = {
     const local = prof(kidId);
     // Tombstone: a parent deleted this child's data on another device → reset here instead of re-uploading our copy.
     if (remote.profile.resetAt && remote.profile.resetAt > (local.resetAt || 0)) { const fresh = { ...defaultProfile(kidId), resetAt: remote.profile.resetAt, syncedAt: remote.updatedAt, updatedAt: remote.updatedAt }; fresh._lx = fresh.xp; fresh._lg = fresh.gems; DB.profiles[kidId] = fresh; rollover(fresh); try { localStorage.setItem(STORE_KEY, dbJSON()); } catch (e) { /* ignore */ } return true; }
-    if ((local.syncedAt || 0) >= remote.updatedAt) return false; // we already have this version
     const localChanged = (local.updatedAt || 0) > (local.syncedAt || 0);
+    if ((local.syncedAt || 0) >= remote.updatedAt && !(mergeDirty && localChanged)) return false; // we already have this version
     const merged = localChanged ? mergeProfiles(local, remote.profile) : { ...defaultProfile(kidId), ...remote.profile, since: { xp: 0, gems: 0, days: {} } };
     // Fas 3B: v2-bevisloggen slås alltid ihop (union), även när lokalt inte ändrats – skyddar mot att en äldre app skrivit över den.
     let leRestored = false;
     if (!localChanged && (local.le || remote.profile.le) && typeof LE !== 'undefined') { merged.le = LE.mergeLE(local.le, remote.profile.le); leRestored = !!(merged.le && (merged.le.log || []).length > ((remote.profile.le || {}).log || []).length); }
     // leRestored: markera bara som lokalt ändrad – laddas upp vid nästa vanliga sparning (ingen extra uppladdning som kan krocka med en annan enhet)
-    merged.syncedAt = remote.updatedAt; merged.updatedAt = localChanged ? Date.now() : leRestored ? Math.max(Date.now(), remote.updatedAt + 1) : remote.updatedAt; merged._lx = merged.xp; merged._lg = merged.gems;
+    merged.syncedAt = remote.updatedAt; merged.updatedAt = localChanged ? (mergeDirty ? Math.max(Date.now(), remote.updatedAt + 1) : Date.now()) : leRestored ? Math.max(Date.now(), remote.updatedAt + 1) : remote.updatedAt; merged._lx = merged.xp; merged._lg = merged.gems;
     DB.profiles[kidId] = merged; rollover(merged);
     try { localStorage.setItem(STORE_KEY, dbJSON()); } catch (e) { /* ignore */ }
     if (typeof LE !== 'undefined') { LE.invalidate(kidId); if (remote.serverTime) LE.anchor(kidId, remote.serverTime); }

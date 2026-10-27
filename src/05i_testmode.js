@@ -55,7 +55,7 @@ const TM = {
     const settle = async (id) => {
       for (let tries = 0; tries < 3; tries++) {
         delete SYNC.docTime[id];
-        const r = await TM.timed(SYNC.refresh(id)); if (r === undefined || SYNC.status !== 'ok') return false;
+        const r = await TM.timed(SYNC.refresh(id, true)); if (r === undefined || SYNC.status !== 'ok') return false;
         if (!dirty(id)) return true;
         const pre = SYNC.docTime[id]; if (pre === undefined || pre === null) return false;   // okänd version → ingen uppladdning
         SYNC.pending.delete(id); if ((await TM.timed(SYNC.push(id, pre))) === true) return true;
