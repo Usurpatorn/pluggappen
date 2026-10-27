@@ -574,7 +574,7 @@ html { overflow-x: clip; }
   #qcard.split .q-top.solo + * { padding-right: 56px; }
 }
 /* tre korta alternativ på en rad – ingen ensam ruta */
-:root:not([data-exp="classic"]) .wchoices:not(.one-col):not(.spot-sols):has(> :nth-child(3):last-child) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+:root:not([data-exp="classic"]) :is(.wchoices:not(.one-col):not(.spot-sols), .choices):has(> :nth-child(3):last-child) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 /* "Nästan" i Para ihop: alla par blev klara – gul kant, inte röd */
 :root:not([data-exp="classic"]) #fb .feedback.no.almost { border-left-color: var(--warn); }
 /* "Visa hur": rätt alternativ pekas ut */
