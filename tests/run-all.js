@@ -45,6 +45,7 @@ const suites = [
   ['Uttrycksknappsatsen: siffrorna 1–0 i ordning på egen rad även i v1 och Klassisk', 'test_keypad.js'],
   ['Testadressen (förhandsversion): egen lagring, ingen service worker eller push, inget familjeinnehåll', 'test_preview.js'],
   ['Testa som barnet (testadressen): kopia i minnet, inga skrivningar, byte för byte före = efter, barnet spelar samtidigt', 'test_parent_test_mode.js'],
+  ['Hotfix 3.0.1: glosrepetition i ett v3-pass – ämnet som rubrik, hemmet säger vad som repeteras, samma plan på hemmet som i KÖR', 'test_hotfix_301.js'],
   ['Experience v3: löfte → utförande för varje primär knapp (Explore/Grow/Achieve/Klassisk × tio tillstånd)', 'test_promise_exec.js'],
 ];
 let failed = 0; const rows = [];

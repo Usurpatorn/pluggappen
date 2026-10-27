@@ -58,11 +58,12 @@ const EXP = {
   STATION: { warm: ['Värm upp', '☀️'], minns: ['Minns', '🧠'], upptack: ['Upptäck', '🔎'], klura: ['Klura', '🧩'], revansch: ['Revansch', '💪'], utmaning: ['Utmaning', '🧗'], boss: ['Boss', '👑'] },
   stationOf(slot, C) { const c = C.L.c[slot.cid]; if (slot.role === 'boss') return 'boss'; if (slot.mode === 'challenge' || slot.role === 'challenge') return 'utmaning'; if (slot.role === 'revansch') return 'revansch'; if (slot.role === 'warmup') return 'warm'; if (slot.role === 'remember') return 'minns'; return !c || !c.n ? 'upptack' : 'klura'; },
   nameOf(kid, C, cid) { const d = C.cat[cid] || {}; return d.kind === 'kp' ? V2.skillName(kid, d.ref) : d.kind === 'deck' ? d.name : (V2.skillOf(kid, cid) || {}).short || d.name || ''; },
+  repLabel(kid, C, items) { const langs = []; for (const x of items) { const d = C.cat[x.cid] || {}; if (d.kind !== 'deck') continue; const dk = (typeof deckById === 'function' && deckById(prof(kid.id), d.ref)) || null; const L = dk && typeof LANGS !== 'undefined' && LANGS[dk.lang]; const n = L ? (dk.lang === 'sv' ? 'svenska ord' : L.name.toLowerCase() + ' glosor') : 'glosor'; if (!langs.includes(n)) langs.push(n); } return langs.length ? 'Repetition: ' + langs.join(', ') : 'Repetition'; },
   summary(kid, plan0) {
     const C = LE.state(kid); const plan = plan0 || V2.peekPlan(kid).plan; const names = []; let rep = false; let rev = false;
     // Det som tränas: dagens fokus/nytt/prov först, sedan Revansch och Repetition som egna rader (inte tio kunskapspunkter)
     for (const s of plan) { if (s.role === 'boss') continue; if (s.role === 'remember' || s.role === 'warmup') { rep = true; continue; } if (s.role === 'revansch') { rev = true; continue; } const nm = EXP.nameOf(kid, C, s.cid); if (nm && !names.includes(nm)) names.push(nm); }
-    const list = names.slice(0, 3); if (rev) list.push('Revansch'); if (rep) list.push('Repetition');
+    const list = names.slice(0, 3); if (rev) list.push('Revansch'); if (rep) list.push(EXP.repLabel(kid, C, plan.filter(x => x.role === 'remember' || x.role === 'warmup')));
     const st = []; for (const s of plan) { const k = EXP.stationOf(s, C); if (!st.includes(k)) st.push(k); }
     // Achieve: dela upp i det som hör till nästa prov och det som också övas idag (med momentens fulla namn)
     const g = EXP.goalOf(kid).now; const inExam = new Set(g ? LE.examCids(C, g.e) : []); const ex = [], also = [];
@@ -73,7 +74,11 @@ const EXP = {
     for (const s0 of plan) { const nm = fullName(s0.cid); if (!nm) continue; const exam = inExam.has(s0.cid);
       if (PFX[s0.role]) { if (exam) { const t = PFX[s0.role] + ': ' + nm; if (!ex.includes(t) && !ex.includes(nm)) ex.push(t); } continue; }
       const arr = exam ? ex : also; if (!ex.includes(nm) && !also.includes(nm)) arr.push(nm); }
-    if (plan.some(x => (x.role === 'remember' || x.role === 'warmup') && !inExam.has(x.cid))) also.push('Repetition'); if (plan.some(x => x.role === 'revansch' && !inExam.has(x.cid))) also.push('Revansch');
+    // 3.0.1: Repetition säger vad som repeteras när det är glosor ("Repetition: engelska glosor"), och står först när passet börjar
+    // med den – annars lovade kortet "algebra" och passet började med något som såg ut som en annan övning (ägarens fynd)
+    const repS = plan.filter(x => (x.role === 'remember' || x.role === 'warmup') && !inExam.has(x.cid));
+    if (repS.length) { const lbl = EXP.repLabel(kid, C, repS); if (plan[0] && repS.includes(plan[0])) also.unshift(lbl); else also.push(lbl); }
+    if (plan.some(x => x.role === 'revansch' && !inExam.has(x.cid))) also.push('Revansch');
     return { n: plan.length, mins: EXP.mins(plan, kid), list, exList: ex.slice(0, 4), alsoList: also.slice(0, 3), stations: st, light: !!plan.light, plan, C };
   },
   // Framsteg med betydelse (Grow/Achieve): motorns barnetiketter för koncept som barnet har övat. Inga procent.
