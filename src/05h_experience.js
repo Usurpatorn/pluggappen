@@ -53,24 +53,21 @@ const EXP = {
   flowMins(kid) { return EXP.mins(EXP.peekFlow(kid), kid); },
   // "cirka N min": samma uppskattning som Kör! (0,6 min per uppgift) + en extra minut per trolig pappersuppgift (räknas på papper tar längre tid)
   mins(plan, kid) { const C = LE.state(kid); const paper = (EXP.of(kid) !== 'explore') ? plan.filter(s => ['focus', 'practice', 'boss'].includes(s.role) && EXP.PAPER[((C.cat[s.cid] || {}).ref) || '']).length : 0; return V2.mins(plan.length) + Math.min(paper, Math.ceil(plan.length / 2)); },
-  canFlow(kid) { const p = prof(kid.id); return EXP.flowsToday(p) < EXP.FLOW_MAX && EXP.peekFlow(kid).length > 0; },
+  canFlow(kid) { const p = prof(kid.id); return EXP.flowsToday(p) < EXP.FLOW_MAX && EXP.extraDone(p) < EXP.FLOW_MAX && EXP.peekFlow(kid).length > 0; },   // 3.4: dygnets belönade extrablock = FLOW + provträning, högst FLOW_MAX
   /* 3.4 fas D – "BELÖNINGAR HAR TAK, LÄRANDET INTE". Efter dagens belönade extrablock (FLOW_MAX FLOW, eller provträning när dygnets
      FLOW_MAX extrablock är använda) erbjuds frivillig "Öva mer": samma motor, samma plan som FLOW, dygnets gräns för nytt, högst ett
      stadiesteg per dygn – men inga XP, diamanter, märken, uppdrag eller belöningsrader. Ingenting startar av sig självt, och efter varje
      block finns en tydlig slutpunkt. Passposten märks po:1 (övning). Fel och Rescue hanteras som vanligt (Felboken, motorns bevis). */
   extraDone(p) { const d0 = EXP.today(); return V2.v2recs(p).filter(r => (r.m === 'flow' || r.m === 'mission' || r.m === 'more') && LE2.dayIdx(r.t * 1000) === d0).length; },
-  canMore(kid) { const p = prof(kid.id); return EXP.on(kid) && EXP.coreDone(p) && EXP.flowsToday(p) >= EXP.FLOW_MAX && EXP.peekFlow(kid).length > 0; },
-  practiceOnly(kid, mode) { const p = prof(kid.id); return EXP.on(kid) && (mode === 'more' || (mode === 'mission' && EXP.extraDone(p) >= EXP.FLOW_MAX)); },
-  rewardSnap(p) { const d = todayKey(); const sd = p.since && p.since.days && p.since.days[d]; return { xp: p.xp, gems: p.gems, badges: (p.badges || []).slice(), perfect: p.perfect || 0, claimedAll: p.claimedAll, quests: JSON.stringify(p.quests || null), streak: p.streak, lastDay: p.lastDay, freezes: p.freezes, dxp: p.days && p.days[d] ? p.days[d].xp : null, sdxp: sd ? sd.xp : null, d }; },
-  // Anropas först i save(): under ett övningsblock återställs allt som är belöning till läget när blocket började (ett ställe, alla vägar)
-  capRewards() {
-    try {
-      if (typeof S === 'undefined' || !S || !S.v2 || !S.v2.po || !S.v2.r0 || !S.kid) return; const p = prof(S.kid.id); const r = S.v2.r0; if (!p) return;
-      p.xp = r.xp; p.gems = r.gems; p.badges = r.badges.slice(); p.perfect = r.perfect; p.claimedAll = r.claimedAll; p.quests = JSON.parse(r.quests); p.streak = r.streak; p.lastDay = r.lastDay; p.freezes = r.freezes;
-      if (p.days && p.days[r.d]) p.days[r.d].xp = r.dxp == null ? 0 : r.dxp; if (p.since && p.since.days && p.since.days[r.d]) p.since.days[r.d].xp = r.sdxp == null ? 0 : r.sdxp;
-      S.xp = 0; if (S.streak) S.streak = 0;
-    } catch (e) { /* aldrig stoppa barnet */ }
-  },
+  // Gör planen nytta? Minst en uppgift (utom Bossen) på något som inte redan blivit rätt idag – annars är det bara upprepning (granskning)
+  // Nytta: nytt (inom dygnets gräns), inte rätt idag, en Utmaning (fördjupning) – eller något som fortfarande lärs in (stadium ≤ 1) och
+  // har färre än tre rätt idag (varierad övning). Det som redan sitter och redan blivit rätt idag är bara upprepning.
+  useful(plan, kid) { try { const C = LE.state(kid); const d0 = LE2.dayIdx(LE.now()); return (plan || []).some(s => s.role !== 'boss' && (() => { if (s.role === 'challenge') return true; const c = C.L.c[s.cid]; if (!c || !c.n) return true; if (!(c.lastOk && LE2.dayIdx(c.lastOk) === d0)) return true; const okToday = (c.ev || []).filter(e => e[1] === 1 && LE2.dayIdx(e[0] * 1000) === d0).length; return c.st <= 1 && okToday < 3; })()); } catch (e) { return false; } },
+  canMore(kid) { const p = prof(kid.id); return EXP.on(kid) && EXP.coreDone(p) && (EXP.flowsToday(p) >= EXP.FLOW_MAX || EXP.extraDone(p) >= EXP.FLOW_MAX) && EXP.useful(EXP.peekFlow(kid), kid); },
+  practiceOnly(kid, mode) { const p = prof(kid.id); return EXP.on(kid) && (mode === 'more' || ((mode === 'mission' || mode === 'flow') && EXP.extraDone(p) >= EXP.FLOW_MAX) || (mode === 'exam' && EXP.examsToday(p) >= 1)); },
+  examsToday(p) { const d0 = EXP.today(); return V2.v2recs(p).filter(r => r.m === 'exam' && r.done && LE2.dayIdx(r.t * 1000) === d0).length; },   // Testa mig: en belönad omgång per dygn
+  // Ett övningsblock pågår (Öva mer, eller provträning efter dygnets tre extrablock): inga poäng vid källan. Slutar gälla när passet är slut.
+  poActive() { return typeof S !== 'undefined' && !!S && !!S.v2 && S.v2.po === true && !S.v2.ended; },
   // Befintliga externa resurser för målets moment (t.ex. kemins Begreppa-filmer) – inget genereras
   resources(kid, e) { try { if (!e || typeof BEGREPPA === 'undefined') return []; const out = []; const sk = [...new Set([...(e.skillIds || []), ...(e.kps || []).map(cid => { const i = typeof PACKS !== 'undefined' && PACKS.info(cid); return i && i.kp && i.kp.skill; }).filter(Boolean)])]; for (const id of sk) for (const [t, u] of (BEGREPPA[id] || [])) if (/^https:\/\//.test(u) && !out.some(x => x.u === u)) out.push({ t, u }); return out.slice(0, 3); } catch (e2) { return []; } },
   // När det inte finns något mer som gör nytta: säg det ärligt (och visa en befintlig resurs om målet har en) – ingen utfyllnad
@@ -82,7 +79,7 @@ const EXP = {
   moreBtns(kid, m) {
     const btns = [];
     if (EXP.canMore(kid)) btns.push(`<button class="btn wide secondary btn-2l" data-v2="ovamer">Öva mer<span class="btn-sub"><span class="sep"> · </span>utan poäng, cirka ${EXP.flowMins(kid)} min</span></button>`);
-    if (m && EXP.isExam(m.e) && V2.examCidsActive(kid, m.e).length) { const mp = EXP.safe(() => V2.plan(kid, 'mission', LE.state(kid), LE.now(), null, { examId: m.e.id }), 'morePeek', []); if (mp.length) btns.push(`<button class="btn wide ghost btn-2l" data-v2="mission" data-exam="${esc(m.e.id)}">Öva mer inför ${esc(m.e.title)}<span class="btn-sub"><span class="sep"> · </span>${EXP.practiceOnly(kid, 'mission') ? 'utan poäng, ' : ''}cirka ${EXP.mins(mp, kid)} min</span></button>`); }
+    if (m && EXP.isExam(m.e) && V2.examCidsActive(kid, m.e).length) { const mp = EXP.safe(() => V2.plan(kid, 'mission', LE.state(kid), LE.now(), null, { examId: m.e.id }), 'morePeek', []); if (mp.length && EXP.useful(mp, kid)) btns.push(`<button class="btn wide ghost btn-2l" data-v2="mission" data-exam="${esc(m.e.id)}">Öva mer inför ${esc(m.e.title)}<span class="btn-sub"><span class="sep"> · </span>${EXP.practiceOnly(kid, 'mission') ? 'utan poäng, ' : ''}cirka ${EXP.mins(mp, kid)} min</span></button>`); }
     return btns.join('');
   },
   /* ---------- Planens presentation ---------- */

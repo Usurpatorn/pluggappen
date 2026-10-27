@@ -31,40 +31,47 @@ const openKid = (T, id) => { toStart(T); T.click(T.$(`[data-kid="${id}"]`)); if 
       const { w, T, D } = await boot(31); const { $, click, PA } = T; const kid = PA().KIDS.find(k => k.id === id); const p = () => PA().DB.profiles[id]; const pol = PA().LE.state(kid).pol;
       for (let d = 0; d < 2; d++) { openKid(T, id); click($('.go-btn[data-v2="kor"]')); D.run((it) => it.cat !== 'learn' && D.log.items % 4 === 0); w.__advance(DAY); }
       openKid(T, id); const C0 = PA().LE.state(kid); const st0 = Object.fromEntries(Object.entries(C0.L.c).map(([c, s]) => [c, s.st]));
-      click($('.go-btn[data-v2="kor"]')); D.run(() => false); const newAfterCore = PA().EXP.newToday(PA().LE.state(kid), PA().LE.now());
-      let flows = 0; click($('[data-go="home"]')); while ($('[data-v2="flow"]') && flows < 5) { click($('[data-v2="flow"]')); D.run(() => false); flows++; click($('[data-go="home"]')); }
+      let wk = 0; click($('.go-btn[data-v2="kor"]')); D.run((it) => it.cat !== 'learn' && (++wk % 2 === 0)); const newAfterCore = PA().EXP.newToday(PA().LE.state(kid), PA().LE.now());
+      let flows = 0; click($('[data-go="home"]')); while ($('[data-v2="flow"]') && flows < 5) { click($('[data-v2="flow"]')); D.run((it) => it.cat !== 'learn' && (++wk % 2 === 0)); flows++; click($('[data-go="home"]')); }
       ok(flows === PA().EXP.FLOW_MAX, `${id}: dygnets belönade extrablock som förut (${flows})`);
-      let home = txt(T); const more = $('[data-v2="ovamer"]');
-      ok(/vilar nu/.test(home) && !!more && /utan poäng/.test(more.textContent), `${id}: efter de belönade blocken – vila först, Öva mer finns (utan poäng)`);
+      let home = txt(T); const moreB = () => $('[data-v2="ovamer"]') || $('.mission.done [data-v2="mission"]') || $('[data-v2="mission"]'); const more = moreB();
+      ok(/vilar nu/.test(home) && ((!!more && /utan poäng/.test(more.textContent)) || /inget mer som gör nytta/.test(home)), `${id}: efter de belönade blocken – vila först, sedan Öva mer (utan poäng) eller ärligt att inget mer gör nytta`);
       ok(!GUILT.test(home), `${id}: ingen skuld på hemmet`);
       w.__advance(10 * 60000); ok(!PA().S || !PA().S.v2 || !$('#qcard'), `${id}: inget startar av sig självt`);
       // tre Öva mer-block i rad: inga belöningar, motorns regler gäller, felen hanteras
-      let blocks = 0; const r0 = rewardState(p()); const fb0 = PA().LE2.felbokVisible(PA().LE.state(kid).L, PA().LE.now()).length; const n0 = Object.values(PA().LE.state(kid).L.c).reduce((a, c) => a + c.n, 0);
-      while ($('[data-v2="ovamer"]') && blocks < 3) {
-        click($('[data-v2="ovamer"]')); const V = PA().S && PA().S.v2; ok(V && V.mode === 'more' && V.po === true, `${id}: Öva mer startat som övning (po)`);
+      for (const q of ((p().quests || {}).items || [])) if (q.done && !q.claimed) w.eval('claimQuest')(kid, q.id);   // uppdrag som blev klara i de belönade blocken hämtas först (de får hämtas när som helst)
+      const rw0 = JSON.stringify((p().le && p().le.rw) || []); let blocks = 0; const r0 = rewardState(p()); const fb0 = PA().LE2.felbokVisible(PA().LE.state(kid).L, PA().LE.now()).length; const n0 = Object.values(PA().LE.state(kid).L.c).reduce((a, c) => a + c.n, 0);
+      while (moreB() && blocks < 6) {
+        click(moreB()); const V = PA().S && PA().S.v2; ok(V && (V.mode === 'more' || V.mode === 'mission') && V.po === true, `${id}: Öva mer startat som övning (po, ${V && V.mode})`);
         let k = 0; D.run((it) => it.cat !== 'learn' && (++k % 3 === 0)); blocks++;
         const klar = txt(T); ok(/ÖVNINGEN KLAR/.test(klar) && /inga poäng/.test(klar), `${id}: KLAR säger att extraövning inte ger poäng`);
         ok(!/\+\d+ ?XP|\+\d+ ?💎|Nytt märke/.test(klar), `${id}: inga XP, diamanter eller märken på KLAR`);
         ok(!!$('[data-go="home"]') && /Klar för idag/.test(klar), `${id}: tydlig slutpunkt efter blocket`);
         w.__advance(10 * 60000); if (blocks === 1) await sleep(1500); ok(!PA().S || !PA().S.v2 || !$('#qcard'), `${id}: inget nästa block startar av sig självt (även efter riktig väntan)`);
       }
-      ok(blocks >= 2, `${id}: lärandet stoppas inte efter de belönade blocken (${blocks} Öva mer-block)`);
-      // varje belöningsväg under ett övningsblock (märke, diamanter, uppdrag, XP, streak) återställs när något sparas
-      if ($('[data-v2="ovamer"]')) { const r2 = rewardState(p()); click($('[data-v2="ovamer"]')); const pp = p(); pp.badges = [...pp.badges, 'testmarke']; pp.gems += 7; pp.xp += 11; pp.perfect = (pp.perfect || 0) + 1; pp.streak += 1; if (pp.quests && pp.quests.items && pp.quests.items[0]) pp.quests.items[0].claimed = true; PA().save();
-        ok(rewardState(p()) === r2, `${id}: märken, diamanter, XP, uppdrag och streak återställs under Öva mer`); D.run(() => false); blocks++; }
-      ok(rewardState(p()) === r0, `${id}: XP, diamanter, märken, uppdrag och streak oförändrade efter ${blocks} Öva mer-block`);
+      ok(blocks >= 1 || /inget mer som gör nytta/.test(txt(T)), `${id}: lärandet stoppas inte efter de belönade blocken så länge något gör nytta (${blocks} Öva mer-block)`); if (id !== 'k2') ok(blocks >= 1, `${id}: minst ett Öva mer-block i den här fixturen (${blocks})`);
+      if (blocks < 6) { const t6 = txt(T); ok(/inget mer som gör nytta/.test(t6) || !!$('[data-v2="mission"]'), `${id}: när Öva mer tar slut sägs det ärligt (ingen upprepning som utfyllnad)`); }
+      // granskning: spärren gäller bara blocket – inte senare köp, synk, nollställning eller uppdrag (förut återställdes allt till blockets start)
+      { const pp = p(); const x0 = pp.xp, g0 = pp.gems; ok(!PA().EXP.poActive(), `${id}: efter blocket är spärren av`);
+        pp.gems += 40; pp.xp += 25; PA().save(); ok(p().gems === g0 + 40 && p().xp === x0 + 25, `${id}: belöningar efter blocket (t.ex. från synk) står kvar`);
+        pp.gems -= 25; PA().save(); ok(p().gems === g0 + 15, `${id}: ett köp efter blocket kostar som vanligt`);
+        // ett uppdrag som blev klart tidigare kan hämtas efter blocket och ger sin belöning
+        const qs0 = JSON.stringify(pp.quests || null), ca0 = pp.claimedAll; const q = pp.quests && pp.quests.items && pp.quests.items.find(x => !x.claimed); if (q) { q.done = true; const xq = pp.xp; w.eval('claimQuest')(PA().KIDS.find(k => k.id === id), q.id); ok(p().xp > xq && q.claimed === true, `${id}: ett uppdrag efter blocket ger sin belöning`); }
+        pp.quests = JSON.parse(qs0); pp.claimedAll = ca0; pp.gems = g0; pp.xp = x0; PA().save(); }
+      { const A0 = JSON.parse(r0), A1 = JSON.parse(rewardState(p())); const diff = Object.keys(A0).filter(k => JSON.stringify(A0[k]) !== JSON.stringify(A1[k])).map(k => k + ':' + JSON.stringify(A0[k]).slice(0, 60) + '→' + JSON.stringify(A1[k]).slice(0, 60)); ok(!diff.length, `${id}: XP, diamanter, märken, uppdrag och streak oförändrade efter ${blocks} Öva mer-block ${diff.join(' | ')}`); }
+      ok(JSON.stringify((p().le && p().le.rw) || []) === rw0, `${id}: motorns belöningsliggare förbrukas inte i Öva mer`);
       const C1 = PA().LE.state(kid); const now = PA().LE.now();
-      ok(Object.values(C1.L.c).reduce((a, c) => a + c.n, 0) > n0, `${id}: svaren i Öva mer blir bevis (kastas inte)`);
+      if (blocks) ok(Object.values(C1.L.c).reduce((a, c) => a + c.n, 0) > n0, `${id}: svaren i Öva mer blir bevis (kastas inte)`);
       ok(PA().LE2.felbokVisible(C1.L, now).length >= fb0, `${id}: felen hanteras som vanligt (Felboken)`);
       const inflated = Object.entries(C1.L.c).filter(([c, s]) => s.st - (st0[c] == null ? 0 : st0[c]) > 1).map(([c]) => c);
       ok(!inflated.length, `${id}: inget koncept mer än ett stadiesteg samma dygn (CORE + ${flows} FLOW + ${blocks} Öva mer): ${inflated.slice(0, 3)}`);
       const d0 = PA().LE2.dayIdx(now); const newHigh = Object.entries(C1.L.c).filter(([c, s]) => s.fs && PA().LE2.dayIdx(s.fs * 1000) === d0 && s.st >= 2).map(([c]) => c);
       ok(!newHigh.length, `${id}: inget som är nytt idag står på stadium 2 eller högre (${newHigh.slice(0, 3)})`);
       const newAll = PA().EXP.newToday(C1, now); ok(newAll <= Math.max(pol.maxNew, newAfterCore), `${id}: dygnets gräns för nytt håller (${newAfterCore} → ${newAll}, gräns ${pol.maxNew})`);
-      const recs = p().le.shadow.filter(r => r.m === 'more'); ok(recs.length === blocks && recs.every(r => r.po === 1 && r.done === 1), `${id}: Öva mer sparas som övningsposter (m:'more', po:1)`);
+      const recs = p().le.shadow.filter(r => r.po === 1); ok(recs.length === blocks && recs.every(r => r.done === 1 && (r.m === 'more' || r.m === 'mission')), `${id}: Öva mer sparas som övningsposter (po:1)`);
       // provträning efter dygnets extrablock: utan poäng, och håller sig inom målet (även Boss, Rescue och omförsök)
       if (id === 'k8') {
-        openKid(T, id); const mb = $('[data-v2="mission"]'); ok(!!mb && /Öva mer inför/.test(mb.textContent) && /utan poäng/.test(mb.textContent), `k8: Öva mer inför ett mål erbjuds (${mb && mb.textContent.trim()})`);
+        openKid(T, id); const mb = $('[data-v2="mission"]'); ok(mb ? /Öva mer inför/.test(mb.textContent) && /utan poäng/.test(mb.textContent) : /inget mer som gör nytta/.test(txt(T)), `k8: Öva mer inför ett mål erbjuds när provträningen gör nytta, annars ärlig text (${mb ? mb.textContent.trim() : 'inget kvar'})`);
         if (mb) { const exId = mb.dataset.exam; click(mb); const V = PA().S.v2; ok(V.mode === 'mission' && V.po === true, 'k8: provträning efter dygnets extrablock är utan poäng');
           const e = PA().LE.exams(kid, p()).find(x => x.id === exId); const set = new Set(PA().V2.examCidsActive(kid, e)); const r1 = rewardState(p()); const out = [];
           let n = 0; while (PA().S && PA().S.v2 && $('#qcard') && n++ < 60) { const it = PA().S.queue[PA().S.i]; if (it.spec && it.spec.cid && !set.has(it.spec.cid)) out.push((it.spec.role || '?') + ':' + it.spec.cid); D.answer(() => n % 2 === 0); w.__advance(4000); }
@@ -75,6 +82,19 @@ const openKid = (T, id) => { toStart(T); T.click(T.$(`[data-kid="${id}"]`)); if 
       openKid(T, id); PA().EXP.peekFlow = () => []; const vp = PA().V2.plan; PA().V2.plan = (k, mode, ...r) => (mode === 'mission' ? [] : vp(k, mode, ...r)); PA().rerender(); openKid(T, id); home = txt(T);
       ok(!$('[data-v2="ovamer"]') && !$('[data-v2="mission"]') && /inget mer som gör nytta att öva i appen idag/.test(home), `${id}: slut på nyttigt innehåll sägs ärligt (${home.slice(0, 80)})`);
     }
+    // Dygnets belönade extrablock är FLOW + provträning tillsammans (högst tre), och Testa mig ger poäng en gång per dygn (granskning)
+    { const { T, D } = await boot(17); const { $, click, PA } = T; const kid = PA().KIDS.find(k => k.id === 'k8'); openKid(T, 'k8'); click($('.go-btn[data-v2="kor"]')); D.run(() => false);
+      const ex = PA().LE.exams(kid, PA().DB.profiles.k8).find(e => e.id === 'w:syn-alg'); let m = 0;
+      for (let i = 0; i < 3; i++) { PA().V2.start(kid, 'mission', { examId: ex.id }); if (PA().S && PA().S.v2) { m++; D.run(() => false); } }
+      openKid(T, 'k8'); ok(m === 3 && !$('[data-v2="flow"]'), `tre provträningar: inget belönat FLOW-block därefter (${m})`);
+      PA().V2.start(kid, 'mission', { examId: ex.id }); ok(PA().S && PA().S.v2 && PA().S.v2.po === true, 'fjärde provträningen är utan poäng'); D.run(() => false);
+      PA().V2.start(kid, 'exam', { examId: ex.id }); ok(PA().S.v2.po !== true, 'dagens första Testa mig ger poäng'); D.run(() => false);
+      const x1 = PA().DB.profiles.k8.xp; PA().V2.start(kid, 'exam', { examId: ex.id }); ok(PA().S.v2.po === true, 'andra Testa mig samma dygn är utan poäng'); D.run(() => false);
+      ok(PA().DB.profiles.k8.xp === x1 && /bara för att se läget/.test(txt(T)), `andra Testa mig: inga XP och det sägs (${PA().DB.profiles.k8.xp - x1})`); }
+    // Allt rätt i CORE och FLOW: det som återstår har redan blivit rätt idag – då ingen Öva mer (bara upprepning) utan ärlig text
+    { const { T, D } = await boot(13); const { $, click } = T; openKid(T, 'k4'); click($('.go-btn[data-v2="kor"]')); D.run(() => false); click($('[data-go="home"]')); let f = 0; while ($('[data-v2="flow"]') && f++ < 5) { click($('[data-v2="flow"]')); D.run(() => false); click($('[data-go="home"]')); }
+      const useful = T.PA().EXP.useful(T.PA().EXP.peekFlow(T.PA().KIDS.find(k => k.id === 'k4')), T.PA().KIDS.find(k => k.id === 'k4')); const t = txt(T);
+      ok(useful ? !!$('[data-v2="ovamer"]') : (!$('[data-v2="ovamer"]') && /inget mer som gör nytta/.test(t)), `allt rätt idag: Öva mer bara om något återstår som inte redan blivit rätt (${useful ? 'återstår' : 'inget kvar – ärlig text'})`); }
     // Ett mål med en befintlig extern resurs (kemi) och inget kvar att öva: länken visas, inget genereras
     { const { w, T, PA } = await (async () => { const b = await boot(5); return { ...b, PA: b.T.PA }; })(); const kid = PA().KIDS.find(k => k.id === 'k8');
       const res = PA().EXP.resources(kid, PA().LE.exams(kid, PA().DB.profiles.k8).find(e => e.id === 'w:syn-kemi'));
@@ -83,15 +103,15 @@ const openKid = (T, id) => { toStart(T); T.click(T.$(`[data-kid="${id}"]`)); if 
       ok(/rel="noopener noreferrer"/.test(html) && /target="_blank"/.test(html), 'resurslänken öppnas säkert i en ny flik'); }
     // Två enheter (offline): Öva mer på båda – inga belöningar efter sammanslagning
     { const a = await boot(7), b = await boot(7); const base = JSON.parse(JSON.stringify(a.T.PA().DB.profiles.k4));
-      for (const dev of [a, b]) { const { T, D, w } = dev; const { $, click, PA } = T; openKid(T, 'k4'); click($('.go-btn[data-v2="kor"]')); D.run(() => false); click($('[data-go="home"]')); let f = 0; while ($('[data-v2="flow"]') && f++ < 5) { click($('[data-v2="flow"]')); D.run(() => false); click($('[data-go="home"]')); } }
+      for (const dev of [a, b]) { const { T, D, w } = dev; const { $, click, PA } = T; let wk = 0; openKid(T, 'k4'); click($('.go-btn[data-v2="kor"]')); D.run((it) => it.cat !== 'learn' && (++wk % 2 === 0)); click($('[data-go="home"]')); let f = 0; while ($('[data-v2="flow"]') && f++ < 5) { click($('[data-v2="flow"]')); D.run((it) => it.cat !== 'learn' && (++wk % 2 === 0)); click($('[data-go="home"]')); } }
       const xpA = a.T.PA().DB.profiles.k4.xp, xpB = b.T.PA().DB.profiles.k4.xp; const sx = (pp) => JSON.stringify([pp.since.xp, pp.since.gems, Object.fromEntries(Object.entries(pp.since.days || {}).map(([d, v]) => [d, v.xp]))]); const sA = sx(a.T.PA().DB.profiles.k4), sB = sx(b.T.PA().DB.profiles.k4);
-      for (const dev of [a, b]) { const { T, D } = dev; const { $, click } = T; for (let i = 0; i < 2 && $('[data-v2="ovamer"]'); i++) { click($('[data-v2="ovamer"]')); D.run(() => false); click($('[data-go="home"]')); } }
+      let nMore = 0; for (const dev of [a, b]) { const { T, D } = dev; const { $, click } = T; for (let i = 0; i < 2 && $('[data-v2="ovamer"]'); i++) { click($('[data-v2="ovamer"]')); nMore++; D.run(() => false); click($('[data-go="home"]')); } }
       ok(a.T.PA().DB.profiles.k4.xp === xpA && b.T.PA().DB.profiles.k4.xp === xpB, 'två enheter: Öva mer ändrar inte XP på någon enhet');
       ok(sx(a.T.PA().DB.profiles.k4) === sA && sx(b.T.PA().DB.profiles.k4) === sB, 'två enheter: inga XP- eller diamantdelta att synka (aktiviteten räknas som vanligt)');
       const m = a.w.mergeProfiles(JSON.parse(JSON.stringify(a.T.PA().DB.profiles.k4)), JSON.parse(JSON.stringify(b.T.PA().DB.profiles.k4)), base);
       const rewardedA = xpA - base.xp, rewardedB = xpB - base.xp;
       ok(m.xp === base.xp + rewardedA + rewardedB, `två enheter: efter synk bara de belönade blocken (${m.xp} = ${base.xp} + ${rewardedA} + ${rewardedB})`);
-      const recs = (m.le && m.le.shadow || []).filter(r => r.m === 'more'); ok(recs.length >= 2 && recs.every(r => r.po === 1), `två enheter: båda enheternas övningsposter finns kvar efter synk (${recs.length})`);
+      const recs = (m.le && m.le.shadow || []).filter(r => r.m === 'more'); ok(recs.length === nMore && recs.every(r => r.po === 1), `två enheter: båda enheternas övningsposter finns kvar efter synk (${recs.length} av ${nMore})`); ok(nMore >= 1, `två enheter: minst ett Öva mer-block spelades (${nMore})`);
     }
   } catch (e) { fails++; console.log('FAIL undantag', e && e.stack || e); }
   console.log(`\n${checks} kontroller, ${fails} fel`); console.log(fails ? 'OVA MER TEST FAILED' : 'OVA MER TEST OK'); process.exit(fails ? 1 : 0);

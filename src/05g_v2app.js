@@ -189,7 +189,7 @@ const V2 = {
     if (typeof plan.maxNew === 'number' && V2.newToday(C, now) === 0) rec.mx = plan.maxNew;   // dygnets första pass: motorns egen gräns för nytt idag (FLOW/provträning håller den)
     p.le.shadow = [...(p.le.shadow || []), rec].slice(-LE2.SHADOW_MAX);
     S = { kid, mode: 'v2', opts: { v2: mode, ...extra }, queue: [], i: 0, results: [], xp: 0, usedHelp: false, retried: false, startedAt: Date.now(), streak: 0, revealed: false, answered: false, examId: extra.examId, deadline: null, chain: null,
-      v2: { R, C, id, mode, exam, start: now, k: 0, plan, planN: plan.length, light: !!plan.light, restart: !!plan.restart, rewards: [], answers: [], seen: new Set(), stageUps: new Set(), fbBefore: LE2.felbokVisible(C.L, now).length, extra, exp: EXP.on(kid) ? EXP.of(kid) : null, calm: !!plan.restart, po, r0: po ? EXP.rewardSnap(p) : null } };
+      v2: { R, C, id, mode, exam, start: now, k: 0, plan, planN: plan.length, light: !!plan.light, restart: !!plan.restart, rewards: [], answers: [], seen: new Set(), stageUps: new Set(), fbBefore: LE2.felbokVisible(C.L, now).length, extra, exp: EXP.on(kid) ? EXP.of(kid) : null, calm: !!plan.restart, po } };
     save();
     state.screen = 'practice';
     if (!V2.advance()) return V2.finish();
@@ -375,7 +375,7 @@ const V2 = {
   },
   teachDone() { const item = S.queue[S.i]; if (!item || item.cat !== 'learn') return; LER.answered(S.v2.R, S.v2.C.L, item.spec, true); S.results.push(null); nextQuestion(); },
   // Granskning M6: Utmaningen ger XP men ändrar aldrig v1:s mastery/nivå eller v1-Felboken (som rollback bygger på)
-  challengeXp(correct) { const p = prof(S.kid.id); const xp = correct ? 14 : 2; p.xp += xp; bumpDay(p, correct, xp); if (correct) questEvent(p, 'correct', { skillId: null }); save(); return xp; },
+  challengeXp(correct) { const p = prof(S.kid.id); const xp = EXP.poActive() ? 0 : correct ? 14 : 2; p.xp += xp; bumpDay(p, correct, xp); if (correct) questEvent(p, 'correct', { skillId: null }); save(); return xp; },
   check(q, raw) { return q.v2check === 'recall' ? RECALL.check(q, raw) : q.v2check === 'create' ? CHG.check(q, raw) : q.v2check === 'pack' ? PACKS.check(q, raw) : checkAnswer(q, raw); },
   /* ---------- Svar → bevis ---------- */
   // v3 (granskning H1/H2): sortera, para ihop och bygg ordet går att lösa genom att pröva sig fram eller känna igen – de räknas som
@@ -440,7 +440,7 @@ const V2 = {
   finish() {
     const V = S.v2; const kid = S.kid; const p = prof(kid.id); const C = V.C; const sum = LER.summary(V.R);
     V2.safe(() => {
-      p.sessions++; p.sprintsSinceBreak = (p.sprintsSinceBreak || 0) + 1; if (sum.n >= 5 && sum.ok === sum.n) { p.perfect = (p.perfect || 0) + 1; questEvent(p, 'perfect', {}); }
+      p.sessions++; p.sprintsSinceBreak = (p.sprintsSinceBreak || 0) + 1; if (sum.n >= 5 && sum.ok === sum.n && !V.po) { p.perfect = (p.perfect || 0) + 1; questEvent(p, 'perfect', {}); }
       const focusOk = V.R.log.some(x => x[1] === 'F' && x[2] === 1); const extra = [];
       if (focusOk) extra.push('FOCUS'); if (V2.weekDays(p) >= LE2.CFG.reward.CONSISTENCY.days) extra.push('CONSISTENCY');
       if (!V.exam) V.rewards.push(...V2.grant(p, extra, null));
@@ -450,7 +450,8 @@ const V2 = {
         p.tests.push({ date: todayKey(), examId: V.extra.examId, score: V.answers.filter(a => a.ok).length, total: V.answers.length, ms: Date.now() - S.startedAt, v2: 1, ind }); if (p.tests.length > 30) p.tests.shift(); }
       LE.housekeep(kid);
     }, 'finish');
-    save(); const won = V.po ? [] : (V2.safe(() => checkBadges(kid), 'badges', []) || []);
+    save(); V.ended = true;   // 3.4: övningsblockets spärr gäller bara blocket (inte senare köp, synk eller nollställning)
+    const won = V.po ? [] : (V2.safe(() => checkBadges(kid), 'badges', []) || []);
     if (V.exam) return V2.examResult(won);
     const next = V2.safe(() => V2.peekPlan(kid).plan, 'nextPlan', null);
     const klar = V.light || !!(next && (next.light || next.scopeEmpty || !next.length));   // 3.1: inget "Ett pass till" när dagens plan är tom
@@ -494,6 +495,7 @@ const V2 = {
     beep(won.length ? 'badge' : 'win');
     render(`${topbar('Testa mig', 'home')}
     <div class="stack" style="margin-top:6px">
+    ${V.po ? '<div class="muted" style="font-size:.9rem">Dagens första Testa mig gav poäng – den här omgången är bara för att se läget.</div>' : ''}
       ${V.exp ? (() => { const f = EXP.examFocus(S.kid, V); return `<div class="card pad-lg summary-hero stack exam-hero" style="gap:6px"><div class="eyebrow">Testa mig${f.title ? ' · ' + esc(f.title) : ''}</div>
         <div class="exam-head">${ok === n ? 'Alla svar stämde den här gången.' : 'Bra att du testade. Nu vet appen vad du ska öva på.'}</div>${f.more.length ? `<div class="exam-focus">Öva mer: <b>${f.more.map(esc).join(', ')}</b></div>` : ''}</div>`; })()
       : `<div class="card pad-lg summary-hero stack" style="gap:6px;text-align:center"><div class="eyebrow">Testa mig · ${fmtTime(Date.now() - S.startedAt)}</div><div class="big">${ok}/${n}</div>

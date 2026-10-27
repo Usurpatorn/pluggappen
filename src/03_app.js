@@ -49,7 +49,6 @@ function rollover(p) {
 let saveTimer = null;
 function save() {
   if (typeof V2 !== 'undefined' && V2.sandbox) return; // förälderns förhandsvisning av v2: inget sparas eller synkas
-  if (typeof EXP !== 'undefined' && EXP.capRewards) EXP.capRewards();   // 3.4 fas D: Öva mer ger inga belöningar (före since-beräkningen nedan)
   const target = state.screen === 'parent' ? state.tab : state.kid;
   if (target && DB.profiles[target]) { const d = DB.profiles[target]; d.updatedAt = Math.max(Date.now(), (d.syncedAt || 0) + 1); d.since = d.since || { xp: 0, gems: 0, days: {} }; if (d._lx != null) { d.since.xp += d.xp - d._lx; d.since.gems += d.gems - d._lg; } d._lx = d.xp; d._lg = d.gems; SYNC.schedulePush(target); }
   clearTimeout(saveTimer); saveTimer = setTimeout(flushSave, 150);
@@ -100,6 +99,7 @@ function recordAnswer(kidId, skillId, correct, level, usedHelp) {
     if (s.wrongRun >= 3 && s.lvl > 1) { s.lvl--; s.wrongRun = 0; }
     xp = 2;
   }
+  if (typeof EXP !== 'undefined' && EXP.poActive()) xp = 0;   // 3.4 fas D: Öva mer ger inga poäng (vid källan – inget återställs i efterhand)
   p.xp += xp; bumpDay(p, correct, xp);
   if (correct) questEvent(p, 'correct', { skillId });
   save();
@@ -107,7 +107,7 @@ function recordAnswer(kidId, skillId, correct, level, usedHelp) {
 }
 function recordWordAnswer(kidId, wid, correct) {
   const p = prof(kidId); recordWord(p, wid, correct);
-  const xp = correct ? 7 : 1; p.xp += xp; bumpDay(p, correct, xp);
+  const xp = typeof EXP !== 'undefined' && EXP.poActive() ? 0 : correct ? 7 : 1; p.xp += xp; bumpDay(p, correct, xp);
   const d = p.days[todayKey()]; d.w = (d.w || 0) + 1;
   questEvent(p, 'word', { correct });
   if (correct) questEvent(p, 'correct', { skillId: null });
@@ -157,6 +157,7 @@ function dailyQuests(kid) {
 }
 function questEvent(p, type, data) {
   if (!p.quests || p.quests.date !== todayKey()) return;
+  if (typeof EXP !== 'undefined' && EXP.poActive()) return;   // 3.4 fas D: Öva mer räknas inte mot dagens uppdrag
   for (const q of p.quests.items) {
     if (q.done) continue;
     if (q.type === 'correct' && type === 'correct') q.progress++;
@@ -999,7 +1000,7 @@ function submitMath() {
   LE.observe(S, q, correct); // Fas 3B: skuggläge – loggar bevis, påverkar inte v1
   if (S.mode === 'felbok') { const p = prof(S.kid.id); if (correct) { clearMistake(p, q.mistakeId); save(); } }
   else if (!correct && !v2ch && !(q.type === 'sort' || q.type === 'match' || q.build)) { noteMistake(prof(S.kid.id), q); save(); }   // v3-aktiviteter hör till v2:s Felbok – v1:s Felbok kan inte visa dem (granskning)
-  if (correct) { S.streak++; if (S.streak >= 3) { const b = Math.min(10, S.streak * 2); xp += b; prof(S.kid.id).xp += b; save(); } } else S.streak = 0;
+  if (correct) { S.streak++; if (S.streak >= 3 && !(typeof EXP !== 'undefined' && EXP.poActive())) { const b = Math.min(10, S.streak * 2); xp += b; prof(S.kid.id).xp += b; save(); } } else S.streak = 0;
   S.xp += xp; S.results.push(correct);
   let v2evs = null; const v2rw = S.v2 ? S.v2.rewards.length : 0;
   if (S.v2) { v2evs = V2.observe(q, correct); if (S.v2.exam) return V2.examAnswered(q, correct, raw); }
