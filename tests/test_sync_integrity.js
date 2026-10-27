@@ -1,4 +1,4 @@
-/* Synkens integritet (3.2.x, ägarens beslut 27 oktober): en enhet med ett gammalt läge får aldrig skriva över nyare data.
+/* Synkens integritet (3.2.2, ägarens beslut 27 oktober): en enhet med ett gammalt läge får aldrig skriva över nyare data.
    Granskningen av Testa som barnet visade att den VANLIGA synken laddade upp hela profilen utan att först hämta: en förälder som
    ändrade en inställning på en enhet som inte hämtat sedan barnet spelade skrev över barnets framsteg.
    SYNTETISK familj (testfixturen), en låtsad Firestore som enheterna delar (med Firestores villkorade skrivningar), fast klocka.

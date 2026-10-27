@@ -95,7 +95,7 @@ jobs:
         run: npx firebase emulators:exec --project demo-pluggappen --only firestore "node tests/rules/rules.test.mjs"
       - name: Nyckelfri publicering (backup, konfliktskydd, återläsning, rollback)
         run: npx firebase emulators:exec --project demo-pluggappen --only firestore "node tests/rules/publish.test.mjs"
-      - name: Synkens villkorade skrivning (3.2.1) – Firestore förstår villkoren och nekar en inaktuell version
+      - name: Synkens villkorade skrivning (3.2.2) – Firestore förstår villkoren och nekar en inaktuell version
         run: npx firebase emulators:exec --project demo-pluggappen --only firestore "node tests/rules/sync_precondition.test.mjs"
       - name: Regler 2.0.0 (kända hål förväntas)
         run: npx firebase emulators:exec --project demo-pluggappen --only firestore "node tests/rules/rules.test.mjs"

@@ -1,7 +1,7 @@
 /* ========= Cloud sync (only active in the self-hosted build with window.PLUGG_SYNC set) =========
    Data model: one Firestore document per child: families/{familyCode}/profiles/{kidId}
    fields: json (stringValue = the profile), updatedAt (integerValue, ms).
-   3.2.1 (synkens integritet): en skrivning är ALLTID villkorad på den version enheten senast hämtade (currentDocument.updateTime /
+   3.2.2 (synkens integritet): en skrivning är ALLTID villkorad på den version enheten senast hämtade (currentDocument.updateTime /
    exists=false). Har någon annan hunnit skriva nekar servern; enheten hämtar, slår ihop och försöker igen (högst tre gånger per
    omgång, sedan nya omgångar med växande paus). Ingen blind skrivning av en hel profil över nyare data. Sammanslagningen är
    trevägs mot den senast kända serverversionen (DB.syncBase: kontrollsummor per fält och id-listor), så att en ändring eller
@@ -184,7 +184,7 @@ const SYNC = {
     return SYNC.status === 'error' ? `<span class="pill bad" title="${esc(SYNC.lastError || '')}">Synk: fel – sparar lokalt</span>` : SYNC.pending.size ? `<span class="pill">Synkar…</span>` : `<span class="pill good">Synk på</span>`;
   },
 };
-// a = enhetens profil (med osynkade ändringar), b = familjens data. base (3.2.1) = senast kända serverversion: det som inte ändrats
+// a = enhetens profil (med osynkade ändringar), b = familjens data. base (3.2.2) = senast kända serverversion: det som inte ändrats
 // här sedan dess tas från familjens data (även raderingar). Utan base: som förut (inget kan försvinna, men en radering kan komma tillbaka).
 const MERGED_KEYS = new Set(['xp', 'gems', 'streak', 'lastDay', 'freezes', 'sessions', 'perfect', 'skills', 'words', 'days', 'weekCorrect', 'resetAt', 'badges', 'unlocked', 'decks', 'exams', 'enabledDecks', 'removedDefaults', 'tests', 'blitz', 'quests', 'settings', 'mistakes', 'mistakesCleared', 'v3', 'le']);
 function mergeProfiles(a, b, base, opts) {
@@ -244,7 +244,7 @@ function mergeProfiles(a, b, base, opts) {
   if (a.le || b.le) out.le = typeof LE !== 'undefined' ? LE.mergeLE(a.le, b.le) : (a.le || b.le);
   return out;
 }
-// 3.2.1: nätet tillbaka eller appen visas igen → det som väntar i kön skrivs (hämta → slå ihop → villkorad skrivning)
+// 3.2.2: nätet tillbaka eller appen visas igen → det som väntar i kön skrivs (hämta → slå ihop → villkorad skrivning)
 if (typeof window !== 'undefined' && window.addEventListener) {
   window.addEventListener('online', () => { if (SYNC.pending.size) SYNC.flush(); });
   if (typeof document !== 'undefined') document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && SYNC.pending.size) SYNC.flush(); });

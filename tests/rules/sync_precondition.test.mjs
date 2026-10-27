@@ -1,4 +1,4 @@
-// 3.2.1 Synkens integritet: appens villkorade skrivning (PATCH …?currentDocument.updateTime=… / currentDocument.exists=false) mot
+// 3.2.2 Synkens integritet: appens villkorade skrivning (PATCH …?currentDocument.updateTime=… / currentDocument.exists=false) mot
 // Googles Firestore-emulator. Körs i CI inuti `firebase emulators:exec` (FIRESTORE_EMULATOR_HOST). SYNTETISKA data.
 // Visar att Firestore förstår villkoren i samma form som appen skickar dem (src/04_sync.js SYNC.push), att en inaktuell version
 // nekas, och att appens klassning av svaret ("konflikt – hämta, slå ihop, försök igen" i stället för fel) stämmer med Firestores svar.
