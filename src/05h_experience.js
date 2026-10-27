@@ -322,7 +322,7 @@ const EXP = {
   reveal(q, res) {
     if (q.type === 'sort') document.querySelectorAll('.stile').forEach(el => { const t = q.items[Number(el.dataset.sitem)]; el.disabled = true; el.classList.add(q.answer[t] === q.bins[Number(el.dataset.bin)] ? 'ok' : 'no'); });
     document.querySelectorAll('.sbin-h, .mtile, .ltile, #undoBuild').forEach(b => { b.disabled = true; }); document.querySelectorAll('#qcard .tip').forEach(x => x.remove());
-    if (q.type === 'match' && res) return `<div class="sub">${res.mistakes ? `Alla par klara – ${res.mistakes === 1 ? 'ett försök' : res.mistakes + ' försök'} blev fel på vägen.` : 'Alla par rätt direkt!'}</div>`;
+    if (q.type === 'match' && res) return `<div class="sub">${res.mistakes ? `Alla par klara – ${res.mistakes === 1 ? 'ett försök' : res.mistakes + ' försök'} blev fel på vägen.` : 'Inga fel på vägen.'}</div>`;
     return '';
   },
   /* ---------- KLAR (efter CORE och FLOW) ---------- */
@@ -363,17 +363,18 @@ const EXP = {
         const up = e === 'explore' ? 0 : [...V.stageUps].filter(cid => ((V.C.L.c[cid] || {}).st || 0) >= 2).length;
         const sh = e === 'achieve' && g && EXP.isExam(g.e) ? EXP.safe(() => EXP.examShare(kid, g, V.plan), 'klarShare', { n: 0 }) : { n: 0 };
         const bossWon = S.queue.slice(0, S.i + 1).some((x, i) => x.spec && x.spec.role === 'boss' && S.results[i] === true);
-        const lead = e === 'achieve' && V.mode === 'kor' ? 'Appen håller koll på resten.' : up ? `${up === 1 ? 'Ett område' : `${up} områden`} sitter bättre nu.` : e === 'explore' ? 'Du klarade dagens äventyr.' : mission ? 'Provträningen är gjord.' : flow ? (e === 'grow' ? 'Extrarundan är gjord.' : 'Extrapasset är gjort.') : e === 'grow' ? 'Du klarade dagens runda.' : 'Passet är gjort.';
+        const lead = e === 'achieve' && !mission ? 'Appen håller koll på resten.' : e === 'explore' && flow ? 'Ett äventyr till – klart!' : up ? `${up === 1 ? 'Ett område' : `${up} områden`} blev starkare.` : V.mode === 'revansch' ? 'Revanschen är gjord.' : mission ? 'Provträningen är gjord.' : flow ? (e === 'grow' ? 'Extrarundan är gjord.' : 'Extrapasset är gjort.') : V.mode !== 'kor' ? 'Passet är gjort.' : e === 'explore' ? 'Du klarade dagens äventyr.' : e === 'grow' ? 'Du klarade dagens runda.' : 'Passet är gjort.';   // "dagens runda/äventyr" bara när det verkligen var dagens plan
         const chips = [];
         if (bossWon) chips.push(e === 'achieve' ? 'Bossuppgiften klar' : '👑 Bossen klarad');
-        if (sh.n > 0) chips.push(`${EXP.isExam(g.e) ? 'Provet' : 'Uppgiften'}: ${sh.n} ${sh.n === 1 ? 'uppgift' : 'uppgifter'}`);
-        if (up && e === 'achieve' && V.mode === 'kor') chips.push(`${up} sitter bättre`);
+        if (sh.n > 0) chips.push(`${EXP.isExam(g.e) ? 'Provet' : 'Uppgiften'}: ${sh.n} i planen`);
+        if (up && e === 'achieve' && V.mode === 'kor') chips.push(`${up} starkare`);
         for (const k of kinds) chips.push(EXP.DELIGHT_CHIP[k] || EXP.DELIGHT[k]);
         if (gems && e === 'grow') chips.push(`+${gems} 💎`);
         const mark = e === 'achieve' ? '<path class="tick" d="M15 25l6 6 12-13"/>' : '';
         return `<div class="klar-mark" aria-hidden="true"><svg viewBox="0 0 48 48"><circle class="ring" cx="24" cy="24" r="21"/>${mark}</svg>${e === 'achieve' ? '' : `<span class="km-e">${e === 'explore' ? '🗺️' : '🏁'}</span>`}</div>
         <div class="klar-title">${esc(title)}</div>
-        <div class="klar-lead">${esc(lead)}</div>${trail}${bossLater || savedLater ? `<div class="klar-note">${bossLater}${savedLater}</div>` : ''}
+        <div class="klar-lead">${esc(lead)}</div>${trail}${(!flow && bossLater) || savedLater ? `<div class="klar-note">${flow ? '' : bossLater}${savedLater}</div>` : ''}
+        ${e === 'grow' ? (() => { const lv = levelOf(p.xp), a0 = 60 * (lv - 1) ** 2, a1 = 60 * lv ** 2; const pct = Math.max(0, Math.min(100, Math.round((p.xp - a0) / (a1 - a0) * 100))); return `<div class="klar-level"><div class="kl-t">Nivå ${lv}${typeof levelNameFor === 'function' ? ' · ' + esc(levelNameFor(kid, lv)) : ''}</div><div class="xpbar"><i style="width:${pct}%"></i></div><div class="kl-s">${a1 - p.xp} XP till nivå ${lv + 1}</div></div>`; })() : ''}
         ${chips.length ? `<div class="klar-chips">${chips.slice(0, 3).map(c => `<div>${esc(c)}</div>`).join('')}</div>` : ''}`; })()}
       </section>
       ${corePending ? `<button class="btn big wide" data-v2="kor">Till dagens plan · cirka ${EXP.mins(V2.peekPlan(kid).plan, kid)} min</button>` : canMore ? `<button class="btn big wide btn-2l" data-v2="flow">${esc(flowLabel)}<span class="btn-sub"><span class="sep"> · </span>cirka ${EXP.flowMins(kid)} min</span></button>` : `<div class="card muted" style="text-align:center">${rested ? 'Bra jobbat idag! Det du har övat sätter sig bäst om du vilar nu.' : 'Allt för idag är gjort.'}</div>`}

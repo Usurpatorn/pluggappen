@@ -41,12 +41,13 @@ const DISHONEST = /Du är redo|kommer (att )?klara provet|Du kan detta|\b\d{1,3}
         ok(!!qc.querySelector('#fb') && !!qc.querySelector('#actions'), `${id}: #fb och #actions finns kvar i kortet`); }
       else ok(![...qc.children].some(c => c.classList.contains('q-pane')), `${id}: inga tomma rutor för ${m.mode}`); };
     /* feedbacken granskas i samma ögonblick som drivaren trycker Nästa (då är svaret rättat och kortet kvar) */
-    let klars = 0; let cur = null; const fbSeen = { bossMoment: 0, mistake: 0, why: 0, boss: 0, bossPraise: 0, wrongExplore: 0, aligned: 0, match: 0 };
+    let klars = 0, revKlar = 0; let cur = null; const fbSeen = { bossMoment: 0, mistake: 0, why: 0, boss: 0, bossPraise: 0, wrongExplore: 0, aligned: 0, match: 0 };
     const snap = () => { if (!cur || !T.$('#qcard') || (T.$('#submit') && !T.$('#next') && !T.$('#fb .feedback'))) return;   /* drivarens andra försök (samma i 3.2.2) */
       const { id, it } = cur; cur = null; const fbEl = T.$('#qcard #fb'); if (it.cat === 'learn' || !fbEl) return;
       const fb = norm(fbEl.textContent); const ok1 = !!T.$('#fb .feedback.ok'); const no1 = !!T.$('#fb .feedback.no');
       ok(fb.length > 0, `${id}: feedback hamnar i kortet (${it.cat}/${it.kind || it.type})`); if (id === 'k8') ok(!/\bi rad\b/.test(fb), 'Achieve: inget "N i rad" i berömmet');
       if (it.spec && it.spec.role === 'boss' && ok1 && it.cat !== 'word' && !it.paper && !['sort', 'match', 'order', 'open'].includes(it.type)) { fbSeen.boss++; if (/👑|Bossuppgiften klar/.test(fb)) fbSeen.bossPraise++; }
+      if (it.type === 'match' && no1) ok(!!fbEl.querySelector('.feedback.no.almost'), `${id}: Para ihop "Nästan" får gul kant, inte röd`);
       if (it.spec && it.spec.role === 'boss' && ok1) { fbSeen.bossMoment++; ok(T.$('#qcard').classList.contains('boss-won'), `${id}: en klarad Boss får sitt ögonblick`); }
       if (it.type === 'order' && no1) { const li = [...fbEl.querySelectorAll('.order-correct li')].map(x => norm(x.textContent)); ok(li.length === it.items.length && li.every((t, k) => t === norm(String(it.items[k]).replace(/<[^>]+>/g, ''))), `${id}: Ordna visar rätt ordning efter ett fel`); }
       if (it.form === 'mistake' && it.type === 'choicetext' && (ok1 || no1)) { fbSeen.mistake++; ok(!/Rätt svar:/.test(fb) && !!fbEl.querySelector(".feedback s"), `${id}: "hitta felet"-fråga: felet visas överstruket, aldrig som "Rätt svar" (${it.type}/${it.paper ? "papper" : ""} ${fb.slice(0, 90)})`); }
@@ -65,6 +66,7 @@ const DISHONEST = /Du är redo|kommer (att )?klara provet|Du kan detta|\b\d{1,3}
         const klar = T.$('.klar'); if (klar) { ok(!DISHONEST.test(norm(klar.textContent)), `${id}: KLAR utan löften/procent`); klars++;
           /* 3.3: samma KLAR-komposition i alla tre: märke, rubrik, EN mening, högst tre chips, sedan fortsätt/klar för idag, sist det som kommer tillbaka */
           ok(!!klar.querySelector('.klar-mark') && klar.querySelectorAll('.klar-title').length === 1 && klar.querySelectorAll('.klar-lead').length === 1, `${id}: KLAR har märke, en rubrik och en mening`);
+          if (id === 'k4') ok(!!klar.querySelector('.klar-level') && /Nivå \d+/.test(norm(klar.textContent)) && /\d+ XP till nivå \d+/.test(norm(klar.textContent)), 'Grow-KLAR visar nivån och vad som är kvar till nästa');
           ok(klar.querySelectorAll('.klar-chips > div').length <= 3 && !/\d+ av \d+ rätt/.test(norm(klar.textContent)), `${id}: KLAR utan statistik, högst tre chips`);
           const order = [...w.document.querySelectorAll('.klar, [data-v2="flow"], [data-v2="kor"], [data-go="home"], .klar-back')].filter(x => !x.closest('.topbar')).map(x => x.matches('.klar') ? 'k' : x.matches('.klar-back') ? 'b' : x.matches('[data-go="home"]') ? 'h' : 'f');
           ok(order[0] === 'k' && order.indexOf('h') > 0 && (order.indexOf('b') === -1 || order.indexOf('b') > order.indexOf('h')), `${id}: KLAR-ordning rubrik → fortsätt → klar för idag → resten (${order.join('')})`); }
@@ -143,6 +145,28 @@ const DISHONEST = /Du är redo|kommer (att )?klara provet|Du kan detta|\b\d{1,3}
         ok(T.$('.grow-prog') ? /Dina områden/.test(ht) && /(sitter|på väg|övar)/.test(ht) && !/säkra|tränar/.test(ht) : true, 'Grow: stapeln förklaras med barnets ord');
         ok(h.querySelectorAll('.goal-row').length <= 1 && !/Dagens runda övar annat\./.test(ht), 'Grow: skoluppgiften på högst en rad'); }
       else ok(!!T.$('.mission.done'), 'Grow-hemmet finns'); }
+    /* 5b2. Grow: barnets ord motsvarar motorns lägen exakt; läsbart namn = momentets eget namn */
+    { w.__advance(DAY); const pr = { 'Säker': 3, 'På väg': 5, 'Tränar': 2, 'Behöver repetition': 1 }; const pg0 = PA().EXP.progress; PA().EXP.progress = () => pr;   /* olika tal för varje läge, så att en förväxling syns */
+      toStart(T); openKid(T, 'k4'); PA().EXP.progress = pg0; const st = T.$('.progress-states'); ok(!!st, 'Grow-hemmet visar Dina områden');
+      if (st) { const num = (cls) => { const el = st.querySelector('.' + cls + ' b'); return el ? +el.textContent : 0; };
+        ok(num('p-skra') === pr['Säker'] && num('p-pvg') === pr['På väg'] && num('p-trnar') === pr['Tränar'] + pr['Behöver repetition'], `Grow: sitter/på väg/övar = motorns Säker/På väg/Tränar+Behöver repetition (${num('p-skra')}/${num('p-pvg')}/${num('p-trnar')})`);
+        ok(/sitter/.test((st.querySelector('.p-skra') || { textContent: 'sitter' }).textContent) && /övar/.test((st.querySelector('.p-trnar') || { textContent: 'övar' }).textContent), 'Grow: rätt ord vid rätt läge'); }
+      const sk = kidOf('k8').skills.find(x => x.id === 'andragrad'); ok(!sk || PA().V2.readable(sk.short) === sk.name, 'läsbart namn för "x²" = momentets eget namn'); }
+    /* 5b3. Ordna: efter ett fel visas den sanna ordningen (index som rättningen använder), inte i Testa mig */
+    { openKid(T, 'k8'); if (!T.$('.go-btn[data-v2="kor"]')) { w.__advance(DAY); openKid(T, 'k8'); } T.click(T.$('.go-btn[data-v2="kor"]'));
+      const S = PA().S; const it = S.queue[S.i]; const items = ['Först', 'Sedan', 'Därefter', 'Sist'];
+      S.queue[S.i] = { type: 'order', text: 'Ordna stegen.', items, steps: ['Det här är ordningen.'], skill: kidOf('k8').skills[0], cat: 'math', level: 2, spec: { ...(it.spec || {}), role: 'focus' }, _slotEnd: true }; PA().rerender();
+      const order = PA().S.order.shuffled.map(x => x.i); const wrong = [order.find(i => i === 1), order.find(i => i === 0), 2, 3];
+      for (const i of wrong) T.click(T.$(`[data-otile="${i}"]`)); if (T.$('#submit')) T.click(T.$('#submit'));
+      const li = [...w.document.querySelectorAll('#fb .order-correct li')].map(x => norm(x.textContent));
+      ok(JSON.stringify(li) === JSON.stringify(items), `Ordna: rätt ordning efter ett fel (${li.join(' > ')})`);
+      ok(!!w.document.querySelector('#fb details.steps.why') || !w.document.querySelector('#fb .steps'), 'Ordna: förklaringen ett tryck bort (ingen dubbel ordning)'); }
+    /* 5b4. KLAR efter Revansch före dagens plan säger inte "dagens runda" */
+    for (const id of ['k4', 'k2']) { w.__advance(DAY); openKid(T, id); if (T.$('.go-btn[data-v2="kor"]')) { T.click(T.$('.go-btn[data-v2="kor"]')); D.run(() => true); }   /* ett pass med fel → saker att ta revansch på */
+      w.__advance(DAY); openKid(T, id); const rb = T.$('[data-v2="revansch"]'); if (!rb || !T.$('.go-btn[data-v2="kor"]')) continue;
+      T.click(rb); let g = 0; while (PA().S && PA().S.v2 && T.$('#qcard') && g++ < 30) { D.answer(() => r() < 0.3); w.__advance(2000); }
+      const kl = T.$('.klar'); if (kl) { revKlar++; ok(!/dagens (runda|äventyr)/.test(norm(kl.textContent)) || !T.$('[data-v2="kor"]'), `${id}: KLAR efter Revansch lovar inte att dagens plan är klar`); } }
+    ok(revKlar > 0, 'KLAR efter Revansch prövad');
     /* 5c. Föräldraläget: naturliga ord, ingen lös tid, läsbara områdesnamn */
     { toStart(T); const pb = T.$('[data-go="parent"]'); if (pb) { T.click(pb); const pins = [...w.document.querySelectorAll('[data-pin]')]; ['1', '2', '3', '4'].forEach((d, i) => { if (pins[i]) { pins[i].value = d; pins[i].dispatchEvent(new w.Event('input', { bubbles: true })); } });
         const pt = norm(T.$('#app').textContent); ok(/Översikt/.test(pt), 'föräldraläget öppnas');
@@ -152,7 +176,7 @@ const DISHONEST = /Du är redo|kommer (att )?klara provet|Du kan detta|\b\d{1,3}
     /* 6. Testa mig: lugnt resultat per mål – inga ✅/🔁, inget betyg, inga procent */
     { openKid(T, 'k8'); const tb = T.$('[data-v2="testa"]'); if (tb) { T.click(tb); let g = 0; while (PA().S && PA().S.v2 && T.$('#qcard') && g++ < 40) { ok(T.$('#qcard').dataset.exam === '1', 'Testa mig: data-exam'); ok(!w.document.querySelector('.progress i.ok, .progress i.no'), 'Testa mig: framstegsstapeln avslöjar inte rätt/fel'); D.answer(() => r() < 0.4); }
         const res = norm(T.$('#app').textContent); ok(!!T.$('.exam-hero'), 'Testa mig: resultatets rubrik'); ok(!/[✅🔁]/u.test(res), 'Testa mig: inga bocka/kryss-ikoner i v3');
-        ok(!/\b\d+\s*\/\s*\d+\b/.test(res) && !DISHONEST.test(res), 'Testa mig: inget "5/7", inga procent eller löften'); ok(/svar stämde/.test(res), 'Testa mig: antalet sägs som "N av M svar stämde"'); }
+        ok(!/\b\d+\s*\/\s*\d+\b/.test(res) && !DISHONEST.test(res), 'Testa mig: inget "5/7", inga procent eller löften'); ok(!/\d+ av \d+ svar stämde/.test(res) && /Öva mer|Alla svar stämde|vad du ska öva på/.test(res), 'Testa mig: resultatet leder med vad som ska övas, inte ett antal'); }
       else ok(false, 'Testa mig finns för Äldre i fixturen'); }
   } catch (e) { fails++; console.log('FAIL exception', e && e.stack || e); }
   console.log(`${checks} kontroller, ${fails} fel`); console.log(fails ? 'UX 3.3 TEST FAILED' : 'UX 3.3 TEST OK'); process.exit(fails ? 1 : 0);

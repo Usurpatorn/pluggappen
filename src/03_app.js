@@ -951,11 +951,12 @@ function onMath(e, q) {
 }
 function showSteps(q, reveal) {
   const el = document.getElementById('fb');
-  const why = !reveal && S.v2 && S.v2.exp === 'explore' && q.isError !== true;   // det rätta faktumet i en "hitta felet"-fråga visas direkt   // 3.3 Explore: en rad återkoppling – förklaringen finns ett tryck bort
+  const why = !reveal && S.v2 && (S.v2.exp === 'explore' || (S.v2.exp && q.type === 'order')) && q.isError !== true;   // Ordna: rätt ordning syns redan – förklaringen ett tryck bort   // det rätta faktumet i en "hitta felet"-fråga visas direkt   // 3.3 Explore: en rad återkoppling – förklaringen finns ett tryck bort
   const stepsHtml = why ? `<details class="steps why"><summary>Visa varför</summary><ol>${q.steps.map(s => `<li>${safeHtml(s)}</li>`).join('')}</ol></details>`
     : !reveal && S.v2 && S.v2.exp === 'grow' && q.kp && q.steps.length > 1 ? `<div class="steps"><div class="eyebrow">Så här är det</div><p style="margin:4px 0">${safeHtml(q.steps[0])}</p><details class="more-steps"><summary>Visa mer</summary><ol>${q.steps.slice(1).map(s => `<li>${safeHtml(s)}</li>`).join('')}</ol></details></div>`   /* 3.3 Grow: en mening först, resten ett tryck bort */
-    : `<div class="steps"><div class="eyebrow">${S.v2 && S.v2.exp && q.kp ? 'Så här är det' : 'Så här löser du den'}</div><ol>${q.steps.map(s => `<li>${safeHtml(s)}</li>`).join('')}</ol>${reveal && !S.answered ? `<p style="margin-top:10px" class="muted">Svaret är <b>${esc(answerDisplay(q))}</b>. Skriv in det så går vi vidare – nästa gång klarar du det själv!</p>` : ''}</div>`;
+    : `<div class="steps"><div class="eyebrow">${S.v2 && S.v2.exp && q.kp ? 'Så här är det' : 'Så här löser du den'}</div>${q.steps.length === 1 && S.v2 && S.v2.exp ? `<p style="margin:4px 0 0">${safeHtml(q.steps[0])}</p>` : `<ol>${q.steps.map(s => `<li>${safeHtml(s)}</li>`).join('')}</ol>`}${reveal && !S.answered ? `<p style="margin-top:10px" class="muted">Svaret är <b>${esc(answerDisplay(q))}</b>. ${q.choices || q.type === 'choicetext' ? 'Välj det' : 'Skriv in det'} så går vi vidare – nästa gång klarar du det själv!</p>` : ''}</div>`;
   const existing = el.querySelector('.steps'); if (existing) existing.remove();
+  if (reveal && !S.answered && S.v2 && S.v2.exp && q.type === 'choicetext' && Number.isInteger(q.answer)) document.querySelector(`#qcard [data-choice="${q.answer}"]`)?.classList.add('reveal-correct');   // 3.3: "Visa hur" pekar ut alternativet i stället för "skriv in det"
   el.insertAdjacentHTML('beforeend', stepsHtml);
   if (reveal) { S.revealed = true; const b = document.getElementById('explainBtn'); if (b) b.disabled = true; }
   el.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' });
@@ -995,13 +996,13 @@ function submitMath() {
   if (input) input.disabled = true;
   const xpE = S.v2 && S.v2.exp; const boss = xpE && q.spec && q.spec.role === 'boss'; const errQ = xpE && q.isError === true;   // 3.3: i "hitta felet"-frågor är svaret felet – aldrig "Rätt svar: <det felaktiga>"   // 3.3: Bossen märks när den är klarad (samma rättning)
   const pick = R.pick(['Snyggt!', 'Rätt!', 'Perfekt!', 'Så ska det se ut!', 'Boom!', 'Exakt!']);   // dras alltid (samma slumpföljd som förut)
-  const praise = boss ? (xpE === 'explore' ? '👑 Du besegrade bossen!' : xpE === 'grow' ? '👑 Bossen klarad!' : 'Bossuppgiften klar.') : pick;
+  const praise = boss ? (xpE === 'explore' ? '👑 Du besegrade bossen!' : xpE === 'grow' ? '👑 Bossen klarad!' : 'Bossuppgiften klar.') : xpE === 'achieve' ? ({ 'Boom!': 'Rätt.', 'Så ska det se ut!': 'Stämmer.', 'Snyggt!': 'Rätt.', 'Perfekt!': 'Stämmer.' }[pick] || pick) : pick;
   if (S.revealed && (q.paper || q.type === 'sort' || q.type === 'match' || q.build)) fb.innerHTML = `<div class="feedback warn"><span style="font-size:1.4rem">👀</span><div><div class="big">Nu vet du hur man gör</div><div class="sub">Du får en liknande uppgift igen om en stund.</div></div></div>`;   // granskning: efter "Visa hur man gör" aldrig "Svaret stämmer inte"
   else if (q.paper) { if (correct) { beep('ok', S.streak); xpPop(xp); } else beep('no'); fb.innerHTML = EXP.paperFeedback(q, correct, raw); }   // v3: bara svaret är sett – aldrig "lösningen är korrekt"
   else if (q.type === 'sort' || q.type === 'match' || q.build) {
     const extra = EXP.reveal(q, res);
     if (correct) { beep('ok', S.streak); xpPop(xp); fb.innerHTML = `<div class="feedback ok"><span style="font-size:1.4rem">✅</span><div><div class="big">${q.type === 'sort' ? 'Allt på rätt plats!' : q.type === 'match' ? 'Alla par rätt!' : praise}</div>${q.build ? `<div class="sub">${esc(answerDisplay(q))}</div>` : extra}</div></div>`; }
-    else { beep('no'); fb.innerHTML = `<div class="feedback no"><span style="font-size:1.4rem">🔁</span><div><div class="big">${q.type === 'match' ? 'Nästan!' : 'Inte riktigt'}</div>${q.type === 'match' ? extra : q.type === 'sort' ? '<div class="sub">De röda korten hör hemma i en annan grupp.</div>' : `<div class="sub">Rätt: <b>${esc(answerDisplay(q))}</b></div>`}</div></div>`; if (!isTest) showSteps(q, false); }
+    else { beep('no'); fb.innerHTML = `<div class="feedback no${q.type === 'match' ? ' almost' : ''}"><span style="font-size:1.4rem">🔁</span><div><div class="big">${q.type === 'match' ? 'Nästan!' : 'Inte riktigt'}</div>${q.type === 'match' ? extra : q.type === 'sort' ? '<div class="sub">De röda korten hör hemma i en annan grupp.</div>' : `<div class="sub">Rätt: <b>${esc(answerDisplay(q))}</b></div>`}</div></div>`; if (!isTest) showSteps(q, false); }
   }
   else if (q.type === 'order') {
     document.querySelectorAll('.otile').forEach(b => b.disabled = true); document.getElementById('undoOrder')?.remove();
@@ -1016,7 +1017,7 @@ function submitMath() {
     else { beep('no'); fb.innerHTML = `<div class="feedback no"><span style="font-size:1.4rem">✍️</span><div><div class="big">Svaret behöver mer</div><div class="sub">${hitTxt}${missTxt}</div></div></div>`; }
     if (!isTest || !correct) showSteps(q, false);
   }
-  else if (correct) { beep('ok', S.streak); xpPop(xp); fb.innerHTML = `<div class="feedback ok"><span style="font-size:1.4rem">✅</span><div><div class="big">${praise}${S.streak >= 3 && !(S.v2 && S.v2.exp === 'achieve') ? ` ${S.streak} i rad 🔥` : ''}</div><div class="sub">${xpE && q.challenge === 'spot' && (q.steps || [])[0] ? safeHtml(q.steps[0]) : errQ ? `Felet: <s>${esc(answerDisplay(q))}</s>${(q.steps || [])[0] ? `<br>${safeHtml(q.steps[0])}` : ''}` : esc(answerDisplay(q))}${res.note ? `<br>${res.note}` : ''}</div></div></div>`; }
+  else if (correct) { beep('ok', S.streak); xpPop(xp); fb.innerHTML = `<div class="feedback ok"><span style="font-size:1.4rem">✅</span><div><div class="big">${praise}${S.streak >= 3 && !boss && !(S.v2 && S.v2.exp === 'achieve') ? ` <span class="nw">${S.streak} i rad 🔥</span>` : ''}</div><div class="sub">${xpE && q.challenge === 'spot' && (q.steps || [])[0] ? safeHtml(q.steps[0]) : errQ ? `Felet: <s>${esc(answerDisplay(q))}</s>${(q.steps || [])[0] ? `<br>${safeHtml(q.steps[0])}` : ''}` : esc(answerDisplay(q))}${res.note ? `<br>${res.note}` : ''}</div></div></div>`; }
   else if (S.revealed) { fb.innerHTML = `<div class="feedback warn"><span style="font-size:1.4rem">👀</span><div><div class="big">Nu vet du hur man gör</div><div class="sub">Du får en liknande uppgift igen om en stund.</div></div></div>`; }
   else { beep('no'); fb.innerHTML = `<div class="feedback no"><span style="font-size:1.4rem">❌</span><div><div class="big">Inte riktigt</div><div class="sub">${errQ ? `Felet var: <s>${esc(answerDisplay(q))}</s>` : `Rätt svar: <b>${esc(answerDisplay(q))}</b>`}${q.choices || q.type === 'choicetext' || !raw || (S.v2 && S.v2.exp === 'explore') ? '' : ` · Du svarade: ${esc(raw)}`}</div></div></div>`; if (!isTest) showSteps(q, false); }
   document.getElementById('hintBtn')?.remove(); document.getElementById('explainBtn')?.remove();

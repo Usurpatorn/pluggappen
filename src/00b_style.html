@@ -386,7 +386,7 @@ html { overflow-x: clip; }
 @keyframes xpchip { 0% { opacity: 0; transform: translateY(6px); } 20% { opacity: 1; transform: none; } 80% { opacity: 1; } 100% { opacity: 0; transform: translateY(-8px); } }
 
 /* Knapparna: Svara alltid nåbar, hjälpen lugnare */
-:root:not([data-exp="classic"]) #qcard:not(:has(.keys)) #actions:has(#submit):not(:has(#next)) { position: sticky; bottom: max(10px, env(safe-area-inset-bottom, 0px)); z-index: 3; padding-top: 8px; margin-top: -4px; background: linear-gradient(to top, var(--card) 72%, transparent); }
+:root:not([data-exp="classic"]) #actions:has(#next) { position: sticky; bottom: 0; z-index: 3; margin-inline: -8px; padding: 10px 8px max(10px, env(safe-area-inset-bottom, 0px)); background: var(--card); box-shadow: 0 -10px 14px -12px rgba(0,0,0,.18); }
 :root:not([data-exp="classic"]) #hintBtn { padding: 0 14px; }
 :root:not([data-exp="classic"]) #explainBtn { border: 0 !important; background: transparent; box-shadow: none; color: var(--ink-2); font-weight: 650; min-height: 44px; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: color-mix(in srgb, var(--ink) 30%, transparent); }
 
@@ -420,7 +420,6 @@ html { overflow-x: clip; }
   :root:not([data-exp="classic"]) #qcard { padding: 28px 32px; }
   :root:not([data-exp="classic"]) .question { font-size: 1.32rem; }
   :root:not([data-exp="classic"]) .wchoice { min-height: 74px; }
-  .spot-sols { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   :root[data-exp="explore"] .mission.explore { padding: 28px; }
   :root[data-exp="explore"] .mission.explore .mission-title { font-size: 2.3rem; }
   .hero-pet { font-size: 4.6rem; right: 22px; top: 14px; }
@@ -560,12 +559,30 @@ html { overflow-x: clip; }
   :root:not([data-exp="classic"]) .home-v3 { padding-top: 3vh; }
 }
 @media (min-width: 768px) and (orientation: portrait) {
-  :root:not([data-exp="classic"]) .stack:has(> #qcard), :root:not([data-exp="classic"]) .stack:has(> .klar) { min-height: calc(100dvh - 140px); align-content: center; }
+  :root:not([data-exp="classic"]) .stack:has(> #qcard), :root:not([data-exp="classic"]) .stack:has(> .klar) { padding-top: 6vh; }
   :root:not([data-exp="classic"]) #qcard .question .m { font-size: 1.35em; }
 }
 @media (min-width: 1100px) and (orientation: landscape) { :root:not([data-exp="classic"]) .wrap { max-width: 1060px; } }
 /* 3.3 föräldraläget: diagnostiken sekundär */
 .seg button[data-sub="v2"] { font-weight: 600; opacity: .8; }
+/* 3.3 sista granskningarna */
+:root:not([data-exp="classic"]) .topbar { background: color-mix(in srgb, var(--paper) 92%, transparent); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); box-shadow: 0 1px 0 color-mix(in srgb, var(--ink) 8%, transparent); }
+@media (min-width: 1100px) and (orientation: landscape) {
+  .spot-sols { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  #qcard.split > .q-main { position: relative; align-self: center; }
+  #qcard.split .q-top.solo { position: absolute; top: 0; right: 0; }
+  #qcard.split .q-top.solo + * { padding-right: 56px; }
+}
+/* tre korta alternativ på en rad – ingen ensam ruta */
+:root:not([data-exp="classic"]) .wchoices:not(.one-col):not(.spot-sols):has(> :nth-child(3):last-child) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+/* "Nästan" i Para ihop: alla par blev klara – gul kant, inte röd */
+:root:not([data-exp="classic"]) #fb .feedback.no.almost { border-left-color: var(--warn); }
+/* "Visa hur": rätt alternativ pekas ut */
+#qcard .reveal-correct { border-color: var(--good) !important; box-shadow: 0 0 0 3px color-mix(in srgb, var(--good) 30%, transparent); }
+/* KLAR: större märke, nivån för Grow, stjärnorna fälls in snabbare */
+.klar-mark { width: 76px; height: 76px; } .klar-mark .km-e { font-size: 2.2rem; }
+.klar .trail.done .dot { animation-duration: .22s; animation-delay: calc(.1s + var(--i, 0) * .035s); }
+.klar-level { width: min(100%, 280px); display: grid; gap: 4px; } .klar-level .kl-t { font-weight: 800; } .klar-level .kl-s { font-size: .85rem; color: var(--muted); }
 .q-pane { display: contents; }
 @media (prefers-reduced-motion: reduce) { .hero-pet, .stile.placed, .klar-icon, .xp-pop { animation: none !important; } }
 </style>

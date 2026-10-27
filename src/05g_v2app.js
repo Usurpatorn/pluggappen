@@ -30,7 +30,7 @@ const V2 = {
   skillName(kid, skillId) { const s = PACKS.skillFor(kid, skillId); return s ? (s.short || s.name) : skillId; },
   deckOf(p, cid) { return allDecks(p).find(d => LECAT.deckCid(d.id) === cid); },
   // 3.3: kortnamn som bara är en symbol (t.ex. "x²") visas med ord i v2-vyerna; v1 och lagringen är orörda
-  READABLE: { 'x²': 'Andragradsekvationer' },
+  READABLE: { 'x²': 'Enkla andragradsekvationer' },
   readable(s) { return V2.READABLE[s] || s; },
   cname(kid, C, cid) { return V2.readable((C.cat[cid] || {}).name || cid); },
   /* ---------- Startsidan ---------- */
@@ -334,15 +334,15 @@ const V2 = {
     if (!item || !item.spec || S.v2.exam) return '';
     const s = item.spec; const key = item.cat === 'learn' ? (s.role === 'rescue' ? 'rescue' : s.role === 'intro' ? 'intro' : 'teach') : s.mode === 'challenge' ? 'challenge' : s.role;
     const formChip = item.cat === 'math' && item.form && ['focus', 'practice', 'remember', 'warmup', 'easy'].includes(s.role) ? V2.FORM_CHIP[item.form] : null;
-    const [txt, ic] = formChip || V2.ROLE_CHIP[key] || ['', '']; if (!txt) return '';
+    let [txt, ic] = formChip || V2.ROLE_CHIP[key] || ['', '']; if (!txt) return ''; if (key === 'rescue' && S.v2.exp === 'achieve') { txt = 'STEG FÖR STEG'; ic = '🧭'; }   // 3.3: mognare ton för Achieve
     return `<div class="row" style="justify-content:center"><span class="pill acc act-chip role-${esc(key)}" style="font-weight:800;letter-spacing:.04em"><span aria-hidden="true">${ic}</span> ${txt}</span></div>`;
   },
   teachBody(item) {
     const ex = item.ex; const rescue = item.spec.role === 'rescue'; const intro = item.spec.role === 'intro'; const s = item.skill;
     const say = typeof TTS !== 'undefined' && TTS.ok && S.v2.C.pol.name === 'younger' && s.readAloud !== false && !V2.READ_OFF.has(s.id) && ex && ex.intro ? `<button class="btn ghost" data-speak="${esc(RECALL.strip(ex.intro.name + '. ' + ex.intro.explain))}" data-lang="sv" style="min-height:36px">🔊 Läs upp</button>` : '';
     if (intro && ex && ex.intro) return `${S.v2.exp ? '<div class="learn-ic" aria-hidden="true">🔎</div>' : ''}<div class="eyebrow">Något nytt</div><h3 class="learn-title" style="margin:6px 0">${esc(ex.intro.name)}</h3><p style="font-size:1.05rem">${safeHtml(ex.intro.explain)}</p>${say}${s.method ? `<details class="sketch"><summary>📖 Läs mer om ${esc(s.short || s.name)}</summary><div class="method" style="margin-top:8px">${safeHtml(s.method)}</div></details>` : ''}<button class="btn big wide" data-v2="teachok">${S.v2.exp ? 'Nu provar jag →' : 'Jag är redo →'}</button>`;
-    return `<div class="eyebrow">${rescue ? 'Vi tar det tillsammans' : 'En kort förklaring först'}</div>
-      ${ex ? `<div class="steps"><div class="eyebrow">${ex.fromFail ? 'Uppgiften du nyss fick' : 'Exempel'}</div>${ex.fig ? `<div class="figwrap">${safeHtml(ex.fig)}</div>` : ''}<div style="font-weight:700;margin:6px 0">${safeHtml(ex.text)}</div><ol>${ex.steps.map(st => `<li>${safeHtml(st)}</li>`).join('')}</ol><p style="margin-top:8px">Svar: <b>${esc(ex.answer)}</b></p></div>` : ''}
+    return `<div class="eyebrow">${rescue ? (S.v2.exp === 'achieve' ? 'Steg för steg' : 'Vi tar det tillsammans') : 'En kort förklaring först'}</div>
+      ${ex ? `<div class="steps"><div class="eyebrow">${ex.fromFail ? 'Uppgiften du nyss fick' : 'Exempel'}</div>${ex.fig ? `<div class="figwrap">${safeHtml(ex.fig)}</div>` : ''}<div style="font-weight:700;margin:6px 0">${safeHtml(ex.text)}</div>${S.v2.exp && ex.steps.length === 1 ? `<p style="margin:4px 0 0">${safeHtml(ex.steps[0])}</p>` : `<ol>${ex.steps.map(st => `<li>${safeHtml(st)}</li>`).join('')}</ol>`}${S.v2.exp && /^\s*(<[^>]+>\s*)*Svar\s*:/i.test(String(ex.steps[ex.steps.length - 1] || '')) ? '' : `<p style="margin-top:8px">Svar: <b>${esc(ex.answer)}</b></p>`}</div>` : ''}
       ${s.method ? `<details class="sketch"><summary>📖 Läs mer om ${esc(s.short || s.name)}</summary><div class="method" style="margin-top:8px">${safeHtml(s.method)}</div></details>` : ''}
       <button class="btn big wide" data-v2="teachok">${rescue ? 'Nu provar vi tillsammans →' : 'Jag är redo – nu provar jag →'}</button>`;
   },
@@ -473,7 +473,7 @@ const V2 = {
     render(`${topbar('Testa mig', 'home')}
     <div class="stack" style="margin-top:6px">
       ${V.exp ? (() => { const f = EXP.examFocus(S.kid, V); return `<div class="card pad-lg summary-hero stack exam-hero" style="gap:6px"><div class="eyebrow">Testa mig${f.title ? ' · ' + esc(f.title) : ''}</div>
-        <div class="exam-head">${ok === n ? 'Alla svar stämde den här gången.' : 'Bra att du testade. Nu vet appen vad du ska öva på.'}</div>${f.more.length ? `<div class="exam-focus">Öva mer: <b>${f.more.map(esc).join(', ')}</b></div>` : ''}<div class="muted exam-count">${ok} av ${n} svar stämde</div></div>`; })()
+        <div class="exam-head">${ok === n ? 'Alla svar stämde den här gången.' : 'Bra att du testade. Nu vet appen vad du ska öva på.'}</div>${f.more.length ? `<div class="exam-focus">Öva mer: <b>${f.more.map(esc).join(', ')}</b></div>` : ''}</div>`; })()
       : `<div class="card pad-lg summary-hero stack" style="gap:6px;text-align:center"><div class="eyebrow">Testa mig · ${fmtTime(Date.now() - S.startedAt)}</div><div class="big">${ok}/${n}</div>
         <p style="font-weight:700">${ok === n ? 'Allt rätt – du har koll!' : ok / Math.max(1, n) >= 0.7 ? 'Bra! Kolla igenom de du missade.' : 'Bra att du testade – nu vet vi vad Kör! ska öva på.'}</p></div>`}
       ${V.exp ? EXP.examReport(S.kid, V) : ''}
@@ -531,7 +531,7 @@ const V2 = {
         <div><div class="eyebrow">BEHÖVER ÖVAS</div><ul style="margin:4px 0 0;padding-left:20px">${li(I.practise)}</ul></div>
         <div><div class="eyebrow">REKOMMENDERAT NÄSTA STEG</div><ol style="margin:4px 0 0;padding-left:20px">${I.recs.slice(0, 3).map(r => `<li>${V2.REC_TXT(r, name)}</li>`).join('')}</ol></div>
         ${I.temporary.length ? `<div class="muted" style="font-size:.85rem">Tillfälligt fel idag på något som brukar sitta: ${I.temporary.slice(0, 3).map(name).map(esc).join(', ')} – inget att oroa sig för.</div>` : ''}
-        ${tests.length ? `<div style="font-size:.9rem"><b>Testa mig</b> ${tests.map(t => `<div>${esc(t.date)} · ${esc(LE.exams(kid, p).find(e => e.id === t.examId)?.title || '')}: ${Number(t.score)} rätt av ${Number(t.total)} · övningsindikation ${esc(t.ind || '–')}</div>`).join('')}<div class="muted" style="font-size:.8rem">Övningsindikationen (E/C/A) är bara ett övningsresultat för dig som förälder – ingen betygsprognos. Barnet ser den inte.</div></div>` : ''}
+        ${tests.length ? `<div style="font-size:.9rem"><b>Testa mig</b> ${tests.map(t => `<div>${esc(/^\d{4}-\d\d-\d\d$/.test(String(t.date)) ? fmtDate(t.date) : t.date)} · ${esc(LE.exams(kid, p).find(e => e.id === t.examId)?.title || '')}: ${Number(t.score)} rätt av ${Number(t.total)} · övningsindikation ${esc(t.ind || '–')}</div>`).join('')}<div class="muted" style="font-size:.8rem">Övningsindikationen (E/C/A) är bara ett övningsresultat för dig som förälder – ingen betygsprognos. Barnet ser den inte.</div></div>` : ''}
       </div>`;
     }, 'insights', '');
   },

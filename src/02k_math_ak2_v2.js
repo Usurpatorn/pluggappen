@@ -32,7 +32,7 @@ const GEN2 = (() => {
   const BRAK = {
     1: [
       () => genBrak2(1),
-      () => { const d = R.pick([2, 3, 4]); const k = R.int(1, d - 1); const c = `${k}/${d}`; const wrong = [...new Set([`${d - k}/${d}`, `${k}/${d + 1}`, `${d}/${k}`, `1/${d === 2 ? 3 : 2}`])].filter(x => { const [a, b] = x.split('/').map(Number); return a * d !== k * b; }).slice(0, 3); return mc('Hur stor del av cirkeln är färgad?', c, wrong, `${d} lika delar, ${k} färgade: <b>${c}</b>.`, `Räkna alla delar (${d}). Hur många är färgade?`, 1, VIS.pie(k, d)); },
+      () => { const d = R.pick([2, 3, 4]); const k = R.int(1, d - 1); const c = `${k}/${d}`; const wrong = [...new Set([`${d - k}/${d}`, `${k}/${d + 1}`, `${d}/${k}`, `1/${d === 2 ? 3 : 2}`])].filter(x => { const [a, b] = x.split('/').map(Number); return a * d !== k * b; }).slice(0, 3); return mc('Hur stor del av cirkeln är färgad?', c, wrong, `${d} lika delar, ${k} ${k === 1 ? 'färgad' : 'färgade'}: <b>${c}</b>.`, `Räkna alla delar (${d}). Hur många är färgade?`, 1, VIS.pie(k, d)); },
       () => { const d = R.pick([2, 3, 4]); return mc(`Vad heter ${m(`1/${d}`)} med ord?`, WORD[d], Object.values(WORD).filter(x => x !== WORD[d]).concat(['en hel']), `${m(`1/${d}`)} = ${WORD[d]}: det hela delat i ${d} lika delar.`, 'Talet under strecket säger hur många delar det hela är delat i.', 1); },
       () => { const d = R.pick([2, 3, 4]); return num(`Hur många ${d === 2 ? 'halvor' : d === 3 ? 'tredjedelar' : 'fjärdedelar'} behövs för att få en hel?`, d, `${d} ${d === 2 ? 'halvor' : d === 3 ? 'tredjedelar' : 'fjärdedelar'} = en hel.`, 'Hur många lika stora bitar delades det hela i?', 1, VIS.pie(1, d), T.choices(d, 4, 1).filter(x => x > 0)); },
     ],
