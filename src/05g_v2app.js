@@ -126,7 +126,7 @@ const V2 = {
         <div class="row"><div class="grow"><div class="eyebrow">${esc(e.title)} · ${fmtDate(e.date)}</div><div class="days">${days > 0 ? days : 'Idag'}</div><div style="opacity:.85">${days > 1 ? 'dagar kvar' : days === 1 ? 'dag kvar' : 'Lycka till!'}</div></div></div>
         ${st.per.length && st.per.every(x => x.ready === 'För lite underlag') ? `<div style="font-size:.95rem;opacity:.9">${st.per.length} områden på provet. Kör några pass så ser du här vad som sitter.</div>` : `<div class="stack" style="gap:6px">${shown.map(x => `<div class="row" style="justify-content:space-between;gap:8px"><span style="font-weight:700">${esc(x.name)}</span><span class="pill ${V2.READY_CLS[x.ready]}" style="font-size:.75rem">${V2.READY_TXT[x.ready]}</span></div>`).join('')}${st.per.length > shown.length ? `<div style="opacity:.8;font-size:.85rem">+ ${st.per.length - shown.length} till</div>` : ''}</div>`}
         <div style="font-size:.9rem;opacity:.9">${msg}</div>
-        ${cids.length && !mp.length ? `<div style="font-size:.9rem;opacity:.9">Just nu finns inget att öva just för provet – inget är förfallet och inget nytt tas in idag.${V2.scopeOn(prof(kid.id)) ? '' : ' Kör! fortsätter med det viktigaste.'}</div><div class="row"><button class="btn ghost grow" data-v2="testa" data-exam="${esc(e.id)}">Testa mig</button></div>` : ''}
+        ${cids.length && !mp.length ? `<div style="font-size:.9rem;opacity:.9">Inget behöver övas för provet just nu – appen tar det när det är dags.${V2.scopeOn(prof(kid.id)) ? '' : ' Kör! fortsätter med det viktigaste.'}</div><div class="row"><button class="btn ghost grow" data-v2="testa" data-exam="${esc(e.id)}">Testa mig</button></div>` : ''}
         ${cids.length && mp.length ? `<div class="row"><button class="btn grow" data-v2="mission" data-exam="${esc(e.id)}">Öva inför provet · cirka ${V2.mins(Math.max(1, mp.length))} minuter</button><button class="btn ghost" data-v2="testa" data-exam="${esc(e.id)}">Testa mig</button></div>`
           : `<div style="font-size:.9rem;opacity:.9">Provets områden är inte inlagda i appen ännu, så det finns inget att öva just för det här provet. Be en vuxen lägga in vad provet handlar om.</div>`}
       </div>`; }).join('');
@@ -324,20 +324,20 @@ const V2 = {
   progressBar() { const tot = V2.total();
     if (S.v2.exp && !S.v2.exam) { const d = EXP.done();   // v3: planerade platser; ingen röd historik för fel svar
       if (S.v2.exp === 'explore') return `<div class="trail" role="progressbar" aria-valuemin="0" aria-valuemax="${tot}" aria-valuenow="${d}" aria-label="Äventyret">${Array.from({ length: tot }, (_, i) => `<span class="dot ${i < d ? 'ok' : i === d ? 'cur' : ''}" aria-hidden="true">${i === tot - 1 ? '👑' : ''}</span>`).join('')}</div>`;
-      return `<div class="progress v3" role="progressbar" aria-valuemin="0" aria-valuemax="${tot}" aria-valuenow="${d}" aria-label="Passet: ${d} av ${tot} klara">${Array.from({ length: tot }, (_, i) => `<i class="${i < d ? 'done' : i === d ? 'cur' : ''}"></i>`).join('')}</div>`; } return `<div class="progress">${Array.from({ length: tot }, (_, i) => `<i class="${i < S.i ? (S.v2.exam ? 'ok' : S.results[i] === false ? 'no' : 'ok') : i === S.i ? 'cur' : ''}"></i>`).join('')}</div>`; },
+      return `<div class="progress v3" role="progressbar" aria-valuemin="0" aria-valuemax="${tot}" aria-valuenow="${d}" aria-label="Passet: ${d} av ${tot} klara">${Array.from({ length: tot }, (_, i) => `<i class="${i < d ? 'done' : i === d ? 'cur' : ''}"></i>`).join('')}</div>`; } return `<div class="progress">${Array.from({ length: tot }, (_, i) => `<i class="${i < S.i ? (S.v2.exam ? (S.v2.exp ? 'done' : 'ok') : S.results[i] === false ? 'no' : 'ok') : i === S.i ? 'cur' : ''}"></i>`).join('')}</div>`; },
   chip(item) {
     if (item && item.teacher && S.v2.exam) return `<div class="row" style="justify-content:center"><span class="pill acc" style="font-weight:800;letter-spacing:.04em"><span aria-hidden="true">📝</span> LÄRARENS FRÅGA${item.teacher.n ? ' ' + esc(item.teacher.n) : ''}</span></div>`;
-    const xc = S.v2.exp ? EXP.chipFor(item) : null; if (xc) return `<div class="row" style="justify-content:center"><span class="pill acc" style="font-weight:800;letter-spacing:.04em"><span aria-hidden="true">${xc[1]}</span> ${xc[0]}</span></div>`;
+    const xc = S.v2.exp ? EXP.chipFor(item) : null; if (xc) return `<div class="row" style="justify-content:center"><span class="pill acc act-chip" style="font-weight:800;letter-spacing:.04em"><span aria-hidden="true">${xc[1]}</span> ${xc[0]}</span></div>`;
     if (!item || !item.spec || S.v2.exam) return '';
     const s = item.spec; const key = item.cat === 'learn' ? (s.role === 'rescue' ? 'rescue' : s.role === 'intro' ? 'intro' : 'teach') : s.mode === 'challenge' ? 'challenge' : s.role;
     const formChip = item.cat === 'math' && item.form && ['focus', 'practice', 'remember', 'warmup', 'easy'].includes(s.role) ? V2.FORM_CHIP[item.form] : null;
     const [txt, ic] = formChip || V2.ROLE_CHIP[key] || ['', '']; if (!txt) return '';
-    return `<div class="row" style="justify-content:center"><span class="pill acc" style="font-weight:800;letter-spacing:.04em"><span aria-hidden="true">${ic}</span> ${txt}</span></div>`;
+    return `<div class="row" style="justify-content:center"><span class="pill acc act-chip role-${esc(key)}" style="font-weight:800;letter-spacing:.04em"><span aria-hidden="true">${ic}</span> ${txt}</span></div>`;
   },
   teachBody(item) {
     const ex = item.ex; const rescue = item.spec.role === 'rescue'; const intro = item.spec.role === 'intro'; const s = item.skill;
     const say = typeof TTS !== 'undefined' && TTS.ok && S.v2.C.pol.name === 'younger' && s.readAloud !== false && !V2.READ_OFF.has(s.id) && ex && ex.intro ? `<button class="btn ghost" data-speak="${esc(RECALL.strip(ex.intro.name + '. ' + ex.intro.explain))}" data-lang="sv" style="min-height:36px">🔊 Läs upp</button>` : '';
-    if (intro && ex && ex.intro) return `<div class="eyebrow">Något nytt</div><h3 style="margin:6px 0">${esc(ex.intro.name)}</h3><p style="font-size:1.05rem">${safeHtml(ex.intro.explain)}</p>${say}${s.method ? `<details class="sketch"><summary>📖 Läs mer om ${esc(s.short || s.name)}</summary><div class="method" style="margin-top:8px">${safeHtml(s.method)}</div></details>` : ''}<button class="btn big wide" data-v2="teachok">${S.v2.exp ? 'Nu provar jag →' : 'Jag är redo →'}</button>`;
+    if (intro && ex && ex.intro) return `${S.v2.exp ? '<div class="learn-ic" aria-hidden="true">🔎</div>' : ''}<div class="eyebrow">Något nytt</div><h3 class="learn-title" style="margin:6px 0">${esc(ex.intro.name)}</h3><p style="font-size:1.05rem">${safeHtml(ex.intro.explain)}</p>${say}${s.method ? `<details class="sketch"><summary>📖 Läs mer om ${esc(s.short || s.name)}</summary><div class="method" style="margin-top:8px">${safeHtml(s.method)}</div></details>` : ''}<button class="btn big wide" data-v2="teachok">${S.v2.exp ? 'Nu provar jag →' : 'Jag är redo →'}</button>`;
     return `<div class="eyebrow">${rescue ? 'Vi tar det tillsammans' : 'En kort förklaring först'}</div>
       ${ex ? `<div class="steps"><div class="eyebrow">${ex.fromFail ? 'Uppgiften du nyss fick' : 'Exempel'}</div>${ex.fig ? `<div class="figwrap">${safeHtml(ex.fig)}</div>` : ''}<div style="font-weight:700;margin:6px 0">${safeHtml(ex.text)}</div><ol>${ex.steps.map(st => `<li>${safeHtml(st)}</li>`).join('')}</ol><p style="margin-top:8px">Svar: <b>${esc(ex.answer)}</b></p></div>` : ''}
       ${s.method ? `<details class="sketch"><summary>📖 Läs mer om ${esc(s.short || s.name)}</summary><div class="method" style="margin-top:8px">${safeHtml(s.method)}</div></details>` : ''}
@@ -469,11 +469,13 @@ const V2 = {
     beep(won.length ? 'badge' : 'win');
     render(`${topbar('Testa mig', 'home')}
     <div class="stack" style="margin-top:6px">
-      <div class="card pad-lg summary-hero stack" style="gap:6px;text-align:center"><div class="eyebrow">Testa mig${S.v2.exp ? '' : ` · ${fmtTime(Date.now() - S.startedAt)}`}</div><div class="big">${ok}/${n}</div>
-        <p style="font-weight:700">${V.exp ? (ok === n ? 'Alla svar stämde den här gången.' : 'Bra att du testade – nu vet Kör! vad som ska övas.') : ok === n ? 'Allt rätt – du har koll!' : ok / Math.max(1, n) >= 0.7 ? 'Bra! Kolla igenom de du missade.' : 'Bra att du testade – nu vet vi vad Kör! ska öva på.'}</p></div>
+      ${V.exp ? (() => { const f = EXP.examFocus(S.kid, V); return `<div class="card pad-lg summary-hero stack exam-hero" style="gap:6px"><div class="eyebrow">Testa mig${f.title ? ' · ' + esc(f.title) : ''}</div>
+        <div class="exam-head">${ok === n ? 'Alla svar stämde den här gången.' : 'Bra att du testade. Nu vet appen vad du ska öva på.'}</div>${f.more.length ? `<div class="exam-focus">Öva mer: <b>${f.more.map(esc).join(', ')}</b></div>` : ''}<div class="muted exam-count">${ok} av ${n} svar stämde</div></div>`; })()
+      : `<div class="card pad-lg summary-hero stack" style="gap:6px;text-align:center"><div class="eyebrow">Testa mig · ${fmtTime(Date.now() - S.startedAt)}</div><div class="big">${ok}/${n}</div>
+        <p style="font-weight:700">${ok === n ? 'Allt rätt – du har koll!' : ok / Math.max(1, n) >= 0.7 ? 'Bra! Kolla igenom de du missade.' : 'Bra att du testade – nu vet vi vad Kör! ska öva på.'}</p></div>`}
       ${V.exp ? EXP.examReport(S.kid, V) : ''}
-      <div class="card"><div class="eyebrow" style="margin-bottom:8px">Svar och förklaringar</div>
-        ${V.answers.map((a, i) => `<details style="padding:8px 0;border-top:1px solid var(--line)" ${a.ok ? '' : 'open'}><summary style="cursor:pointer"><b>${i + 1}.</b> ${a.ok ? '✅' : '🔁'} <span class="muted" style="font-size:.9rem">${esc(RECALL.strip(a.text).slice(0, 70))}${RECALL.strip(a.text).length > 70 ? '…' : ''}</span></summary>
+      <div class="card exam-list"><div class="eyebrow" style="margin-bottom:8px">Svar och förklaringar</div>
+        ${V.answers.map((a, i) => `<details style="padding:8px 0;border-top:1px solid var(--line)" ${a.ok ? '' : 'open'}><summary style="cursor:pointer"><b>${i + 1}.</b> ${V.exp ? `<span class="sdot ${a.ok ? 'ok' : 'todo'}" role="img" aria-label="${a.ok ? 'Stämde' : 'Öva mer'}"></span>` : a.ok ? '✅' : '🔁'} <span class="muted" style="font-size:.9rem">${esc(RECALL.strip(a.text).slice(0, 70))}${RECALL.strip(a.text).length > 70 ? '…' : ''}</span></summary>
           <div style="margin-top:6px">${a.html ? safeHtml(a.text) : esc(a.text)}</div>
           <div style="margin-top:4px;font-size:.95rem">${a.paper ? '✏️ På papper · ' : ''}Ditt svar: <b>${esc(a.your || '–')}</b> · Rätt svar: <b>${esc(a.correct)}</b>${a.paper ? `<div class="muted" style="font-size:.85rem">${a.ok ? 'Ditt svar stämmer.' : 'Svaret stämmer inte.'} Jämför din uträkning med lösningen – appen har bara sett svaret.</div>` : ''}</div>
           ${a.steps.length ? `<div class="steps" style="margin-top:6px"><ol>${a.steps.map(st => `<li>${safeHtml(st)}</li>`).join('')}</ol></div>` : ''}</details>`).join('')}
@@ -521,7 +523,7 @@ const V2 = {
       const name = (cid) => V2.cname(kid, C, cid);
       const li = (arr) => arr.length ? arr.slice(0, 3).map(cid => `<li>${esc(name(cid))}</li>`).join('') : '<li class="muted">För lite underlag än</li>';
       const tests = p.tests.filter(t => t.v2).slice(-3).reverse();
-      return `<div class="card stack" style="gap:8px;border-left:3px solid var(--acc)"><div class="eyebrow">${esc(kid.name)} · insikter från Learning Engine v2</div>
+      return `<div class="card stack" style="gap:8px;border-left:3px solid var(--acc)"><div class="eyebrow">${esc(kid.name)} · insikter</div>
         <div><b>STYRKOR</b><ul style="margin:4px 0 0;padding-left:20px">${li(I.strengths)}</ul></div>
         <div><b>BEHÖVER ÖVAS</b><ul style="margin:4px 0 0;padding-left:20px">${li(I.practise)}</ul></div>
         <div><b>REKOMMENDERAT NÄSTA STEG</b><ol style="margin:4px 0 0;padding-left:20px">${I.recs.slice(0, 3).map(r => `<li>${V2.REC_TXT(r, name)}</li>`).join('')}</ol></div>

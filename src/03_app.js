@@ -357,6 +357,8 @@ function applyLook(kid) {
   root.setAttribute('data-hue', kid ? kid.hue : 'slate');
   const p = kid ? prof(kid.id) : null;
   root.setAttribute('data-paper', p ? (p.paper || 'rutat') : 'rutat');
+  // 3.3: upplevelsen styr formspråket (Explore/Grow/Achieve) – bara utseende
+  let xp = 'classic'; try { if (kid && typeof EXP !== 'undefined' && EXP.on(kid)) xp = EXP.of(kid); } catch (e) { /* klassisk */ } root.setAttribute('data-exp', xp);
   root.style.removeProperty('--acc'); root.style.removeProperty('--acc-soft'); root.style.removeProperty('--acc-ink');
   if (p && p.accent && ACCENTS[p.accent]) { const [a, s, i] = ACCENTS[p.accent]; root.style.setProperty('--acc', a); root.style.setProperty('--acc-soft', s); root.style.setProperty('--acc-ink', i); }
   document.body.classList.toggle('focus', !!(p && p.settings.focus));
@@ -527,19 +529,21 @@ VIEWS.home = () => {
 function homeV3(kid, p, o) {
   const e = EXP.of(kid); const badges = p.badges.length;
   const ident = isSport(kid) ? `<div class="card row ident" style="gap:12px"><div class="rank" style="min-width:48px">${o.lvl}<small>${['C', 'LW', 'RW', 'D', 'G'][o.lvl % 5]}</small></div><div class="grow"><div style="font-weight:800;font-family:var(--display)">${esc(kid.name)} · ${levelNameFor(kid, o.lvl)}</div><div class="xpbar" style="margin-top:6px"><i style="width:${o.pct}%"></i></div></div></div>`
-    : isTeen(kid) ? '' : `<div class="card row ident" style="gap:12px"><div class="pet" style="width:56px;height:56px;font-size:1.9rem">${petEmoji(p)}<span class="lvl">${o.lvl}</span></div><div class="grow"><div style="font-weight:800;font-family:var(--display)">${esc(petOf(p).name || '')}</div><div class="xpbar" style="margin-top:6px"><i style="width:${o.pct}%"></i></div></div></div>`;
+    : isTeen(kid) || e === 'explore' ? '' : `<div class="card row ident" style="gap:12px"><div class="pet" style="width:56px;height:56px;font-size:1.9rem">${petEmoji(p)}<span class="lvl">${o.lvl}</span></div><div class="grow"><div style="font-weight:800;font-family:var(--display)">${esc(petOf(p).name || '')}</div><div class="xpbar" style="margin-top:6px"><i style="width:${o.pct}%"></i></div></div></div>`;
   render(`
   ${topbar(esc(kid.name), 'start', `${p.gems ? `<button class="pill" data-go="shop" style="min-height:36px"><span class="gem">${ICON.gem} ${p.gems}</span></button>` : ''}${typeof TM !== 'undefined' && TM.on ? '' : `<button class="icon-btn" data-go="sync" aria-label="Synka enheter" title="Synka telefon och iPad">${ICON.sync}</button>`}<button class="icon-btn" data-act="sound" aria-label="Ljud">${DB.settings.sound ? ICON.speaker : ICON.mute}</button>`)}
-  <div class="stack" style="margin-top:6px">
+  <div class="stack home-v3" style="margin-top:6px">
     ${EXP.home(kid)}
-    ${EXP.coreDone(p) ? '' : V2.felbokCard(kid)}
     ${e === 'grow' ? EXP.goalDetail(kid, EXP.goalOf(kid).now) : ''}
     ${ident}
     ${typeof TM !== 'undefined' && TM.on ? '' : PUSH.card(kid.id, 'kid')}
-    <details class="card more-fold"><summary><b>Öva på egen hand</b> <span class="muted" style="font-size:.85rem">välj ämne och moment</span></summary>${o.subjectsHtml}</details>
-    <details class="card quests-fold"><summary><b>${LBL(kid).quests}</b> ${EXP.coreDone(p) ? '' : `<span class="muted" style="font-size:.85rem">${o.quests.filter(q => q.claimed).length}/${o.quests.length} klara</span>`}</summary>${o.quests.map(q => `<div class="quest ${q.done ? 'done' : ''}"><div class="qi">${q.done ? '✅' : q.icon}</div><div class="grow"><div class="qt">${esc(q.text)}</div><div class="qp">${q.claimed ? 'Klart' : `${Math.min(q.progress, q.target)}/${q.target}`}</div></div>${q.done && !q.claimed ? `<button class="btn claim" data-claim="${q.id}">Hämta</button>` : ''}</div>`).join('')}</details>
-    ${kid.note && kid.note.lines.length ? `<div class="card teacher"><div class="eyebrow">${esc(kid.note.title || 'Kommentar från skolan')}</div><ul style="margin-top:6px">${kid.note.lines.map(l => `<li>${esc(l)}</li>`).join('')}</ul></div>` : ''}
-    <details class="card more-fold"><summary><b>Märken</b> <span class="muted" style="font-size:.85rem">${badges}/${BADGES.length}</span></summary><div class="badge-row" style="margin-top:8px">${BADGES.map(b => `<span class="badge ${p.badges.includes(b.id) ? '' : 'off'}"><span class="e">${b.e}</span>${b.name}</span>`).join('')}</div></details>
+    <div class="card more-group">
+    ${EXP.coreDone(p) ? '' : V2.felbokCard(kid)}
+    <details class="more-fold"><summary><b>Öva på egen hand</b> <span class="muted" style="font-size:.85rem">välj ämne och moment</span></summary>${o.subjectsHtml}</details>
+    <details class="quests-fold"><summary><b>${LBL(kid).quests}</b> ${EXP.coreDone(p) ? '' : `<span class="muted" style="font-size:.85rem">${o.quests.filter(q => q.claimed).length}/${o.quests.length} klara</span>`}</summary>${o.quests.map(q => `<div class="quest ${q.done ? 'done' : ''}"><div class="qi">${q.done ? '✅' : q.icon}</div><div class="grow"><div class="qt">${esc(q.text)}</div><div class="qp">${q.claimed ? 'Klart' : `${Math.min(q.progress, q.target)}/${q.target}`}</div></div>${q.done && !q.claimed ? `<button class="btn claim" data-claim="${q.id}">Hämta</button>` : ''}</div>`).join('')}</details>
+    ${kid.note && kid.note.lines.length ? `<details class="more-fold teacher-fold"><summary><b>${esc(kid.note.title || 'Kommentar från skolan')}</b></summary><ul style="margin-top:6px">${kid.note.lines.map(l => `<li>${esc(l)}</li>`).join('')}</ul></details>` : ''}
+    <details class="more-fold"><summary><b>Märken</b> <span class="muted" style="font-size:.85rem">${badges}/${BADGES.length}</span></summary><div class="badge-row" style="margin-top:8px">${BADGES.map(b => `<span class="badge ${p.badges.includes(b.id) ? '' : 'off'}"><span class="e">${b.e}</span>${b.name}</span>`).join('')}</div></details>
+    </div>
   </div>`);
 }
 
@@ -741,6 +745,7 @@ function startSession(kid, opts) {
 }
 
 VIEWS.practice = () => {
+  document.querySelectorAll('.xp-pop').forEach(x => x.remove());   // 3.3: en flygare får aldrig ligga kvar över nästa uppgift
   const item = S.queue[S.i]; const kid = S.kid; const p = prof(kid.id);
   const isTest = S.mode === 'test' || !!(S.v2 && S.v2.exam); const focus = p.settings.focus;
   const title = S.v2 ? V2.title(item) : isTest ? 'Provläge' : S.mode === 'felbok' ? 'Felboken' : item.cat === 'word' ? esc(item.deck.name) : esc(item.skill.short || item.skill.name);
@@ -756,6 +761,11 @@ VIEWS.practice = () => {
     ${S.v2 ? V2.progressBar() + V2.chip(item) : `<div class="progress">${S.queue.map((_, i) => `<i class="${i < S.i ? (S.results[i] ? 'ok' : 'no') : i === S.i ? 'cur' : ''}"></i>`).join('')}</div>`}
     <div class="card pad-lg stack" id="qcard" style="gap:16px">${body}</div>
   </div>`);
+  { const qc = document.getElementById('qcard'); if (qc && S.v2 && S.v2.exp) { const m = EXP.modeOf(item); qc.dataset.mode = m.mode; if (m.role) qc.dataset.role = m.role; if (S.v2.exam) qc.dataset.exam = '1';
+    if (['num', 'expr', 'choice', 'paper', 'reverse', 'text', 'tap'].includes(m.mode)) {   // 3.3: två rutor på liggande iPad (display:contents annars)
+      const main = document.createElement('div'), side = document.createElement('div'); main.className = 'q-pane q-main'; side.className = 'q-pane q-side';
+      [...qc.children].forEach(c => (['inputArea', 'fb', 'actions', 'explainBtn', 'sketch'].includes(c.id) ? side : main).appendChild(c));
+      if (side.children.length && main.children.length) { qc.append(main, side); qc.classList.add('split'); } else { [...main.children, ...side.children].forEach(c => qc.appendChild(c)); main.remove(); side.remove(); } } } }   // 3.3: aktivitetens formspråk (bara CSS-krokar)
   initSketch();
   const input = document.getElementById('ans');
   if (input && kid.template !== 'ak2' && !(item.cat === 'math' && item.type === 'num' && kid.template === 'ak4' && focus)) setTimeout(() => input.focus({ preventScroll: true }), 50);
@@ -768,6 +778,10 @@ function mathBody(q, kid, isTest) {
   const vars = q.variables || [q.variable];
   if (q.type === 'order') S.order = { picked: [], shuffled: R.shuffle(q.items.map((t, i) => ({ t, i }))) };
   const v3 = !!(S.v2 && S.v2.exp);   // Experience v3: aktiviteter i stället för bara textkort (samma fråga, samma rättning)
+  // 3.3 Hitta felet: de tre lösningarna blir själva korten man väljer bland (samma val, samma index, samma rättning)
+  const spot = v3 && q.challenge === 'spot' && q.type === 'choicetext' && typeof q.text === 'string' ? (() => { const parts = q.text.split('<div style="margin:6px 0">'); if (parts.length !== (q.choices || []).length + 1) return null; return { head: parts[0], rows: parts.slice(1).map(r => r.replace(/<\/div>\s*$/, '').replace(/^<b>[A-C]\.<\/b>\s*/, '')) }; })() : null;
+  // 3.3 Baklänges: svaret vi redan vet visas först – uppgiften är att hitta vägen dit
+  const rev = v3 && (q.challenge === 'create' || q.challenge === 'equation') ? (q.challenge === 'equation' ? 'x = ' + q.solution : (() => { try { return Poly.format(q.answer); } catch (e) { return ''; } })()) : '';
   const inputHtml = q.type === 'sort' || q.type === 'match' ? EXP.body(q)
     : q.build ? EXP.buildBody(q)
     : v3 && q.ui === 'tap' && q.type === 'choicetext' ? EXP.tapBody(q)
@@ -775,12 +789,14 @@ function mathBody(q, kid, isTest) {
     ? `<div class="slots order-slots" id="orderSlots"><span class="muted" style="font-size:.9rem;align-self:center">${v3 ? 'Tryck på korten i rätt ordning' : 'Tryck på stegen i rätt ordning'}</span></div><div class="order-pool" id="orderPool">${S.order.shuffled.map(o => `<button class="otile" data-otile="${o.i}">${o.t}</button>`).join('')}</div>`
     : q.type === 'open'
     ? `<textarea class="answer-input" id="ans" rows="4" style="text-align:left;font-family:var(--body);font-weight:400;font-size:1.05rem;min-height:110px;resize:vertical" placeholder="Skriv med egna ord, som på ett prov. Få med de viktiga begreppen."></textarea><p class="muted" style="font-size:.85rem;margin-top:6px">Appen letar efter ${q.keys.length} nyckelbegrepp i ditt svar.</p>`
+    : q.type === 'choicetext' && spot
+    ? `<div class="wchoices spot-sols" id="choices">${spot.rows.map((r, i) => `<button class="wchoice spot-sol" data-choice="${i}" aria-label="${esc(q.choices[i] || '')}"><span class="sol-l" aria-hidden="true">${esc(String(q.choices[i] || '').slice(-1))}</span><span class="sol-b">${safeHtml(r)}</span></button>`).join('')}</div>`
     : q.type === 'choicetext'
     ? `<div class="wchoices" id="choices">${q.choices.map((c, i) => `<button class="wchoice" data-choice="${i}"><span>${esc(c)}</span></button>`).join('')}</div>`
     : q.choices
     ? `<div class="choices" id="choices">${q.choices.map(c => `<button class="choice" data-choice="${c}">${T.n(c)}</button>`).join('')}</div>`
     : q.type === 'expr'
-      ? `<input class="answer-input" id="ans" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="t.ex. ${q.variable === 'n' ? '3n + 1' : vars.length > 1 ? `6${vars[0]}${vars[1]} + 9${vars[0]}` : '6x + 15'}" aria-label="Ditt svar">
+      ? `<input class="answer-input" id="ans" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="${rev ? 'Skriv din uppgift här' : `t.ex. ${q.variable === 'n' ? '3n + 1' : vars.length > 1 ? `6${vars[0]}${vars[1]} + 9${vars[0]}` : '6x + 15'}`}" aria-label="Ditt svar">
          <div class="keys" style="margin-top:8px;grid-template-columns:repeat(5,1fr)">
            ${['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'].map(k => `<button class="key" data-key="${k}">${k}</button>`).join('')}</div><div class="keys" style="margin-top:6px;grid-template-columns:repeat(4,1fr)">
            ${vars.map(v => `<button class="key acc" data-key="${v}">${v}</button>`).join('')}${vars.length === 1 ? `<button class="key acc" data-key="${q.variable}²">${q.variable}²</button>` : ''}
@@ -791,10 +807,10 @@ function mathBody(q, kid, isTest) {
            ${kid.template === 'ak2' || q.answer < 0 || q.keypad ? `<div class="keys" style="margin-top:8px;grid-template-columns:repeat(6,1fr)">${['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'].map(k => `<button class="key" data-key="${k}">${k}</button>`).join('')}<button class="key" data-key="−">−</button><button class="key" data-key="⌫">⌫</button></div>` : ''}`
         : `<input class="answer-input" id="ans" autocomplete="off" autocapitalize="off" placeholder="Skriv svaret" aria-label="Ditt svar">`;
   const p = prof(kid.id); const calm = !!(S.v2 && S.v2.calm && !isTest);   // v3 lugn presentation: färre siffror och mindre brus
-  const head = calm || (v3 && S.v2.exp === 'explore') ? '' : `<span class="eyebrow">${S.v2 && S.v2.exp && typeof V2.num() === 'string' ? V2.num() : `Uppgift ${S.v2 ? V2.num() : S.i + 1} av ${S.v2 ? V2.total() : S.queue.length}`}${isTest && q.part ? ` · ${q.part}-nivå` : ''}${!isTest && !p.settings.focus ? ` · ${esc(q.skill.short || '')}` : ''}</span>`;
-  return `<div class="row" style="justify-content:space-between">${head || '<span></span>'}<span class="row" style="gap:8px">${S.v2 ? V2.speakBtn(q, p) : TTS.ok && p.settings.tts ? `<button class="icon-btn" data-speak="${esc(q.text.replace(/<[^>]+>/g, ''))}" data-lang="sv" data-highlight="1" style="width:36px;height:36px" aria-label="Läs upp">${ICON.speaker}</button>` : ''}${calm || (v3 && S.v2.exp === 'explore') ? '' : `<span class="lvl-dots"${S.v2 ? ' role="img"' : ''} aria-label="Svårighet ${q.level}">${[1, 2, 3].map(i => `<i class="${i <= q.level ? 'on' : ''}"></i>`).join('')}</span>`}</span></div>
+  const head = calm || v3 ? '' : `<span class="eyebrow">${S.v2 && S.v2.exp && typeof V2.num() === 'string' ? V2.num() : `Uppgift ${S.v2 ? V2.num() : S.i + 1} av ${S.v2 ? V2.total() : S.queue.length}`}${isTest && q.part ? ` · ${q.part}-nivå` : ''}${!isTest && !p.settings.focus ? ` · ${esc(q.skill.short || '')}` : ''}</span>`;
+  return `<div class="row" style="justify-content:space-between">${head || '<span></span>'}<span class="row" style="gap:8px">${S.v2 ? V2.speakBtn(q, p) : TTS.ok && p.settings.tts ? `<button class="icon-btn" data-speak="${esc(q.text.replace(/<[^>]+>/g, ''))}" data-lang="sv" data-highlight="1" style="width:36px;height:36px" aria-label="Läs upp">${ICON.speaker}</button>` : ''}${calm || v3 ? '' : `<span class="lvl-dots"${S.v2 ? ' role="img"' : ''} aria-label="Svårighet ${q.level}">${[1, 2, 3].map(i => `<i class="${i <= q.level ? 'on' : ''}"></i>`).join('')}</span>`}</span></div>
       ${q.fig ? `<div class="figwrap">${safeHtml(q.fig)}</div>` : ''}
-      <div class="question" id="qtext">${safeHtml(q.text)}</div>${q.paper ? EXP.paperNote(q) : ''}
+      <div class="question" id="qtext">${safeHtml(spot ? spot.head : q.text)}</div>${rev ? `<div class="rev-target" aria-hidden="true"><span class="rev-k">Det här ska det bli</span><span class="rev-v">${esc(rev)}</span><span class="rev-q">↑ Skriv en uppgift som ger det</span></div>` : ''}${q.paper ? EXP.paperNote(q) : ''}
       <div id="inputArea">${inputHtml}</div>
       <div id="fb"></div>
       <div class="row" id="actions">
@@ -802,7 +818,7 @@ function mathBody(q, kid, isTest) {
         ${q.type === 'order' ? `<button class="btn ghost" id="undoOrder">⌫</button>` : ''}${q.build ? `<button class="btn ghost" id="undoBuild" aria-label="Ta bort senaste bokstaven">⌫</button>` : ''}
         ${isTest ? '' : `<button class="btn ghost" id="hintBtn">💡 Ledtråd</button>`}
       </div>
-      ${isTest ? '' : `<button class="btn ghost wide" id="explainBtn" style="border-style:dashed">${v3 && S.v2.exp === 'achieve' ? 'Visa hur man gör' : '🤔 Jag fattar inte – visa hur man gör'}</button>`}
+      ${isTest ? '' : `<button class="btn ghost wide" id="explainBtn" style="border-style:dashed">${v3 && S.v2.exp === 'achieve' ? 'Visa hur man gör' : v3 ? '🤔 Jag fattar inte' : '🤔 Jag fattar inte – visa hur man gör'}</button>`}
       ${!q.paper && !(v3 && S.v2.exp === 'explore') && !['choicetext', 'order', 'open', 'sort', 'match'].includes(q.type) && (q.skill.group || 'math') === 'math' ? `<details class="sketch" id="sketch"><summary>✏️ Kladdyta – räkna här innan du svarar</summary><div class="sketch-wrap"><canvas id="sketchCanvas" width="600" height="320"></canvas><div class="row" style="margin-top:6px"><button class="btn ghost" style="min-height:36px" id="sketchClear">Rensa</button><span class="muted" style="font-size:.85rem">Rita med fingret. Kladden sparas inte.</span></div></div></details>` : ''}`;
 }
 function initSketch() {
@@ -930,7 +946,9 @@ function onMath(e, q) {
 }
 function showSteps(q, reveal) {
   const el = document.getElementById('fb');
-  const stepsHtml = `<div class="steps"><div class="eyebrow">${S.v2 && S.v2.exp && q.kp ? 'Så här är det' : 'Så här löser du den'}</div><ol>${q.steps.map(s => `<li>${safeHtml(s)}</li>`).join('')}</ol>${reveal && !S.answered ? `<p style="margin-top:10px" class="muted">Svaret är <b>${esc(answerDisplay(q))}</b>. Skriv in det så går vi vidare – nästa gång klarar du det själv!</p>` : ''}</div>`;
+  const why = !reveal && S.v2 && S.v2.exp === 'explore';   // 3.3 Explore: en rad återkoppling – förklaringen finns ett tryck bort
+  const stepsHtml = why ? `<details class="steps why"><summary>Visa varför</summary><ol>${q.steps.map(s => `<li>${safeHtml(s)}</li>`).join('')}</ol></details>`
+    : `<div class="steps"><div class="eyebrow">${S.v2 && S.v2.exp && q.kp ? 'Så här är det' : 'Så här löser du den'}</div><ol>${q.steps.map(s => `<li>${safeHtml(s)}</li>`).join('')}</ol>${reveal && !S.answered ? `<p style="margin-top:10px" class="muted">Svaret är <b>${esc(answerDisplay(q))}</b>. Skriv in det så går vi vidare – nästa gång klarar du det själv!</p>` : ''}</div>`;
   const existing = el.querySelector('.steps'); if (existing) existing.remove();
   el.insertAdjacentHTML('beforeend', stepsHtml);
   if (reveal) { S.revealed = true; const b = document.getElementById('explainBtn'); if (b) b.disabled = true; }
@@ -990,7 +1008,7 @@ function submitMath() {
     else { beep('no'); fb.innerHTML = `<div class="feedback no"><span style="font-size:1.4rem">✍️</span><div><div class="big">Svaret behöver mer</div><div class="sub">${hitTxt}${missTxt}</div></div></div>`; }
     if (!isTest || !correct) showSteps(q, false);
   }
-  else if (correct) { beep('ok', S.streak); xpPop(xp); fb.innerHTML = `<div class="feedback ok"><span style="font-size:1.4rem">✅</span><div><div class="big">${praise}${S.streak >= 3 ? ` ${S.streak} i rad 🔥` : ''}</div><div class="sub">${esc(answerDisplay(q))}${res.note ? `<br>${res.note}` : ''}</div></div></div>`; }
+  else if (correct) { beep('ok', S.streak); xpPop(xp); fb.innerHTML = `<div class="feedback ok"><span style="font-size:1.4rem">✅</span><div><div class="big">${praise}${S.streak >= 3 && !(S.v2 && S.v2.exp === 'achieve') ? ` ${S.streak} i rad 🔥` : ''}</div><div class="sub">${esc(answerDisplay(q))}${res.note ? `<br>${res.note}` : ''}</div></div></div>`; }
   else if (S.revealed) { fb.innerHTML = `<div class="feedback warn"><span style="font-size:1.4rem">👀</span><div><div class="big">Nu vet du hur man gör</div><div class="sub">Du får en liknande uppgift igen om en stund.</div></div></div>`; }
   else { beep('no'); fb.innerHTML = `<div class="feedback no"><span style="font-size:1.4rem">❌</span><div><div class="big">Inte riktigt</div><div class="sub">Rätt svar: <b>${esc(answerDisplay(q))}</b>${q.choices || q.type === 'choicetext' || !raw ? '' : ` · Du svarade: ${esc(raw)}`}</div></div></div>`; if (!isTest) showSteps(q, false); }
   document.getElementById('hintBtn')?.remove(); document.getElementById('explainBtn')?.remove();

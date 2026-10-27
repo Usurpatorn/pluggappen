@@ -269,4 +269,186 @@ body:has(.progress.v3, .trail, section.mission, .klar) .icon-btn { width: 44px; 
 .btn { text-wrap: balance; }
 @media (min-width: 768px) { .goal-title { font-size: 2.1rem; } .mission-title { font-size: 1.9rem; } .v3go { min-height: 84px; } }
 @media (max-height: 700px) { .paper-note { padding: 8px 12px; font-size: .95rem; } }
+/* ===================== 3.3 World-Class Experience – bara utseende =====================
+   Krokar: html[data-exp=explore|grow|achieve|classic] och #qcard[data-mode][data-role][data-exam]. Ingen logik. */
+:root { --cta: var(--acc); --cta-glow: var(--acc-glow); --ease: cubic-bezier(.2, .8, .2, 1); --ink-2: #3c4558; }
+:root:not([data-theme="dark"])[data-hue="rod"], :root:not([data-theme="dark"])[data-hue="blaugrana"] { --cta: #232b3d; --cta-glow: rgba(35,43,61,.28); }   /* lagets röda färg är identitet – rött betyder annars fel */
+.btn { background: var(--cta); }
+.go-btn { background: var(--cta); box-shadow: 0 10px 26px -12px var(--cta-glow), 0 1px 2px rgba(0,0,0,.1); }
+html { overflow-x: clip; }
+.choice, .wchoice, .mtile, .stile, .tapword, .otile, .station .sl, .ltile { overflow-wrap: anywhere; hyphens: auto; min-width: 0; }
+.tabs { overflow-x: auto; scrollbar-width: none; } .tabs::-webkit-scrollbar { display: none; } .tabs button { flex: 1 0 auto; padding: 0 12px; }
+
+/* Startsidan: en sak i fokus – resten i en lugn lista */
+.more-group { padding: 2px 16px; gap: 0; display: block; }
+.more-group > * { border-top: 1px solid var(--line); }
+.more-group > *:first-child { border-top: 0; }
+.more-group > .card, .more-group > button.card { box-shadow: none; border-radius: 0; background: transparent; padding: 12px 0; width: 100%; border-left: 0; border-right: 0; border-bottom: 0; }
+.more-group > *:first-child.card { border-top: 0; }
+.more-group details > summary { min-height: 52px; }
+.more-group .teacher-fold ul { padding-left: 18px; }
+
+/* EXPLORE – ett äventyr man vill gå in i */
+:root[data-exp="explore"] .mission.explore { position: relative; padding: 22px 20px 20px; gap: 14px; border: 0; background: linear-gradient(165deg, color-mix(in srgb, var(--acc-soft) 85%, var(--card)) 0%, var(--card) 70%); box-shadow: 0 18px 40px -26px var(--acc-glow), var(--shadow); }
+.hero-pet { position: absolute; right: 14px; top: 8px; font-size: 3.4rem; line-height: 1; filter: drop-shadow(0 6px 10px rgba(20,30,60,.18)); animation: bob 3.2s ease-in-out infinite; }
+@keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+:root[data-exp="explore"] .mission.explore .mission-title { font-size: 1.85rem; letter-spacing: -.02em; max-width: calc(100% - 76px); }
+:root[data-exp="explore"] .mission.explore > .muted { font-size: 1rem; }
+:root[data-exp="explore"] .mission.explore .stations { gap: 12px 10px; justify-content: flex-start; }
+:root[data-exp="explore"] .mission.explore .station { flex-direction: column; gap: 4px; min-height: 44px; padding: 0; background: transparent; color: var(--ink-2); font-size: .78rem; font-weight: 700; border-radius: 0; }
+:root[data-exp="explore"] .mission.explore .station .si { width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; font-size: 1.4rem; background: var(--card); border: 2px solid color-mix(in srgb, var(--acc) 30%, var(--card)); box-shadow: 0 4px 12px -6px var(--acc-glow); }
+:root[data-exp="explore"] .mission.explore .station.st-boss .si { border-color: var(--acc); background: color-mix(in srgb, var(--acc-soft) 60%, var(--card)); }
+:root[data-exp="explore"] .mission.explore .v3go { min-height: 84px; }
+:root[data-exp="explore"] .mission.explore .v3go .t { font-size: 1.6rem; }
+
+/* GROW – framsteg man ser */
+.grow-prog { display: grid; gap: 6px; }
+.pbar3 { display: flex; gap: 2px; height: 8px; border-radius: 999px; overflow: hidden; background: var(--soft); }
+.pbar3 i { display: block; min-width: 6px; }
+.pbar3 .p-säkra { background: var(--good); } .pbar3 .p-påväg { background: color-mix(in srgb, var(--good) 45%, var(--card)); } .pbar3 .p-tränar { background: color-mix(in srgb, var(--ink) 18%, var(--card)); }
+.progress-states .p-säkra b { color: var(--good); }
+
+/* ACHIEVE – målet, idag, börja */
+:root[data-exp="achieve"] .mission.achieve { padding: 22px 20px; gap: 10px; }
+:root[data-exp="achieve"] .mission.achieve > .eyebrow { color: var(--muted); }
+:root[data-exp="achieve"] .goal-title { font-size: 1.75rem; letter-spacing: .015em; }
+:root[data-exp="achieve"] .goal-date { font-size: .95rem; color: var(--muted); font-weight: 700; letter-spacing: .03em; }
+:root[data-exp="achieve"] .train { margin-top: 4px; }
+:root[data-exp="achieve"] .train .eyebrow { color: var(--muted); }
+:root[data-exp="achieve"] .train ul { list-style: none; padding: 0; margin-top: 6px; }
+:root[data-exp="achieve"] .train li { padding: 7px 0; border-top: 1px solid var(--line); font-size: 1.08rem; font-weight: 650; margin: 0; }
+:root[data-exp="achieve"] .train li:first-child { border-top: 0; padding-top: 2px; }
+:root[data-exp="achieve"] .mission.achieve .then { font-size: .92rem; }
+:root[data-exp="achieve"] .act-chip, :root[data-exp="achieve"] #qcard .eyebrow { letter-spacing: .06em; }
+
+/* Aktiviteten styr formen */
+:root:not([data-exp="classic"]) #qcard { gap: 16px; }
+:root:not([data-exp="classic"]) .answer-input { border-color: var(--line); }
+:root:not([data-exp="classic"]) .answer-input:focus { border-color: var(--ink); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ink) 10%, transparent); outline: none; }
+.act-chip.role-revansch { background: var(--warn-soft); color: #7a4f0e; }
+.act-chip.role-boss { background: color-mix(in srgb, var(--acc-soft) 70%, var(--card)); box-shadow: 0 0 0 1.5px var(--acc) inset; }
+#qcard[data-role="boss"] { border: 2px solid color-mix(in srgb, var(--acc) 55%, var(--card)); box-shadow: 0 16px 36px -22px var(--acc-glow), var(--shadow); }
+:root[data-exp="explore"] #qcard[data-role="boss"] { background: linear-gradient(180deg, color-mix(in srgb, var(--acc-soft) 45%, var(--card)) 0, var(--card) 140px); }
+:root[data-exp="achieve"] #qcard[data-role="boss"] { border-color: var(--ink); border-width: 1.5px; }
+#qcard[data-exam] { box-shadow: none; border: 1.5px solid var(--line); }
+#qcard[data-role="revansch"] .sbin { border-color: var(--warn); background: color-mix(in srgb, var(--warn-soft) 55%, var(--card)); }
+#qcard[data-role="revansch"] .sbin-h { color: #7a4f0e; }
+/* Sortera: riktiga lådor; korten landar */
+#qcard[data-mode="sort"] .sbin { border-style: solid; min-height: 116px; background: color-mix(in srgb, var(--acc-soft) 40%, var(--card)); }
+#qcard[data-mode="sort"] .sort-pool .stile { box-shadow: 0 3px 0 color-mix(in srgb, var(--ink) 12%, transparent), var(--shadow); }
+.stile.placed { animation: settle .26s var(--ease) both; }
+@keyframes settle { from { transform: translateY(-10px) scale(1.08); opacity: .5; } to { transform: none; opacity: 1; } }
+/* Para ihop: lika stora kort, klara par syns */
+:root:not([data-exp="classic"]) .match-col { grid-auto-rows: 1fr; }
+.mtile.done { opacity: 1; background: var(--good-soft); border-color: var(--good); color: var(--ink); position: relative; }
+.mtile.done::after { content: '✓'; position: absolute; top: 4px; right: 8px; font-size: .85rem; color: var(--good); font-weight: 800; }
+/* Ordna: en plats för varje steg */
+#qcard[data-mode="order"] #orderSlots { min-height: 60px; padding: 10px; border: 2px dashed color-mix(in srgb, var(--ink) 18%, var(--line)); border-radius: 14px; background: var(--soft); }
+#qcard[data-mode="order"] .order-pool .otile { font-family: var(--display); font-weight: 700; font-size: 1.05rem; }
+#qcard[data-mode="order"] .order-pool .otile::first-letter { text-transform: uppercase; }
+/* Tryck: ordet i fokus */
+#qcard[data-mode="tap"] .tapword { font-size: 1.35rem; min-height: 56px; }
+/* Upptäck: något nytt, inte ännu en fråga */
+.learn-ic { width: 64px; height: 64px; border-radius: 20px; display: grid; place-items: center; font-size: 2rem; background: color-mix(in srgb, var(--acc-soft) 80%, var(--card)); }
+#qcard[data-mode="learn"] .learn-title { font-size: 1.55rem; }
+#qcard[data-mode="learn"] p { font-size: 1.12rem; line-height: 1.5; }
+/* Hitta felet: granska lösningarna */
+.spot-sols { grid-template-columns: 1fr; gap: 10px; }
+.wchoice.spot-sol { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 2px 12px; align-items: start; text-align: left; place-items: start stretch; padding: 14px 14px 14px 12px; min-height: 0; font-family: var(--body); font-weight: 400; font-size: 1.05rem; line-height: 1.45; }
+.spot-sol .sol-l { width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center; background: var(--soft); font-family: var(--display); font-weight: 800; font-size: 1rem; color: var(--ink-2); }
+.spot-sol .sol-b b { font-family: var(--display); font-weight: 800; }
+.spot-sol .sol-b .m { font-size: 1.1rem; }
+.wchoice.spot-sol.sel { box-shadow: 0 0 0 3px var(--acc-glow); border-color: var(--acc); }
+.wchoice.spot-sol.no .sol-l { background: var(--bad); color: #fff; } .wchoice.spot-sol.ok .sol-l { background: var(--good); color: #fff; }
+/* Baklänges: svaret vet vi – vad var uppgiften? */
+.rev-target { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 14px 16px; border-radius: 16px; background: var(--soft); border: 1.5px dashed color-mix(in srgb, var(--ink) 22%, var(--line)); text-align: center; }
+.rev-k { font-size: .78rem; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); font-weight: 800; }
+.rev-v { font-family: var(--display); font-weight: 800; font-size: 1.9rem; letter-spacing: -.01em; }
+.rev-q { font-size: .95rem; color: var(--ink-2); font-weight: 700; }
+/* Papper: appen vet att det här görs bäst på papper */
+#qcard[data-mode="paper"] .paper-note { background: color-mix(in srgb, var(--acc) 6%, var(--card)); border: 0; border-left: 4px solid var(--acc); border-radius: 4px 14px 14px 4px; padding: 14px 16px; font-size: 1.02rem; line-height: 1.5; }
+#qcard[data-mode="paper"] .question { font-size: 1.3rem; }
+#qcard[data-mode="paper"] .keys .key { min-height: 40px; font-size: 1.05rem; background: color-mix(in srgb, var(--soft) 70%, var(--card)); }
+
+/* Återkoppling: en rad, rätt färg */
+:root:not([data-exp="classic"]) #fb .feedback.no { background: var(--card); border: 1.5px solid var(--line); border-left: 4px solid var(--bad); color: var(--ink); }
+:root:not([data-exp="classic"]) #fb .feedback.no .big { color: var(--bad); }
+:root:not([data-exp="classic"]) #fb .feedback.ok { border-left: 4px solid var(--good); }
+:root:not([data-exp="classic"]) #fb .hint { background: transparent; padding: 2px 2px 0; color: var(--good); font-weight: 700; }
+#fb .steps.why { padding: 0; background: transparent; }
+#fb .steps.why > summary { cursor: pointer; min-height: 44px; display: inline-flex; align-items: center; gap: 6px; font-weight: 700; color: var(--ink-2); }
+#fb .steps.why[open] { background: var(--soft); padding: 4px 14px 12px; }
+:root[data-exp="grow"] .xp-pop { top: calc(env(safe-area-inset-top, 0px) + 62px); left: auto; right: max(16px, calc(50% - 300px)); transform: none; font-size: 1rem; padding: 4px 12px; border-radius: 999px; background: var(--good-soft); text-shadow: none; animation: xpchip .9s var(--ease) forwards; }
+@keyframes xpchip { 0% { opacity: 0; transform: translateY(6px); } 20% { opacity: 1; transform: none; } 80% { opacity: 1; } 100% { opacity: 0; transform: translateY(-8px); } }
+
+/* Knapparna: Svara alltid nåbar, hjälpen lugnare */
+:root:not([data-exp="classic"]) #actions:has(#submit, #next, #checkBtn) { position: sticky; bottom: max(10px, env(safe-area-inset-bottom, 0px)); z-index: 3; padding-top: 8px; margin-top: -4px; background: linear-gradient(to top, var(--card) 72%, transparent); }
+:root:not([data-exp="classic"]) #hintBtn { padding: 0 14px; }
+:root:not([data-exp="classic"]) #explainBtn { border: 0 !important; background: transparent; box-shadow: none; color: var(--ink-2); font-weight: 650; min-height: 44px; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: color-mix(in srgb, var(--ink) 30%, transparent); }
+
+/* KLAR – ett riktigt slut */
+.klar { text-align: center; align-items: center; padding: 28px 20px 24px; }
+.klar .klar-icon { font-size: 3.4rem; line-height: 1; animation: klarIn .5s var(--ease) both; }
+@keyframes klarIn { from { transform: scale(.6); opacity: 0; } to { transform: none; opacity: 1; } }
+.klar .klar-title { font-size: 1.6rem; }
+.klar .klar-score { color: var(--muted); font-size: .95rem; font-weight: 650; }
+.klar .klar-gems { font-weight: 700; }
+.klar-achieve { text-align: left; align-items: flex-start; padding: 24px 22px; }
+.klar-achieve .klar-title { font-size: 1.4rem; letter-spacing: .03em; }
+.klar-achieve .klar-lead { font-size: 1.15rem; font-weight: 700; }
+.klar-explore .trail.done .dot { width: 34px; height: 34px; font-size: 1.05rem; }
+
+/* Testa mig – lugnt, resultat per mål */
+.progress i.done { background: color-mix(in srgb, var(--ink) 55%, var(--card)); }
+.exam-hero { text-align: left; }
+.exam-hero .exam-head { font-family: var(--display); font-weight: 800; font-size: 1.35rem; line-height: 1.22; }
+.exam-hero .exam-focus { font-size: 1.05rem; }
+.exam-hero .exam-count { font-size: .9rem; }
+.sdot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0 4px; }
+.sdot.ok { background: var(--good); } .sdot.todo { background: var(--warn); }
+.exam-list details > summary { list-style: none; display: flex; align-items: center; gap: 4px; min-height: 40px; }
+.exam-list details > summary::-webkit-details-marker { display: none; }
+.exam-list details > summary::after { content: '▾'; margin-left: auto; opacity: .55; } .exam-list details[open] > summary::after { content: '▴'; }
+
+/* iPad: utformat för ytan, inte en utdragen telefon */
+@media (min-width: 768px) {
+  .wrap { max-width: 760px; }
+  :root:not([data-exp="classic"]) #qcard { padding: 28px 32px; }
+  :root:not([data-exp="classic"]) .question { font-size: 1.32rem; }
+  :root:not([data-exp="classic"]) .wchoice { min-height: 74px; }
+  .spot-sols { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  :root[data-exp="explore"] .mission.explore { padding: 28px; }
+  :root[data-exp="explore"] .mission.explore .mission-title { font-size: 2.3rem; }
+  .hero-pet { font-size: 4.6rem; right: 22px; top: 14px; }
+  :root[data-exp="achieve"] .goal-title { font-size: 2.1rem; }
+  .klar { padding: 36px 32px; }
+}
+@media (min-width: 1100px) and (orientation: landscape) {
+  .wrap { max-width: 1060px; }
+  :root:not([data-exp="classic"]) .home-v3 { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+  :root:not([data-exp="classic"]) .home-v3 > :first-child { grid-row: 1 / span 8; }
+  #qcard.split { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); column-gap: 36px; align-items: start; }
+  #qcard.split > .q-pane { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+  #qcard.split #actions { position: static; background: none; }
+}
+.plan-meta { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 12px; row-gap: 2px; }
+.plan-meta .mins { font-weight: 800; font-size: 1.05rem; }
+.plan-meta .share { color: var(--muted); font-size: .92rem; }
+@media (max-width: 420px) { .more-fold > summary .muted { display: none; } }
+.btn.btn-2l { display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 2px; line-height: 1.15; padding-top: 10px; padding-bottom: 10px; }
+.btn-2l .btn-sub { font-size: .8em; font-weight: 650; text-transform: none; letter-spacing: 0; opacity: .85; }
+.btn-2l .btn-sub .sep { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.nw { white-space: nowrap; }
+.badge.off { opacity: 1; filter: none; color: var(--muted); border-style: dashed; background: transparent; }
+.badge.off .e { filter: grayscale(1); opacity: .5; }
+:root { --good-ink: color-mix(in srgb, var(--good) 82%, #000); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --good-ink: var(--good); } } :root[data-theme="dark"] { --good-ink: var(--good); }
+.delight, :root:not([data-exp="classic"]) #fb .hint { color: var(--good-ink); }
+.btn-2l .btn-sub { opacity: 1; }
+:root[data-exp="achieve"] .xp-pop { display: none; }
+/* Ett brett barn (flikar, långa ord) får aldrig vidga hela kolumnen – annars klipps texten av html{overflow-x:clip} */
+.stack { grid-template-columns: minmax(0, 1fr); }
+.seg { max-width: 100%; overflow-x: auto; scrollbar-width: none; } .seg::-webkit-scrollbar { display: none; } .seg button { flex: 0 0 auto; }
+.q-pane { display: contents; }
+@media (prefers-reduced-motion: reduce) { .hero-pet, .stile.placed, .klar-icon, .xp-pop { animation: none !important; } }
 </style>

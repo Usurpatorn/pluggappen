@@ -149,3 +149,19 @@ med `PREVIEW=1` till `<sajten>/preview/`. Produktionen publiceras som vanligt. M
 - Test: `test_sync_integrity.js` (fall A–M och återgång), `tests/rules/sync_precondition.test.mjs` (Firestore-emulatorn i CI).
 - Rollback: föregående release-tagg. Profilernas format är oförändrat; en äldre version ignorerar `DB.syncBase` (men skriver då åter
   utan villkor).
+## 3.3.0 – World-Class Experience (2026-10-27)
+- **Bara presentation.** Inga ändringar i Learning Engine, planering, bevis, rättning, synk, Testa som barnet, lagring eller
+  profilformat. Nya krokar för CSS: `html[data-exp=explore|grow|achieve|classic]` och `#qcard[data-mode][data-role][data-exam]`
+  (från `EXP.modeOf`). På liggande iPad flyttas uppgiftskortets befintliga element till två rutor (`.q-main`/`.q-side`,
+  `display: contents` på mindre skärmar) – inga nya element, samma id:n och händelser.
+- Explore: äventyrskort med husdjur och stationer med ikoner; sekundära saker samlade i ett hopfällt block. Grow: framstegsstapel
+  (säkra/på väg/tränar), mörk startknapp när lagfärgen är röd (rött betyder bara fel). Achieve: mål → datum → idag → tid → KÖR,
+  sedan "Sedan: …"; tid och andel på egen rad.
+- Aktiviteterna har eget formspråk (sortera, para ihop, ordna, tryck, upptäck, papper, Hitta felet som lösningskort med bokstav,
+  Baklänges med målpanel, Boss, Revansch). Feedback: lugn fel-ruta med röd kant, "Visa varför" i Explore, XP-chip i Grow som inte
+  täcker nästa fråga, ingen "N i rad" i Achieve. KLAR: eget slut per upplevelse, tiden på egen rad i knappen.
+- Testa mig: neutral framstegsstapel (avslöjar inte rätt/fel), resultat per mål ("Öva mer: …", "N av M svar stämde"), inga ✅/🔁.
+- iPad (≥768 px) bredare kort och större text; liggande (≥1100 px) hem i två spalter och uppgifter i två rutor. Långa ord bryts.
+  `prefers-reduced-motion` stänger av rörelser.
+- Test: `test_ux33.js` (krokar = uppgiften, två rutor utan förlust/dubbletter, Hitta felet/Baklänges rättas som förut, löftena
+  ordagrant, lugnt Testa mig). Rollback: `release-3.2.2-1544484` (profilerna är oförändrade, så rollback kräver ingen migrering).

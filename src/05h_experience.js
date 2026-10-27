@@ -93,18 +93,19 @@ const EXP = {
     }, 'home', V2.korBtn(kid));
   },
   go(kid, label, sub) { return `<button class="go-btn v3go" data-v2="kor"><div><div class="t">${esc(label)}</div>${sub ? `<div class="s">${sub}</div>` : ''}</div><div class="arrow">${ICON.arrow}</div></button>`; },
-  chips(stations) { return `<div class="stations" aria-label="Det här väntar">${stations.slice(0, 5).map(k => `<span class="station"><span aria-hidden="true">${EXP.STATION[k][1]}</span>${EXP.STATION[k][0]}</span>`).join('')}</div>`; },
+  chips(stations) { return `<div class="stations" aria-label="Det här väntar">${stations.slice(0, 5).map(k => `<span class="station st-${k}"><span class="si" aria-hidden="true">${EXP.STATION[k][1]}</span><span class="sl">${EXP.STATION[k][0]}</span></span>`).join('')}</div>`; },
   flowBtn(kid, label, cls = 'btn big wide') { return EXP.canFlow(kid) ? `<button class="${cls}" data-v2="flow">${esc(label)}</button>` : ''; },
   doneCard(kid, p, title, sub, flowLabel) {
     const canMore = EXP.canFlow(kid); const rest = EXP.flowsToday(p) >= EXP.FLOW_MAX;
     return `<section class="card pad-lg mission done stack" aria-label="${esc(title)}"><div class="mission-icon" aria-hidden="true">✅</div><div class="eyebrow">${esc(title)}</div>
       <div class="mission-sub">${sub}</div>
-      ${canMore ? `<button class="btn big wide secondary" data-v2="flow">${esc(flowLabel)} · cirka ${EXP.flowMins(kid)} min</button>` : `<div class="muted">${rest ? 'Bra jobbat idag! Det du har övat sätter sig bäst om du vilar nu.' : 'Allt för idag är gjort.'}</div>`}</section>`;
+      ${canMore ? `<button class="btn big wide secondary btn-2l" data-v2="flow">${esc(flowLabel)}<span class="btn-sub"><span class="sep"> · </span>cirka ${EXP.flowMins(kid)} min</span></button>` : `<div class="muted">${rest ? 'Bra jobbat idag! Det du har övat sätter sig bäst om du vilar nu.' : 'Allt för idag är gjort.'}</div>`}</section>`;
   },
   exploreHome(kid, p) {
     if (EXP.coreDone(p)) return EXP.doneCard(kid, p, 'ÄVENTYRET KLART!', 'Du är klar för idag.', 'ETT ÄVENTYR TILL');
     const s = EXP.summary(kid);
-    return `<section class="card pad-lg mission explore stack" aria-label="Dagens äventyr"><div class="eyebrow">DAGENS ÄVENTYR</div>
+    const pet = p.pet && p.pet !== 'none' && typeof petEmoji === 'function' ? `<div class="hero-pet" aria-hidden="true">${petEmoji(p)}</div>` : '';   // 3.3: följeslagaren hör hemma i äventyret
+    return `<section class="card pad-lg mission explore stack" aria-label="Dagens äventyr">${pet}<div class="eyebrow">DAGENS ÄVENTYR</div>
       <div class="mission-title">${s.n} små utmaningar</div><div class="muted">cirka ${s.mins} min${s.list.filter(x => x !== 'Repetition' && x !== 'Revansch').length ? ` · ${s.list.filter(x => x !== 'Repetition' && x !== 'Revansch').slice(0, 2).map(esc).join(' och ')}` : ''}</div>${EXP.chips(s.stations)}
       ${EXP.go(kid, LBL(kid).go.toUpperCase())}</section>`;
   },
@@ -113,7 +114,8 @@ const EXP = {
     if (EXP.coreDone(p)) return EXP.doneCard(kid, p, 'RUNDAN KLAR!', 'Du är klar för idag.', 'EN RUNDA TILL');
     const s = EXP.summary(kid); const sh = EXP.examShare(kid, m, s.plan); const ex = m && sh.n > 0; const pr = EXP.progress(kid); const C = s.C; const fb = V2.felbok(kid, C, LE.now()); const todo = fb.items.filter(x => x.state === 'todo').length;
     const parts = [[pr['Säker'], 'säkra'], [pr['På väg'], 'på väg'], [pr['Tränar'] + pr['Behöver repetition'], 'tränar']].filter(x => x[0] > 0);   // bara lägen som finns – ingen "0 säkra"
-    const prog = parts.length ? `<div class="progress-states" aria-label="Så långt har du kommit">${parts.map(([n, t]) => `<span><b>${n}</b> ${t}</span>`).join('')}</div>` : '';
+    const tot3 = parts.reduce((a, x) => a + x[0], 0);
+    const prog = parts.length ? `<div class="grow-prog"><div class="pbar3" aria-hidden="true">${parts.map(([n, t]) => `<i class="p-${t.replace(/[^a-zåäö]/g, '')}" style="flex:${n}"></i>`).join('')}</div><div class="progress-states" aria-label="Så långt har du kommit: ${tot3} områden">${parts.map(([n, t]) => `<span class="p-${t.replace(/[^a-zåäö]/g, '')}"><b>${n}</b> ${t}</span>`).join('')}</div></div>` : '';
     return `<section class="card pad-lg mission grow stack" aria-label="Dagens runda"><div class="eyebrow">${ex ? `DAGENS MISSION · ${esc(m.e.title.toUpperCase())} · ${esc(fmtDate(m.e.date).toUpperCase())}` : 'DAGENS RUNDA'}</div>
       <div class="mission-title">${s.n} uppgifter · cirka ${s.mins} min</div>${ex ? `<div class="muted" style="font-size:.95rem">${esc(EXP.shareText(sh))}</div>` : ''}
       ${s.list.length ? `<div class="muted" style="font-size:.95rem">Idag: ${s.list.map(esc).join(' · ')}</div>` : ''}${prog}
@@ -140,11 +142,11 @@ const EXP = {
     const mp = EXP.safe(() => V2.plan(kid, 'mission', LE.state(kid), LE.now(), null, { examId: m.e.id }), 'missionPeek', []);
     const lbl = EXP.isExam(m.e) ? 'Öva inför provet' : 'Öva på ' + m.e.title;
     return mp.length ? `<button class="${cls}" data-v2="mission" data-exam="${esc(m.e.id)}">${esc(lbl)} · cirka ${EXP.mins(mp, kid)} min</button>`
-      : `<div class="muted" style="font-size:.95rem">Just nu finns inget att öva just för ${EXP.isExam(m.e) ? 'provet' : 'uppgiften'} – inget är förfallet och inget nytt tas in idag.</div>`;
+      : `<div class="muted" style="font-size:.95rem">Inget behöver övas för ${EXP.isExam(m.e) ? 'provet' : 'uppgiften'} just nu – appen tar det när det är dags.</div>`;
   },
   achieveHome(kid, p) {
     const g = EXP.goalOf(kid); const m = g.now;
-    const sedan = g.next ? `<div class="then">Sedan: <b>${esc(g.next.e.title.toUpperCase())}</b> · ${esc(fmtDate(g.next.e.date).toUpperCase())}</div>` : '';
+    const sedan = g.next ? `<div class="then">Sedan: <b>${esc(g.next.e.title.toUpperCase())}</b> · <span class="nw">${esc(fmtDate(g.next.e.date).toUpperCase())}</span></div>` : '';
     if (EXP.coreDone(p)) { const fsh = EXP.examShare(kid, m, EXP.peekFlow(kid)); return EXP.doneCard(kid, p, 'DAGENS PLAN KLAR', 'Appen håller koll på resten.', m && EXP.isExam(m.e) && EXP.mostly(fsh) ? 'FORTSÄTT MOT PROVET' : 'FORTSÄTT') + EXP.goalDetail(kid, m); }
     const s = EXP.summary(kid); const sh = EXP.examShare(kid, m, s.plan); const ex = m && sh.n > 0;   // provrubrik bara när dagens pass innehåller provet
     const when = m ? `${esc(fmtDate(m.e.date).toUpperCase())} · ${m.d === 0 ? 'idag' : m.d === 1 ? 'imorgon' : `om ${m.d} dagar`}` : '';
@@ -155,7 +157,7 @@ const EXP = {
     return `<section class="card pad-lg mission achieve stack" aria-label="Dagens plan">${head}
       ${main.length ? `<div class="train"><div class="eyebrow">${ex ? 'DET HÄR TRÄNAR VI IDAG' : 'OCKSÅ IDAG'}</div><ul>${main.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
       ${also.length ? `<div class="muted" style="font-size:.95rem">${main.length ? 'Också idag' : 'Idag'}: ${also.map(esc).join(' · ')}</div>` : ''}
-      <div class="muted">${ex ? esc(EXP.shareText(sh)) + ' · ' : ''}cirka ${s.mins} min</div>
+      <div class="plan-meta"><span class="mins">cirka ${s.mins} min</span>${ex ? `<span class="share">${esc(EXP.shareText(sh))}</span>` : ''}</div>
       ${EXP.go(kid, LBL(kid).go.toUpperCase())}${nextGoal}${sedan}</section>` + EXP.goalDetail(kid, m);
   },
   // Läget per område – hopfällt, med motorns tre lägen (aldrig procent). Testa mig är en sekundär knapp här.
@@ -194,6 +196,13 @@ const EXP = {
     if (['boss', 'revansch', 'remember', 'rescue'].includes(role) || item.spec.mode === 'challenge') return null;   // rollens egen etikett (MINNS, REVANSCH, BOSSEN …)
     const ui = EXP.uiOf(item); if (ui === 'num' && V.exp !== 'explore') return null; if (EXP.ACT[ui]) return EXP.ACT[ui];
     return null;
+  },
+  // 3.3: vilken aktivitet och roll kortet har – bara för formspråket (CSS), aldrig för rättning eller plan
+  modeOf(item) {
+    if (!item) return { mode: 'none' };
+    const ch = item.challenge; const mode = item.cat === 'learn' ? 'learn' : item.paper ? 'paper' : item.rhythm === 'spot' || ch === 'spot' ? 'spot' : item.rhythm === 'reverse' || ch === 'create' || ch === 'equation' ? 'reverse' : String(EXP.uiOf(item)).replace(/[^a-z:]/g, '').replace(':', '-');
+    const s = item.spec || {}; const role = s.role === 'boss' ? 'boss' : s.mode === 'challenge' ? 'challenge' : ['revansch', 'remember', 'rescue', 'retry', 'warmup', 'intro', 'teach', 'readclose'].includes(s.role) ? s.role : '';
+    return { mode, role };
   },
   EXTRA: new Set(['retry', 'rescue', 'easy']),
   isExtra(it) { return !!(it && it.spec && EXP.EXTRA.has(it.spec.role)); },
@@ -329,7 +338,7 @@ const EXP = {
     const flowLabel = e === 'explore' ? 'ETT ÄVENTYR TILL' : e === 'grow' ? 'EN RUNDA TILL' : g && EXP.isExam(g.e) && EXP.mostly(EXP.examShare(kid, g, EXP.peekFlow(kid))) ? 'FORTSÄTT MOT PROVET' : 'FORTSÄTT';
     const kinds = []; for (const r of V.rewards) if (EXP.DELIGHT[r.k] && !kinds.includes(r.k)) kinds.push(r.k);
     const delights = kinds.slice(0, 3).map(k => `<div class="delight">${esc(EXP.DELIGHT[k])}</div>`).join('');
-    const trail = e === 'explore' ? `<div class="trail done" role="img" aria-label="Det här gjorde du: ${S.queue.slice(0, S.i + 1).filter(x => x._slotEnd).length} saker">${S.queue.slice(0, S.i + 1).map(x => `<span class="dot ok" aria-hidden="true">${(EXP.ACT[EXP.uiOf(x)] || EXP.ACT[x.paper ? 'paper' : ''] || [0, x.cat === 'learn' ? '🔎' : x.spec && x.spec.role === 'boss' ? '👑' : '⭐'])[1]}</span>`).join('')}</div>` : '';
+    const trail = e === 'explore' ? `<div class="trail done" role="img" aria-label="Det här gjorde du: ${S.queue.slice(0, S.i + 1).filter(x => x._slotEnd).length} saker">${S.queue.slice(0, S.i + 1).map(x => `<span class="dot ok" aria-hidden="true">${x.spec && x.spec.role === 'boss' ? '👑' : '⭐'}</span>`).join('')}</div>` : '';
     // UX: Explore-hemmet visade 👑 (Grow/Achieve: N kvar räknade Bossen) – blev passet kortare (motorns Rescue/uppskjutning) sägs det, i stället för att kronan bara försvinner
     const bossLater = V.plan.some(x => x.role === 'boss') && !S.queue.some(x => x.spec && x.spec.role === 'boss') ? `<div class="muted">${e === 'explore' ? '👑 ' : ''}Bossen väntar nästa gång.</div>` : '';
     // Slutverifieringen: motorns omförsök och Rescue ryms inom passets tak – då kan planerade uppgifter bli kvar. Det sägs rakt ut (de
@@ -342,18 +351,18 @@ const EXP = {
     const fb = V2.felbok(kid, V.C, LE.now()); const todo = fb.items.filter(x => x.state === 'todo').length;
     render(`${topbar('Klart', 'home')}
     <div class="stack" style="margin-top:6px">
-      <section class="card pad-lg summary-hero stack klar" style="gap:8px;text-align:center" aria-label="${esc(title)}">
-        <div style="font-size:2rem" aria-hidden="true">${e === 'explore' ? '🗺️' : '✅'}</div>
+      <section class="card pad-lg summary-hero stack klar klar-${e}" style="gap:8px" aria-label="${esc(title)}">
+        ${e === 'achieve' ? '' : `<div class="klar-icon" aria-hidden="true">${e === 'explore' ? '🗺️' : '🏁'}</div>`}
         <div class="klar-title">${esc(title)}</div>
-        ${e === 'achieve' && V.mode === 'kor' ? '<div>Appen håller koll på resten.</div>' : ''}
+        ${e === 'achieve' && V.mode === 'kor' ? '<div class="klar-lead">Appen håller koll på resten.</div>' : ''}
         ${trail}${bossLater}${savedLater}
-        ${e !== 'explore' ? `<div style="font-weight:700">${sum.ok} av ${sum.n} rätt</div>` : ''}
         ${(() => { const up = [...V.stageUps].filter(cid => ((V.C.L.c[cid] || {}).st || 0) >= 2).length; return up && e !== 'explore' ? `<div>${up === 1 ? 'Ett område' : `${up} områden`} sitter bättre nu</div>` : ''; })()}
-        ${delights}${gems && e === 'grow' ? `<div>+${gems} 💎</div>` : ''}
+        ${delights}${gems && e === 'grow' ? `<div class="klar-gems">+${gems} 💎</div>` : ''}
+        ${e !== 'explore' ? `<div class="klar-score">${sum.ok} av ${sum.n} rätt</div>` : ''}
       </section>
       ${back.length ? `<div class="card stack" style="gap:4px"><div class="eyebrow">Det här behöver komma tillbaka</div>${back.map(b => `<div>${esc(b.name)} – kommer tillbaka ${esc(b.when)}.</div>`).join('')}</div>` : ''}
       ${extraCards}
-      ${corePending ? `<button class="btn big wide" data-v2="kor">Till dagens plan · cirka ${EXP.mins(V2.peekPlan(kid).plan, kid)} min</button>` : canMore ? `<button class="btn big wide" data-v2="flow">${esc(flowLabel)} · cirka ${EXP.flowMins(kid)} min</button>` : `<div class="card muted" style="text-align:center">${rested ? 'Bra jobbat idag! Det du har övat sätter sig bäst om du vilar nu.' : 'Allt för idag är gjort.'}</div>`}
+      ${corePending ? `<button class="btn big wide" data-v2="kor">Till dagens plan · cirka ${EXP.mins(V2.peekPlan(kid).plan, kid)} min</button>` : canMore ? `<button class="btn big wide btn-2l" data-v2="flow">${esc(flowLabel)}<span class="btn-sub"><span class="sep"> · </span>cirka ${EXP.flowMins(kid)} min</span></button>` : `<div class="card muted" style="text-align:center">${rested ? 'Bra jobbat idag! Det du har övat sätter sig bäst om du vilar nu.' : 'Allt för idag är gjort.'}</div>`}
       ${e === 'grow' && todo && canMore ? `<button class="btn ghost wide" data-v2="revansch">Revansch i stället · ${todo} ${todo === 1 ? 'sak' : 'saker'}</button>` : ''}
       <button class="btn big wide ${canMore || corePending ? 'ghost' : ''}" data-go="home">${corePending ? 'Till startsidan' : 'Klar för idag'}</button>
     </div>`);
@@ -369,13 +378,15 @@ const EXP = {
   examReport(kid, V) {
     const e = LE.exams(kid, prof(kid.id)).find(x => x.id === V.extra.examId); if (!e) return '';
     const C = V.C; const per = EXP.goalAreas(kid, e, C) || V2.examStatus(kid, e, C, LE.now()).per;
-    return `<div class="card stack" style="gap:6px"><div class="eyebrow">Läget per område efter testet</div>${per.map(x => `<div class="row" style="justify-content:space-between;gap:8px"><span>${esc(x.name)}</span><span class="pill ${V2.READY_CLS[x.ready]}" style="font-size:.75rem">${V2.READY_TXT[x.ready]}</span></div>`).join('')}<p class="muted" style="font-size:.85rem">Det här är ett övningstest. Det säger vad Kör! ska öva på – inte vad du får på provet.</p></div>`;
+    return `<div class="card stack" style="gap:6px"><div class="eyebrow">Läget per område efter testet</div>${per.map(x => `<div class="row" style="justify-content:space-between;gap:8px"><span>${esc(x.name)}</span><span class="pill ${V2.READY_CLS[x.ready]}" style="font-size:.75rem">${V2.READY_TXT[x.ready]}</span></div>`).join('')}<p class="muted" style="font-size:.85rem">Det här är ett övningstest. Det visar vad appen ska öva på med dig – inte vad du får på provet.</p></div>`;
   },
+  // 3.3: områden att öva mer på efter Testa mig (samma lägen som rapporten – ingen procent, ingen prognos)
+  examFocus(kid, V) { return EXP.safe(() => { const e = LE.exams(kid, prof(kid.id)).find(x => x.id === V.extra.examId); if (!e) return { title: '', more: [] }; const per = EXP.goalAreas(kid, e, V.C) || V2.examStatus(kid, e, V.C, LE.now()).per; return { title: e.title, more: per.filter(x => x.ready === 'Öva lite mer').map(x => x.name) }; }, 'examFocus', { title: '', more: [] }); },
   /* ---------- Föräldraläget ---------- */
   parentCard(kid) {
     const p = prof(kid.id); const cur = EXP.of(kid); const def = EXP.isDefault(kid); const sc = EXP.scList(kid);
     return `<div class="card stack" style="gap:8px"><div class="eyebrow">Upplevelse för ${esc(kid.name)}</div>
-      <div class="muted" style="font-size:.9rem">Samma Learning Engine – bara presentationen skiljer. ${def ? `Standard för åldern: <b>${EXP.KINDS[cur].name}</b>.` : `Vald av dig: <b>${EXP.KINDS[cur].name}</b>.`}</div>
+      <div class="muted" style="font-size:.9rem">Samma inlärningsmotor – bara presentationen skiljer. ${def ? `Standard för åldern: <b>${EXP.KINDS[cur].name}</b>.` : `Vald av dig: <b>${EXP.KINDS[cur].name}</b>.`}</div>
       <div class="seg" role="group" aria-label="Upplevelse" style="flex-wrap:wrap">${Object.entries(EXP.KINDS).map(([k, x]) => `<button class="${k === cur ? 'on' : ''}" aria-pressed="${k === cur}" data-v2="exp" data-val="${k}">${esc(x.name)}</button>`).join('')}</div>
       <div class="muted" style="font-size:.85rem">${esc(EXP.KINDS[cur].desc)}</div>
       ${def ? '' : '<button class="link" data-v2="exp" data-val="default" style="align-self:flex-start">Återställ till standard för åldern</button>'}

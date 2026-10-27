@@ -131,7 +131,7 @@ const txt = (T, sel = '#app') => (T.$(sel) || { textContent: '' }).textContent.r
       open6(); const mp = P6().V2.plan(k6(), 'mission', P6().LE.state(k6()), P6().LE.now(), null, { examId: 'h' }); const set2 = new Set(P6().V2.examCidsActive(k6(), p6.exams[0]));
       console.log(`  kvällen före: provträningens plan ${JSON.stringify(mp.map(s => [s.cid, s.role]))}`);
       ok(mp.every(s => set2.has(s.cid)) && (mp.length === 0 || mp.some(s => s.role !== 'boss')), 'granskning: provträningens plan innehåller bara provets koncept och aldrig bara en Boss');
-      if (!mp.length) ok(!T6.$('[data-v2="mission"]') && /inget att öva just för provet/.test(txt(T6)), 'granskning: tom provträning → ingen knapp, ärlig text');
+      if (!mp.length) ok(!T6.$('[data-v2="mission"]') && /Inget behöver övas för provet just nu/.test(txt(T6)), 'granskning: tom provträning → ingen knapp, ärlig text (3.3: lugnare formulering, samma besked)');
       ok(P6().LE.errors.length === 0, 'granskning: inga fel i v2-lagret ' + JSON.stringify(P6().LE.errors.slice(0, 2))); }
     /* 7. Granskning: med historik (starka koncept i andra ämnen) – provträning med bara fel svar spelar ändå bara provets innehåll */
     { const w7 = mkWin({ seed: 31, fixedClock: true }); await sleep(40); const T7 = tools(w7); const P7 = T7.PA; P7().FAMILY.apply(FIX); P7().load(); if (typeof classic === 'function') classic(T7); P7().rerender(); const D7 = v2tools(w7, T7);
