@@ -18,6 +18,9 @@ const readHole = (fam) => MODE !== 'new' && fam === FAM_LONG;      // v20 + v21:
 const writeHole = MODE === 'v20';                                     // v20: medlemmar skriver _content
 const FAM_LONG = 'famsynthetic01', FAM_SHORT = 'fam1', FAM_OTHER = 'famother002';
 const CODE = 'synthetic-join-code-001';
+// Ett fel som stoppar testet (t.ex. regler som inte kompilerar) syns som en anteckning i CI – inte bara som "exit code 1"
+const die = (e) => { const m = String(e && (e.stack || e.message) || e).replace(/\s+/g, ' ').slice(0, 900); console.error(m); if (process.env.GITHUB_ACTIONS) console.log(`::error title=Firestore-regler (${process.env.EXPECT || 'new'}) stoppade::${m}`); process.exit(1); };
+process.on('unhandledRejection', die); process.on('uncaughtException', die);
 const env = await initializeTestEnvironment({ projectId: 'demo-pluggappen', firestore: { rules: readFileSync(RULES_FILE, 'utf8'), host: '127.0.0.1', port: 8080 } });
 
 const results = []; let fails = 0;
