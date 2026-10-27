@@ -5,7 +5,7 @@ const fs = require('fs'); const path = require('path');
 const root = path.join(__dirname, '..');
 // Alla publika filer: bygget, källorna, innehållspaketen, dokumentation, service worker, skript, arbetsflöden och testerna.
 const walk = (d) => !fs.existsSync(path.join(root, d)) ? [] : fs.readdirSync(path.join(root, d)).flatMap(f => { const rel = d + '/' + f; return fs.statSync(path.join(root, rel)).isDirectory() ? walk(rel) : [rel]; });
-const files = ['dist/index.html', 'dist/pluggappen.html', 'README.md', 'CLAUDE.md', 'RELEASING.md', 'sw.js', 'firestore.rules', 'package.json', '.gitignore',
+const files = ['dist/index.html', 'dist/pluggappen.html', 'dist/preview/index.html', 'README.md', 'CLAUDE.md', 'RELEASING.md', 'sw.js', 'firestore.rules', 'package.json', '.gitignore',
   ...walk('scripts'), ...walk('.github'), ...walk('src'), ...walk('content'), ...walk('docs'), ...walk('tests')]
   .filter(f => fs.existsSync(path.join(root, f)) && !f.endsWith('.local.json') && !f.endsWith('test_privacy.js'));
 const generic = ['ADHD', 'Lärarens kommentar · 23/10', 'Kate\'s Day', 'Magic! 4', '2026-11-18', '2026-11-26', '2026-11-02', 'born:', 'Prov 12 Algebra', 'Syror och baser\', date'];

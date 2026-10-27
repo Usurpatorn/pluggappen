@@ -89,7 +89,8 @@ function mergeProfiles(a, b) {
   out.pet = a.pet || b.pet; out.settings = { ...(b.settings || {}), ...(a.settings || {}) };
   // Granskning H1: förälderns motorval och policy följer SENASTE ändringen (egen tidsstämpel), inte "lokal enhet vinner" –
   // annars kunde en barnenhet med osynkade ändringar slå på v2 igen efter att föräldern stängt av den.
-  for (const k of ['engine', 'lePolicy']) { const sa = a.settings || {}, sb = b.settings || {}; if ((sb[k + 'At'] || 0) > (sa[k + 'At'] || 0)) { if (sb[k] === undefined) delete out.settings[k]; else out.settings[k] = sb[k]; out.settings[k + 'At'] = sb[k + 'At']; } }
+  // v3: upplevelsen (Explore/Grow/Achieve/Klassisk, settings.exp/expAt) följer samma regel.
+  for (const k of ['engine', 'lePolicy', 'exp']) { const sa = a.settings || {}, sb = b.settings || {}; if ((sb[k + 'At'] || 0) > (sa[k + 'At'] || 0)) { if (sb[k] === undefined) delete out.settings[k]; else out.settings[k] = sb[k]; out.settings[k + 'At'] = sb[k + 'At']; } }
   // Två motorval inom tio minuter som säger olika (t.ex. en förälderenhet vars klocka går fel): välj det säkra läget v1.
   { const sa = a.settings || {}, sb = b.settings || {}; if (sa.engineAt && sb.engineAt && sa.engine !== sb.engine && Math.abs(sa.engineAt - sb.engineAt) < 600000) { out.settings.engine = 'v1'; out.settings.engineAt = Math.max(sa.engineAt, sb.engineAt); } }
   // Felboken (v1): union av båda enheternas poster minus det som klarats (gravstenar). Tidigare skrev den lokala listan över den andra.
@@ -99,6 +100,8 @@ function mergeProfiles(a, b) {
   out.mistakes = [...mm.values()].filter(x => !((cl[x.id] || 0) >= (x.at || 0))).sort((x, y) => (x.at || 0) - (y.at || 0) || (x.id < y.id ? -1 : 1)).slice(-60);
   if (Object.keys(cl).length) out.mistakesCleared = cl; else delete out.mistakesCleared;
   // Fas 3B: v2-bevislogg (union på enhet:löpnummer, deterministisk bas)
+  // Experience v3: barnets egna stegval vid jämförelse med lösningen (bara visning) – union på dygn|koncept|uppgift, högst 40
+  if (a.v3 || b.v3) { const m = new Map(); for (const x of [...((b.v3 && b.v3.sc) || []), ...((a.v3 && a.v3.sc) || [])]) if (Array.isArray(x) && x.length >= 4) { const k = x[0] + '|' + x[1] + '|' + x[2]; const o = m.get(k); if (!o || JSON.stringify(x) > JSON.stringify(o)) m.set(k, x); } out.v3 = { v: 1, sc: [...m.values()].sort((x, y) => x[0] - y[0] || (String(x[1]) + x[2] < String(y[1]) + y[2] ? -1 : 1)).slice(-40) }; }   // deterministisk ordning på alla enheter; samma nyckel: deterministiskt val (granskning)
   if (a.le || b.le) out.le = typeof LE !== 'undefined' ? LE.mergeLE(a.le, b.le) : (a.le || b.le);
   return out;
 }

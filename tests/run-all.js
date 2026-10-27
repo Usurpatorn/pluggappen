@@ -37,6 +37,14 @@ const suites = [
   ['2.1 Learning Recipes: aktivitet efter stadium, ingen uppblåst behärskning', 'test_recipes.js'],
   ['2.1.1 Hotfix: provrubriken på Kör! = passet; Öva inför provet; ärlig text utan kopplingar; Äldres första kurs', 'test_exam_cta.js'],
   ['2.1.1 Startknappar och sammanhang: datumgränser 28/21 dygn, två prov, kemi, manuella glosor, saknat privat innehåll, v1, profilbyte', 'test_cta_paths.js'],
+  ['Experience v3: Explore/Grow/Achieve, aktiviteter, KLAR → FLOW, papper, golden cases, rollback', 'test_exp_v3.js'],
+  ['Experience v3: golden case A (algebra) och B (kemi) – syntetiska skoluppgifter, 34 dygn i appen', 'test_golden_cases.js'],
+  ['Experience v3: golden case C – Explore för Yngre, 21 dygn: aktiviteter i stället för upprepade frågor', 'test_golden_explore.js'],
+  ['Experience v3: den sista kodgranskningens fynd (v1-Felbok, Visa hur, FLOW-längd och dagsgräns, Hitta felet, id:n, välkomsttext)', 'test_review_v3.js'],
+  ['Experience v3: den sista UX-granskningens fynd (Boss-kopior, provets moment, knappsats, Explore-rubrik, skuldfritt hem, papper)', 'test_ux_v3.js'],
+  ['Uttrycksknappsatsen: siffrorna 1–0 i ordning på egen rad även i v1 och Klassisk', 'test_keypad.js'],
+  ['Testadressen (förhandsversion): egen lagring, ingen service worker eller push, inget familjeinnehåll', 'test_preview.js'],
+  ['Experience v3: löfte → utförande för varje primär knapp (Explore/Grow/Achieve/Klassisk × tio tillstånd)', 'test_promise_exec.js'],
 ];
 let failed = 0; const rows = [];
 for (const [name, file, opts = {}] of suites) {

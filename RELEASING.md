@@ -34,13 +34,13 @@ Privat termlista för integritetstestet läggs i `tests/privacy_terms.local.json
 Settings → Pages → Source: **GitHub Actions**; Settings → Secrets and variables → Actions → **Variables** → `PAGES_ACTIONS` = `true`.
 
 ## Testadress för en förhandsversion
-För att pröva en gren på riktiga enheter före merge (t.ex. Experience v3): sätt repo-variabeln `PREVIEW_REF` till grenens namn
-(Settings → Secrets and variables → Actions → Variables) och kör workflowen "CI – test, bygg, publicera" (Run workflow, tomt
-`deploy_ref`). Produktionen publiceras som vanligt och grenen byggs med `PREVIEW=1` till `<sajten>/preview/`.
+Repo-variabeln `PREVIEW_REF` = en gren → workflowen "CI – test, bygg, publicera" (Run workflow, tomt `deploy_ref`) bygger grenen
+med `PREVIEW=1` till `<sajten>/preview/`. Produktionen publiceras som vanligt. Misslyckas förhandsbygget publiceras produktionen ändå.
 - Inget familjeinnehåll byggs in; enheten kopplas till familjen som en ny enhet och hämtar familjens data via den vanliga synken.
 - Egen lagring (prefix) – produktionens data på samma enhet rörs inte. Ingen service worker, inga push-påminnelser.
-- Det barnen gör i testversionen är riktiga bevis i familjens data (samma synk). Produktionen (2.1.1) läser och bevarar v3-data (rollbacktest).
-- Misslyckas förhandsbygget publiceras produktionen ändå, utan testadress.
+- **Från 3.0.0 är testadressen förälderns testmiljö.** Peka den bara på en gren med "Testa som barnet" (allt i testet kastas och
+  ingenting skrivs till barnens profiler). En gren utan det skriver riktiga bevis i barnens profiler (samma synk) – använd den inte för
+  att testa som ett barn.
 - Uppdatera testadressen efter nya commits på grenen: kör workflowen igen. Ta bort: radera variabeln och kör workflowen igen.
 
 ## Learning Engine v2 – skuggläge (från 1.2.0, Fas 3B)
@@ -83,3 +83,16 @@ För att pröva en gren på riktiga enheter före merge (t.ex. Experience v3): s
 - **Rollback:** Run workflow med `deploy_ref = release-2.0.0-6ca2933`. 2.0.0 kör 2.1-data utan fel: kunskapspunkternas bevis
   ligger kvar orörda (2.0.0 ser dem som vilande okända koncept), `qr` och formkoder bärs vidare. Publiceras 2.1.x igen fortsätter
   allt där det slutade. Per barn finns fortfarande v1-reserven.
+
+## 3.0.0 – Experience v3 (från 2026-10-27)
+- **Upplevelse per barn ovanpå samma motor:** Explore (Yngre), Grow (Mellan), Achieve (Äldre) som standard efter kursmallens
+  åldersgrupp. Föräldraläge → barnet → Motor v2 → Upplevelse kan överstyra per barn (synkas på senaste ändring, `exp`/`expAt`).
+  Ingen migrering: bevis, stadier, Felboken och belöningar ändras inte av släppet.
+- Nytt i barnens data: `p.v3.sc` (barnets egna stegval vid jämförelse med lösningen, bara visning, högst 40, union vid synk) – därav major.
+- **Reserver, från snabbast:** 1) **Klassisk** per barn (Upplevelse → Klassisk = 2.1-presentationen, samma motor och data);
+  2) **v1** per barn (Motor v2 → v1); 3) **rollback för alla:** Run workflow med `deploy_ref = release-2.1.1-96f81e3`. 2.1.1 läser
+  och bevarar v3-data (`test_exp_v3` del 5 mot `tests/golden/pluggappen-2.1.1.html.gz`); publiceras 3.0.x igen fortsätter allt där det slutade.
+- FLOW: högst 3 block per dygn (oförändrat; underlag för en senare ändring i release-rapporten).
+- Tester som skyddar släppet: `test_exp_v3`, `test_ux_v3`, `test_promise_exec`, `test_golden_cases`, `test_golden_explore`,
+  `test_keypad`, `test_preview`, `test_review_v3`, `test_v1_regression`; integritetskontroll av varje commit (`scripts/privacy-history.mjs`).
+

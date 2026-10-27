@@ -32,6 +32,7 @@ jobs:
       - uses: actions/checkout@v5
         with:
           ref: ${{ github.event.inputs.deploy_ref || github.ref }}
+          fetch-depth: 0   # hela historiken – integritetskontrollen granskar varje commit
       - uses: actions/setup-node@v5
         with:
           node-version: '22'
@@ -52,6 +53,12 @@ jobs:
         env:
           PRIVACY_TERMS: ${{ secrets.PRIVACY_TERMS }}
         run: npm test
+      - name: Integritet i git-historiken (varje commit och meddelande; termerna skrivs aldrig ut)
+        env:
+          PRIVACY_TERMS: ${{ secrets.PRIVACY_TERMS }}
+        run: |
+          git fetch -q origin main || true
+          node scripts/privacy-history.mjs
       - name: Publicerad index.html måste vara byggd från källorna
         if: ${{ vars.PAGES_ACTIONS != 'true' }}
         run: |

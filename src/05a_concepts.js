@@ -10,7 +10,8 @@ const LECAT = (() => {
   const deckCid = (deckId) => 'd:' + deckId;
   function fnv(s) { let h = 0x811c9dc5; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193); } return (h >>> 0).toString(36); }
   // 3E: rätt svar ingår (ingen svarstext från barnet) – annars får t.ex. alla rättstavningsuppgifter ("Vilket ord är rätt stavat?") samma id.
-  const ansKey = (q) => { const a = q.type === 'choicetext' && Array.isArray(q.choices) ? q.choices[q.answer] : Array.isArray(q.answer) ? q.answer[0] : q.answer && typeof q.answer === 'object' ? Object.keys(q.answer).sort().map(k => k + q.answer[k]).join(',') : q.answer; return a == null ? '' : String(a).slice(0, 60); };
+  // v3: sortera/para ihop har ett objekt som svar → hash av hela kopplingen. Bara de typerna – övriga id:n (t.ex. algebrauttryck) är oförändrade.
+  const ansKey = (q) => { const a = q.type === 'choicetext' && Array.isArray(q.choices) ? q.choices[q.answer] : Array.isArray(q.answer) ? q.answer[0] : (q.type === 'sort' || q.type === 'match') && q.answer && typeof q.answer === 'object' ? 'h' + fnv(Object.keys(q.answer).sort().map(k => k + '\u0001' + q.answer[k]).join('\u0002')) : q.answer && typeof q.answer === 'object' ? Object.keys(q.answer).sort().map(k => k + q.answer[k]).join(',') : q.answer; return a == null ? '' : String(a).slice(0, 60); };   // v3: objektsvar (sortera/para ihop) hashas i sin helhet – finns bara i v3, så inga gamla id ändras
   const itemId = (q) => 'i' + fnv(String(q.type || (q.choices ? 'mc' : 'q')) + '|' + String(q.text || q.prompt || '').replace(/\s+/g, ' ').trim() + '|' + ansKey(q));
   // Vilka moment har garanterat egen-svar-format (inte bara flerval)? Matte: ja. Övriga: om öppna frågor finns; annars avgör observerade svar.
   const recallOf = (s, openBank) => (s.group || 'math') === 'math' ? true : (openBank && openBank[s.id] && openBank[s.id].length ? true : null);
@@ -23,7 +24,7 @@ const LECAT = (() => {
     const P = typeof PACKS !== 'undefined' ? PACKS : null;
     for (const s of [...(kid.skills || []), ...(kid.v2skills || [])]) {
       const id = skillCid(s.id); if (cat[id]) continue;
-      cat[id] = { id, kind: 'skill', ref: s.id, name: s.short || s.name, full: s.name, subject: s.group || 'math', maxLvl: s.maxLvl || 3, recall: recallOf(s, openBank), focus: !!s.focus, prereq: [] };
+      cat[id] = { id, kind: 'skill', ref: s.id, name: s.short || s.name, full: s.name, subject: s.group || 'math', maxLvl: s.maxLvl || 3, recall: recallOf(s, openBank), focus: !!s.focus || (kid.focusSkills || []).includes(s.id), prereq: [] };
       map[s.id] = id;
       const pk = P ? P.catalogEntries(kid, s, polName, itemId) : null;
       if (pk) { Object.assign(cat, pk.kps); cat[id].active = false; cat[id].route = pk.route; cat[id].packed = 1; kpsOf[s.id] = Object.keys(pk.kps); }

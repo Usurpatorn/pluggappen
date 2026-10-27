@@ -34,7 +34,7 @@ const tagOk = (h) => { const bad = String(h || '').match(/<\/?([a-z0-9]+)[^>]*>/
 const SEEDS = [1, 2, 3, 5, 8, 13, 21, 34, 55, 89];
 const checkQ = (q, ctx, pol, correctByText) => {
   ok(q && q.text && strip(q.text).trim(), `${ctx}: frågetext saknas`); if (!q) return;
-  ok(['choicetext', 'text', 'num', 'order'].includes(q.type), `${ctx}: okänd typ ${q.type}`);
+  ok(['choicetext', 'text', 'num', 'order', 'sort', 'match'].includes(q.type), `${ctx}: okänd typ ${q.type}`);
   ok(tagOk(q.text) && (q.steps || []).every(tagOk) && tagOk(q.fig), `${ctx}: otillåten HTML`);
   ok((q.steps || []).some(s => strip(s).trim()), `${ctx}: förklaring saknas`);
   ok(q.hint, `${ctx}: ledtråd saknas`);
@@ -63,6 +63,21 @@ const checkQ = (q, ctx, pol, correctByText) => {
     for (const p of (q.accept && q.accept.pool) || []) ok(PACKS.check(q, p).status !== 'correct', `${ctx}: felalternativ "${p}" godkänns som eget svar`);
   } else if (q.type === 'num') ok(Number.isFinite(q.answer), `${ctx}: talsvar saknas`);
   else if (q.type === 'order') { ok(Array.isArray(q.items) && q.items.length >= 3 && new Set(q.items.map(norm)).size === q.items.length, `${ctx}: ordningsled`); }
+  // Experience v3: SORTERA och PARA IHOP – entydiga, rättas deterministiskt, ryms på en surfplatta
+  else if (q.type === 'sort') {
+    ok(Array.isArray(q.bins) && q.bins.length >= 2 && q.bins.length <= 4 && new Set(q.bins.map(norm)).size === q.bins.length && q.bins.every(b => b.length <= 28), `${ctx}: sorteringsgrupper ${q.bins}`);
+    ok(Array.isArray(q.items) && q.items.length >= q.bins.length && q.items.length <= 8 && new Set(q.items.map(norm)).size === q.items.length, `${ctx}: sorteringskort`);
+    ok(q.items.every(t => q.bins.includes(q.answer[t]) && t.length <= lim.choice) && Object.keys(q.answer).length === q.items.length, `${ctx}: varje kort har exakt en grupp`);
+    ok(q.bins.every(b => q.items.some(t => q.answer[t] === b)), `${ctx}: varje grupp får minst ett kort`);
+    ok(PACKS.check(q, JSON.stringify(q.answer)).status === 'correct', `${ctx}: rätt sortering underkänns`);
+    const moved = { ...q.answer, [q.items[0]]: q.bins.find(b => b !== q.answer[q.items[0]]) }; ok(PACKS.check(q, JSON.stringify(moved)).status === 'wrong', `${ctx}: fel sortering godkänns`);
+    ok(PACKS.check(q, JSON.stringify({ [q.items[0]]: q.answer[q.items[0]] })).status === 'empty', `${ctx}: halvfärdig sortering rättas`);
+  } else if (q.type === 'match') {
+    ok(Array.isArray(q.pairs) && q.pairs.length >= 3 && new Set(q.pairs.map(x => norm(x[0]))).size === q.pairs.length && new Set(q.pairs.map(x => norm(x[1]))).size === q.pairs.length, `${ctx}: par måste vara entydiga`);
+    ok(q.pairs.every(([a, b]) => a.length <= lim.choice && b.length <= lim.choice && q.answer[a] === b), `${ctx}: parkort`);
+    ok(PACKS.check(q, JSON.stringify({ done: q.pairs.length, mistakes: 0 })).status === 'correct' && PACKS.check(q, JSON.stringify({ done: q.pairs.length, mistakes: 1 })).status === 'wrong' && PACKS.check(q, JSON.stringify({ done: 1, mistakes: 0 })).status === 'empty', `${ctx}: rättning av para ihop`);
+  }
+  if (q.ui === 'tap') ok(q.type === 'choicetext' && q.ordered && q.sentence && PACKS.toks(q.sentence).join(' ') === q.choices.join(' '), `${ctx}: tryck-i-meningen måste vara meningens egna ord i ordning`);
   if (q.fig && /readbox/.test(q.fig)) ok(q.speak === false, `${ctx}: lästext får inte läsas upp`);
 };
 
@@ -74,6 +89,8 @@ for (const pk of packs) for (const pol of pk.policies) for (const kp of pk.kps) 
   for (const v of vs) for (const sd of SEEDS.slice(0, 3)) { const q = PACKS.buildVariant(cid, v, PACKS.seeded(sd), pol); if (q && q.type === 'choicetext') { const k = norm(q.text); (correctByText.get(k) || correctByText.set(k, new Set()).get(k)).add(norm(q.choices[q.answer])); } }
   const ids = new Set(); const forms = new Set(); const facts = new Set();
   for (const v of vs) {
+    // v3: en sorterings-/parauppgift har samma id oavsett slump (kortens ordning blandas bara i gränssnittet)
+    if (v.ui === 'sort' || v.ui === 'match') { const vid = new Set(SEEDS.map(sd => LECAT.itemId(PACKS.buildVariant(cid, v, PACKS.seeded(sd), pol)))); ok(vid.size === 1, `${pk.id}/${kp.id} [${pol}] ${v.key}: id:t ändras med slumpen (${vid.size})`); }
     for (const sd of SEEDS) {
       const q = PACKS.buildVariant(cid, v, PACKS.seeded(sd), pol);
       const ctx = `${pk.id}/${kp.id} [${pol}] ${v.form}:${v.key.split('|').slice(-3).join('|')}`;

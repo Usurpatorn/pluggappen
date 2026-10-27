@@ -14,7 +14,7 @@
  "templates": [
   "ak2"
  ],
- "rev": 2,
+ "rev": 4,
  "sources": [
   {
    "id": "lgr22",
@@ -137,7 +137,8 @@
         "Skridskor",
         "Pulka"
        ],
-       "odd": "Vilket hör INTE till vintern?"
+       "odd": "Vilket hör INTE till vintern?",
+       "label": "Vinter"
       },
       {
        "q": "Vilket hör till sommaren?",
@@ -145,7 +146,8 @@
         "Bada i sjön",
         "Glass",
         "Jordgubbar"
-       ]
+       ],
+       "label": "Sommar"
       }
      ],
      "lvl": 2
@@ -269,6 +271,17 @@
      "f": [
       "En vecka har tio dagar."
      ]
+    },
+    {
+     "k": "order",
+     "q": "Sätt i ordning, kortast tid först.",
+     "items": [
+      "ett dygn",
+      "en vecka",
+      "en månad",
+      "ett år"
+     ],
+     "why": "Ett dygn har 24 timmar, en vecka 7 dygn, och ett år har 12 månader."
     }
    ],
    "requires": [
@@ -297,7 +310,8 @@
         "Häst",
         "Ekorre"
        ],
-       "odd": "Vilket djur är INTE ett däggdjur?"
+       "odd": "Vilket djur är INTE ett däggdjur?",
+       "label": "Däggdjur"
       },
       {
        "q": "Vilket djur är en fågel?",
@@ -306,7 +320,8 @@
         "Kråka",
         "Uggla"
        ],
-       "odd": "Vilket djur är INTE en fågel?"
+       "odd": "Vilket djur är INTE en fågel?",
+       "label": "Fågel"
       },
       {
        "q": "Vilket djur är en insekt?",
@@ -315,7 +330,8 @@
         "Bi",
         "Fjäril"
        ],
-       "odd": "Vilket djur är INTE en insekt?"
+       "odd": "Vilket djur är INTE en insekt?",
+       "label": "Insekt"
       },
       {
        "q": "Vilket djur är en fisk?",
@@ -323,7 +339,8 @@
         "Gädda",
         "Lax",
         "Abborre"
-       ]
+       ],
+       "label": "Fisk"
       }
      ]
     },
@@ -659,14 +676,16 @@
         "Dricka vatten",
         "Äta frukt"
        ],
-       "odd": "Vad är INTE bra för kroppen?"
+       "odd": "Vad är INTE bra för kroppen?",
+       "label": "Bra för kroppen"
       },
       {
        "q": "Vad är inte bra för kroppen?",
        "items": [
         "Äta godis hela dagen",
         "Aldrig röra sig"
-       ]
+       ],
+       "label": "Inte bra för kroppen"
       }
      ],
      "lvl": 2
@@ -841,6 +860,26 @@
      "f": [
       "Moln är gjorda av bomull."
      ]
+    },
+    {
+     "k": "pairs",
+     "q": "Vad är {a}?",
+     "items": [
+      [
+       "ett moln",
+       "Små vattendroppar i luften"
+      ],
+      [
+       "vind",
+       "Luft som rör sig"
+      ],
+      [
+       "regn",
+       "Vatten som faller från molnen"
+      ]
+     ],
+     "mq": "Para ihop ordet med vad det är.",
+     "why": "Moln är små vattendroppar. Vind är luft som rör sig. Ur molnen faller regn."
     }
    ],
    "requires": [
@@ -910,6 +949,29 @@
      "f": [
       "Solen är en planet."
      ]
+    },
+    {
+     "k": "group",
+     "sq": "Dag eller natt hos oss? Sortera.",
+     "groups": [
+      {
+       "q": "Vad hör till dagen hos oss?",
+       "label": "Dag",
+       "items": [
+        "Vår sida av jorden är vänd mot solen",
+        "Solen lyser på oss"
+       ]
+      },
+      {
+       "q": "Vad hör till natten hos oss?",
+       "label": "Natt",
+       "items": [
+        "Vår sida av jorden är vänd bort från solen",
+        "Solen lyser inte på oss"
+       ]
+      }
+     ],
+     "why": "Jorden snurrar runt sig själv. Den sida som är vänd mot solen har dag, den andra sidan har natt."
     }
    ],
    "src": [
@@ -1074,7 +1136,8 @@
         "En järnspik",
         "En järnskruv"
        ],
-       "odd": "Vilken sak drar magneten INTE till sig?"
+       "odd": "Vilken sak drar magneten INTE till sig?",
+       "label": "Magneten drar"
       },
       {
        "q": "Vilken sak drar magneten inte till sig?",
@@ -1082,7 +1145,8 @@
         "Ett suddgummi",
         "En träkloss",
         "En plastmugg"
-       ]
+       ],
+       "label": "Magneten drar inte"
       }
      ],
      "lvl": 2
@@ -1096,21 +1160,24 @@
         "Tidning",
         "Mjölkpaket",
         "Kartong"
-       ]
+       ],
+       "label": "Papper"
       },
       {
        "q": "Vilket skräp är plast?",
        "items": [
         "Plastpåse",
         "Yoghurtburk"
-       ]
+       ],
+       "label": "Plast"
       },
       {
        "q": "Vilket skräp är glas?",
        "items": [
         "Syltburk",
         "Glasflaska"
-       ]
+       ],
+       "label": "Glas"
       }
      ],
      "lvl": 2
@@ -1136,6 +1203,26 @@
      "f": [
       "En sten flyter på vatten."
      ]
+    },
+    {
+     "k": "pairs",
+     "q": "Vad stämmer om <b>{a_lower}</b>?",
+     "items": [
+      [
+       "Glas",
+       "Det är genomskinligt"
+      ],
+      [
+       "Trä",
+       "Det flyter på vatten"
+      ],
+      [
+       "Järn",
+       "En magnet drar det till sig"
+      ]
+     ],
+     "mq": "Para ihop materialet med det som stämmer.",
+     "why": "Glas är genomskinligt, trä flyter och en magnet drar till sig järn."
     }
    ],
    "src": [
@@ -1210,6 +1297,26 @@
      "f": [
       "Ljud uppstår när något är stilla."
      ]
+    },
+    {
+     "k": "pairs",
+     "q": "Vad behövs för {a}?",
+     "items": [
+      [
+       "en skugga",
+       "Ljus och något i vägen"
+      ],
+      [
+       "ett ljud",
+       "Något som vibrerar"
+      ],
+      [
+       "att inte halka",
+       "Friktion"
+      ]
+     ],
+     "mq": "Para ihop det som hör ihop.",
+     "why": "Skugga: ljus och något i vägen. Ljud: något vibrerar. Friktion gör att man inte halkar."
     }
    ],
    "src": [
@@ -1352,7 +1459,8 @@
         "Finland",
         "Island"
        ],
-       "odd": "Vilket land hör INTE till Norden?"
+       "odd": "Vilket land hör INTE till Norden?",
+       "label": "Norden"
       },
       {
        "q": "Vilket land hör inte till Norden?",
@@ -1360,7 +1468,8 @@
         "Spanien",
         "Italien",
         "Frankrike"
-       ]
+       ],
+       "label": "Inte Norden"
       }
      ],
      "lvl": 2
@@ -1386,6 +1495,31 @@
       "Island"
      ],
      "lvl": 2
+    },
+    {
+     "k": "group",
+     "sq": "Land eller stad? Sortera.",
+     "groups": [
+      {
+       "q": "Vilket är ett land?",
+       "label": "Land",
+       "items": [
+        "Sverige",
+        "Norge",
+        "Finland"
+       ]
+      },
+      {
+       "q": "Vilket är en stad i Sverige?",
+       "label": "Stad",
+       "items": [
+        "Stockholm",
+        "Göteborg",
+        "Malmö"
+       ]
+      }
+     ],
+     "why": "Sverige, Norge och Finland är länder. Stockholm, Göteborg och Malmö är städer i Sverige."
     }
    ],
    "requires": [
@@ -1546,6 +1680,30 @@
      "f": [
       "Bara föraren behöver bilbälte."
      ]
+    },
+    {
+     "k": "group",
+     "sq": "Säkert eller inte säkert? Sortera.",
+     "groups": [
+      {
+       "q": "Vad är säkert i trafiken?",
+       "label": "Säkert",
+       "items": [
+        "Hjälm när du cyklar",
+        "Bilbälte i bilen",
+        "Reflex i mörkret"
+       ]
+      },
+      {
+       "q": "Vad är INTE säkert i trafiken?",
+       "label": "Inte säkert",
+       "items": [
+        "Cykla på vänster sida",
+        "Cykla utan lampor i mörkret"
+       ]
+      }
+     ],
+     "why": "Hjälm, bilbälte, reflexer och lampor skyddar dig. Cyklister cyklar på höger sida."
     }
    ],
    "src": [
@@ -1619,6 +1777,30 @@
       "Det förslag som får minst röster vinner."
      ],
      "lvl": 2
+    },
+    {
+     "k": "group",
+     "sq": "Är det demokrati? Sortera.",
+     "groups": [
+      {
+       "q": "Vilket är ett demokratiskt sätt att bestämma?",
+       "label": "Demokrati",
+       "items": [
+        "Alla får säga sitt",
+        "Man röstar",
+        "Flest röster vinner"
+       ]
+      },
+      {
+       "q": "Vilket är INTE ett demokratiskt sätt att bestämma?",
+       "label": "Inte demokrati",
+       "items": [
+        "En person bestämmer allt",
+        "Den som skriker högst vinner"
+       ]
+      }
+     ],
+     "why": "Demokrati betyder att alla får vara med och bestämma, till exempel genom att rösta."
     }
    ],
    "src": [
@@ -1653,14 +1835,16 @@
         "Att vara trygg",
         "Att få leka"
        ],
-       "odd": "Vilket är INTE en rättighet enligt barnkonventionen?"
+       "odd": "Vilket är INTE en rättighet enligt barnkonventionen?",
+       "label": "Barnets rättighet"
       },
       {
        "q": "Vilket är inte en rättighet?",
        "items": [
         "Att äta godis varje dag",
         "Att köra bil"
-       ]
+       ],
+       "label": "Inte en rättighet"
       }
      ],
      "lvl": 2

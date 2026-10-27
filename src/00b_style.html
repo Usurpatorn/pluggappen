@@ -187,4 +187,73 @@
 .listen-box .speak-btn.big { min-width: 64px; min-height: 64px; font-size: 1.6rem; border-radius: 20px; }
 .readbox { text-align: left; background: var(--soft); border-radius: 14px; padding: 12px 14px; font-size: 1.02rem; line-height: 1.55; width: 100%; }
 .readbox p { margin: 6px 0 0; }
+
+/* ===== Experience v3 – uppdraget först, aktiviteter, KLAR → FLOW. Samma färger och typsnitt (barnets egen accentfärg). ===== */
+.mission { border: 2px solid var(--acc); gap: 10px; }
+.mission .eyebrow { color: var(--acc-ink); letter-spacing: .08em; font-weight: 800; }
+.mission-title { font-family: var(--display); font-weight: 800; font-size: 1.45rem; line-height: 1.2; }
+.mission.explore .mission-title { font-size: 1.6rem; }
+.mission.done { text-align: center; align-items: center; border-color: var(--good); }
+.mission.done .mission-icon { font-size: 2rem; }
+.mission-sub { font-size: 1.05rem; }
+.v3go { min-height: 76px; }
+.v3go .t { font-size: 1.5rem; letter-spacing: .06em; }
+.stations { display: flex; flex-wrap: wrap; gap: 8px; }
+.station { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 4px 12px; border-radius: 999px; background: var(--acc-soft); color: var(--acc-ink); font-weight: 700; font-size: .95rem; }
+.progress-states { display: flex; gap: 14px; flex-wrap: wrap; font-size: .95rem; }
+.progress-states b { font-family: var(--display); font-size: 1.15rem; color: var(--acc-ink); }
+.goal-title { font-family: var(--display); font-weight: 800; font-size: 1.7rem; letter-spacing: .02em; line-height: 1.1; }
+.goal-date { font-weight: 700; color: var(--muted); letter-spacing: .04em; }
+.train ul { margin: 6px 0 0; padding-left: 20px; font-size: 1.05rem; font-weight: 600; }
+.train li { margin: 2px 0; }
+.then { font-size: .95rem; color: var(--muted); }
+.goal-detail summary, .quests-fold > summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; gap: 8px; }
+.quests-fold .card { box-shadow: none; border: 0; padding: 0; background: transparent; }
+.welcome { border: 2px solid var(--acc); }
+/* Aktiviteter – allt med tryck, inga dragningar. Tryckytor minst 48 px. */
+.sortbox { display: grid; gap: 12px; }
+.sort-pool { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; min-height: 52px; }
+.sort-pool.empty { display: none; }
+.stile:focus-visible, .sbin-h:focus-visible, .tapword:focus-visible, .mtile:focus-visible, .station:focus-visible { outline: 3px solid var(--acc); outline-offset: 2px; }
+.stile { min-height: 52px; min-width: 64px; padding: 8px 14px; border-radius: 12px; background: var(--card); border: 1.5px solid var(--line); box-shadow: var(--shadow); font-family: var(--display); font-weight: 700; font-size: 1.05rem; }
+.stile.sel { border-color: var(--acc); background: var(--acc-soft); outline: 3px solid var(--acc-glow); }
+.stile.placed { min-height: 44px; font-size: .95rem; box-shadow: none; }
+.stile.ok { border-color: var(--good); background: var(--good-soft); }
+.stile.no { border-color: var(--bad); background: var(--bad-soft); }
+.sort-bins { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+.sbin { min-height: 96px; padding: 10px; border-radius: 16px; border: 2px dashed var(--acc); background: color-mix(in srgb, var(--acc-soft) 45%, var(--card)); display: flex; flex-direction: column; align-items: stretch; gap: 6px; text-align: center; cursor: pointer; }
+.sbin-h { min-height: 48px; border-radius: 12px; background: transparent; font-family: var(--display); font-weight: 800; color: var(--acc-ink); font-size: 1.05rem; }
+.sbin-items { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+.tip { font-size: .9rem; text-align: center; margin: 0; }
+.match-grid.v3 .mtile { min-height: 56px; }
+.tapline { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; padding: 6px 0; }
+.tapword { min-height: 52px; min-width: 48px; padding: 6px 14px; border-radius: 12px; background: var(--card); border: 1.5px solid var(--line); box-shadow: var(--shadow); font-size: 1.2rem; font-weight: 700; }
+.tapword.sel { border-color: var(--acc); background: var(--acc-soft); }
+.tapword.ok { border-color: var(--good); background: var(--good-soft); }
+.tapword.no { border-color: var(--bad); background: var(--bad-soft); }
+.paper-note { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 14px; background: var(--soft); border: 1.5px solid var(--line); font-size: 1rem; }
+.paper-note > span { font-size: 1.4rem; line-height: 1; }
+.selfcheck { padding: 10px 12px; border-radius: 14px; background: var(--soft); }
+.selfcheck .btn.sc { min-height: 44px; }
+.row.row-wrap { flex-wrap: wrap; }
+.mission .link { min-height: 44px; }
+.trail { display: flex; gap: 6px; justify-content: center; align-items: center; flex-wrap: wrap; padding: 2px 0; }
+.trail .dot { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-size: .9rem; background: var(--soft); border: 2px solid var(--line); color: var(--good); font-weight: 800; }
+.trail .dot.ok { background: var(--good-soft); border-color: var(--good); }
+.trail .dot.cur { border-color: var(--acc); background: var(--acc-soft); transform: scale(1.15); }
+.trail.done .dot { width: 36px; height: 36px; font-size: 1.1rem; }
+.klar-title { font-family: var(--display); font-weight: 800; font-size: 1.5rem; letter-spacing: .04em; }
+.delight { font-weight: 700; color: var(--acc-ink); }
+@media (max-width: 380px) { .sort-bins { grid-template-columns: 1fr 1fr; } .goal-title { font-size: 1.45rem; } }
+/* v3 (UX-granskning): hopfällda kort visar att de går att öppna; neutral förloppsstapel (färdiga = mörka, aktuell = ring – aldrig rött/grönt) */
+.goal-detail > summary::after, .quests-fold > summary::after, .more-fold > summary::after { content: '▾'; margin-left: auto; opacity: .6; }
+.goal-detail[open] > summary::after, .quests-fold[open] > summary::after, .more-fold[open] > summary::after { content: '▴'; }
+.progress.v3 i.done { background: var(--ink); opacity: .55; } .progress.v3 i.cur { background: var(--soft); box-shadow: inset 0 0 0 2px var(--ink); }
+/* v3 tillgänglighet: "minska rörelse" stänger av studs, puls och övergångar */
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
+
+/* v3 tillgänglighet (kvalitetspasset): tryckytor minst 44 px för hopfällda rader, "Läs mer" och kladdytan; topbarens ikoner i v3-pass */
+.more-fold > summary { min-height: 44px; display: flex; align-items: center; gap: 8px; }
+body:has(.progress.v3, .trail, section.mission, .klar) .sketch > summary { min-height: 44px; display: flex; align-items: center; }
+body:has(.progress.v3, .trail, section.mission, .klar) .icon-btn { width: 44px; height: 44px; }
 </style>

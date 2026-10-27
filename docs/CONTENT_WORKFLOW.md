@@ -26,6 +26,9 @@ material sker här, hos Claude, med granskning innan något släpps.
 4. **Skriv innehållet** enligt `docs/CONCEPT_PACKS.md`: förklaring, fakta i flera slag (så att alla stadier får aktiviteter),
    missuppfattningar, samband, källor. Åldersanpassa språket efter policyn. Lärarfrågorna i `work.json` med facit och
    felalternativ när de kan rättas säkert – annars utan facit (de styr då bara vilka punkter som prövas).
+   Experience v3: lärarens målområden i `goals`, lärarens uttryckliga betoning i `focus`, och allt som saknas eller inte är
+   granskat (PDF:er som inte gått att läsa, okänt provformat, filmer som bara är kända till titeln, labbmaterial) i `missing`.
+   Gissa aldrig innehållet i en film eller en saknad PDF utifrån titeln.
 5. **Kvalitetsgrind.** `node scripts/content.mjs check <mapp>/packs` och `node scripts/content.mjs bundle <mapp> <ut.json>`
    (validerar även skoluppgifterna: kända punkter, rättningsbara lärarfrågor, inga namn ur den privata termlistan).
    Rött = rätta innehållet, aldrig testet.
@@ -41,6 +44,9 @@ material sker här, hos Claude, med granskning innan något släpps.
      `content-publisher` skriver – och det kan bara lånas av publiceringsworkflowen i miljön `production` (ingen nyckelfil finns).
      Claude har aldrig några nycklar och ber aldrig om dem i chatten. `deploy` med en nyckelfil finns kvar som reserv men används inte.
    - Inget verkligt skolmaterial publiceras förrän spärren `PUBLISH_ENABLED` har slagits på av föräldern.
+7b. **Golden case-kontroll (valfri, lokalt):** `GOLDEN_BUNDLE=<ut.json> GOLDEN_KID=<barn-id> node tests/test_golden_cases.js` kör
+   34 simulerade dygn i appen med familjens innehåll och visar att aktiviteterna (löst exempel, papper, hitta felet, Testa mig per
+   målområde …) faktiskt uppstår. Filen lämnar aldrig den lokala datorn; utskriften innehåller bara antal.
 8. **Rapportera kort** till föräldern: vad som finns i appen nu (t.ex. "Kemiprovet 20 november: 14 kunskapspunkter, 9 av
    lärarens frågor i Testa mig"), vad som var osäkert, och vad barnet ser ("KEMIPROV · 20 NOVEMBER / IDAG 8 minuter / KÖR").
 

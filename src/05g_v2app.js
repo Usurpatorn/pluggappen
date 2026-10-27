@@ -51,7 +51,9 @@ const V2 = {
   examCidsActive(kid, e) { const C = LE.state(kid); const cat = LE.activeCat(C, prof(kid.id)); return LE.examCids(C, e).filter(cid => cat[cid] && cat[cid].active !== false).concat((e.deckIds || []).map(LECAT.deckCid).filter(cid => cat[cid])); },
   // Hur många av passets uppgifter (utom Bossen) som hör till provet
   // Provträningen följer dygnets gräns för nytt: bara det som är kvar av policyns maxNew efter dagens tidigare pass
-  newCapToday(C, now) { const d = LE2.dayIdx(now); const n = Object.entries(C.L.c).filter(([id, c]) => c.fs && LE2.dayIdx(c.fs * 1000) === d && C.cat[id] && C.cat[id].kind !== 'deck').length; return Math.max(0, C.pol.maxNew - n); },
+  newToday(C, now) { const d = LE2.dayIdx(now); return Object.entries(C.L.c).filter(([id, c]) => c.fs && LE2.dayIdx(c.fs * 1000) === d && C.cat[id] && C.cat[id].kind !== 'deck').length; },
+  // Dygnets gräns för nytt: policyns gräns – eller motorns egen lägre gräns för dagen (t.ex. provveckan), sparad av dygnets första pass (rec.mx)
+  newCapToday(C, now, p) { const d = LE2.dayIdx(now); let cap = C.pol.maxNew; if (p) for (const r of V2.v2recs(p)) if (typeof r.mx === 'number' && LE2.dayIdx(r.t * 1000) === d) cap = Math.min(cap, r.mx); return Math.max(0, cap - V2.newToday(C, now)); },
   missionShare(plan, cids) { const set = new Set(cids); const slots = plan.filter(s => s.role !== 'boss'); return { n: slots.filter(s => set.has(s.cid)).length, of: slots.length }; },
   /* 2.2: uppdraget = närmaste prov/läxa/glosförhör med datum inom MISSION_DAYS (familjens skoluppgifter eller förälderns prov) */
   MISSION_DAYS: 28,
@@ -96,7 +98,7 @@ const V2 = {
         const days = daysUntil(e.date); const st = V2.examStatus(kid, e, C, now); const shown = st.per.slice(0, 6);
         // Hotfix 2.1.1: knappen startar provets egen träning (bara provets koncept) – och finns bara när provet har kopplade områden
         const cids = V2.examCidsActive(kid, e); const mp = cids.length ? V2.safe(() => V2.plan(kid, 'mission', C, now, null, { examId: e.id }), 'missionPeek', []) : [];
-        const msg = st.ready ? 'Du har bra koll. Korta pass räcker – och vila gärna dagen före.' : days <= 1 ? 'Lugnt och kort idag. Det viktiga sitter redan bättre än du tror.' : 'Kör! väljer det som gör mest nytta inför provet.';
+        const msg = st.ready ? 'Bra koll på det som övats. Kör! fortsätter repetera – och vila gärna dagen före.' : days <= 1 ? 'Lugnt och kort idag.' : 'Kör! väljer det som gör mest nytta inför provet.';   // v3 (ärlig intelligens): inga påståenden som motorn inte kan backa upp
         return `<div class="card pad-lg exam stack" style="gap:12px">
         <div class="row"><div class="grow"><div class="eyebrow">${esc(e.title)} · ${fmtDate(e.date)}</div><div class="days">${days > 0 ? days : 'Idag'}</div><div style="opacity:.85">${days > 1 ? 'dagar kvar' : days === 1 ? 'dag kvar' : 'Lycka till!'}</div></div></div>
         ${st.per.length && st.per.every(x => x.ready === 'För lite underlag') ? `<div style="font-size:.95rem;opacity:.9">${st.per.length} områden på provet. Kör några pass så ser du här vad som sitter.</div>` : `<div class="stack" style="gap:6px">${shown.map(x => `<div class="row" style="justify-content:space-between;gap:8px"><span style="font-weight:700">${esc(x.name)}</span><span class="pill ${V2.READY_CLS[x.ready]}" style="font-size:.75rem">${V2.READY_TXT[x.ready]}</span></div>`).join('')}${st.per.length > shown.length ? `<div style="opacity:.8;font-size:.85rem">+ ${st.per.length - shown.length} till</div>` : ''}</div>`}
@@ -134,29 +136,32 @@ const V2 = {
       for (const id2 of (e.deckIds || [])) { const d = deckById(p, id2); if (d && !d.noSpell && cat[LECAT.deckCid(id2)]) for (let r = 0; r < Math.min(4, d.words.length); r++) plan.push({ cid: LECAT.deckCid(id2), role: 'testa', why: 'Testa mig' }); }   // granskning M3: ett glosförhör = flera ord
       const out = plan.slice(0, 12); out.maxItems = out.length; return out;
     }
+    if (mode === 'flow') return EXP.flowPlan(kid, C, now, id);   // Experience v3: frivilligt extrablock – samma motor, kortare, dygnets gräns för nytt
     // Hotfix 2.1.1: "Öva inför provet" – samma motor och samma regler (förfallet, nytt inom dygnets gräns, Revansch), men bara provets koncept
-    if (mode === 'mission') { const e = LE.exams(kid, p).find(x => x.id === extra.examId); if (!e) return []; const cids = V2.examCidsActive(kid, e); if (!cids.length) return []; const plan0 = LE.plan(kid, V2.n(kid, C), now, id, { only: cids, newCap: V2.newCapToday(C, now) }).plan; const set = new Set(cids);
+    if (mode === 'mission') { const e = LE.exams(kid, p).find(x => x.id === extra.examId); if (!e) return []; const cids = V2.examCidsActive(kid, e); if (!cids.length) return []; const plan0 = LE.plan(kid, V2.n(kid, C), now, id, { only: cids, newCap: V2.newCapToday(C, now, EXP.on(kid) ? p : null) }).plan; const set = new Set(cids);
       // Granskning: bara provets koncept (även Bossen), och inget pass alls när inget av provet går att öva just nu (t.ex. kvällen före provet
       // med opåbörjade områden) – då visas en ärlig text i stället för en knapp som startar något annat
       const plan = plan0.filter(s => set.has(s.cid)); if (!plan.some(s => s.role !== 'boss')) return [];
       Object.assign(plan, { light: plan0.light, restart: plan0.restart, maxItems: plan0.maxItems, maxNew: plan0.maxNew, examDays: plan0.examDays, only: set, examId: e.id }); return plan; }
     if (mode === 'readclose') { const cids = LE.cidsOfSkill(C, extra.skillId); if (!cids.length) return []; const start = Math.floor(Math.random() * cids.length); const plan = [0, 1, 2].map(i => ({ cid: cids[(start + i) % cids.length], role: 'readclose', why: 'läst, stängt – minns du?' })); plan.maxItems = 3; return plan; }
-    // Granskning: efter provträning samma dag får Kör! bara det som är kvar av dygnets gräns för nytt
-    return LE.plan(kid, V2.n(kid, C), now, id, V2.missionToday(p) ? { newCap: V2.newCapToday(C, now) } : {}).plan;
+    // v3 (granskning M2) och 2.1.1: ett nytt Kör! efter dagens CORE eller efter provträning samma dag får bara det som är kvar av dygnets gräns för nytt
+    const later = (EXP.on(kid) && EXP.coreDone(p)) || V2.missionToday(p);
+    return LE.plan(kid, V2.n(kid, C), now, id, later ? { newCap: V2.newCapToday(C, now, EXP.on(kid) ? p : null) } : {}).plan;
   },
   start(kid, mode = 'kor', extra = {}) {
     const p = prof(kid.id);
     if (!LE.canStart(kid, p)) { if (mode === 'kor') { S = null; return startSession(kid, recommendSprint(kid).opts); } toast('Hämtar det senaste från molnet – försök igen om en stund'); return; }   // barnet blockeras aldrig: v1-pass tills första synken är klar
-    const C = LE.state(kid); const now = LE.sessClock(C); const { id: id0 } = LE.newSessId(p); const id = mode === 'mission' ? id0 + 'm' : id0;   // provträningen räknas inte som eget pass i motorn
+    const C = LE.state(kid); const now = LE.sessClock(C); const { id: id0 } = LE.newSessId(p); const id = mode === 'flow' ? id0 + 'f' : mode === 'mission' ? id0 + 'm' : id0;   // FLOW och provträning märks i id:t (motorn räknar dem inte i svält-skyddet)
     const plan = V2.plan(kid, mode, C, now, id, extra);
     if (!plan.length) { toast(mode === 'revansch' ? 'Inget att ta revansch på just nu' : 'Inget att öva just nu'); return go('home'); }
     const exam = mode === 'exam';
     const cat0 = LE.activeCat(C, p); const cat = plan.only ? Object.fromEntries(Object.entries(cat0).filter(([cid]) => plan.only.has(cid))) : cat0;   // provträning: lätta uppgifter och Bossen bara ur provet
     const R = LER.create(C.L, cat, plan, C.pol, { sessId: id, mode: exam ? 'exam' : 'practice', maxItems: plan.maxItems });
     const rec = { id, t: Math.round(now / 1000), src: 'v2', e: 2, m: mode, mode: 'v2', v1: [], v2: plan.map(s => [s.cid, LE.ROLE[s.role] || '?', LE.whyKey(s)]), light: plan.light ? 1 : 0, rst: plan.restart ? 1 : 0, pol: C.pn, a: [], w: [0, 0], done: 0 };
+    if (typeof plan.maxNew === 'number' && V2.newToday(C, now) === 0) rec.mx = plan.maxNew;   // dygnets första pass: motorns egen gräns för nytt idag (FLOW/provträning håller den)
     p.le.shadow = [...(p.le.shadow || []), rec].slice(-LE2.SHADOW_MAX);
     S = { kid, mode: 'v2', opts: { v2: mode, ...extra }, queue: [], i: 0, results: [], xp: 0, usedHelp: false, retried: false, startedAt: Date.now(), streak: 0, revealed: false, answered: false, examId: extra.examId, deadline: null, chain: null,
-      v2: { R, C, id, mode, exam, start: now, k: 0, plan, light: !!plan.light, restart: !!plan.restart, rewards: [], answers: [], seen: new Set(), stageUps: new Set(), fbBefore: LE2.felbokVisible(C.L, now).length, extra } };
+      v2: { R, C, id, mode, exam, start: now, k: 0, plan, planN: plan.length, light: !!plan.light, restart: !!plan.restart, rewards: [], answers: [], seen: new Set(), stageUps: new Set(), fbBefore: LE2.felbokVisible(C.L, now).length, extra, exp: EXP.on(kid) ? EXP.of(kid) : null, calm: !!plan.restart } };
     save();
     state.screen = 'practice';
     if (!V2.advance()) return V2.finish();
@@ -200,13 +205,20 @@ const V2 = {
       if (V.exam) { const tq = V2.teacherQ(kid, spec.cid); if (tq) { V.seen.add(V2.iid(tq)); return [{ ...tq, skill, cat: 'math', level: tq.level, spec, _slotEnd: true }]; } }
       const fmt = V.exam ? 'any' : spec.role === 'readclose' ? 'recall' : spec.format === 'recall' || spec.format === 'depth' ? spec.format : 'any';
       const stage = V.exam ? null : { n: c ? c.n : 0, st: c ? c.st : 0 };   // Learning Recipe: stadiet styr aktiviteten (inte i Testa mig)
-      let q = PACKS.question(spec.cid, { lvl: spec.lvl, format: fmt, pol: pol.name, avoid, rnd: Math.random, challenge: spec.mode === 'challenge', itemId: LECAT.itemId, stage });
+      const ask = () => PACKS.question(spec.cid, { lvl: spec.lvl, format: fmt, pol: pol.name, avoid, rnd: Math.random, challenge: spec.mode === 'challenge', itemId: LECAT.itemId, stage, exam: V.exam, vary: V.exam ? null : EXP.vary(V, spec) });
+      let q = ask();
+      // v3 (UX-granskning): samma faktum ska inte komma tillbaka samma dag i en annan form (t.ex. först flerval, sedan som Boss i eget svar).
+      // Bara valet av variant – formatet och nivån som motorn bad om gäller. Finns ingen annan variant: samma faktum hellre än ingen uppgift.
+      if (V.exp && !V.exam) { const dk = EXP.dayFacts(kid); for (let t = 0; t < 4 && q && q.fk && dk.has(q.fk); t++) { avoid.add(LECAT.itemId(q)); const q2 = ask(); const fits = q2 && !q2.onlyVariant && (fmt !== 'recall' || q2.form === 'recall') && (fmt !== 'depth' || PACKS.DEPTH.has(q2.form)) && (q2.level || 1) <= Math.max(q.level || 1, spec.lvl || 1); if (!fits) break; q = q2; } if (q && q.fk) dk.add(q.fk); }   // bytet tas bara när varianten har samma format och nivå (verifieringspass)
       if (!q && spec.mode === 'challenge') q = PACKS.question(spec.cid, { lvl: 3, format: 'depth', pol: pol.name, avoid, rnd: Math.random, itemId: LECAT.itemId });
       if (!q) return [];
       q = { ...q, skill, cat: 'math', level: q.level || spec.lvl };
+      if (V.exp === 'explore' && !V.exam && spec.format !== 'recall' && EXP.buildable(q) && !(q.accept && q.accept.exact)) q.build = true;   // v3: bygg ordet med brickor (samma rättning) – aldrig när motorn ber om eget svar eller stavningen är själva frågan (brickorna avslöjar t.ex. dubbelteckning – verifieringspass)
       V.seen.add(V2.iid(q)); return [{ ...q, spec, _slotEnd: true }];
     }
     let q;
+    // v3-rytm: Hitta felet / Baklänges som fördjupning (registreras som Utmaning – ändrar aldrig grundkunskapens stadium)
+    const rk = EXP.rhythmKind(V, spec, skill, c); if (rk) { const rq = EXP.rhythmItem(rk, skill, spec.lvl); if (rq) { V.seen.add(V2.iid(rq)); return [{ ...rq, skill, cat: 'math', level: rq.level || spec.lvl, rhythm: rk, fcode: rk === 'spot' ? 'm' : 'v', spec: { ...spec, rhythm: rk }, _slotEnd: true }]; } }   // granskning: rytmen är riktig övning av momentet → vanligt bevis (form: hitta felet / baklänges), inte en Utmaning utan bevis
     if (spec.mode === 'challenge') q = CHG.make(skill, spec.lvl, (c && c.ch && c.ch.n) || 0, { young: pol.name === 'younger' });   // annars: vanlig uppgift på högsta nivån, märkt UTMANING
     // Fria textsvar (nyckelordsrättning) används aldrig i v2 – rättningen är inte tillräckligt säker för att styra stadier och Felboken (3E).
     const genNoOpen = () => { let q1 = null; for (let lv = spec.lvl; lv >= 1 && (!q1 || q1.type === 'open'); lv--) for (let j = 0; j < 4 && (!q1 || q1.type === 'open'); j++) q1 = makeQuestion(kid, skill, lv, { noOpen: true, v2: true }); return q1; };
@@ -222,6 +234,10 @@ const V2 = {
       if (r) q = { ...r, skill, cat: 'math', level: q.level, baseId: LECAT.itemId(q) };
     }
     else if (wantRecall && q.choices && (q.type === 'num' || q.type === 'expr')) q = { ...q, choices: undefined };
+    // v3 papper och penna: appen väljer uppgiften, barnet räknar på papper och skriver bara svaret (rättas som vanligt)
+    if (EXP.paperFor(V, q, spec, skill)) q = { ...q, choices: undefined, paper: true };
+    // v3 Explore: efter ett textval (som för paketens aktiviteter) blir ett taluppdrag "skriv talet" med sifferknappar i stället för fler knappar att välja bland
+    else if (V.exp === 'explore' && !V.exam && q.type === 'num' && q.choices && !['warmup', 'rescue', 'easy'].includes(spec.role) && spec.help !== 'rescue' && (EXP.vary(V) || {}).choiceRun >= 1) q = { ...q, choices: undefined, keypad: true };
     V.seen.add(V2.iid(q));
     return [{ ...q, spec, _slotEnd: true }];
   },
@@ -257,20 +273,35 @@ const V2 = {
      Yngre: en tydlig knapp "Läs upp" som läser frågan och svarsalternativen. Övriga: den vanliga högtalarikonen. Finns ingen röst: ingen knapp. */
   READ_OFF: new Set(['sv_lasa', 'sv4_lasa', 'sv8_lasa']),
   canSpeak(q) { if (typeof TTS === 'undefined' || !TTS.ok || !q) return false; if (q.speak === false) return false; const sk = q.skill || {}; if (sk.readAloud === false || V2.READ_OFF.has(sk.id)) return false; if (q.fig && /readbox|listen-box|svread/i.test(q.fig)) return false; return true; },
-  sayText(q) { const t = RECALL.strip(q.text).replace(/\s+/g, ' ').trim(); const ch = q.type === 'choicetext' && Array.isArray(q.choices) ? q.choices.map(c => RECALL.strip(c).trim()) : null; return ch ? `${t} … ${ch.slice(0, -1).join(', ')} eller ${ch[ch.length - 1]}?` : t; },
+  sayText(q) { const t = RECALL.strip(q.text).replace(/\s+/g, ' ').trim();
+    if (q.type === 'sort') return `${t} … ${q.items.join(', ')}. Grupperna är: ${q.bins.join(' och ')}.`;
+    if (q.type === 'match') return `${t} … ${q.pairs.map(x => x[0]).join(', ')}. Och: ${q.pairs.map(x => x[1]).join(', ')}.`; const ch = q.type === 'choicetext' && Array.isArray(q.choices) ? q.choices.map(c => RECALL.strip(c).trim()) : null; return ch ? `${t} … ${ch.slice(0, -1).join(', ')} eller ${ch[ch.length - 1]}?` : t; },
   speakBtn(q, p) {
     if (!V2.canSpeak(q)) return '';
-    if (S.v2.C.pol.name === 'younger') return `<button class="btn ghost" data-speak="${esc(V2.sayText(q))}" data-lang="sv" style="min-height:36px;padding:0 12px" aria-label="Läs upp frågan">🔊 Läs upp</button>`;
-    return p.settings.tts ? `<button class="icon-btn" data-speak="${esc(q.text.replace(/<[^>]+>/g, ''))}" data-lang="sv" data-highlight="1" style="width:36px;height:36px" aria-label="Läs upp">${ICON.speaker}</button>` : '';
+    if (S.v2.C.pol.name === 'younger') return `<button class="btn ghost" data-speak="${esc(V2.sayText(q))}" data-lang="sv" style="min-height:${S.v2.exp ? 48 : 36}px;padding:0 12px" aria-label="Läs upp frågan">🔊 Läs upp</button>`;
+    return p.settings.tts ? `<button class="icon-btn" data-speak="${esc(q.text.replace(/<[^>]+>/g, ''))}" data-lang="sv" data-highlight="1" style="width:${S.v2.exp ? 44 : 36}px;height:${S.v2.exp ? 44 : 36}px" aria-label="Läs upp">${ICON.speaker}</button>` : '';
   },
   /* ---------- Visning under passet ---------- */
-  total() { const pr = LER.progress(S.v2.R); return Math.max(S.queue.length, S.i + Math.max(1, pr.left)); },
-  hasNext() { const pr = LER.progress(S.v2.R); return S.i + 1 < S.queue.length || pr.left > 1 || (pr.left === 1 && !(S.queue[S.i] && S.queue[S.i]._slotEnd)); },
-  title(item) { return S.v2.exam ? 'Testa mig' : S.v2.mode === 'mission' ? 'Inför ' + esc((LE.exams(S.kid, prof(S.kid.id)).find(e => e.id === S.v2.extra.examId) || {}).title || 'provet') : S.v2.mode === 'revansch' ? 'Revansch' : S.v2.mode === 'readclose' ? 'Minns du?' : item.cat === 'word' ? esc(item.deck.name) : item.skill ? esc(item.skill.short || item.skill.name) : 'Kör!'; },
-  topRight() { const pr = LER.progress(S.v2.R); return S.v2.exam ? `<span class="pill">Inga ledtrådar · svar efteråt</span>` : `<span class="left-count">${Math.max(0, pr.left)} kvar</span>`; },
-  progressBar() { const tot = V2.total(); return `<div class="progress">${Array.from({ length: tot }, (_, i) => `<i class="${i < S.i ? (S.v2.exam ? 'ok' : S.results[i] === false ? 'no' : 'ok') : i === S.i ? 'cur' : ''}"></i>`).join('')}</div>`; },
+  // v3 (slutverifieringen): planerade uppgifter som faktiskt återstår i passkörarens kö (utan Ny chans/Rescue/extra lätta), högst så många
+  // som passets tak (maxItems) rymmer – motorns omförsök kan korta passet, och då krymper siffran ärligt i stället för att lova för mycket.
+  // Bossplatsen räknas som planerad. Har motorn ingen Boss att ge när passet når dit hoppas den över, och KLAR säger "Bossen väntar nästa gång".
+  plannedLeft() { const R = S.v2.R; const left = R.queue.slice(R.i).filter(x => x.mode !== 'teach' && !EXP.EXTRA.has(x.role)).length; return Math.max(0, Math.min(left, R.maxItems - R.answered)); },
+  total() { if (S.v2.exp && !S.v2.exam) return Math.max(1, EXP.done() + V2.plannedLeft()); const pr = LER.progress(S.v2.R); return Math.max(S.queue.length, S.i + Math.max(1, pr.left)); },
+  // v3: räknaren följer den planerade längden – omförsök och Rescue är "Ny chans" utan nummer (mållinjen flyttar sig inte)
+  num() { if (!(S.v2.exp && !S.v2.exam)) return S.i + 1; const it = S.queue[S.i]; return EXP.isExtra(it) ? (it.spec.role === 'easy' ? 'Extra' : 'Ny chans') : Math.min(V2.total(), EXP.done() + 1); },
+  // Anropas efter svaret (passköraren har redan gått vidare): finns det något kvar i planen är det "Nästa", inte "Visa resultat"
+  // (granskning v3: Bossen kom efter en knapp som sa "Visa resultat")
+  hasNext() { const pr = LER.progress(S.v2.R); return S.i + 1 < S.queue.length || pr.left > 0; },
+  title(item) { return S.v2.exam ? 'Testa mig' : S.v2.mode === 'mission' ? 'Inför ' + esc((LE.exams(S.kid, prof(S.kid.id)).find(e => e.id === S.v2.extra.examId) || {}).title || 'provet') : S.v2.mode === 'revansch' ? 'Revansch' : S.v2.mode === 'readclose' ? 'Minns du?' : item.cat === 'word' ? esc(item.deck.name) : item.skill && S.v2.exp === 'explore' ? ({ math: 'Matte', sv: 'Svenska', en: 'Engelska', no: 'NO', so: 'SO' })[item.skill.group || 'math'] || 'Äventyret' : item.skill ? esc(item.skill.short || item.skill.name) : 'Kör!'; },   // Explore: ämnet, inte momentets interna namn (UX)
+  // v3: N kvar = planerade uppgifter; en Ny chans/Rescue syns som extra och tar inga planerade platser
+  topRight() { const pr = LER.progress(S.v2.R); if (S.v2.exp && !S.v2.exam) { const it = S.queue[S.i]; const extra = EXP.isExtra(it); const left = extra ? Math.min(V2.plannedLeft(), Math.max(0, S.v2.R.maxItems - S.v2.R.answered - 1)) : V2.plannedLeft(); const lbl = extra && it.spec.role === 'easy' ? 'Extra' : 'Ny chans'; return extra ? `<span class="left-count">${left ? `${lbl} · sedan ${left} kvar` : lbl}</span>` : `<span class="left-count">${left} kvar</span>`; } return S.v2.exam ? `<span class="pill">Inga ledtrådar · svar efteråt</span>` : `<span class="left-count">${Math.max(0, pr.left)} kvar</span>`; },
+  progressBar() { const tot = V2.total();
+    if (S.v2.exp && !S.v2.exam) { const d = EXP.done();   // v3: planerade platser; ingen röd historik för fel svar
+      if (S.v2.exp === 'explore') return `<div class="trail" role="progressbar" aria-valuemin="0" aria-valuemax="${tot}" aria-valuenow="${d}" aria-label="Äventyret">${Array.from({ length: tot }, (_, i) => `<span class="dot ${i < d ? 'ok' : i === d ? 'cur' : ''}" aria-hidden="true">${i === tot - 1 ? '👑' : ''}</span>`).join('')}</div>`;
+      return `<div class="progress v3" role="progressbar" aria-valuemin="0" aria-valuemax="${tot}" aria-valuenow="${d}" aria-label="Passet: ${d} av ${tot} klara">${Array.from({ length: tot }, (_, i) => `<i class="${i < d ? 'done' : i === d ? 'cur' : ''}"></i>`).join('')}</div>`; } return `<div class="progress">${Array.from({ length: tot }, (_, i) => `<i class="${i < S.i ? (S.v2.exam ? 'ok' : S.results[i] === false ? 'no' : 'ok') : i === S.i ? 'cur' : ''}"></i>`).join('')}</div>`; },
   chip(item) {
     if (item && item.teacher && S.v2.exam) return `<div class="row" style="justify-content:center"><span class="pill acc" style="font-weight:800;letter-spacing:.04em"><span aria-hidden="true">📝</span> LÄRARENS FRÅGA${item.teacher.n ? ' ' + esc(item.teacher.n) : ''}</span></div>`;
+    const xc = S.v2.exp ? EXP.chipFor(item) : null; if (xc) return `<div class="row" style="justify-content:center"><span class="pill acc" style="font-weight:800;letter-spacing:.04em"><span aria-hidden="true">${xc[1]}</span> ${xc[0]}</span></div>`;
     if (!item || !item.spec || S.v2.exam) return '';
     const s = item.spec; const key = item.cat === 'learn' ? (s.role === 'rescue' ? 'rescue' : s.role === 'intro' ? 'intro' : 'teach') : s.mode === 'challenge' ? 'challenge' : s.role;
     const formChip = item.cat === 'math' && item.form && ['focus', 'practice', 'remember', 'warmup', 'easy'].includes(s.role) ? V2.FORM_CHIP[item.form] : null;
@@ -280,7 +311,7 @@ const V2 = {
   teachBody(item) {
     const ex = item.ex; const rescue = item.spec.role === 'rescue'; const intro = item.spec.role === 'intro'; const s = item.skill;
     const say = typeof TTS !== 'undefined' && TTS.ok && S.v2.C.pol.name === 'younger' && s.readAloud !== false && !V2.READ_OFF.has(s.id) && ex && ex.intro ? `<button class="btn ghost" data-speak="${esc(RECALL.strip(ex.intro.name + '. ' + ex.intro.explain))}" data-lang="sv" style="min-height:36px">🔊 Läs upp</button>` : '';
-    if (intro && ex && ex.intro) return `<div class="eyebrow">Något nytt</div><h3 style="margin:6px 0">${esc(ex.intro.name)}</h3><p style="font-size:1.05rem">${safeHtml(ex.intro.explain)}</p>${say}${s.method ? `<details class="sketch"><summary>📖 Läs mer om ${esc(s.short || s.name)}</summary><div class="method" style="margin-top:8px">${safeHtml(s.method)}</div></details>` : ''}<button class="btn big wide" data-v2="teachok">Jag är redo →</button>`;
+    if (intro && ex && ex.intro) return `<div class="eyebrow">Något nytt</div><h3 style="margin:6px 0">${esc(ex.intro.name)}</h3><p style="font-size:1.05rem">${safeHtml(ex.intro.explain)}</p>${say}${s.method ? `<details class="sketch"><summary>📖 Läs mer om ${esc(s.short || s.name)}</summary><div class="method" style="margin-top:8px">${safeHtml(s.method)}</div></details>` : ''}<button class="btn big wide" data-v2="teachok">${S.v2.exp ? 'Nu provar jag →' : 'Jag är redo →'}</button>`;
     return `<div class="eyebrow">${rescue ? 'Vi tar det tillsammans' : 'En kort förklaring först'}</div>
       ${ex ? `<div class="steps"><div class="eyebrow">${ex.fromFail ? 'Uppgiften du nyss fick' : 'Exempel'}</div>${ex.fig ? `<div class="figwrap">${safeHtml(ex.fig)}</div>` : ''}<div style="font-weight:700;margin:6px 0">${safeHtml(ex.text)}</div><ol>${ex.steps.map(st => `<li>${safeHtml(st)}</li>`).join('')}</ol><p style="margin-top:8px">Svar: <b>${esc(ex.answer)}</b></p></div>` : ''}
       ${s.method ? `<details class="sketch"><summary>📖 Läs mer om ${esc(s.short || s.name)}</summary><div class="method" style="margin-top:8px">${safeHtml(s.method)}</div></details>` : ''}
@@ -299,15 +330,17 @@ const V2 = {
   challengeXp(correct) { const p = prof(S.kid.id); const xp = correct ? 14 : 2; p.xp += xp; bumpDay(p, correct, xp); if (correct) questEvent(p, 'correct', { skillId: null }); save(); return xp; },
   check(q, raw) { return q.v2check === 'recall' ? RECALL.check(q, raw) : q.v2check === 'create' ? CHG.check(q, raw) : q.v2check === 'pack' ? PACKS.check(q, raw) : checkAnswer(q, raw); },
   /* ---------- Svar → bevis ---------- */
-  kindOf(q) { return q.type === 'choicetext' || q.choices ? 'mc' : q.type === 'order' ? 'order' : q.type === 'open' ? 'open' : 'free'; },
+  // v3 (granskning H1/H2): sortera, para ihop och bygg ordet går att lösa genom att pröva sig fram eller känna igen – de räknas som
+  // flerval (k = gissningsgrad). Då kan de aldrig ensamma lyfta ett koncept förbi flervalsgränsen eller ge "Säker".
+  kindOf(q) { return q.type === 'choicetext' || q.choices || q.type === 'sort' || q.type === 'match' || q.build ? 'mc' : q.type === 'order' ? 'order' : q.type === 'open' ? 'open' : 'free'; },
   observe(q, correct) {
     return V2.safe(() => {
       const V = S.v2; const spec = q.spec; if (!spec) return null; const kid = S.kid; const p = prof(kid.id); const C = V.C;
       const kind = V2.kindOf(q); const fast = !correct && LE._shownAt > 0 && (Date.now() - LE._shownAt) < (LE.FAST_MS[kind] || 2500);
       const help = V.exam ? 'none' : spec.help === 'rescue' ? 'rescue' : S.revealed ? 'solution' : (S.usedHelp || spec.help === 'hint') ? 'hint' : 'none';
       const dev = LE.dev(); const seq = ((p.le.seqs || {})[dev] || 0) + 1; p.le.seqs = { ...(p.le.seqs || {}), [dev]: seq };
-      const ev = { t: V.start + 1000 * (++V.k), dev, seq, cid: spec.cid, ok: !!correct, kind, k: kind === 'mc' ? ((q.choices || []).length || 3) : 0, help, ctx: spec.ctx || 'first', item: V2.iid(q), fast, sess: V.id, lvl: q.level || spec.lvl || 1, restart: V.restart,
-        role: spec.code || undefined, stretch: !!spec.stretch, onlyVariant: !!q.onlyVariant, mode: spec.mode === 'challenge' ? 'challenge' : V.exam ? 'testa' : V.mode === 'readclose' ? 'readclose' : undefined, form: q.fcode || undefined };
+      const ev = { t: V.start + 1000 * (++V.k), dev, seq, cid: spec.cid, ok: !!correct, kind, k: kind === 'mc' ? ((q.choices || []).length || q.k || (q.build ? 4 : 3)) : 0, help, ctx: spec.ctx || 'first', item: V2.iid(q), fast, sess: V.id, lvl: q.level || spec.lvl || 1, restart: V.restart,
+        role: spec.code || undefined, stretch: !!spec.stretch, onlyVariant: !!q.onlyVariant, mode: spec.mode === 'challenge' ? 'challenge' : V.exam ? 'testa' : V.mode === 'readclose' ? 'readclose' : undefined, form: q.fcode || undefined, med: q.paper ? 'p' : undefined };
       const last = C.L.clock.last || 0; p.le.log.push(LE2.encodeEv(ev)); const res = LE2.apply(C.L, C.cat, ev, C.pol); C.n = p.le.log.length; LE.rebuildIfLate(p, C, ev.t, last);
       if (res.diff && res.diff.after && res.diff.after.st > res.diff.before.st) V.stageUps.add(spec.cid);
       // Förklaring för föräldern (bara i minnet, sparas aldrig): vad ändrades och varför
@@ -334,7 +367,8 @@ const V2 = {
   },
   // Kort rad i svarsrutan: belöning eller Rescue. Inga felräknare.
   feedbackExtra(evs, before, q) {
-    const add = S.v2.rewards.slice(before); const parts = add.map(r => `${V2.REWARD_TXT[r.k]} ${r.xp ? `+${r.xp} XP` : ''}${r.gems ? `+${r.gems} 💎` : ''}`);
+    const add = S.v2.rewards.slice(before); const pts = !(S.v2.exp === 'explore' || S.v2.exp === 'achieve'); const parts = add.map(r => pts ? `${V2.REWARD_TXT[r.k]} ${r.xp ? `+${r.xp} XP` : ''}${r.gems ? `+${r.gems} 💎` : ''}` : V2.REWARD_TXT[r.k]);   // v3 Explore/Achieve: inga poäng i svarsrutan (Explore: inga poäng; Achieve: kompetensen är belöningen) – XP räknas som förut
+    if ((evs || []).some(e => e.type === 'rescue' || e.type === 'defer')) S.v2.calm = true;   // v3 lugn presentation: motorns egen signal, ingen egen algoritm
     if ((evs || []).some(e => e.type === 'rescue')) parts.push('🤝 Vi tar det tillsammans – nästa kort hjälper dig.');
     if ((evs || []).some(e => e.type === 'defer')) parts.push('Vi sparar den här till ett annat pass. Bra kämpat!');
     const fb = document.getElementById('fb'); if (!fb) return;
@@ -349,8 +383,8 @@ const V2 = {
     el.outerHTML = `<span class="muted" style="font-size:.8rem">Tack! En vuxen tittar på frågan.</span>`;
   },
   examAnswered(q, correct, raw) {
-    const V = S.v2; const your = q.cat === 'word' ? raw : q.type === 'choicetext' ? (q.choices || [])[S.selected] : q.choices ? T.n(Number(S.selected)) : q.type === 'order' ? 'din ordning' : raw;
-    V.answers.push({ text: q.cat === 'word' ? String(q.prompt || q.word.t) : q.text, html: q.cat !== 'word', your: your == null ? '' : String(your), correct: q.cat === 'word' ? q.word.w : answerDisplay(q), ok: !!correct, steps: q.cat === 'word' ? [`${esc(q.word.w)} = ${esc(q.word.t)}`] : (q.steps || []), lvl: q.level || 1 });
+    const V = S.v2; const your = q.cat === 'word' ? raw : q.type === 'choicetext' ? (q.choices || [])[S.selected] : q.choices ? T.n(Number(S.selected)) : q.type === 'order' ? 'din ordning' : q.type === 'sort' ? 'din sortering' : q.type === 'match' ? 'dina par' : raw;
+    V.answers.push({ text: q.cat === 'word' ? String(q.prompt || q.word.t) : q.text, html: q.cat !== 'word', your: your == null ? '' : String(your), correct: q.cat === 'word' ? q.word.w : answerDisplay(q), ok: !!correct, paper: !!q.paper, steps: q.cat === 'word' ? [`${esc(q.word.w)} = ${esc(q.word.t)}`] : (q.steps || []), lvl: q.level || 1 });
     nextQuestion();
   },
   /* ---------- Slut på passet ---------- */
@@ -374,6 +408,13 @@ const V2 = {
     const fbNow = V2.safe(() => LE2.felbokVisible(C.L, LE.now()).length, 'fb', 0); const newFb = Math.max(0, fbNow - V.fbBefore); const cap = LE2.DECISIONS.O8_felbokDisplay[C.pol.name] || 5;
     const quests = dailyQuests(kid); const claimable = quests.filter(q => q.done && !q.claimed);
     const young = C.pol.name === 'younger'; const gems = V.rewards.reduce((a, r) => a + r.gems, 0);
+    if (V.exp && V.mode !== 'readclose') {   // Experience v3: KLAR → frivillig FLOW
+      beep(won.length ? 'badge' : 'win');
+      const cards = `${newFb ? `<div class="card row" style="gap:10px"><span style="font-size:1.3rem" aria-hidden="true">📕</span><div class="grow muted" style="font-size:.9rem">${newFb > cap ? 'Några saker' : newFb === 1 ? 'En sak' : `${newFb} saker`} sparades i Felboken – revansch ett annat pass.</div></div>` : ''}
+      ${EXP.autoClaim(kid, claimable)}
+      ${won.length ? `<div class="card row" style="gap:10px"><span class="badge"><span class="e">${won[0].e}</span>${won.map(b => b.name).join(', ')}</span><span class="muted" style="font-size:.9rem">Nytt märke</span></div>` : ''}`;   // v3: inga lösa trådar på KLAR – uppdragen hämtas automatiskt
+      return EXP.finish(kid, V, sum, won, cards);
+    }
     if (won.length) beep('badge'); else beep('win'); if (klar && young) confetti(60);
     render(`${topbar('Klart', 'home')}
     <div class="stack" style="margin-top:6px">
@@ -402,12 +443,13 @@ const V2 = {
     beep(won.length ? 'badge' : 'win');
     render(`${topbar('Testa mig', 'home')}
     <div class="stack" style="margin-top:6px">
-      <div class="card pad-lg summary-hero stack" style="gap:6px;text-align:center"><div class="eyebrow">Testa mig · ${fmtTime(Date.now() - S.startedAt)}</div><div class="big">${ok}/${n}</div>
-        <p style="font-weight:700">${ok === n ? 'Allt rätt – du har koll!' : ok / Math.max(1, n) >= 0.7 ? 'Bra! Kolla igenom de du missade.' : 'Bra att du testade – nu vet vi vad Kör! ska öva på.'}</p></div>
+      <div class="card pad-lg summary-hero stack" style="gap:6px;text-align:center"><div class="eyebrow">Testa mig${S.v2.exp ? '' : ` · ${fmtTime(Date.now() - S.startedAt)}`}</div><div class="big">${ok}/${n}</div>
+        <p style="font-weight:700">${V.exp ? (ok === n ? 'Alla svar stämde den här gången.' : 'Bra att du testade – nu vet Kör! vad som ska övas.') : ok === n ? 'Allt rätt – du har koll!' : ok / Math.max(1, n) >= 0.7 ? 'Bra! Kolla igenom de du missade.' : 'Bra att du testade – nu vet vi vad Kör! ska öva på.'}</p></div>
+      ${V.exp ? EXP.examReport(S.kid, V) : ''}
       <div class="card"><div class="eyebrow" style="margin-bottom:8px">Svar och förklaringar</div>
         ${V.answers.map((a, i) => `<details style="padding:8px 0;border-top:1px solid var(--line)" ${a.ok ? '' : 'open'}><summary style="cursor:pointer"><b>${i + 1}.</b> ${a.ok ? '✅' : '🔁'} <span class="muted" style="font-size:.9rem">${esc(RECALL.strip(a.text).slice(0, 70))}${RECALL.strip(a.text).length > 70 ? '…' : ''}</span></summary>
           <div style="margin-top:6px">${a.html ? safeHtml(a.text) : esc(a.text)}</div>
-          <div style="margin-top:4px;font-size:.95rem">Ditt svar: <b>${esc(a.your || '–')}</b> · Rätt svar: <b>${esc(a.correct)}</b></div>
+          <div style="margin-top:4px;font-size:.95rem">${a.paper ? '✏️ På papper · ' : ''}Ditt svar: <b>${esc(a.your || '–')}</b> · Rätt svar: <b>${esc(a.correct)}</b>${a.paper ? `<div class="muted" style="font-size:.85rem">${a.ok ? 'Ditt svar stämmer.' : 'Svaret stämmer inte.'} Jämför din uträkning med lösningen – appen har bara sett svaret.</div>` : ''}</div>
           ${a.steps.length ? `<div class="steps" style="margin-top:6px"><ol>${a.steps.map(st => `<li>${safeHtml(st)}</li>`).join('')}</ol></div>` : ''}</details>`).join('')}
       </div>
       <button class="btn big wide" data-v2="kor">Öva på det som behövs</button>
@@ -420,14 +462,15 @@ const V2 = {
     if (a === 'teachok') return V2.teachDone();
     if (a === 'qr') return V2.safe(() => V2.reportQ(el), 'report');
     if (a === 'endPreview') return V2.endPreview();
-    if (a === 'engine' || a === 'engineAsk' || a === 'preview') return V2.parentClick(a, el);
+    if (a === 'engine' || a === 'engineAsk' || a === 'preview' || a === 'exp') return V2.parentClick(a, el);
     if (!kid) return;
     // Ett oväntat fel i v2 får aldrig stoppa barnet: logga och kör v1:s Kör! i stället
     const ok = V2.safe(() => { V2.act(a, el, kid); return true; }, 'click:' + a, false);
-    if (!ok) { S = null; if (a === 'kor' || a === 'extra') { state.screen = 'home'; return startSession(kid, recommendSprint(kid).opts); } toast('Det gick inte att öppna just nu'); return go('home'); }
+    if (!ok) { S = null; if (a === 'kor' || a === 'extra' || a === 'flow') { state.screen = 'home'; return startSession(kid, recommendSprint(kid).opts); } toast('Det gick inte att öppna just nu'); return go('home'); }
   },
   act(a, el, kid) {
     if (a === 'kor' || a === 'extra') return V2.start(kid, 'kor');
+    if (a === 'flow') return V2.start(kid, 'flow');
     if (a === 'felbok') return V2.felbokView(kid);
     if (a === 'revansch') return V2.start(kid, 'revansch');
     if (a === 'testa') return V2.start(kid, 'exam', { examId: el.dataset.exam });
@@ -496,13 +539,14 @@ const V2 = {
       <div class="toggle"><div><div class="tl">${on ? 'Learning Engine v2 (standard)' : 'v1 (reserv)'}</div><div class="td">${on ? 'Smart Kör!, Felboken 2.0, Testa mig och Rescue. v1:s data uppdateras samtidigt – välj v1 om något inte fungerar, och byt tillbaka när som helst.' : `${esc(kid.name)} kör reservmotorn v1. v2 räknar i skuggläge och kan slås på igen direkt.`}</div></div><div class="seg" role="group" aria-label="Motor"><button class="${on ? '' : 'on'}" aria-pressed="${!on}" data-v2="engine" data-val="v1">v1</button><button class="${on ? 'on' : ''}" aria-pressed="${on}" data-v2="engineAsk" data-val="v2">v2</button></div></div>
       ${ask && !on ? `<div class="feedback warn"><span>⚠️</span><div><div class="big">Slå på v2 igen för ${esc(kid.name)}?</div><div class="sub">Gäller bara ${esc(kid.name)}, på alla enheter efter synk. v1 finns kvar och kan väljas igen direkt.</div><div class="row" style="margin-top:8px;gap:8px"><button class="btn" data-v2="engine" data-val="v2">Ja, slå på v2</button><button class="btn ghost" data-v2="engine" data-val="cancel">Avbryt</button></div></div></div>` : ''}
       ${on ? '' : `<button class="btn ghost" data-v2="preview">👀 Förhandsvisa v2 som ${esc(kid.name)} (ändrar ingenting)</button>`}
-    </div>`;
+    </div>${V2.safe(() => EXP.parentCard(kid) + EXP.missingCard(kid), 'expParent', '')}`;
   },
   parentClick(a, el) {
     const kid = kidById(state.tab); if (!kid) return;
     if (a === 'engineAsk') { state.v2ask = kid.id; return VIEWS.parent(); }
     if (a === 'engine') { const v = el.dataset.val; state.v2ask = null; if (v === 'v2' || v === 'v1') { const p = prof(kid.id); p.settings.engine = v; p.settings.engineAt = LE.now(); /* serverkorrigerad tid */ LE.invalidate(kid.id); save(); toast(v === 'v2' ? `v2 på för ${kid.name}` : `${kid.name} kör v1`); } return VIEWS.parent(); }
     if (a === 'preview') return V2.startPreview(kid);
+    if (a === 'exp') { EXP.set(kid, el.dataset.val); LE.invalidate(kid.id); toast(el.dataset.val === 'default' ? 'Standard för åldern' : `${(EXP.KINDS[el.dataset.val] || {}).name || ''} för ${kid.name}`); return VIEWS.parent(); }
   },
   // Förälderns förhandsvisning: hela barnflödet med v2 på en kopia. Inget sparas, inget synkas; allt återställs när den avslutas.
   startPreview(kid) {

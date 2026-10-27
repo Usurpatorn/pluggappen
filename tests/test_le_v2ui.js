@@ -7,14 +7,14 @@
 process.env.TZ = 'Europe/Stockholm';
 const { mkWin, tools, FIX, rng } = require('./le/childflow.js');
 const trnd = rng((Number(process.env.SEED) || 777) + 1);   // testets egna val (rätt/fel) är också deterministiska
-const { v2tools, unlockParent, enableV2, setEngine, toStart } = require('./le/v2driver.js');
+const { v2tools, classic, unlockParent, enableV2, setEngine, toStart } = require('./le/v2driver.js');
 let fails = 0, checks = 0; const ok = (c, m) => { checks++; if (!c) { fails++; console.log('FAIL', m); } };
 const txt = (T) => T.$('#app').textContent.replace(/\s+/g, ' ');
 const FORBIDDEN_CHILD = /försenade|repetitioner försenade|\bv2\b|skugg|E\/C\/A|Indikation|betyg|syskon|\d+\s*fel\b|förlorat|streak(en)? (bryts|försvinner)|missat/i;
 const DAY = 86400000;
 
 function boot(seed, storage) { const w = mkWin({ seed, fixedClock: true, storage }); const T = tools(w); return { w, T }; }
-function family(T) { T.PA().FAMILY.apply(FIX); T.PA().load(); T.PA().rerender(); }
+function family(T) { T.PA().FAMILY.apply(FIX); T.PA().load(); classic(T); T.PA().rerender(); }
 function goHome(T) { for (let i = 0; i < 3 && !T.$('[data-subj]'); i++) { const b = T.$('[data-go="home"]'); if (!b) break; T.click(b); } }
 function openKid(T, id) { const { $, click } = T; toStart(T); click($(`[data-kid="${id}"]`)); if ($('[data-pet]')) click($('[data-pet]')); }
 
@@ -189,7 +189,7 @@ function flushAndReload(w0, T0, D0) {
   const storage = {}; for (let i = 0; i < w0.localStorage.length; i++) { const k = w0.localStorage.key(i); storage[k] = w0.localStorage.getItem(k); }
   const { w, T } = boot(991, storage); setTimeout(() => {
     try {
-      const { $, click, PA: PB } = T; T.PA().FAMILY.apply(FIX); T.PA().load(); const D = v2tools(w, T);
+      const { $, click, PA: PB } = T; T.PA().FAMILY.apply(FIX); T.PA().load(); classic(T); const D = v2tools(w, T);
       openKid(T, 'k4'); ok(midRescue && $('[data-v2="kor"]') && PB().LE.errors.length === 0, 'omladdning mitt i ett pass (Rescue): startsidan fungerar');
       const n0 = PB().DB.profiles.k4.le.log.length; click($('[data-v2="kor"]')); D.run(false); ok(/Bra jobbat/.test(T.$('#app').textContent), 'omladdning: nytt pass går att köra');
       ok(PB().DB.profiles.k4.le.log.length > n0, 'omladdning: bevisen från före omladdningen finns kvar och nya läggs till');
@@ -218,7 +218,7 @@ function twoDevices(wA, TA) {
   const storage = {}; for (let i = 0; i < wA.localStorage.length; i++) { const k = wA.localStorage.key(i); if (k !== 'pluggappen.dev') storage[k] = wA.localStorage.getItem(k); }
   const { w: wB, T: TB } = boot(1234, storage); setTimeout(() => {
     try {
-      TB.PA().FAMILY.apply(FIX); TB.PA().load(); const DA = v2tools(wA, TA), DB2 = v2tools(wB, TB);
+      TB.PA().FAMILY.apply(FIX); TB.PA().load(); classic(TB); const DA = v2tools(wA, TA), DB2 = v2tools(wB, TB);
       ok(TA.PA().LE.dev() !== TB.PA().LE.dev(), 'två enheter har olika enhets-id');
       openKid(TA, 'k4'); TA.click(TA.$('[data-v2="kor"]')); DA.run(false);
       openKid(TB, 'k4'); TB.click(TB.$('[data-v2="kor"]')); DB2.run(false);

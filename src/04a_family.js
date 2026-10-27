@@ -74,6 +74,11 @@ const FAMILY = {
       skills: ids(w.skills, 60, /^[a-z0-9_]{2,40}$/), decks: ids(w.decks, 30, /^[A-Za-z0-9_-]{1,40}$/), priority: w.priority === 'high' ? 'high' : 'normal',
       teacherQs: (Array.isArray(w.teacherQs) ? w.teacherQs : []).filter(obj).slice(0, 80).map(t => ({ n: str(String(t.n || ''), 12), q: str(t.q, 400), a: str(t.a, 200), alias: (Array.isArray(t.alias) ? t.alias : []).map(x => str(x, 80)).filter(Boolean).slice(0, 8), not: (Array.isArray(t.not) ? t.not : []).map(x => str(x, 200)).filter(x => x && ![t.a, ...(Array.isArray(t.alias) ? t.alias : [])].some(a => typeof a === 'string' && a.trim().toLowerCase() === x.trim().toLowerCase())).slice(0, 5), kps: ids(t.kps, 8, /^k:[a-z0-9-]{2,48}\/[a-z0-9-]{2,48}$/), typed: !!t.typed, src: src(t.src) })).filter(t => t.q),
       src: src(w.src),
+      // Experience v3 (tillägg, äldre versioner ignorerar dem): lärarens målområden (Testa mig rapporterar per område), lärarens betoning
+      // (högre prioritet i planen via motorns befintliga fokusvikt) och luckor i underlaget (visas för föräldern – appen hittar aldrig på).
+      goals: (Array.isArray(w.goals) ? w.goals : []).filter(obj).slice(0, 20).map(g => ({ id: str(g.id, 40), name: str(g.name, 60), skills: ids(g.skills, 20, /^[a-z0-9_]{2,40}$/), kps: ids(g.kps, 60, /^k:[a-z0-9-]{2,48}\/[a-z0-9-]{2,48}$/), teacher: !!g.teacher })).filter(g => g.id && g.name && (g.skills.length || g.kps.length)),
+      focus: obj(w.focus) ? { skills: ids(w.focus.skills, 20, /^[a-z0-9_]{2,40}$/), kps: ids(w.focus.kps, 100, /^k:[a-z0-9-]{2,48}\/[a-z0-9-]{2,48}$/) } : { skills: [], kps: [] },
+      missing: (Array.isArray(w.missing) ? w.missing : []).filter(obj).slice(0, 20).map(m => ({ label: str(m.label, 80), kind: ['pdf', 'book', 'format', 'video', 'lab', 'questions', 'other'].includes(m.kind) ? m.kind : 'other', note: str(m.note, 120) })).filter(m => m.label),
     })).filter(w => w.id && w.kid && w.title);
     return { v: 1, updatedAt: Number(c.updatedAt) || 0, packs, work };
   },
@@ -112,8 +117,9 @@ function buildKids() {
     const work = FAMILY.workFor(c.id);
     // Lärarens frågor räknas in i provets kunskapspunkter (en fråga kan pröva flera punkter; en punkt kan prövas av flera frågor)
     const workExams = work.filter(w => w.date && w.type !== 'practice').map(w => ({ id: 'w:' + w.id, title: w.title, date: w.date, skillIds: w.skills.slice(), deckIds: w.decks.slice(), kps: [...new Set([...w.kps, ...w.teacherQs.flatMap(t => t.kps)])], work: w.id, kind: w.type, priority: w.priority }));
-    const focusCids = work.filter(w => w.type === 'practice').flatMap(w => w.kps);
-    KIDS.push({ id: c.id, name: c.name, grade: tpl.grade, emoji: c.emoji, hue: c.hue, theme: c.theme, teen: c.theme === 'teen', template: c.template, note: c.note, paper: c.paper, cfgDecks: c.decks.map(deckFromConfig), cfgExams: c.exams, skills, v2skills, workExams, focusCids });
+    const focusCids = [...new Set([...work.filter(w => w.type === 'practice').flatMap(w => w.kps), ...work.flatMap(w => (w.focus && w.focus.kps) || [])])];
+    const focusSkills = [...new Set(work.flatMap(w => (w.focus && w.focus.skills) || []))];   // v3: lärarens betoning → motorns befintliga fokusvikt
+    KIDS.push({ id: c.id, name: c.name, grade: tpl.grade, emoji: c.emoji, hue: c.hue, theme: c.theme, teen: c.theme === 'teen', template: c.template, note: c.note, paper: c.paper, cfgDecks: c.decks.map(deckFromConfig), cfgExams: c.exams, skills, v2skills, workExams, focusCids, focusSkills });
   }
 }
 // Standardvärden per barn: mallens inställningar + familjens prov och glosor.

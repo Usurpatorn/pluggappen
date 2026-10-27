@@ -14,7 +14,7 @@
  "templates": [
   "ak8"
  ],
- "rev": 2,
+ "rev": 3,
  "sources": [
   {
    "id": "lgr22",
@@ -111,7 +111,8 @@
         "Kiruna",
         "vänskap"
        ],
-       "odd": "Vilket ord är INTE ett substantiv?"
+       "odd": "Vilket ord är INTE ett substantiv?",
+       "label": "Substantiv"
       },
       {
        "q": "Vilket ord är ett verb?",
@@ -121,7 +122,8 @@
         "blev",
         "simmade"
        ],
-       "odd": "Vilket ord är INTE ett verb?"
+       "odd": "Vilket ord är INTE ett verb?",
+       "label": "Verb"
       },
       {
        "q": "Vilket ord är ett adjektiv?",
@@ -131,7 +133,8 @@
         "snabbare",
         "tråkig"
        ],
-       "odd": "Vilket ord är INTE ett adjektiv?"
+       "odd": "Vilket ord är INTE ett adjektiv?",
+       "label": "Adjektiv"
       }
      ]
     },
@@ -287,7 +290,8 @@
         "vår",
         "någon"
        ],
-       "odd": "Vilket ord är INTE ett pronomen?"
+       "odd": "Vilket ord är INTE ett pronomen?",
+       "label": "Pronomen"
       },
       {
        "q": "Vilket ord är ett räkneord?",
@@ -297,7 +301,8 @@
         "hundra",
         "första"
        ],
-       "odd": "Vilket ord är INTE ett räkneord?"
+       "odd": "Vilket ord är INTE ett räkneord?",
+       "label": "Räkneord"
       }
      ]
     },
@@ -414,7 +419,8 @@
         "bakom",
         "genom"
        ],
-       "odd": "Vilket ord är INTE en preposition?"
+       "odd": "Vilket ord är INTE en preposition?",
+       "label": "Preposition"
       },
       {
        "q": "Vilket ord är en konjunktion?",
@@ -424,7 +430,8 @@
         "eller",
         "samt"
        ],
-       "odd": "Vilket ord är INTE en konjunktion?"
+       "odd": "Vilket ord är INTE en konjunktion?",
+       "label": "Konjunktion"
       },
       {
        "q": "Vilket ord är en subjunktion?",
@@ -432,7 +439,8 @@
         "eftersom",
         "medan",
         "ifall"
-       ]
+       ],
+       "label": "Subjunktion"
       }
      ],
      "lvl": 2

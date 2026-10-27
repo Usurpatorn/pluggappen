@@ -9,7 +9,7 @@
 'use strict';
 process.env.TZ = 'Europe/Stockholm';
 const { mkWin, tools, FIX, rng } = require('./le/childflow.js');
-const { v2tools, toStart } = require('./le/v2driver.js');
+const { v2tools, toStart, classic } = require('./le/v2driver.js');
 let fails = 0, checks = 0; const ok = (c, m) => { checks++; if (!c) { fails++; console.log('FAIL', m); } };
 const sleep = (ms) => new Promise(r => setTimeout(r, ms)); const DAY = 86400000;
 const ALG = ['multin', 'forenkla', 'blandat', 'talfoljd', 'ekvation', 'problemekv', 'andragrad'];
@@ -18,7 +18,7 @@ const txt = (T, sel = '#app') => (T.$(sel) || { textContent: '' }).textContent.r
 (async () => {
   try {
     const w = mkWin({ seed: 11, fixedClock: true }); await sleep(40); const T = tools(w); const PA = T.PA; const { $, click } = T;
-    PA().FAMILY.apply(FIX); PA().load(); PA().rerender(); const D = v2tools(w, T); const rnd = rng(4);
+    PA().FAMILY.apply(FIX); PA().load(); classic(T); PA().rerender(); const D = v2tools(w, T); const rnd = rng(4);   // del 1–5: Klassisk presentation (2.1.1); del 6: v3
     const open = (id = 'k8') => { toStart(T); click($(`[data-kid="${id}"]`)); if ($('[data-pet]')) click($('[data-pet]')); };
     const kid = (id = 'k8') => PA().KIDS.find(k => k.id === id); const iso = (ms) => new Date(ms).toISOString().slice(0, 10);
     for (let d = 0; d < 6; d++) { open(); click($('[data-v2="kor"]')); D.run(() => rnd() < 0.2); w.__advance(DAY); }   // vanlig historik, inget prov
@@ -75,6 +75,43 @@ const txt = (T, sel = '#app') => (T.$(sel) || { textContent: '' }).textContent.r
     ok(k4en.length === 1 && T2.PA().BUILTIN_DECKS.find(d => d.id === k4en[0]).level === 1 && k2en.length === 1 && T2.PA().BUILTIN_DECKS.find(d => d.id === k2en[0]).level === 1, 'Mellan och Yngre oförändrade: lägsta nivån först');
     void newDeck;
 
+    /* 6. Experience v3 (Achieve och Grow): samma princip – provrubrik bara när dagens pass innehåller provet, annars ärligt + "Öva inför provet" */
+    { const w3 = mkWin({ seed: 21, fixedClock: true }); await sleep(40); const T3 = tools(w3); const P3 = T3.PA; P3().FAMILY.apply(FIX); P3().load(); P3().rerender(); const D3 = v2tools(w3, T3); const r3 = rng(9);
+      const open3 = (id) => { toStart(T3); T3.click(T3.$(`[data-kid="${id}"]`)); if (T3.$('[data-pet]')) T3.click(T3.$('[data-pet]')); };
+      const kid3 = (id) => P3().KIDS.find(k => k.id === id); const iso3 = (ms) => new Date(ms).toISOString().slice(0, 10);
+      const home3 = () => txt(T3, '.mission');
+      for (const [id, exp] of [['k8', 'achieve'], ['k4', 'grow']]) {
+        ok(P3().EXP.of(kid3(id)) === exp, `${id}: standardupplevelsen är ${exp}`);
+        for (let d = 0; d < 4; d++) { open3(id); T3.click(T3.$('[data-v2="kor"]')); D3.run(() => r3() < 0.2); w3.__advance(DAY); }
+        const pr = P3().DB.profiles[id]; const C = P3().LE.state(kid3(id));
+        const sk = [...new Set(Object.entries(C.cat).filter(([, d]) => d.kind === 'skill' && d.active !== false).map(([cid]) => cid.slice(2)))];
+        // ett prov på områden som barnet inte övar idag (sist i mallens ordning) – dagens pass har då ingen provandel
+        const later = sk.filter(s => !(C.L.c['s:' + s] || {}).n).slice(-2);
+        pr.exams = [{ id: 'x', title: 'Mattetest', date: iso3(w3.Date.now() + 20 * DAY), skillIds: later, deckIds: [] }]; P3().save(); P3().LE.invalidate(id);
+        open3(id); const m = P3().EXP.goalOf(kid3(id)).now || { e: pr.exams[0] }; const sh = P3().EXP.examShare(kid3(id), m, P3().V2.peekPlan(kid3(id)).plan); const h = home3();
+        console.log(`  v3 ${exp}: ${sh.n} av ${sh.of} inför provet · "${h.slice(0, 110)}"`);
+        if (sh.n === 0) {
+          ok(!/NÄSTA MÅL MATTETEST|DAGENS MISSION · MATTETEST/i.test(h) && /övar annat/.test(h), `${exp}: utan provet i passet lovar startkortet inte provet och säger det ärligt`);
+          const mb = T3.$('.mission [data-v2="mission"]'); ok(mb && /Öva inför provet · cirka \d+ min/.test(mb.textContent), `${exp}: "Öva inför provet" erbjuds`);
+          if (mb) { T3.click(mb); const S = P3().S; const cids = new Set(P3().V2.examCidsActive(kid3(id), pr.exams[0])); ok(S.v2.mode === 'mission' && S.v2.plan.length && S.v2.plan.every(x => cids.has(x.cid)), `${exp}: provträningen planerar bara provets koncept`); D3.run(() => false);
+            ok(/PROVTRÄNINGEN KLAR|ÄVENTYRET/.test(txt(T3)) || !/DAGENS PLAN KLAR/.test(txt(T3)), `${exp}: avslutet kallar inte provträningen för dagens plan`);
+            ok(T3.$('[data-v2="kor"]') && /Till dagens plan/.test(txt(T3)) && !T3.$('[data-v2="flow"]'), `${exp}: efter provträning före dagens plan erbjuds dagens plan, inte FLOW`); }
+        } else ok(new RegExp(P3().EXP.shareText(sh)).test(h), `${exp}: provrubriken anger andelen (${sh.n} av ${sh.of})`);
+        // provveckan: dagens pass innehåller provets områden → provrubrik med andel, och KÖR startar exakt den planen
+        pr.exams[0].skillIds = sk.slice(0, 3); pr.exams[0].date = iso3(w3.Date.now() + 3 * DAY); P3().save(); P3().LE.invalidate(id);
+        open3(id); const peek = P3().V2.peekPlan(kid3(id)).plan; const sh2 = P3().EXP.examShare(kid3(id), P3().EXP.goalOf(kid3(id)).now || { e: pr.exams[0] }, peek); const h2 = home3();
+        console.log(`  v3 ${exp} provveckan: ${sh2.n} av ${sh2.of} · "${h2.slice(0, 90)}"`);
+        if (sh2.n > 0) ok(/MATTETEST/i.test(h2) && h2.includes(P3().EXP.shareText(sh2)), `${exp}: provveckan – provrubrik med rätt andel (${sh2.n} av ${sh2.of})`);
+        else ok(!/NÄSTA MÅL MATTETEST|DAGENS MISSION · MATTETEST/i.test(h2), `${exp}: provveckan utan provandel – ingen provrubrik`);
+        T3.click(T3.$('.mission [data-v2="kor"]')); ok(JSON.stringify(P3().S.v2.plan.map(x => x.cid)) === JSON.stringify(peek.map(x => x.cid)), `${exp}: KÖR startar exakt det pass som kortet beskriver`); D3.run(() => false);
+        // prov utan kopplade områden: ärlig text, ingen provträning, ingen Testa mig
+        w3.__advance(DAY);   // nytt dygn: dagens plan är inte gjord
+        pr.exams = [{ id: 'tom', title: 'Engelskaprov', date: iso3(w3.Date.now() + 5 * DAY), skillIds: [], deckIds: [] }]; P3().save(); P3().LE.invalidate(id);
+        open3(id); const h3 = home3();
+        ok(/inte inlagda i appen ännu/.test(h3) && !T3.$('[data-v2="mission"]') && !T3.$('[data-v2="testa"][data-exam="tom"]') && !/ENGELSKAPROV ·|NÄSTA MÅL ENGELSKAPROV/i.test(h3.replace(/Nästa (mål|prov):.*$/s, '')), `${exp}: prov utan områden – ärlig text, ingen provträning, ingen Testa mig`);
+        pr.exams = []; P3().save(); P3().LE.invalidate(id);
+      }
+      ok(P3().LE.errors.length === 0, 'v3: inga fel i v2-lagret ' + JSON.stringify(P3().LE.errors.slice(0, 2))); }
     /* 6. Granskningens fynd (oberoende granskning av hotfixen): dygnets gräns, tom provträning, bara provets innehåll, svältskyddet, "klar för idag" */
     { const w6 = mkWin({ seed: 31, fixedClock: true }); await sleep(40); const T6 = tools(w6); const P6 = T6.PA; P6().FAMILY.apply(FIX); P6().load(); if (typeof classic === 'function') classic(T6); P6().rerender(); const D6 = v2tools(w6, T6);
       const open6 = () => { toStart(T6); T6.click(T6.$('[data-kid="k8"]')); if (T6.$('[data-pet]')) T6.click(T6.$('[data-pet]')); };

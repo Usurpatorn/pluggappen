@@ -269,5 +269,22 @@ const evq = (cid, ok, t, seq, extra = {}) => ({ cid, ok, kind: 'free', k: 0, hel
 // L7: "bara samma fråga finns" sparas i bevisloggen och överlever omspelning
 { const e = evq('m1', true, T0, 1, { onlyVariant: true, mode: 'readclose' }); const d = E.decodeEv(E.encodeEv(e)); ok(d.onlyVariant === true && d.mode === 'readclose', 'L7: onlyVariant och läge kodas och avkodas');
   const d2 = E.decodeEv(E.encodeEv(evq('m1', true, T0, 2, { onlyVariant: true }))); ok(d2.onlyVariant === true, 'L7: onlyVariant utan läge kodas också'); }
+// 3I.3 (Experience v3, FLOW): ett flervalskoncept (inget eget svar finns) kräver två fördröjda träffar – från två OLIKA dygn.
+// Reproducerat före rättningen: Kör! kl 9 + ett extrapass kl 10 samma dag höjde stadiet 2 → 3.
+{ const CATM = { q: { id: 'q', subject: 'no', kind: 'skill', recall: false, kinds: ['mc'], maxLvl: 3 } }; const T9 = 100 * DAY + 9 * 3600000;
+  const mk = () => { const L = E.newLE(); const c = E.cstate(L, 'q'); c.st = 2; c.n = 5; c.lastOk = T9 - 10 * DAY; c.due = T9; return L; };
+  const hit = (L, t, s) => E.recordEvidence(L, CATM, 'q', { ok: true, kind: 'mc', k: 4, help: 'none', ctx: 'first', item: 'i' + t }, t, pol, { id: s });
+  const L1 = mk(); hit(L1, T9, 'a'); hit(L1, T9 + 3600000, 'b'); ok(L1.c.q.st === 2 && L1.c.q.mcOk === 1, '3I.3: två flervalsträffar samma dygn höjer inte stadiet');
+  hit(L1, T9 + DAY, 'c'); ok(L1.c.q.st === 3 && !L1.c.q.mcOk && L1.c.q.mcd === undefined, '3I.3: andra träffen nästa dygn höjer (2 → 3)');
+  const L2 = mk(); hit(L2, T9, 'a'); hit(L2, T9 + DAY, 'b'); ok(L2.c.q.st === 3, '3I.3: ett pass per dag ger samma resultat som före rättningen');
+  const L3 = mk(); L3.c.q.mcOk = 1; hit(L3, T9, 'a'); ok(L3.c.q.st === 3, '3I.3: gammalt tillstånd utan dygnsmarkering behandlas som förut'); }
+// 3J.1 (Experience v3, oberoende granskning): flera pass samma dygn (CORE + FLOW) blåser inte upp något
+{ const CATJ = { j: { id: 'j', subject: 'math', recall: true, kinds: ['free'], maxLvl: 3 } }; const D0 = 100 * DAY - 3600000;   // lokalt dygn i testets tidszon (UTC)
+  const L = E.newLE(); const ev = (t, s, ok = true) => E.apply(L, CATJ, { cid: 'j', ok, kind: 'free', help: 'none', ctx: 'first', item: 'x' + t, t, sess: s, dev: 'd', seq: t }, pol);
+  ev(D0 + 6.5 * 3600000, 'core'); ok(L.c.j.st === 1, '3J.1: nytt koncept lärt på morgonen → stadium 1');
+  ev(D0 + 19.5 * 3600000, 'd:2f'); ok(L.c.j.st === 1, '3J.1: 13 h senare samma dygn (FLOW) → inget nytt stadiesteg');
+  ev(D0 + DAY + 18 * 3600000, 'next'); ok(L.c.j.st === 2, '3J.1: nästa dygn → stadium 2 som vanligt');
+  const rs0 = (L.rs || []).length; ev(D0 + DAY + 20 * 3600000, 'd:4f'); ok((L.rs || []).length === rs0, '3J.1: ett andra pass samma dygn påverkar inte kalibreringen');
+  ok(L.sessN === 2, `3J.1: FLOW-pass (id som slutar på f) räknas inte i svält-skyddet (${L.sessN} pass räknade av 4)`); }
 console.log(`Del 3: ${checks - n3B} kontroller (Fas 3C–3H)`);
 console.log(`\n${checks} kontroller, ${fails} fel`); console.log(fails ? 'LE ENGINE TEST FAILED' : 'LE ENGINE TEST OK'); process.exit(fails ? 1 : 0);
