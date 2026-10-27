@@ -335,6 +335,10 @@ const ICON = {
   gem: '<svg viewBox="0 0 24 24"><path d="M6 3h12l4 6-10 12L2 9z"/><path d="M2 9h20M12 21L8 9l4-6 4 6-4 12"/></svg>',
   flame: '<svg viewBox="0 0 24 24"><path d="M12 22c4.4 0 8-3.2 8-7.5 0-3.4-2.4-5.7-4-8-.4 2-1.3 3-2.5 3.5C14 7 13 4 10.5 2 11 6 7 7.5 5.5 10.5 4 13.3 4 14.5 4 14.5 4 18.8 7.6 22 12 22z"/></svg>',
   check: '<svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>',
+  bulb: '<svg viewBox="0 0 24 24"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 00-3.6 10.8c.7.6 1.1 1.3 1.1 2.2h5c0-.9.4-1.6 1.1-2.2A6 6 0 0012 3z"/></svg>',
+  help: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 015 .3c0 1.7-2.5 2.2-2.5 3.7"/><path d="M12 17h.01"/></svg>',
+  pencil: '<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/></svg>',
+  book: '<svg viewBox="0 0 24 24"><path d="M2 5.5c3.2-1.6 6.8-1.6 10 .8 3.2-2.4 6.8-2.4 10-.8v13.5c-3.2-1.6-6.8-1.6-10 .8-3.2-2.4-6.8-2.4-10-.8z"/><path d="M12 6.3v14"/></svg>',
   sync: '<svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 01-15.5 6.3L3 16"/><path d="M3 21v-5h5"/><path d="M3 12a9 9 0 0115.5-6.3L21 8"/><path d="M21 3v5h-5"/></svg>',
   settings: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>',
 };
@@ -767,9 +771,10 @@ VIEWS.practice = () => {
   { const qc = document.getElementById('qcard'); if (qc && S.v2 && S.v2.exp) { const m = EXP.modeOf(item); qc.dataset.mode = m.mode; if (m.role) qc.dataset.role = m.role; if (S.v2.exam) qc.dataset.exam = '1'; if (item.isError === true) qc.dataset.iserr = '1';
     qc.querySelectorAll('.sort-pool').forEach(pl => { if ([...pl.children].some(b => (b.textContent || '').trim().length > 16)) pl.classList.add('long'); });   // 3.3: långa sorteringskort får en hel rad
     qc.querySelectorAll('.wchoices:not(.spot-sols)').forEach(w => { if ([...w.children].some(b => { const t = (b.textContent || '').trim(); return t.length > 16 || t.split(/\s+/).some(x => x.length > 11); })) w.classList.add('one-col'); });   // 3.3: långa ord får en hel rad i stället för att brytas mitt i
+    { const ks = qc.querySelectorAll('#inputArea > .keys'), act = qc.querySelector('#actions'); if (ks.length && act) { const kp = document.createElement('div'); kp.id = 'keypad'; kp.className = 'keypad'; ks.forEach(k => kp.appendChild(k)); act.after(kp); } }   /* 3.3 slutpasset: Svara direkt under svaret, knappsatsen under knappraden */
     if (['num', 'expr', 'choice', 'paper', 'reverse', 'type', 'tap'].includes(m.mode)) {   // 3.3: två rutor på liggande iPad (display:contents annars)
       const main = document.createElement('div'), side = document.createElement('div'); main.className = 'q-pane q-main'; side.className = 'q-pane q-side';
-      [...qc.children].forEach(c => (['inputArea', 'fb', 'actions', 'explainBtn', 'sketch'].includes(c.id) ? side : main).appendChild(c));
+      [...qc.children].forEach(c => (['inputArea', 'fb', 'actions', 'keypad', 'explainBtn', 'sketch'].includes(c.id) ? side : main).appendChild(c));
       if (side.children.length && main.children.length) { qc.append(main, side); qc.classList.add('split'); } else { [...main.children, ...side.children].forEach(c => qc.appendChild(c)); main.remove(); side.remove(); } } } }   // 3.3: aktivitetens formspråk (bara CSS-krokar)
   initSketch();
   const input = document.getElementById('ans');
@@ -819,12 +824,12 @@ function mathBody(q, kid, isTest) {
       <div id="inputArea">${inputHtml}</div>
       <div id="fb"></div>
       <div class="row" id="actions">
-        ${q.type === 'match' || (v3 && q.type === 'choicetext') ? '' : `<button class="btn grow" id="submit" ${q.choices || q.type === 'choicetext' || q.type === 'order' || q.type === 'sort' || q.build ? 'disabled' : ''}>Svara</button>`}
+        ${q.type === 'match' || (v3 && (q.type === 'choicetext' || q.choices)) ? '' : `<button class="btn grow" id="submit" ${q.choices || q.type === 'choicetext' || q.type === 'order' || q.type === 'sort' || q.build ? 'disabled' : ''}>Svara</button>`}
         ${q.type === 'order' ? `<button class="btn ghost" id="undoOrder">⌫</button>` : ''}${q.build ? `<button class="btn ghost" id="undoBuild" aria-label="Ta bort senaste bokstaven">⌫</button>` : ''}
-        ${isTest ? '' : `<button class="btn ghost" id="hintBtn">💡 Ledtråd</button>`}
+        ${isTest ? '' : `<button class="btn ghost" id="hintBtn">${v3 ? `<span class="ic" aria-hidden="true">${ICON.bulb}</span>` : '💡'} Ledtråd</button>`}
       </div>
-      ${isTest ? '' : `<button class="btn ghost wide" id="explainBtn" style="border-style:dashed">${v3 && S.v2.exp === 'achieve' ? 'Visa hur man gör' : v3 ? '🤔 Jag fattar inte' : '🤔 Jag fattar inte – visa hur man gör'}</button>`}
-      ${!q.paper && !(v3 && S.v2.exp === 'explore') && !['choicetext', 'order', 'open', 'sort', 'match'].includes(q.type) && (q.skill.group || 'math') === 'math' ? `<details class="sketch" id="sketch"><summary>✏️ Kladdyta – räkna här innan du svarar</summary><div class="sketch-wrap"><canvas id="sketchCanvas" width="600" height="320"></canvas><div class="row" style="margin-top:6px"><button class="btn ghost" style="min-height:36px" id="sketchClear">Rensa</button><span class="muted" style="font-size:.85rem">Rita med fingret. Kladden sparas inte.</span></div></div></details>` : ''}`;
+      ${isTest ? '' : `<button class="btn ghost wide" id="explainBtn" style="border-style:dashed">${v3 && S.v2.exp === 'achieve' ? 'Visa hur man gör' : v3 ? `<span class="ic" aria-hidden="true">${ICON.help}</span> Jag fattar inte` : '🤔 Jag fattar inte – visa hur man gör'}</button>`}
+      ${!q.paper && !(v3 && S.v2.exp === 'explore') && !['choicetext', 'order', 'open', 'sort', 'match'].includes(q.type) && (q.skill.group || 'math') === 'math' ? `<details class="sketch" id="sketch"><summary>${v3 ? `<span class="ic" aria-hidden="true">${ICON.pencil}</span>` : '✏️'} Kladdyta – räkna här innan du svarar</summary><div class="sketch-wrap"><canvas id="sketchCanvas" width="600" height="320"></canvas><div class="row" style="margin-top:6px"><button class="btn ghost" style="min-height:36px" id="sketchClear">Rensa</button><span class="muted" style="font-size:.85rem">Rita med fingret. Kladden sparas inte.</span></div></div></details>` : ''}`;
 }
 function initSketch() {
   const det = document.getElementById('sketch'); const cv = document.getElementById('sketchCanvas'); if (!det || !cv) return;
@@ -944,7 +949,7 @@ function onMath(e, q) {
   const key = e.target.closest('[data-key]'); const input = document.getElementById('ans');
   if (key && input) { const k = key.dataset.key; if (k === '⌫') input.value = input.value.trimEnd().slice(0, -1).trimEnd(); else input.value = (input.value + k).replace(/\s{2,}/g, ' '); input.focus({ preventScroll: true }); return; }
   const ch = e.target.closest('[data-choice]');
-  if (ch) { document.querySelectorAll('.choice, .wchoice, .tapword').forEach(c => c.classList.remove('sel')); ch.classList.add('sel'); S.selected = Number(ch.dataset.choice); { const sb0 = document.getElementById('submit'); if (sb0) sb0.disabled = false; } if (S.kid.template === 'ak2' || prof(S.kid.id).settings.focus || q.type === 'choicetext') { const sb = document.getElementById('submit'); if (sb) sb.click(); else submitMath(); } return; }
+  if (ch) { document.querySelectorAll('.choice, .wchoice, .tapword').forEach(c => c.classList.remove('sel')); ch.classList.add('sel'); S.selected = Number(ch.dataset.choice); { const sb0 = document.getElementById('submit'); if (sb0) sb0.disabled = false; } if (S.kid.template === 'ak2' || prof(S.kid.id).settings.focus || q.type === 'choicetext' || (S.v2 && S.v2.exp)) { const sb = document.getElementById('submit'); if (sb) sb.click(); else submitMath(); } return; }
   if (e.target.closest('#hintBtn')) { S.usedHelp = true; document.getElementById('fb').innerHTML = `<div class="hint">💡 ${safeHtml(q.hint)}</div>`; e.target.closest('#hintBtn').disabled = true; return; }
   if (e.target.closest('#explainBtn')) { S.usedHelp = true; showSteps(q, true); return; }
   if (e.target.closest('#submit')) { submitMath(); }
@@ -1156,12 +1161,12 @@ VIEWS.parent = () => {
   const tab = state.tab || (KIDS[0] ? KIDS[0].id : 'settings'); const kid = kidById(tab);
   const sub = state.sub || 'overview';
   if (tab === 'settings' && SYNC.active && !PUSH.lastStatus) PUSH.loadStatus().then(() => { if (state.screen === 'parent' && state.tab === 'settings') VIEWS.parent(); });
-  let body = '';
+  let body = '', nav = '';   // 3.3 slutpasset: navigeringen (barn, flikar, Testa som barnet) för sig – två spalter på iPad, samma ordning på telefon
   if (kid) {
     const p = prof(kid.id);
     const subTabs = [['overview', 'Översikt'], ['exams', 'Prov'], ['decks', 'Glosor'], ['settings', 'Inställningar'], ['v2', 'Motor v2']];
-    body = `<div class="seg" style="width:100%;display:flex">${subTabs.map(([id, l]) => `<button class="${sub === id ? 'on' : ''}" style="flex:1" data-sub="${id}">${l}</button>`).join('')}</div>`;
-    if (sub === 'overview') body += (typeof TM !== 'undefined' ? TM.card(kid) : '') + parentOverview(kid, p);
+    nav = `<div class="seg${V2.on(kid) ? ' p-sub' : ''}" style="width:100%;display:flex">${subTabs.map(([id, l]) => `<button class="${sub === id ? 'on' : ''}" style="flex:1" data-sub="${id}">${l}</button>`).join('')}</div>`;
+    if (sub === 'overview') { nav += (typeof TM !== 'undefined' ? TM.card(kid) : ''); body += parentOverview(kid, p); }
     else if (sub === 'exams') body += parentExams(kid, p);
     else if (sub === 'decks') body += parentDecks(kid, p);
     else if (sub === 'v2') body += V2.engineCard(kid) + (V2.engineOf(p) === 'v2' ? V2.insightsCard(kid) + V2.explainCard(kid) + V2.healthCard(kid) : '') + LE.view(kid);
@@ -1183,12 +1188,15 @@ VIEWS.parent = () => {
       <p style="font-size:.95rem"><b>Motivation:</b> följeslagare som växer med XP, tre dagliga uppdrag, ädelstenar och butik, streak med frys, veckoutmaning, märken och blixtläge.</p>
       <p style="font-size:.95rem" class="muted">Framsteg sparas på barnets enhet. Flytta med kod under Översikt.</p></div>`;
   }
+  const two = !!(kid && V2.on(kid));   // två spalter bara när barnet kör v2 – v1:s föräldravy är frusen (test_v1_regression)
+  const tabs = `<div class="tabs">${KIDS.map(k => `<button class="${tab === k.id ? 'on' : ''}" data-tab="${k.id}">${esc(k.name)}</button>`).join('')}<button class="${tab === 'settings' ? 'on' : ''}" data-tab="settings">⚙</button></div>`;
   const tmNote = typeof TM !== 'undefined' && TM.lastNote ? `<div class="feedback good" role="status"><span>✓</span><div>${esc(TM.lastNote)}</div></div>` : ''; if (typeof TM !== 'undefined') TM.lastNote = null;
   const pvNote = typeof TM !== 'undefined' && TM.preview ? `<div class="muted" style="font-size:.85rem">Testversion: ändringar här sparas inte i familjens data. Gör dem i den vanliga appen.</div>` : '';
   render(`${topbar('Föräldraläge', 'start')}
   <div class="stack" style="margin-top:6px">${tmNote}${pvNote}
-    <div class="tabs">${KIDS.map(k => `<button class="${tab === k.id ? 'on' : ''}" data-tab="${k.id}">${esc(k.name)}</button>`).join('')}<button class="${tab === 'settings' ? 'on' : ''}" data-tab="settings">⚙</button></div>
-    ${body}
+    ${two ? `<div class="p-layout"><div class="p-nav">${tabs.replace('data-tab="settings">', 'data-tab="settings" aria-label="Inställningar för hela familjen">')}${nav}</div>
+    <div class="p-main">${body}</div></div>` : `${tabs}
+    ${nav}${body}`}
   </div>`);
 };
 function parentOverview(kid, p) {

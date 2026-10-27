@@ -583,6 +583,91 @@ html { overflow-x: clip; }
 .klar-mark { width: 76px; height: 76px; } .klar-mark .km-e { font-size: 2.2rem; }
 .klar .trail.done .dot { animation-duration: .22s; animation-delay: calc(.1s + var(--i, 0) * .035s); }
 .klar-level { width: min(100%, 280px); display: grid; gap: 4px; } .klar-level .kl-t { font-weight: 800; } .klar-level .kl-s { font-size: .85rem; color: var(--muted); }
+/* 3.3 slutpasset ================================================================================================= */
+/* Styrknappar: en linjeikon i textfärg (karaktär och glädje får vara emoji) */
+.ic { display: inline-grid; place-items: center; width: 1.15em; height: 1.15em; vertical-align: -.2em; }
+.ic svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.sketch > summary .ic, .sketch summary .ic { margin-right: 2px; }
+/* Svara direkt under svaret – knappsatsen under knappraden */
+#keypad { display: grid; gap: 6px; }
+#keypad .keys { margin-top: 0 !important; }
+@media (max-width: 400px) {
+  :root:not([data-exp="classic"]) #keypad .key { min-height: 44px; font-size: 1.1rem; }
+  :root:not([data-exp="classic"]) #keypad, :root:not([data-exp="classic"]) #keypad .keys { gap: 5px; }
+  :root:not([data-exp="classic"]) #qcard:has(#keypad) { gap: 12px; }
+}
+#qcard[data-mode="paper"] .keys .key { min-height: 44px; }
+/* En etikett per läge; Revansch förklaras en gång */
+.role-why { text-align: center; font-size: .95rem; font-weight: 650; color: var(--ink-2); margin-top: -6px; }
+/* Grow: rundan har en mållinje */
+.progress-row { display: flex; align-items: center; gap: 8px; } .progress-row .progress { flex: 1; }
+.pg-end { font-size: 1rem; line-height: 1; }
+/* KLAR – ett riktigt ögonblick */
+.klar-eyebrow { font-size: .8rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin-bottom: -6px; }
+.klar-mark.has-pet { width: 96px; height: 96px; }
+.klar-mark.has-pet .km-e { font-size: 3rem; animation: petHop .9s .4s var(--ease) both; }
+.klar-mark .km-spark { position: absolute; top: -4px; right: -8px; font-size: 1.3rem; animation: klarIn .4s .9s var(--ease) both; }
+@keyframes petHop { 0% { transform: scale(.6); opacity: 0; } 35% { transform: translateY(-14px) scale(1.05); opacity: 1; } 60% { transform: translateY(0) scale(.96, 1.04); } 80% { transform: translateY(-5px); } 100% { transform: none; opacity: 1; } }
+.klar .klar-path { position: relative; gap: 6px; padding: 6px 4px; }
+.klar .klar-path::before { content: ''; position: absolute; left: 18px; right: 18px; top: 50%; border-top: 3px dotted color-mix(in srgb, #e7b416 55%, var(--card)); z-index: 0; }
+.klar .trail.done.klar-path .dot { position: relative; z-index: 1; background: var(--card); border: 0; box-shadow: none; font-size: clamp(1.1rem, 6.2vw, 1.6rem); width: auto; height: auto; padding: 0 1px; filter: drop-shadow(0 2px 3px rgba(150,110,0,.25)); }
+.klar .trail.done.klar-path .dot.crown { font-size: clamp(1.3rem, 7.4vw, 1.9rem); }
+.klar-plan { width: min(100%, 320px); display: grid; gap: 6px; }
+.klar-plan .progress i { height: 8px; } .klar-plan .progress i.done { background: var(--ink); opacity: .8; animation: dotIn .25s calc(.2s + var(--i, 0) * .05s) var(--ease) both; }
+.klar-plan .kp-s { font-size: .9rem; font-weight: 700; color: var(--ink-2); }
+.klar-achieve .klar-title { font-size: 1.5rem; letter-spacing: .05em; }
+.klar-achieve .klar-mark .ring, .klar-achieve .klar-mark .tick { stroke: var(--ink); }
+.klar-row { display: flex; align-items: center; gap: 12px; padding: 12px 16px; }
+.klar-row .kr-i { flex: 0 0 auto; width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; font-size: 1.3rem; background: var(--soft); }
+.klar-row .kr-t { min-width: 0; display: grid; gap: 1px; } .klar-row .kr-t b { font-size: 1rem; } .klar-row .kr-s { font-size: .9rem; color: var(--ink-2); }
+@media (prefers-reduced-motion: reduce) { .klar-mark.has-pet .km-e, .klar-mark .km-spark, .klar-plan .progress i.done { animation: none !important; } }
+/* Små etiketter: minst 12 px för barnen */
+/* iPad stående: uppgiften i en storlek man läser på armlängds avstånd */
+@media (min-width: 768px) and (orientation: portrait) {
+  /* uppgiften i övre tredjedelen av den lediga ytan – samma luft runt varje kort i stället för en tom nedre halva */
+  :root:not([data-exp="classic"]) .stack:has(> #qcard), :root:not([data-exp="classic"]) .stack:has(> .klar) { display: flex; flex-direction: column; gap: 16px; min-height: calc(100svh - 96px); padding-top: 0; padding-bottom: 24px; }
+  :root:not([data-exp="classic"]) .stack:has(> #qcard)::before, :root:not([data-exp="classic"]) .stack:has(> .klar)::before { content: ''; flex: 1 1 0; min-height: 16px; }
+  :root:not([data-exp="classic"]) .stack:has(> #qcard)::after, :root:not([data-exp="classic"]) .stack:has(> .klar)::after { content: ''; flex: 2 1 0; }
+  :root:not([data-exp="classic"]) .stack:has(> #qcard) > *, :root:not([data-exp="classic"]) .stack:has(> .klar) > * { flex: 0 0 auto; }
+  :root:not([data-exp="classic"]) .stack:has(> #qcard) > :is(.progress, .progress-row, .trail) { order: -1; margin-top: 10px; }   /* förloppet står still överst – kortet med sin etikett får luften */
+  :root:not([data-exp="classic"]) #qcard .question .m { font-size: 1.5em; }
+  :root:not([data-exp="classic"]) #qcard { padding: 36px 40px; gap: 20px; }
+  :root:not([data-exp="classic"]) #qcard .question { font-size: 1.75rem; line-height: 1.32; }
+  :root[data-exp="achieve"] #qcard .question { font-size: 1.6rem; }
+  :root:not([data-exp="classic"]) #qcard .answer-input { min-height: 72px; font-size: 1.7rem; }
+  :root:not([data-exp="classic"]) #qcard :is(.choice, .wchoice:not(.spot-sol), .tapword) { min-height: 84px; font-size: 1.35rem; }
+  :root:not([data-exp="classic"]) #qcard :is(.mtile, .stile, .otile) { font-size: 1.15rem; min-height: 64px; }
+  :root:not([data-exp="classic"]) #qcard .wchoice.spot-sol { font-size: 1.15rem; }
+  :root:not([data-exp="classic"]) #qcard .key { min-height: 60px; font-size: 1.4rem; }
+  :root:not([data-exp="classic"]) #qcard #actions .btn { min-height: 60px; font-size: 1.15rem; }
+  :root:not([data-exp="classic"]) .act-chip { font-size: .9rem; padding: 5px 14px; }
+  :root:not([data-exp="classic"]) .progress.v3 i { height: 8px; }
+  :root:not([data-exp="classic"]) #qcard[data-mode="learn"] p { font-size: 1.25rem; }
+  :root:not([data-exp="classic"]) #qcard .figwrap svg { width: min(100%, 300px); }
+  :root:not([data-exp="classic"]) .klar { padding: 44px 40px 36px; gap: 14px !important; }
+  :root:not([data-exp="classic"]) .klar .klar-title { font-size: 2rem; }
+  :root:not([data-exp="classic"]) .klar .klar-lead { font-size: 1.2rem; }
+  :root:not([data-exp="classic"]) .klar-mark { width: 92px; height: 92px; } :root:not([data-exp="classic"]) .klar-mark.has-pet { width: 116px; height: 116px; }
+  :root:not([data-exp="classic"]) .klar-mark.has-pet .km-e { font-size: 3.6rem; }
+  :root:not([data-exp="classic"]) .stack:has(> .klar) > .btn { min-height: 64px; font-size: 1.15rem; }
+  :root:not([data-exp="classic"]) .mission .muted, :root:not([data-exp="classic"]) .goal-row { font-size: 1.05rem; }
+}
+/* Föräldraläget: två spalter på iPad – barn och flikar till vänster, det valda till höger. En spalt på telefon. */
+.p-layout, .p-nav, .p-main { display: grid; gap: 14px; grid-template-columns: minmax(0, 1fr); align-content: start; }
+@media (min-width: 768px) {
+  .wrap:has(.p-layout) { max-width: 1000px !important; }
+  .p-layout { grid-template-columns: 260px minmax(0, 1fr); gap: 20px; align-items: start; }
+  .p-nav { position: sticky; top: 76px; }
+  .p-nav .tabs { flex-direction: column; border-radius: 18px; overflow: visible; }
+  .p-nav .tabs button { flex: 0 0 auto; min-height: 44px; text-align: left; justify-content: flex-start; border-radius: 12px; padding: 0 14px; }
+  .p-nav .seg.p-sub { flex-direction: column; border-radius: 18px; overflow: visible; }
+  .p-nav .seg.p-sub button { flex: 0 0 auto !important; min-height: 44px; text-align: left; border-radius: 12px; padding: 0 14px; }
+  .p-nav .tm-card .btn.big { font-size: 1rem; min-height: 52px; }
+}
+/* Små etiketter: inget under 12 px för barnen; lägen som betyder något lite större */
+:root:not([data-exp="classic"]) .rank small { font-size: 12px; }
+:root:not([data-exp="classic"]) :is(.exam-list, .mission, .klar, .exam-hero, .card) .pill:is(.good, .warn, .bad, :not([class*=" "])) { font-size: max(.82rem, 13px) !important; }
+.btn.klar-up { text-transform: uppercase; letter-spacing: .02em; }
 .q-pane { display: contents; }
 @media (prefers-reduced-motion: reduce) { .hero-pet, .stile.placed, .klar-icon, .xp-pop { animation: none !important; } }
 </style>

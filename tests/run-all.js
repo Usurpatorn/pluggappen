@@ -52,6 +52,7 @@ const suites = [
   ['3.1.2 Bossens variation: annan aktivitet och annat faktum än uppgiften före (samma punkt, nivå och format), annars som förut', 'test_boss_variety.js'],
   ['Experience v3: löfte → utförande för varje primär knapp (Explore/Grow/Achieve/Klassisk × tio tillstånd)', 'test_promise_exec.js'],
   ['3.3 World-Class Experience: formspråk per aktivitet, två rutor på iPad, Hitta felet/Baklänges, lugnt Testa mig, löften ordagrant', 'test_ux33.js'],
+  ['3.3 slutpasset: ett tryck = svar vid flerval, knappsatsen under Svara, en etikett per läge, KLAR som ett ögonblick, föräldraläget i två spalter', 'test_ux33_final.js'],
 ];
 let failed = 0; const rows = [];
 for (const [name, file, opts = {}] of suites) {

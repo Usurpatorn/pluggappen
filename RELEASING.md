@@ -184,6 +184,25 @@ med `PREVIEW=1` till `<sajten>/preview/`. Produktionen publiceras som vanligt. M
   Achieve: lugnare beröm och "Steg för steg" i stället för "Vi tar det tillsammans"; Para ihop "Nästan" med gul kant; KLAR säger
   "dagens runda/äventyr" bara efter dagens plan; Grow-KLAR visar nivån och XP kvar; Testa mig-resultatet leder med vad som
   ska övas (inget "N av M"); grammatik "1 färgad" (02k).
+- Slutpasset (ägarens beslut (a), presentation och text):
+  - **Ett svarssätt för flerval i v3:** ett tryck på ett alternativ svarar – också för tal (förut tryck + Svara utom för Yngre).
+    Undantag med en knapp, eftersom svaret byggs av flera tryck: sortera, para ihop, ordna, bygg ordet, skrivna svar, knappsats
+    och papper. Rättning och bevis är desamma; Klassiskt är oförändrat. Ett tryck mindre gör att ett snabbt fel oftare räknas
+    som snabbt (motorns befintliga `fast`-regel, oförändrad).
+  - **Knappsatsen under knappraden** (`#keypad`, samma knappar flyttade): Svara direkt under svaret; efter svaret döljs knapparna.
+    Svara/Nästa hamnar aldrig under kanten på 375×667, inte heller med telefonens tangentbord uppe (mätt i Chromium).
+  - **En etikett per läge:** rollen står på kortet (NY CHANS, VI TAR DET TILLSAMMANS, STEG FÖR STEG, EXTRA), räknaren säger bara
+    "N kvar" ("Snart klart" under en extra uppgift när planen är slut); förklaringskorten upprepar inte etiketten; Rescue efter
+    förklaringen visar bara ledtråden (utan ledtråd: första steget som förut); Revansch förklaras en gång per pass; rubriken i ett
+    Revansch-pass är ämnet. Samma ord och ikoner som på startsidan (VÄRM UPP, 🧗 UTMANING).
+  - **Grow:** mållinje 🏁 i förloppet, "UTMANING · NÄSTA NIVÅ", "Returmatch: den här var klurig förut.", "Slutsignal" på KLAR,
+    "Dina N områden".
+  - **KLAR:** Explore – följeslagaren hoppar till i märket och stigen är hela stjärnor; Achieve – planen som en rad
+    ("Alla N uppgifter gjorda" / "N av M"), inte i extrapass; chips är text; märke, uppdrag och Felboken som samma slags rad.
+  - **iPad stående:** större uppgift, svar och knappar; kortet i övre tredjedelen, förloppet överst. **Föräldraläget** i två
+    spalter på iPad (barn, flikar och Testa som barnet till vänster) för barn med v2 – v1:s föräldravy är oförändrad.
+  - **Små etiketter** minst 12 px (nivå), lägen i Testa mig/provkort 13 px. **Styrknappar** (Ledtråd, Jag fattar inte, Läs upp,
+    Kladdyta, Läs mer) med linjeikoner i v3; karaktär och glädje (stationer, roller, KLAR) är kvar som emoji.
 - Tillgänglighet: axe-core (WCAG 2.1 A/AA) 0 fynd på 24 skärmar i 375, 390, 820 och 1180 px.
-- Test: `test_ux33.js` (krokar = uppgiften, två rutor utan förlust/dubbletter, Hitta felet/Baklänges rättas som förut, löftena
+- Test: `test_ux33.js` och `test_ux33_final.js` (krokar = uppgiften, två rutor utan förlust/dubbletter, Hitta felet/Baklänges rättas som förut, löftena
   ordagrant, lugnt Testa mig). Rollback: `release-3.2.2-1544484` (profilformatet är oförändrat, så rollback kräver ingen migrering; enda innehållsskillnaden i lagrad data är grammatikrättelsen "1 färgad" i stegtext som v1-Felboken kopierar).

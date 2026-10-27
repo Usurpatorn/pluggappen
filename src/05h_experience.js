@@ -116,7 +116,7 @@ const EXP = {
     // 3.3: motorns tre lägen med barnets ord – "sitter", "på väg", "övar" – och en rubrik som säger vad stapeln är
     const parts = [[pr['Säker'], 'sitter', 'skra'], [pr['På väg'], 'på väg', 'pvg'], [pr['Tränar'] + pr['Behöver repetition'], 'övar', 'trnar']].filter(x => x[0] > 0);   // bara lägen som finns – ingen "0 sitter"
     const tot3 = parts.reduce((a, x) => a + x[0], 0);
-    const prog = parts.length ? `<div class="grow-prog"><div class="gp-head">Dina områden</div><div class="pbar3" aria-hidden="true">${parts.map(([n, t, c]) => `<i class="p-${c}" style="flex:${n}"></i>`).join('')}</div><div class="progress-states" aria-label="Dina ${tot3} områden: ${parts.map(([n, t]) => `${n} ${t}`).join(', ')}">${parts.map(([n, t, c]) => `<span class="p-${c}"><i class="dot" aria-hidden="true"></i><b>${n}</b> ${t}</span>`).join('')}</div></div>` : '';
+    const prog = parts.length ? `<div class="grow-prog"><div class="gp-head">Dina ${tot3} områden</div><div class="pbar3" aria-hidden="true">${parts.map(([n, t, c]) => `<i class="p-${c}" style="flex:${n}"></i>`).join('')}</div><div class="progress-states" aria-label="Dina ${tot3} områden: ${parts.map(([n, t]) => `${n} ${t}`).join(', ')}">${parts.map(([n, t, c]) => `<span class="p-${c}"><i class="dot" aria-hidden="true"></i><b>${n}</b> ${t}</span>`).join('')}</div></div>` : '';
     // 3.3: skoluppgiften på en rad (knappen bara när det finns något att öva just nu)
     const mb = m && !ex ? EXP.missionBtn(kid, m, 'btn wide secondary') : ''; const mbBtn = /<button/.test(mb);
     const goalRow = m && !ex ? `<div class="goal-row"><span aria-hidden="true">📅</span> ${EXP.isExam(m.e) ? 'Nästa prov' : 'Nästa uppgift'}: <b>${esc(m.e.title)}</b> · ${esc(fmtDate(m.e.date))}${V2.examCidsActive(kid, m.e).length ? ' – dagens runda övar annat' : ' – områdena är inte inlagda i appen ännu'}</div>${mbBtn ? mb : ''}` : '';
@@ -193,11 +193,12 @@ const EXP = {
   // Upplevelsens etikett för uppgiften. Explore: aktiviteten. Achieve/Grow: rytmen UPPTÄCK · GÖR · HITTA FELET · MINNS · PROVLÄGE · BOSS.
   chipFor(item) {
     const V = S.v2; if (!V.exp || !item || item.cat === 'learn') return null;
+    if (item.paper && !V.exam && item.spec && EXP.EXTRA.has(item.spec.role)) return null;   /* 3.3 slutpasset: Ny chans/Rescue/Extra visar rollen – papperet står i kortet */
     if (item.paper) return V.exam ? EXP.ACT.exampaper : item.spec && item.spec.role === 'boss' ? EXP.ACT.bosspaper : V.exp === 'explore' ? EXP.ACT.paper : ['RÄKNA PÅ PAPPER', '✏️'];
     if (item.rhythm) return item.rhythm === 'spot' ? ['HITTA FELET', '🔍'] : ['BAKLÄNGES', '↩️'];
     if (V.exam || !item.spec) return null;
     const role = item.spec.role;
-    if (['boss', 'revansch', 'remember', 'rescue'].includes(role) || item.spec.mode === 'challenge') return null;   // rollens egen etikett (MINNS, REVANSCH, BOSSEN …)
+    if (['boss', 'revansch', 'remember', 'rescue', 'retry', 'easy'].includes(role) || item.spec.mode === 'challenge') return null;   /* 3.3 slutpasset: Ny chans/Extra syns alltid som rollen */   // rollens egen etikett (MINNS, REVANSCH, BOSSEN …)
     const ui = EXP.uiOf(item); if (ui === 'num' && V.exp !== 'explore') return null; if (EXP.ACT[ui]) return EXP.ACT[ui];
     return null;
   },
@@ -345,7 +346,7 @@ const EXP = {
     const title = e === 'explore' ? 'ÄVENTYRET KLART!' : mission ? 'PROVTRÄNINGEN KLAR' : e === 'grow' ? (flow ? 'EXTRARUNDAN KLAR!' : 'RUNDAN KLAR!') : flow ? 'EXTRAPASSET KLART' : V.mode === 'kor' ? 'DAGENS PLAN KLAR' : 'PASSET KLART';
     const flowLabel = e === 'explore' ? 'ETT ÄVENTYR TILL' : e === 'grow' ? 'EN RUNDA TILL' : g && EXP.isExam(g.e) && EXP.mostly(EXP.examShare(kid, g, EXP.peekFlow(kid))) ? 'FORTSÄTT MOT PROVET' : 'FORTSÄTT';
     const kinds = []; for (const r of V.rewards) if (EXP.DELIGHT[r.k] && !kinds.includes(r.k)) kinds.push(r.k);
-    const trail = e === 'explore' ? `<div class="trail done" role="img" aria-label="Det här gjorde du: ${S.queue.slice(0, S.i + 1).filter(x => x._slotEnd).length} saker">${S.queue.slice(0, S.i + 1).map((x, n) => `<span class="dot ok" style="--i:${n}" aria-hidden="true">${x.spec && x.spec.role === 'boss' ? '👑' : '⭐'}</span>`).join('')}</div>` : '';
+    const trail = e === 'explore' ? `<div class="trail done klar-path" role="img" aria-label="Det här gjorde du: ${S.queue.slice(0, S.i + 1).filter(x => x._slotEnd).length} saker">${S.queue.slice(0, S.i + 1).map((x, n) => `<span class="dot ok${x.spec && x.spec.role === 'boss' ? ' crown' : ''}" style="--i:${n}" aria-hidden="true">${x.spec && x.spec.role === 'boss' ? '👑' : '⭐'}</span>`).join('')}</div>` : '';   /* 3.3 slutpasset: en hel stig av stjärnor – inga halvtonade steg */
     // UX: Explore-hemmet visade 👑 (Grow/Achieve: N kvar räknade Bossen) – blev passet kortare (motorns Rescue/uppskjutning) sägs det, i stället för att kronan bara försvinner
     const bossLater = V.plan.some(x => x.role === 'boss') && !S.queue.some(x => x.spec && x.spec.role === 'boss') ? `<div class="muted">${e === 'explore' ? '👑 ' : ''}Bossen väntar nästa gång.</div>` : '';
     // Slutverifieringen: motorns omförsök och Rescue ryms inom passets tak – då kan planerade uppgifter bli kvar. Det sägs rakt ut (de
@@ -365,19 +366,23 @@ const EXP = {
         const bossWon = S.queue.slice(0, S.i + 1).some((x, i) => x.spec && x.spec.role === 'boss' && S.results[i] === true);
         const lead = e === 'achieve' && !mission ? 'Appen håller koll på resten.' : e === 'explore' && flow ? 'Ett äventyr till – klart!' : up ? `${up === 1 ? 'Ett område' : `${up} områden`} blev starkare.` : V.mode === 'revansch' ? 'Revanschen är gjord.' : mission ? 'Provträningen är gjord.' : flow ? (e === 'grow' ? 'Extrarundan är gjord.' : 'Extrapasset är gjort.') : V.mode !== 'kor' ? 'Passet är gjort.' : e === 'explore' ? 'Du klarade dagens äventyr.' : e === 'grow' ? 'Du klarade dagens runda.' : 'Passet är gjort.';   // "dagens runda/äventyr" bara när det verkligen var dagens plan
         const chips = [];
-        if (bossWon) chips.push(e === 'achieve' ? 'Bossuppgiften klar' : '👑 Bossen klarad');
-        if (sh.n > 0) chips.push(`${EXP.isExam(g.e) ? 'Provet' : 'Uppgiften'}: ${sh.n} i planen`);
-        if (up && e === 'achieve' && V.mode === 'kor') chips.push(`${up} starkare`);
+        if (bossWon) chips.push(e === 'achieve' ? 'Bossuppgiften klar' : 'Bossen klarad');   /* 3.3 slutpasset: chips är text – samma form överallt */
+        if (sh.n > 0) chips.push(`${sh.n} ${sh.n === 1 ? 'uppgift' : 'uppgifter'} inför ${EXP.isExam(g.e) ? 'provet' : 'uppgiften'}`);
+        if (up && e === 'achieve' && V.mode === 'kor') chips.push(`${up === 1 ? 'Ett område' : `${up} områden`} starkare`);
         for (const k of kinds) chips.push(EXP.DELIGHT_CHIP[k] || EXP.DELIGHT[k]);
         if (gems && e === 'grow') chips.push(`+${gems} 💎`);
         const mark = e === 'achieve' ? '<path class="tick" d="M15 25l6 6 12-13"/>' : '';
-        return `<div class="klar-mark" aria-hidden="true"><svg viewBox="0 0 48 48"><circle class="ring" cx="24" cy="24" r="21"/>${mark}</svg>${e === 'achieve' ? '' : `<span class="km-e">${e === 'explore' ? '🗺️' : '🏁'}</span>`}</div>
-        <div class="klar-title">${esc(title)}</div>
-        <div class="klar-lead">${esc(lead)}</div>${trail}${(!flow && bossLater) || savedLater ? `<div class="klar-note">${flow ? '' : bossLater}${savedLater}</div>` : ''}
+        // 3.3 slutpasset: Explore – följeslagaren gläds (ett hopp); Grow – slutsignalen; Achieve – lugn bock och planen som en hel rad
+        const pet = e === 'explore' && p.pet && p.pet !== 'none' && typeof petEmoji === 'function' ? petEmoji(p) : '';
+        const planN = V.plan.length; const planDone = Math.min(planN, S.queue.slice(0, S.i + 1).filter(x => x._slotEnd && !EXP.isExtra(x)).length);
+        const planBar = e === 'achieve' && planN > 0 && !flow ? `<div class="klar-plan"><div class="progress v3" role="img" aria-label="${planDone} av ${planN} uppgifter gjorda">${Array.from({ length: planN }, (_, i) => `<i class="${i < planDone ? 'done' : ''}" style="--i:${i}"></i>`).join('')}</div><div class="kp-s">${planDone === planN ? `Alla ${planN} uppgifter gjorda` : `${planDone} av ${planN} uppgifter gjorda`}</div></div>` : '';
+        return `<div class="klar-mark${pet ? ' has-pet' : ''}" aria-hidden="true"><svg viewBox="0 0 48 48"><circle class="ring" cx="24" cy="24" r="21"/>${mark}</svg>${e === 'achieve' ? '' : `<span class="km-e">${pet || (e === 'explore' ? '🗺️' : '🏁')}</span>`}${pet ? '<span class="km-spark">✨</span>' : ''}</div>
+        ${e === 'grow' ? '<div class="klar-eyebrow">Slutsignal</div>' : ''}<div class="klar-title">${esc(title)}</div>
+        <div class="klar-lead">${esc(lead)}</div>${trail}${planBar}${(!flow && bossLater) || savedLater ? `<div class="klar-note">${flow ? '' : bossLater}${savedLater}</div>` : ''}
         ${e === 'grow' ? (() => { const lv = levelOf(p.xp), a0 = 60 * (lv - 1) ** 2, a1 = 60 * lv ** 2; const pct = Math.max(0, Math.min(100, Math.round((p.xp - a0) / (a1 - a0) * 100))); return `<div class="klar-level"><div class="kl-t">Nivå ${lv}${typeof levelNameFor === 'function' ? ' · ' + esc(levelNameFor(kid, lv)) : ''}</div><div class="xpbar"><i style="width:${pct}%"></i></div><div class="kl-s">${a1 - p.xp} XP till nivå ${lv + 1}</div></div>`; })() : ''}
         ${chips.length ? `<div class="klar-chips">${chips.slice(0, 3).map(c => `<div>${esc(c)}</div>`).join('')}</div>` : ''}`; })()}
       </section>
-      ${corePending ? `<button class="btn big wide" data-v2="kor">Till dagens plan · cirka ${EXP.mins(V2.peekPlan(kid).plan, kid)} min</button>` : canMore ? `<button class="btn big wide btn-2l" data-v2="flow">${esc(flowLabel)}<span class="btn-sub"><span class="sep"> · </span>cirka ${EXP.flowMins(kid)} min</span></button>` : `<div class="card muted" style="text-align:center">${rested ? 'Bra jobbat idag! Det du har övat sätter sig bäst om du vilar nu.' : 'Allt för idag är gjort.'}</div>`}
+      ${corePending ? `<button class="btn big wide btn-2l klar-up" data-v2="kor">Till dagens plan<span class="btn-sub"><span class="sep"> · </span>cirka ${EXP.mins(V2.peekPlan(kid).plan, kid)} min</span></button>` : canMore ? `<button class="btn big wide btn-2l" data-v2="flow">${esc(flowLabel)}<span class="btn-sub"><span class="sep"> · </span>cirka ${EXP.flowMins(kid)} min</span></button>` : `<div class="card muted" style="text-align:center">${rested ? 'Bra jobbat idag! Det du har övat sätter sig bäst om du vilar nu.' : 'Allt för idag är gjort.'}</div>`}
       ${e === 'grow' && todo && canMore ? `<button class="btn ghost wide" data-v2="revansch">Revansch i stället · ${todo} ${todo === 1 ? 'sak' : 'saker'}</button>` : ''}
       <button class="btn big wide ${canMore || corePending ? 'ghost' : ''}" data-go="home">${corePending ? 'Till startsidan' : 'Klar för idag'}</button>
       ${back.length ? `<div class="card stack klar-back" style="gap:4px"><div class="eyebrow">Appen tar fram det här igen</div>${back.map(b => `<div>${esc(b.name)} – ${b.when === 'idag' ? 'i ett senare pass' : esc(b.when)}.</div>`).join('')}</div>` : ''}
@@ -385,11 +390,11 @@ const EXP = {
     </div>`);
   },
   // Avklarade dagsuppdrag hämtas automatiskt på KLAR (samma belöning som knappen "Hämta" – utan att barnet måste göra något mer)
-  autoClaim(kid, list) {
+  autoClaim(kid, list, row) {
     if (!list.length) return ''; const p = prof(kid.id);
     for (const q of list) { const it = p.quests.items.find(x => x.id === q.id); if (!it || !it.done || it.claimed) continue; it.claimed = true; p.xp += it.reward.xp; p.gems += it.reward.gems; }
     if (p.quests.items.every(x => x.claimed) && p.claimedAll !== todayKey()) { p.claimedAll = todayKey(); p.gems += 15; }
-    save(); return `<div class="card muted" style="font-size:.9rem">Uppdrag klart: ${list.map(q => esc(q.text)).join(' · ')}</div>`;
+    save(); return row ? row('✅', list.length === 1 ? 'Uppdrag klart' : `${list.length} uppdrag klara`, list.map(q => esc(q.text)).join(' · ')) : `<div class="card muted" style="font-size:.9rem">Uppdrag klart: ${list.map(q => esc(q.text)).join(' · ')}</div>`;
   },
   /* ---------- Testa mig: rapport per målområde (aldrig en prognos) ---------- */
   examReport(kid, V) {

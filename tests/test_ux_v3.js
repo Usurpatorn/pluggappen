@@ -6,7 +6,7 @@
    - efter dagens plan: inga räknare för Felboken/uppdragen på hemmet (skuldfritt)
    - Testa mig i v3: ingen klocka
    - pappersfeedback: "Eller …" får inget stegnummer, numren stämmer med knapparna
-   - N kvar: planerade uppgifter; under Ny chans/Rescue "Ny chans · sedan N kvar" (motorns omförsök oförändrade) */
+   - N kvar: planerade uppgifter; under Ny chans/Rescue/Extra samma "N kvar" och rollen på kortet (motorns omförsök oförändrade) */
 'use strict';
 process.env.TZ = 'Europe/Stockholm';
 const { mkWin, tools, FIX, rng, T_FIXED } = require('./le/childflow.js');
@@ -65,7 +65,7 @@ const norm = (s) => String(s || '').replace(/\s+/g, ' ').trim();
       ok(sawKeys, 'en uttrycksuppgift med knappsats prövades');
       openKid(T, 'k8'); const tb = T.$('[data-v2="testa"]'); if (tb) { T.click(tb); D.run(() => false); ok(!/Testa mig · \d+:\d\d/.test(norm(T.$('#app').textContent)), 'Testa mig i v3: ingen klocka i resultatet'); } }
     /* 8. N kvar och Ny chans (slutverifieringen): räknaren visar de planerade uppgifter som faktiskt återstår. En Ny chans/Rescue/extra
-       lätt uppgift syns som extra ("Ny chans/Extra · sedan N kvar") och lovar aldrig mer än det som kommer. Räknaren ökar aldrig; den kan
+       lätt uppgift syns som extra (rollen på kortet: NY CHANS / VI TAR DET TILLSAMMANS / STEG FÖR STEG / EXTRA; räknaren "N kvar") och lovar aldrig mer än det som kommer. Räknaren ökar aldrig; den kan
        minska mer än ett steg när motorns omförsök fyller passets tak (motorn ändras inte). Det som inte hanns med sägs på KLAR:
        "Bossen väntar nästa gång" och/eller "N uppgifter från planen sparas till nästa gång". */
     { let extras = 0, easy = 0, steps = 0, ends = 0, bossSkip = 0, drops = 0, savedN = 0;
@@ -74,7 +74,8 @@ const norm = (s) => String(s || '').replace(/\s+/g, ' ').trim();
         for (let d = 0; d < 3; d++) { for (const id of ['k2', 'k4', 'k8']) { openKid(T, id); if (!T.$('.go-btn[data-v2="kor"]')) continue; T.click(T.$('.go-btn[data-v2="kor"]')); let g = 0, after = null;
           while (PA().S && PA().S.v2 && T.$('#qcard') && g++ < 80) { const it = PA().S.queue[PA().S.i]; const lc = norm((T.$('.left-count') || {}).textContent); const extra = PA().EXP.isExtra(it);
             let now;
-            if (extra) { extras++; if (it.spec.role === 'easy') easy++; const m = lc.match(/^(Ny chans|Extra)(?: · sedan (\d+) kvar)?$/); ok(!!m && (m[1] === 'Extra') === (it.spec.role === 'easy'), `extra uppgift märkt som extra: "${lc}" (${it.spec.role})`); now = m && m[2] ? +m[2] : 0; if (after != null) { steps++; if (now !== after) { drops++; ok(now < after, `räknaren ökade: lovat ${after}, nu ${now} (${lc})`); } } after = now; }
+            if (extra) { extras++; if (it.spec.role === 'easy') easy++; const chip = norm((T.$('.act-chip') || {}).textContent); const want = it.spec.role === 'easy' ? /^➕ EXTRA$/ : it.spec.role === 'retry' ? /^🔁 NY CHANS$/ : /^(🤝 VI TAR DET TILLSAMMANS|🧭 STEG FÖR STEG)$/;
+              ok(want.test(chip), `extra uppgift märkt med sin roll på kortet: "${chip}" (${it.spec.role})`); const m = lc.match(/^(\d+) kvar$/); ok((!!m && +m[1] > 0) || lc === 'Snart klart', `extra uppgift: räknaren visar bara "N kvar" (eller "Snart klart" när planen är slut): "${lc}"`); now = m ? +m[1] : 0; if (after != null) { steps++; if (now !== after) { drops++; ok(now < after, `räknaren ökade: lovat ${after}, nu ${now} (${lc})`); } } after = now; }   // 3.3 slutpasset: rollen står på kortet, räknaren är bara planen
             else { const m = lc.match(/^(\d+) kvar$/); ok(!!m && +m[1] >= 1, `planerad uppgift visar "N kvar": "${lc}"`); now = m ? +m[1] : 0; if (after != null) { steps++; if (now !== after) { drops++; ok(now < after, `räknaren ökade: lovat ${after}, nu ${now}`); } } after = it._slotEnd ? now - 1 : now; }   // ett UPPTÄCK-kort före uppgiften är samma planerade plats
             D.answer(() => r8() < pw); w.__advance(4000); }
           ends++; const t = norm(T.$('#app').textContent); const skipped = /Bossen väntar nästa gång/.test(t); const saved = t.match(/(En uppgift|(\d+) uppgifter) från planen sparas till nästa gång/); if (skipped) bossSkip++; if (saved) savedN++;

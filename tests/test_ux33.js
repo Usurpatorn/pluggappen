@@ -12,7 +12,7 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms)); const DAY = 86400000;
 const openKid = (T, id) => { toStart(T); T.click(T.$(`[data-kid="${id}"]`)); if (T.$('[data-pet]')) T.click(T.$('[data-pet]')); };
 const norm = (s) => String(s || '').replace(/\s+/g, ' ').trim();
 const SPLIT = ['num', 'expr', 'choice', 'paper', 'reverse', 'type', 'tap'];
-const SIDE = ['inputArea', 'fb', 'actions', 'explainBtn', 'sketch'];
+const SIDE = ['inputArea', 'fb', 'actions', 'keypad', 'explainBtn', 'sketch'];   // 3.3 slutpasset: knappsatsen under knappraden
 const DISHONEST = /Du är redo|kommer (att )?klara provet|Du kan detta|\b\d{1,3}\s?%|räcker inför provet|lösning(en)? är korrekt|Provberedskap/i;
 
 (async () => {
@@ -142,7 +142,7 @@ const DISHONEST = /Du är redo|kommer (att )?klara provet|Du kan detta|\b\d{1,3}
     /* 5b. Grow-hemmet: barnets ord för lägena, en rad om skoluppgiften, ingen hockeyposition */
     { toStart(T); openKid(T, 'k4'); const h = T.$('.mission.grow'); if (h) { const ht = norm(h.textContent);
         ok(!/\b(RW|LW|C|D|G)\b/.test(norm((T.$('.ident') || { textContent: '' }).textContent)), 'Grow: inga obegripliga förkortningar (RW)');
-        ok(T.$('.grow-prog') ? /Dina områden/.test(ht) && /(sitter|på väg|övar)/.test(ht) && !/säkra|tränar/.test(ht) : true, 'Grow: stapeln förklaras med barnets ord');
+        ok(T.$('.grow-prog') ? /Dina \d+ områden/.test(ht) && /(sitter|på väg|övar)/.test(ht) && !/säkra|tränar/.test(ht) : true, 'Grow: stapeln förklaras med barnets ord');
         ok(h.querySelectorAll('.goal-row').length <= 1 && !/Dagens runda övar annat\./.test(ht), 'Grow: skoluppgiften på högst en rad'); }
       else ok(!!T.$('.mission.done'), 'Grow-hemmet finns'); }
     /* 5b2. Grow: barnets ord motsvarar motorns lägen exakt; läsbart namn = momentets eget namn */
