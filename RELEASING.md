@@ -115,12 +115,15 @@ med `PREVIEW=1` till `<sajten>/preview/`. Produktionen publiceras som vanligt. M
 - 3.1.1 (testadressen): den riktiga appen startar aldrig på `/preview/` (t.ex. ur offline-kopian), service workern serverar
   aldrig testadressen ur cachen och byter aldrig en testflik mot appen, och CI publicerar testadressen bara från en gren med
   "Testa som barnet" och dess skydd (testet körs och sidan kontrolleras – annars publiceras produktionen utan testadress).
+- 3.1.2: med Bara prov och läxor och ett enda prov i fönstret räknas Bossen som provuppgift (hemmet sa "3 av 4 uppgifter inför provet" fast allt var provet).
+- 3.1.2: Bossen på samma kunskapspunkt som uppgiften precis före tar helst en annan aktivitet och ett annat faktum (inte sortera → samma
+  sortering igen) – bara bland giltiga varianter, inom samma nivågräns och format; annars som förut; aldrig ett svagare minnesprov än utan variationen. Motorn orörd. Test: `test_boss_variety.js`.
 
 ## 3.2.0 – Testa som barnet i föräldraläget (från 2026-10-27)
 - **Föräldraläge → barnet → Testa som …** finns nu i den vanliga appen (inte bara på testadressen). Samma isolering: lagringen slås om
   till en kopia i minnet (oåterkalleligt för sidan) och nätverksskyddet nekar alla skrivningar under testet; avsluta, byta barn,
   ladda om, bakåt = sidan laddas om och kopian finns inte. Utanför testet är appen som förut (samma nycklar, samma nätverk).
-- Före testet skickas väntande ändringar; går det inte (t.ex. utan nät) startar testet inte. Påminnelser och synkkod finns inte under testet.
+- Före testet hämtas och slås väntande ändringar ihop med familjens data och laddas upp villkorat på den hämtade versionen; går det inte (t.ex. utan nät) startar testet inte. Påminnelser och synkkod finns inte under testet.
 - Testadressen finns kvar (samma funktion, egen lagring) men behövs inte längre för att testa som ett barn.
-- Rollback: `release-3.1.1-bd512ee` (eller senare 3.1.x). Test: `test_parent_test_mode_prod.js`, `test_parent_test_mode.js`.
+- Rollback: `release-3.1.2-ec2651c` (eller tidigare 3.1.x). Test: `test_parent_test_mode_prod.js`, `test_parent_test_mode.js`.
 
