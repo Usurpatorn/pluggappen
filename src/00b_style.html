@@ -500,6 +500,19 @@ html { overflow-x: clip; }
 /* iPad: större uppgiftstext */
 @media (min-width: 768px) { :root:not([data-exp="classic"]) #qcard .question { font-size: 1.5rem; line-height: 1.35; } }
 @media (min-width: 1100px) and (orientation: landscape) { :root:not([data-exp="classic"]) #qcard .question { font-size: 1.65rem; } }
+/* 3.3 sista omgången */
+:root:not([data-exp="classic"]) .topbar .title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+:root:not([data-exp="classic"]) .topbar > :not(.title):not(.icon-btn) { flex-shrink: 0; white-space: nowrap; }
+/* Svaret är felet: det funna felet markeras som fynd (gult, struket), aldrig grönt som ett faktum */
+#qcard[data-iserr] :is(.wchoice, .choice, .tapword).ok { background: var(--warn-soft) !important; border-color: var(--warn) !important; color: var(--ink) !important; text-decoration: line-through; text-decoration-thickness: 2px; }
+#qcard[data-mode="spot"] .spot-sol.ok { padding-top: 30px; }
+#qcard[data-mode="spot"] .spot-sol.ok::after { left: 10px; right: auto; }
+.xp-chip { white-space: nowrap; }
+:root[data-exp="achieve"] :is(.choice, .wchoice, .mtile, .stile, .tapword, .otile, .ltile) { -webkit-hyphens: auto; hyphens: auto; }
+@media (min-width: 768px) {
+  :root:not([data-exp="classic"]) #qcard .question .m { font-size: 1.2em; }
+  :root:not([data-exp="classic"]) .stack:has(> .klar) { max-width: 640px; margin-inline: auto; }
+}
 .q-pane { display: contents; }
 @media (prefers-reduced-motion: reduce) { .hero-pet, .stile.placed, .klar-icon, .xp-pop { animation: none !important; } }
 </style>

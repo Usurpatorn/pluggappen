@@ -257,13 +257,13 @@ const PACKS = (() => {
           (r) => mc(`${f.gapq || 'Vad saknas i kedjan?'}<br>${esc(f.items[i - 1])} → <b>?</b> → ${esc(f.items[i + 1])}`, f.items[i], f.items.filter((_, j) => j !== i && j !== i - 1 && j !== i + 1), [], `<b>Hela kedjan:</b> ${f.items.map(esc).join(' → ')}`, r));
       } else if (f.k === 'stmt') {
         add(f, f.form || 'recognition', 'true', (r) => mc(f.q || 'Vilket påstående stämmer?', f.s, f.f, falsePool(f), why, r));
-        f.f.forEach((ff, i) => add({ ...f, id: (f.id || fnv(f.s)) + '.f' + i }, 'mistake', 'false', (r) => mc(f.mq || 'Vilket påstående är <b>fel</b>?', ff, [], truePool(f), `Det stämmer inte. Rätt är: ${f.s}${f.why ? ' ' + f.why : ''}`, r)));
+        f.f.forEach((ff, i) => add({ ...f, id: (f.id || fnv(f.s)) + '.f' + i }, 'mistake', 'false', (r) => ({ ...mc(f.mq || 'Vilket påstående är <b>fel</b>?', ff, [], truePool(f), `Det stämmer inte. Rätt är: ${f.s}${f.why ? ' ' + f.why : ''}`, r), isError: true })));   // 3.3: svaret ÄR felet (bara visning)
       } else if (f.k === 'num') {
         add(f, f.form || 'multistep', 'n', () => ({ type: 'num', text: f.q, answer: f.a, steps: [why].filter(Boolean), hint: f.hint || HINT[f.form || 'multistep'], unit: f.unit }));
       } else if (f.k === 'pick') {
         add(f, f.form || 'recognition', 'pk', () => { const ch = toks(f.text); return { type: 'choicetext', text: `${f.ask}<br><i>${esc(f.text)}</i>`, choices: ch, answer: ch.indexOf(f.a), steps: [why].filter(Boolean), hint: f.hint || HINT.recognition, ordered: true, ui: 'tap', sentence: strip(f.text).trim(), ask: f.ask }; }, { ui: 'tap' });
       } else if (f.k === 'fix') {
-        add(f, 'mistake', 'err', () => { const ch = toks(f.bad); return { type: 'choicetext', text: `${f.mq || 'Ett ord är fel i meningen. Vilket?'}<br><i>${esc(f.bad)}</i>`, choices: ch, answer: ch.indexOf(f.err), steps: [`Rätt: <b>${esc(f.good)}</b>`, why].filter(Boolean), hint: f.hint || HINT.mistake, ordered: true, ui: 'tap', sentence: strip(f.bad).trim(), ask: f.mq || 'Ett ord är fel i meningen. Vilket?' }; }, { ui: 'tap' });
+        add(f, 'mistake', 'err', () => { const ch = toks(f.bad); return { type: 'choicetext', isError: true, text: `${f.mq || 'Ett ord är fel i meningen. Vilket?'}<br><i>${esc(f.bad)}</i>`, choices: ch, answer: ch.indexOf(f.err), steps: [`Rätt: <b>${esc(f.good)}</b>`, why].filter(Boolean), hint: f.hint || HINT.mistake, ordered: true, ui: 'tap', sentence: strip(f.bad).trim(), ask: f.mq || 'Ett ord är fel i meningen. Vilket?' }; }, { ui: 'tap' });
         if (f.recall !== false) add(f, 'recall', 'fx', () => typed(`${f.rq || 'Skriv ordet rätt'}: <i>${esc(f.bad)}</i><br><b>${esc(f.err)}</b> → ?`, [f.fix, ...(f.alias || [])], `Rätt: <b>${esc(f.good)}</b>${why ? '<br>' + why : ''}`, { exact: f.exact !== false, pool: [f.err] }));
         add(f, f.form || 'recognition', 'good', (r) => mc(f.gq || 'Vilken mening är rätt skriven?', f.good, [f.bad], badPool(f), why, r, { cs: f.cs }));
       } else if (f.k === 'read') {

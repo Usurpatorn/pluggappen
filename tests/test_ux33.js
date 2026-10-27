@@ -97,6 +97,21 @@ const DISHONEST = /Du är redo|kommer (att )?klara provet|Du kan detta|\b\d{1,3}
 
     try { Object.defineProperty(PA().TTS, 'ok', { value: tts0, configurable: true, writable: true }); } catch (e) { /* som förut */ }
     console.log(`  Hitta felet: Läs upp prövad ${spots} gånger`); ok(spots > 0, 'Hitta felet: Läs upp prövad');
+    /* 3b. "Hitta felet"-frågor: bara när svaret ÄR felet (variant false/err) visas det överstruket; annars "Rätt svar" som vanligt */
+    { const P = PA().PACKS; const rnd = rng(9); let isErr = 0, notErr = 0, wrongFlag = 0; const sample = { err: null, plain: null };
+      for (const pol of ['older', 'middle', 'younger']) for (const cid of Object.keys(P.REG.kp)) for (const v of P.variants(cid, pol)) { if (v.form !== 'mistake') continue;
+        const dir = v.key.split('|').pop(); const q = P.buildVariant(cid, v, rnd, pol); if (!q) continue; const should = dir === 'false' || dir === 'err';
+        if (!!q.isError !== should) wrongFlag++; if (should) { isErr++; if (!sample.err && Array.isArray(q.choices) && q.ui !== 'tap') sample.err = q; } else { notErr++; if (!sample.plain && Array.isArray(q.choices) && q.ui !== 'tap') sample.plain = q; } }
+      console.log(`  "hitta felet"-varianter: ${isErr} där svaret är felet, ${notErr} andra med formen mistake, ${wrongFlag} fel märkta`);
+      ok(wrongFlag === 0 && isErr > 0 && notErr > 0, 'isError sätts exakt för varianterna false/err');
+      for (const [kind, q0] of Object.entries(sample)) { if (!q0) { ok(false, 'exempel ' + kind); continue; } for (const wrong of [false, true]) {
+        openKid(T, 'k8'); if (!T.$('.go-btn[data-v2="kor"]')) { w.__advance(DAY); openKid(T, 'k8'); } T.click(T.$('.go-btn[data-v2="kor"]'));
+        const S = PA().S; const it = S.queue[S.i]; const kid = kidOf('k8'); S.queue[S.i] = { ...q0, skill: kid.skills[0], cat: 'math', level: 2, spec: { ...(it.spec || {}), role: 'focus' }, _slotEnd: true }; PA().rerender();
+        const right = q0.answer; const pick = wrong ? (right + 1) % q0.choices.length : right; T.click(T.$(`#choices [data-choice="${pick}"], [data-choice="${pick}"]`)); if (T.$('#submit') && !T.$('#next')) T.click(T.$('#submit'));
+        const fbEl = T.$('#fb'); const fbt = norm(fbEl.textContent); const struck = fbEl.querySelector('.feedback s');
+        if (kind === 'err') ok(!!struck && !/Rätt svar:/.test(fbt) && norm(struck.textContent) === norm(q0.choices[right]), `svaret är felet (${wrong ? 'fel' : 'rätt'} val): felet överstruket`);
+        else { ok(!struck, `vanlig mistake-fråga (${wrong ? 'fel' : 'rätt'} val): rätt svar stryks aldrig (${fbt.slice(0, 60)})`); if (wrong) ok(/Rätt svar:/.test(fbt), 'vanlig mistake-fråga: "Rätt svar" som vanligt'); }
+        ok(!!T.$('#qcard').dataset.iserr === (kind === 'err'), 'data-iserr bara när svaret är felet'); } } }
     /* 4. Baklänges: målet syns, samma rättning */
     for (let t = 0; t < 3; t++) { const q = inject('reverse'); if (!q) { ok(false, 'Baklänges kunde skapas'); break; }
       const tgt = T.$('.rev-target'); ok(!!tgt, 'Baklänges: målpanelen finns');

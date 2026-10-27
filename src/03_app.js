@@ -764,7 +764,7 @@ VIEWS.practice = () => {
     ${S.v2 ? V2.progressBar() + V2.chip(item) : `<div class="progress">${S.queue.map((_, i) => `<i class="${i < S.i ? (S.results[i] ? 'ok' : 'no') : i === S.i ? 'cur' : ''}"></i>`).join('')}</div>`}
     <div class="card pad-lg stack" id="qcard" style="gap:16px">${body}</div>
   </div>`);
-  { const qc = document.getElementById('qcard'); if (qc && S.v2 && S.v2.exp) { const m = EXP.modeOf(item); qc.dataset.mode = m.mode; if (m.role) qc.dataset.role = m.role; if (S.v2.exam) qc.dataset.exam = '1';
+  { const qc = document.getElementById('qcard'); if (qc && S.v2 && S.v2.exp) { const m = EXP.modeOf(item); qc.dataset.mode = m.mode; if (m.role) qc.dataset.role = m.role; if (S.v2.exam) qc.dataset.exam = '1'; if (item.isError === true) qc.dataset.iserr = '1';
     qc.querySelectorAll('.wchoices:not(.spot-sols)').forEach(w => { if ([...w.children].some(b => { const t = (b.textContent || '').trim(); return t.length > 16 || t.split(/\s+/).some(x => x.length > 11); })) w.classList.add('one-col'); });   // 3.3: långa ord får en hel rad i stället för att brytas mitt i
     if (['num', 'expr', 'choice', 'paper', 'reverse', 'type', 'tap'].includes(m.mode)) {   // 3.3: två rutor på liggande iPad (display:contents annars)
       const main = document.createElement('div'), side = document.createElement('div'); main.className = 'q-pane q-main'; side.className = 'q-pane q-side';
@@ -950,7 +950,7 @@ function onMath(e, q) {
 }
 function showSteps(q, reveal) {
   const el = document.getElementById('fb');
-  const why = !reveal && S.v2 && S.v2.exp === 'explore' && q.form !== 'mistake';   // det rätta faktumet i en "hitta felet"-fråga visas direkt   // 3.3 Explore: en rad återkoppling – förklaringen finns ett tryck bort
+  const why = !reveal && S.v2 && S.v2.exp === 'explore' && q.isError !== true;   // det rätta faktumet i en "hitta felet"-fråga visas direkt   // 3.3 Explore: en rad återkoppling – förklaringen finns ett tryck bort
   const stepsHtml = why ? `<details class="steps why"><summary>Visa varför</summary><ol>${q.steps.map(s => `<li>${safeHtml(s)}</li>`).join('')}</ol></details>`
     : !reveal && S.v2 && S.v2.exp === 'grow' && q.kp && q.steps.length > 1 ? `<div class="steps"><div class="eyebrow">Så här är det</div><p style="margin:4px 0">${safeHtml(q.steps[0])}</p><details class="more-steps"><summary>Visa mer</summary><ol>${q.steps.slice(1).map(s => `<li>${safeHtml(s)}</li>`).join('')}</ol></details></div>`   /* 3.3 Grow: en mening först, resten ett tryck bort */
     : `<div class="steps"><div class="eyebrow">${S.v2 && S.v2.exp && q.kp ? 'Så här är det' : 'Så här löser du den'}</div><ol>${q.steps.map(s => `<li>${safeHtml(s)}</li>`).join('')}</ol>${reveal && !S.answered ? `<p style="margin-top:10px" class="muted">Svaret är <b>${esc(answerDisplay(q))}</b>. Skriv in det så går vi vidare – nästa gång klarar du det själv!</p>` : ''}</div>`;
@@ -992,7 +992,7 @@ function submitMath() {
   if (S.v2) { v2evs = V2.observe(q, correct); if (S.v2.exam) return V2.examAnswered(q, correct, raw); }
   if (q.choices || q.type === 'choicetext') document.querySelectorAll('.choice, .wchoice, .tapword').forEach(c => { const v = Number(c.dataset.choice); if (v === q.answer) c.classList.add('ok'); else if (v === S.selected) c.classList.add('no'); c.disabled = true; });
   if (input) input.disabled = true;
-  const xpE = S.v2 && S.v2.exp; const boss = xpE && q.spec && q.spec.role === 'boss'; const errQ = xpE && q.form === 'mistake';   // 3.3: i "hitta felet"-frågor är svaret felet – aldrig "Rätt svar: <det felaktiga>"   // 3.3: Bossen märks när den är klarad (samma rättning)
+  const xpE = S.v2 && S.v2.exp; const boss = xpE && q.spec && q.spec.role === 'boss'; const errQ = xpE && q.isError === true;   // 3.3: i "hitta felet"-frågor är svaret felet – aldrig "Rätt svar: <det felaktiga>"   // 3.3: Bossen märks när den är klarad (samma rättning)
   const pick = R.pick(['Snyggt!', 'Rätt!', 'Perfekt!', 'Så ska det se ut!', 'Boom!', 'Exakt!']);   // dras alltid (samma slumpföljd som förut)
   const praise = boss ? (xpE === 'explore' ? '👑 Du besegrade bossen!' : xpE === 'grow' ? '👑 Bossen klarad!' : 'Bossuppgiften klar.') : pick;
   if (S.revealed && (q.paper || q.type === 'sort' || q.type === 'match' || q.build)) fb.innerHTML = `<div class="feedback warn"><span style="font-size:1.4rem">👀</span><div><div class="big">Nu vet du hur man gör</div><div class="sub">Du får en liknande uppgift igen om en stund.</div></div></div>`;   // granskning: efter "Visa hur man gör" aldrig "Svaret stämmer inte"
@@ -1015,7 +1015,7 @@ function submitMath() {
     else { beep('no'); fb.innerHTML = `<div class="feedback no"><span style="font-size:1.4rem">✍️</span><div><div class="big">Svaret behöver mer</div><div class="sub">${hitTxt}${missTxt}</div></div></div>`; }
     if (!isTest || !correct) showSteps(q, false);
   }
-  else if (correct) { beep('ok', S.streak); xpPop(xp); fb.innerHTML = `<div class="feedback ok"><span style="font-size:1.4rem">✅</span><div><div class="big">${praise}${S.streak >= 3 && !(S.v2 && S.v2.exp === 'achieve') ? ` ${S.streak} i rad 🔥` : ''}</div><div class="sub">${xpE && q.challenge === 'spot' && (q.steps || [])[0] ? safeHtml(q.steps[0]) : errQ ? `Felet: <s>${esc(answerDisplay(q))}</s>` : esc(answerDisplay(q))}${res.note ? `<br>${res.note}` : ''}</div></div></div>`; }
+  else if (correct) { beep('ok', S.streak); xpPop(xp); fb.innerHTML = `<div class="feedback ok"><span style="font-size:1.4rem">✅</span><div><div class="big">${praise}${S.streak >= 3 && !(S.v2 && S.v2.exp === 'achieve') ? ` ${S.streak} i rad 🔥` : ''}</div><div class="sub">${xpE && q.challenge === 'spot' && (q.steps || [])[0] ? safeHtml(q.steps[0]) : errQ ? `Felet: <s>${esc(answerDisplay(q))}</s>${(q.steps || [])[0] ? `<br>${safeHtml(q.steps[0])}` : ''}` : esc(answerDisplay(q))}${res.note ? `<br>${res.note}` : ''}</div></div></div>`; }
   else if (S.revealed) { fb.innerHTML = `<div class="feedback warn"><span style="font-size:1.4rem">👀</span><div><div class="big">Nu vet du hur man gör</div><div class="sub">Du får en liknande uppgift igen om en stund.</div></div></div>`; }
   else { beep('no'); fb.innerHTML = `<div class="feedback no"><span style="font-size:1.4rem">❌</span><div><div class="big">Inte riktigt</div><div class="sub">${errQ ? `Felet var: <s>${esc(answerDisplay(q))}</s>` : `Rätt svar: <b>${esc(answerDisplay(q))}</b>`}${q.choices || q.type === 'choicetext' || !raw || (S.v2 && S.v2.exp === 'explore') ? '' : ` · Du svarade: ${esc(raw)}`}</div></div></div>`; if (!isTest) showSteps(q, false); }
   document.getElementById('hintBtn')?.remove(); document.getElementById('explainBtn')?.remove();
