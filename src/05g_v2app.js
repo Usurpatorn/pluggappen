@@ -76,6 +76,9 @@ const V2 = {
     const more = pl.scopeEmpty === 'idle' && unm.length ? `<div class="muted" style="font-size:.9rem">${unm.map(x => esc(T(x.e))).join(', ')}: områdena är inte inlagda i appen ännu.</div>` : '';
     return `<section class="card pad-lg mission stack" aria-label="${esc(head)}"><div class="eyebrow">${head}</div><div style="font-size:1rem">${txt}</div>${more}${g ? `<button class="btn ghost wide" data-v2="testa" data-exam="${esc(g.e.id)}">Testa mig</button>` : ''}</section>`;
   },
+  // Felboken för barnet: med "Bara prov och läxor" bara det som hör till proven/läxorna (samma begränsning som Kör!) – inga gamla
+  // glosfel eller annat i Revansch. Föräldrans vyer visar allt.
+  felbok(kid, C, now) { const fb = LE2.felbokChild(C.L, C.pol, now); const sc = V2.scopeCids(kid, prof(kid.id)); if (!sc) return fb; const set = new Set(sc); return { ...fb, items: fb.items.filter(x => set.has(x.cid)), wins: (fb.wins || []).filter(c => set.has(typeof c === 'string' ? c : c && c.cid)) }; },
   scopeCids(kid, p) { if (!V2.scopeOn(p)) return null; const out = new Set(); for (const e of LE.exams(kid, p)) { const d = daysUntil(e.date); if (!(d >= 0 && d <= V2.MISSION_DAYS)) continue; for (const c of V2.examCidsActive(kid, e)) out.add(c); } return [...out]; },
   mission(kid) {
     const p = prof(kid.id); const list = LE.exams(kid, p).map(e => ({ e, d: daysUntil(e.date) })).filter(x => x.d >= 0 && x.d <= V2.MISSION_DAYS);
@@ -94,7 +97,7 @@ const V2 = {
   felbokCard(kid) {
     return V2.safe(() => {
       const p = prof(kid.id); if (!p.le || !LE.canStart(kid, p)) return '';
-      const C = LE.state(kid); const fb = LE2.felbokChild(C.L, C.pol, LE.now()); const todo = fb.items.filter(x => x.state === 'todo').length;
+      const C = LE.state(kid); const fb = V2.felbok(kid, C, LE.now()); const todo = fb.items.filter(x => x.state === 'todo').length;
       if (!fb.items.length && !fb.wins.length) return '';
       const sub = fb.items.length ? `${todo ? `${todo} att ta revansch på` : 'Rättat idag – kommer tillbaka imorgon'}${fb.more ? ' · fler väntar' : ''}` : `Revansch klar på ${fb.wins.length} ${fb.wins.length === 1 ? 'sak' : 'saker'} 🎉`;
       return `<button class="card tap row" data-v2="felbok" style="gap:12px"><div class="ic" style="width:44px;height:44px;border-radius:12px;background:var(--acc-soft);display:grid;place-items:center;font-size:1.3rem">📕</div><div class="grow"><div style="font-weight:800;font-family:var(--display)">Felboken</div><div class="muted" style="font-size:.9rem">${sub}</div></div><span class="chev">›</span></button>`;
@@ -131,7 +134,7 @@ const V2 = {
   },
   /* ---------- Felboken 2.0 ---------- */
   felbokView(kid) {
-    const p = prof(kid.id); const C = LE.state(kid); const now = LE.now(); const fb = LE2.felbokChild(C.L, C.pol, now);
+    const p = prof(kid.id); const C = LE.state(kid); const now = LE.now(); const fb = V2.felbok(kid, C, now);
     const todo = fb.items.filter(x => x.state === 'todo');
     render(`${topbar('Felboken', 'home')}
     <div class="stack" style="margin-top:6px">
@@ -146,7 +149,7 @@ const V2 = {
   /* ---------- Pass ---------- */
   plan(kid, mode, C, now, id, extra = {}) {
     const p = prof(kid.id); const pol = C.pol; const cat = LE.activeCat(C, p);
-    if (mode === 'revansch') { const fb = LE2.felbokChild(C.L, pol, now); const plan = fb.items.filter(x => x.state === 'todo').map(x => ({ cid: x.cid, role: 'revansch', why: LE2.WHY_TEXT.fb })); plan.maxItems = pol.maxItems; return plan; }
+    if (mode === 'revansch') { const fb = V2.felbok(kid, C, now); const plan = fb.items.filter(x => x.state === 'todo').map(x => ({ cid: x.cid, role: 'revansch', why: LE2.WHY_TEXT.fb })); plan.maxItems = pol.maxItems; return plan; }
     if (mode === 'exam') {
       const e = LE.exams(kid, p).find(x => x.id === extra.examId); if (!e) return [];
       // 2.1: provets kunskapspunkter – de svagaste först, sedan roterande per dygn så att olika punkter prövas från gång till gång
@@ -170,7 +173,8 @@ const V2 = {
   },
   start(kid, mode = 'kor', extra = {}) {
     const p = prof(kid.id);
-    if (!LE.canStart(kid, p)) { if (mode === 'kor') { S = null; return startSession(kid, recommendSprint(kid).opts); } toast('Hämtar det senaste från molnet – försök igen om en stund'); return; }   // barnet blockeras aldrig: v1-pass tills första synken är klar
+    // Bara prov och läxor: inget allmänt v1-pass i stället (varken före första synken eller vid ett fel i v2)
+    if (!LE.canStart(kid, p)) { if (mode === 'kor' && !V2.scopeOn(p)) { S = null; return startSession(kid, recommendSprint(kid).opts); } toast('Hämtar det senaste från molnet – försök igen om en stund'); return; }   // barnet blockeras aldrig: v1-pass tills första synken är klar
     const C = LE.state(kid); const now = LE.sessClock(C); const { id: id0 } = LE.newSessId(p); const id = mode === 'flow' ? id0 + 'f' : mode === 'mission' ? id0 + 'm' : id0;   // FLOW och provträning märks i id:t (motorn räknar dem inte i svält-skyddet)
     const plan = V2.plan(kid, mode, C, now, id, extra);
     if (!plan.length) { toast(mode === 'revansch' ? 'Inget att ta revansch på just nu' : 'Inget att öva just nu'); return go('home'); }
@@ -488,7 +492,7 @@ const V2 = {
     if (!kid) return;
     // Ett oväntat fel i v2 får aldrig stoppa barnet: logga och kör v1:s Kör! i stället
     const ok = V2.safe(() => { V2.act(a, el, kid); return true; }, 'click:' + a, false);
-    if (!ok) { S = null; if (a === 'kor' || a === 'extra' || a === 'flow') { state.screen = 'home'; return startSession(kid, recommendSprint(kid).opts); } toast('Det gick inte att öppna just nu'); return go('home'); }
+    if (!ok) { S = null; if ((a === 'kor' || a === 'extra' || a === 'flow') && !(kid && V2.scopeOn(prof(kid.id)))) { state.screen = 'home'; return startSession(kid, recommendSprint(kid).opts); } toast('Det gick inte att öppna just nu'); return go('home'); }
   },
   act(a, el, kid) {
     if (a === 'kor' || a === 'extra') return V2.start(kid, 'kor');
