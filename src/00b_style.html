@@ -305,8 +305,12 @@ html { overflow-x: clip; }
 .grow-prog { display: grid; gap: 6px; }
 .pbar3 { display: flex; gap: 2px; height: 8px; border-radius: 999px; overflow: hidden; background: var(--soft); }
 .pbar3 i { display: block; min-width: 6px; }
-.pbar3 .p-säkra { background: var(--good); } .pbar3 .p-påväg { background: color-mix(in srgb, var(--good) 45%, var(--card)); } .pbar3 .p-tränar { background: color-mix(in srgb, var(--ink) 18%, var(--card)); }
-.progress-states .p-säkra b { color: var(--good); }
+:is(.pbar3, .progress-states) .p-skra { --pc: var(--good); } :is(.pbar3, .progress-states) .p-pvg { --pc: color-mix(in srgb, var(--good) 45%, var(--card)); } :is(.pbar3, .progress-states) .p-trnar { --pc: color-mix(in srgb, var(--ink) 22%, var(--card)); }
+.pbar3 i { background: var(--pc); }
+.progress-states .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--pc); margin-right: 6px; vertical-align: 1px; }
+.progress-states .p-skra b { color: var(--good-ink, var(--good)); }
+.grow-prog { display: grid; gap: 6px; } .grow-prog .gp-head { font-size: .78rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.goal-row { font-size: .95rem; color: var(--ink-2); line-height: 1.4; }
 
 /* ACHIEVE – målet, idag, börja */
 :root[data-exp="achieve"] .mission.achieve { padding: 22px 20px; gap: 10px; }
@@ -513,6 +517,55 @@ html { overflow-x: clip; }
   :root:not([data-exp="classic"]) #qcard .question .m { font-size: 1.2em; }
   :root:not([data-exp="classic"]) .stack:has(> .klar) { max-width: 640px; margin-inline: auto; }
 }
+/* 3.3 KLAR – gemensam komposition och ett lugnt avslut */
+.klar { text-align: center; align-items: center; justify-items: center; }
+.klar.klar-achieve { text-align: center; align-items: center; padding: 28px 22px 24px; }
+.klar-mark { position: relative; width: 64px; height: 64px; display: grid; place-items: center; }
+.klar-mark svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+.klar-mark .ring { fill: none; stroke: var(--acc); stroke-width: 3; stroke-linecap: round; stroke-dasharray: 132; stroke-dashoffset: 0; animation: klarRing .5s var(--ease) both; }
+.klar-mark .tick { fill: none; stroke: var(--acc); stroke-width: 3.5; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 30; transform: rotate(90deg); transform-origin: 24px 24px; animation: klarTick .3s .3s var(--ease) both; }
+.klar-mark .km-e { font-size: 1.9rem; line-height: 1; animation: klarIn .45s .35s var(--ease) both; }
+@keyframes klarRing { from { stroke-dashoffset: 132; } to { stroke-dashoffset: 0; } }
+@keyframes klarTick { from { stroke-dashoffset: 30; } to { stroke-dashoffset: 0; } }
+.klar .klar-title { font-size: 1.55rem; letter-spacing: .02em; }
+.klar-achieve .klar-title { font-size: 1.3rem; letter-spacing: .04em; }
+.klar .klar-lead { font-size: 1.05rem; font-weight: 600; color: var(--ink-2); max-width: 34ch; }
+.klar .klar-note { font-size: .9rem; color: var(--muted); }
+.klar .klar-note > div { display: inline; } .klar .klar-note > div + div::before { content: ' '; }
+.klar .trail.done .dot { animation: dotIn .3s calc(.25s + var(--i, 0) * .06s) var(--ease) both; }
+@keyframes dotIn { from { transform: scale(.4); opacity: 0; } to { transform: none; opacity: 1; } }
+/* Bossen klarad: en kort gyllene ring, ingen konfetti */
+#qcard.boss-won { box-shadow: 0 0 0 3px #e7b416, var(--shadow, 0 1px 2px rgba(0,0,0,.08)); animation: bossWon .6s var(--ease) 1; }
+#qcard.boss-won .feedback.ok .big { animation: klarIn .4s var(--ease) both; }
+@keyframes bossWon { 0% { transform: scale(1); } 40% { transform: scale(1.012); } 100% { transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) { .klar-mark .ring, .klar-mark .tick, .klar-mark .km-e, .klar .trail.done .dot, #qcard.boss-won, #qcard.boss-won .feedback.ok .big { animation: none !important; } }
+/* 3.3 Sortera: instruktionen först, jämna kort, lådor som växer */
+#qcard[data-mode="sort"] .sortbox .sort-tip { order: -1; margin: 0; font-size: .92rem; color: var(--ink-2); text-align: center; }
+#qcard[data-mode="sort"] .sort-pool { display: grid; grid-template-columns: repeat(auto-fit, minmax(132px, 1fr)); gap: 8px; }
+#qcard[data-mode="sort"] .sort-pool.long { grid-template-columns: minmax(0, 1fr); }
+#qcard[data-mode="sort"] .sort-pool .stile { width: 100%; }
+#qcard[data-mode="sort"] .sbin { min-height: 72px; transition: min-height .2s var(--ease); }
+#qcard[data-mode="sort"] .sbin:has(.stile) { min-height: 0; }
+#qcard[data-mode="sort"] .sort-bins { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
+#qcard[data-mode="sort"] .sbin-items .stile { width: 100%; }
+/* Ordna: rätt ordning syns direkt efter ett fel */
+.order-correct { margin-top: 10px; padding: 10px 14px; border-radius: 12px; background: var(--good-soft); }
+.order-correct ol { margin: 4px 0 0 1.2em; padding: 0; } .order-correct li { padding: 2px 0; font-weight: 600; }
+/* 3.3 iPad: avsiktlig komposition */
+@media (min-width: 768px) {
+  :root:not([data-exp="classic"]) .wrap { max-width: 680px; }
+  :root:not([data-exp="classic"]) .mission { padding: 32px 34px; }
+  :root:not([data-exp="classic"]) .mission .mission-title { font-size: 2.2rem; }
+  :root:not([data-exp="classic"]) .go-btn { min-height: 88px; } :root:not([data-exp="classic"]) .go-btn .t { font-size: 1.6rem; }
+  :root:not([data-exp="classic"]) .home-v3 { padding-top: 3vh; }
+}
+@media (min-width: 768px) and (orientation: portrait) {
+  :root:not([data-exp="classic"]) .stack:has(> #qcard), :root:not([data-exp="classic"]) .stack:has(> .klar) { min-height: calc(100dvh - 140px); align-content: center; }
+  :root:not([data-exp="classic"]) #qcard .question .m { font-size: 1.35em; }
+}
+@media (min-width: 1100px) and (orientation: landscape) { :root:not([data-exp="classic"]) .wrap { max-width: 1060px; } }
+/* 3.3 föräldraläget: diagnostiken sekundär */
+.seg button[data-sub="v2"] { font-weight: 600; opacity: .8; }
 .q-pane { display: contents; }
 @media (prefers-reduced-motion: reduce) { .hero-pet, .stile.placed, .klar-icon, .xp-pop { animation: none !important; } }
 </style>

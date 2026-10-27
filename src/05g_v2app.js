@@ -29,7 +29,10 @@ const V2 = {
   skillOf(kid, cid) { if (cid && cid.startsWith('k:')) { const e = PACKS.info(cid); return e ? PACKS.skillFor(kid, e.kp.skill) : null; } return [...kid.skills, ...(kid.v2skills || [])].find(s => LECAT.skillCid(s.id) === cid); },
   skillName(kid, skillId) { const s = PACKS.skillFor(kid, skillId); return s ? (s.short || s.name) : skillId; },
   deckOf(p, cid) { return allDecks(p).find(d => LECAT.deckCid(d.id) === cid); },
-  cname(kid, C, cid) { return (C.cat[cid] || {}).name || cid; },
+  // 3.3: kortnamn som bara är en symbol (t.ex. "x²") visas med ord i v2-vyerna; v1 och lagringen är orörda
+  READABLE: { 'x²': 'Andragradsekvationer' },
+  readable(s) { return V2.READABLE[s] || s; },
+  cname(kid, C, cid) { return V2.readable((C.cat[cid] || {}).name || cid); },
   /* ---------- Startsidan ---------- */
   // 3.0.1: samma klocka som KÖR (V2.start: LE.sessClock) – annars kunde något som blev aktuellt inom samma minut synas på hemmet men inte i passet
   peekPlan(kid) { const C = LE.state(kid); const now = LE.sessClock(C); const { plan } = LE.plan(kid, V2.n(kid, C), now); return { plan, C, now }; },
@@ -524,11 +527,11 @@ const V2 = {
       const li = (arr) => arr.length ? arr.slice(0, 3).map(cid => `<li>${esc(name(cid))}</li>`).join('') : '<li class="muted">För lite underlag än</li>';
       const tests = p.tests.filter(t => t.v2).slice(-3).reverse();
       return `<div class="card stack" style="gap:8px;border-left:3px solid var(--acc)"><div class="eyebrow">${esc(kid.name)} · insikter</div>
-        <div><b>STYRKOR</b><ul style="margin:4px 0 0;padding-left:20px">${li(I.strengths)}</ul></div>
-        <div><b>BEHÖVER ÖVAS</b><ul style="margin:4px 0 0;padding-left:20px">${li(I.practise)}</ul></div>
-        <div><b>REKOMMENDERAT NÄSTA STEG</b><ol style="margin:4px 0 0;padding-left:20px">${I.recs.slice(0, 3).map(r => `<li>${V2.REC_TXT(r, name)}</li>`).join('')}</ol></div>
+        <div><div class="eyebrow">STYRKOR</div><ul style="margin:4px 0 0;padding-left:20px">${li(I.strengths)}</ul></div>
+        <div><div class="eyebrow">BEHÖVER ÖVAS</div><ul style="margin:4px 0 0;padding-left:20px">${li(I.practise)}</ul></div>
+        <div><div class="eyebrow">REKOMMENDERAT NÄSTA STEG</div><ol style="margin:4px 0 0;padding-left:20px">${I.recs.slice(0, 3).map(r => `<li>${V2.REC_TXT(r, name)}</li>`).join('')}</ol></div>
         ${I.temporary.length ? `<div class="muted" style="font-size:.85rem">Tillfälligt fel idag på något som brukar sitta: ${I.temporary.slice(0, 3).map(name).map(esc).join(', ')} – inget att oroa sig för.</div>` : ''}
-        ${tests.length ? `<div style="font-size:.9rem"><b>Testa mig</b> ${tests.map(t => `<div>${esc(t.date)} · ${esc(LE.exams(kid, p).find(e => e.id === t.examId)?.title || '')}: ${Number(t.score)}/${Number(t.total)} · övningsindikation ${esc(t.ind || '–')}</div>`).join('')}<div class="muted" style="font-size:.8rem">Övningsindikationen (E/C/A) är bara ett övningsresultat för dig som förälder – ingen betygsprognos. Barnet ser den inte.</div></div>` : ''}
+        ${tests.length ? `<div style="font-size:.9rem"><b>Testa mig</b> ${tests.map(t => `<div>${esc(t.date)} · ${esc(LE.exams(kid, p).find(e => e.id === t.examId)?.title || '')}: ${Number(t.score)} rätt av ${Number(t.total)} · övningsindikation ${esc(t.ind || '–')}</div>`).join('')}<div class="muted" style="font-size:.8rem">Övningsindikationen (E/C/A) är bara ett övningsresultat för dig som förälder – ingen betygsprognos. Barnet ser den inte.</div></div>` : ''}
       </div>`;
     }, 'insights', '');
   },

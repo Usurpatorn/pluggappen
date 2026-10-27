@@ -172,6 +172,12 @@ med `PREVIEW=1` till `<sajten>/preview/`. Produktionen publiceras som vanligt. M
   scrollbara flikrader, `lang="sv"` och svensk avstavning i den fristående varianten, `--ink-2` i mörkt läge. Övriga 3.3-regler är
   avgränsade till `:root:not([data-exp="classic"])`. I Klassiskt syns dessutom några nya klassnamn utan egen stil (`act-chip`,
   `learn-title`, `exam-list`), en kvarliggande +XP-flygare tas bort när nästa fråga visas, och flikknapparna krymper inte. Klassiskt läge behåller sin text om tom provträning.
+- Sista passet (ägarens beslut (a)): Grows hem med barnets ord för lägena ("sitter / på väg / övar"), skoluppgiften på
+  en rad och utan hockeyposition; ett gemensamt KLAR (märke, rubrik, en mening, högst tre chips från verkligt läge,
+  fortsätt, Klar för idag – utan statistik); ett kort Boss-ögonblick (gyllene ring) och ett lugnt KLAR-avslut (ringen sluts),
+  båda av med `prefers-reduced-motion`; iPad stående med lugn vertikal placering och större mattetext; Sortera med
+  instruktionen först, jämna kort och lådor som växer; Ordna visar rätt ordning efter ett fel; föräldraläget säger
+  "20 rätt av 25", visar inte provtid och skriver "Andragradsekvationer" i stället för "x²" (v1:s föräldravy oförändrad).
 - Tillgänglighet: axe-core (WCAG 2.1 A/AA) 0 fynd på 24 skärmar i 375, 390, 820 och 1180 px.
 - Test: `test_ux33.js` (krokar = uppgiften, två rutor utan förlust/dubbletter, Hitta felet/Baklänges rättas som förut, löftena
   ordagrant, lugnt Testa mig). Rollback: `release-3.2.2-1544484` (profilerna är oförändrade, så rollback kräver ingen migrering).

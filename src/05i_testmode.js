@@ -20,7 +20,7 @@ const TM = {
   card(kid) {
     if (!TM.available()) return '';
     const cur = EXP.of ? EXP.of(kid) : null; const cn = cur && EXP.KINDS[cur] ? EXP.KINDS[cur].name : '';
-    return `<div class="card stack tm-card" style="gap:10px;border:2px solid var(--warn)"><div class="eyebrow">Testläge</div>
+    return `<div class="card stack tm-card" style="gap:10px;border:2px solid var(--warn)"><div class="eyebrow">Testläge – inget sparas</div>
       <div><b>Testa som ${esc(kid.name)}</b><div class="muted" style="font-size:.9rem">Börjar från ${esc(kid.name)}s riktiga läge just nu: upplevelse, plan, prov och innehåll. Inget du gör sparas eller synkas – allt försvinner när du avslutar.</div></div>
       <button class="btn big wide" data-tm="start" data-kid-id="${esc(kid.id)}">Testa som ${esc(kid.name)}${cn ? ` · ${esc(cn)}` : ''}</button>
       <details class="more-fold"><summary>Testa med en annan upplevelse</summary><div class="row" style="flex-wrap:wrap;gap:8px;margin-top:8px">${['explore', 'grow', 'achieve', 'classic'].filter(x => EXP.KINDS[x] && x !== cur).map(x => `<button class="btn ghost" data-tm="start" data-kid-id="${esc(kid.id)}" data-exp="${x}">${esc(EXP.KINDS[x].name)}</button>`).join('')}</div><div class="muted" style="font-size:.85rem;margin-top:6px">Gäller bara testet. ${esc(kid.name)}s riktiga val ändras inte.</div></details>
