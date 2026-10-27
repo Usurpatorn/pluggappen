@@ -66,14 +66,16 @@ else if (cmd === 'bundle') {
   // till <ut>.assets.json för uppladdning med `assets` (oföränderliga revisioner).
   const { createHash } = await import('node:crypto'); const assets = [], upload = [], verr = [];
   for (const pk of packs) {
-    const vf = path.join(a1, 'visual', pk.id + '.visual.json'), mf = path.join(a1, 'assets', pk.id, 'manifest.json'); if (!fs.existsSync(vf)) continue;
+    const vf = path.join(a1, 'visual', pk.id + '.visual.json'), mf = path.join(a1, 'assets', pk.id, 'manifest.json'); if (!fs.existsSync(vf)) { if (pk.visual != null || pk.visualRules != null) verr.push(`${pk.id}: bilduppgifter får bara komma från visual/${pk.id}.visual.json (där de kontrolleras)`); continue; }
     if (!fs.existsSync(mf)) { verr.push(`${pk.id}: bilduppgifter utan bildmanifest`); continue; }
     const man = JSON.parse(fs.readFileSync(mf, 'utf8')); const vis = JSON.parse(fs.readFileSync(vf, 'utf8'));
     if (!man.source || !man.license) verr.push(`${pk.id}: manifestet behöver source och license (ursprung och rätt att använda)`);
-    const have = new Set();
+    const have = new Set(); if ((man.assets || []).length > 200) verr.push(`${pk.id}: högst 200 bilder per paket`); const seenId = new Set();
     for (const a of man.assets || []) {
+      if (seenId.has(a && a.id)) { verr.push(`${pk.id}/${a && a.id}: id dubblerat i manifestet`); continue; } seenId.add(a && a.id);
       const at = `${pk.id}/${a.id}`; if (!/^[a-z0-9-]{1,48}$/.test(a.id || '')) { verr.push(`${at}: id har fel form`); continue; }
       const file = path.join(a1, 'assets', pk.id, a.file || ''); if (!a.file || !fs.existsSync(file) || path.dirname(path.resolve(file)) !== path.resolve(a1, 'assets', pk.id)) { verr.push(`${at}: filen saknas`); continue; }
+      if (fs.lstatSync(file).isSymbolicLink()) { verr.push(`${at}: symboliska länkar godtas inte`); continue; }
       const buf = fs.readFileSync(file); const mime = buf.slice(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) ? 'image/png' : buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff ? 'image/jpeg' : null;
       if (!mime) { verr.push(`${at}: bara PNG och JPEG stöds (filens första byte)`); continue; }
       if (buf.length > 200000) { verr.push(`${at}: för stor (${buf.length} byte > 200 000)`); continue; }

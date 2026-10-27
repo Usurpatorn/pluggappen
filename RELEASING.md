@@ -351,8 +351,25 @@ med `PREVIEW=1` till `<sajten>/preview/`. Produktionen publiceras som vanligt. M
   - Cache per familj. Den töms vid familjebyte och bortkoppling. En redan nedladdad kopia kan inte raderas på distans.
 - **Former:** bild → text, text → bild, skriv namnet, para ihop (inte i Testa mig) och sortera. Flerval räknas enligt motorns
   befintliga regel och blir aldrig ensamt säker kunskap.
-- **Äldre klienter** (2.0.0–3.3, prövade) läser inte `visual`. Paketet godtas och textuppgifterna är byte-identiska. Därför behövs
-  ingen versionsspärr.
+- **Äldre klienter** läser inte `visual`. Paketet godtas och textuppgifterna är byte-identiska, så ingen versionsspärr behövs.
+  - CI prövar 1.2.0–2.1.1 (referensbyggena i `tests/golden`).
+  - 3.3 är prövat lokalt (`OLD33=<bygge>`), också av granskaren.
+- **Rättelser efter den oberoende säkerhetsgranskningen:**
+  - **Felboken i v1:** en fel besvarad bilduppgift hamnar aldrig i v1:s Felbok, som bara sparar text och därför skulle visa uppgiften
+    utan bild.
+  - **Visning:** förklaringskortet och Testa mig-resultatet visar lösningen med bilderna (sortera och para ihop också).
+  - **Hämtning:** en hämtning där allt redan fanns låste tidigare kommande hämtningar. Det är rättat.
+  - **Rensning:** bilder som inte längre finns i manifestet rensas ur minnet och cachen.
+  - **Validering:**
+    - ärvda egenskaper godtas inte som bildtyp;
+    - etiketterna i para ihop blandas;
+    - kvalitetsgrinden stoppar dubblerade bild-id:n, symboliska länkar, fler än 200 bilder och bilduppgifter som ligger direkt i
+      paketet.
+- **Kända begränsningar:**
+  - Bildens namn syns som `data-asset` i sidans kod, men inte för hjälpmedel. Använd därför neutrala namn i manifestet om namnet
+    vore svaret.
+  - Ursprung och rätt att använda finns bara i det privata repot, inte i lagringen.
+  - Cachen delar webbläsarens lagringsutrymme med framstegen. Den har ett tak, 1,5 miljoner tecken.
 - **Publicering:**
   - Ordningen: `bundle` (kontroll) → `fetch` → `assets` (oföränderliga revisioner, kan köras om) → `verify-assets` →
     `publish --expect` (vägrar om en refererad bild saknas) → `verify`.

@@ -111,8 +111,8 @@ const CHG = (() => {
   // Faktabanker: vilket påstående är FEL? (tre frågor ur banken, en med ett felalternativ som svar)
   // young (2.1): korta svenskfrågor för yngre – "Vilket ord rimmar på hus? → mus" fungerar som påstående; bara negationer utesluts
   function falseStatement(skill, lvl, k, young) {
-    const okQ = young ? (q) => q.type === 'choicetext' && !q.fig && Array.isArray(q.choices) && q.choices.length >= 2 && !/\binte\b|\bfel\b/i.test(RECALL.strip(q.text)) && plainLen(q) <= 70 && q.choices.every(c => RECALL.strip(c).length <= 24)
-      : (q) => q.type === 'choicetext' && !q.fig && Array.isArray(q.choices) && q.choices.length >= 2 && !RECALL.NEEDS_OPTIONS.test(RECALL.strip(q.text)) && plainLen(q) <= 140;
+    const okQ = young ? (q) => q.type === 'choicetext' && !q.fig && !q.choiceAssets && Array.isArray(q.choices) && q.choices.length >= 2 && !/\binte\b|\bfel\b/i.test(RECALL.strip(q.text)) && plainLen(q) <= 70 && q.choices.every(c => RECALL.strip(c).length <= 24)
+      : (q) => q.type === 'choicetext' && !q.fig && !q.choiceAssets && Array.isArray(q.choices) && q.choices.length >= 2 && !RECALL.NEEDS_OPTIONS.test(RECALL.strip(q.text)) && plainLen(q) <= 140;
     const qs = candidates(skill.gen, lvl, 3, okQ); if (qs.length < 3) return null;
     const bad = k % 3; const shownIdx = qs.map((q, i) => (i === bad ? q.choices.findIndex((_, j) => j !== q.answer) : q.answer));
     const rows = qs.map((q, i) => `<div style="margin:6px 0"><b>${L3[i]}.</b> ${q.text} → <b>${RECALL.strip(q.choices[shownIdx[i]]).replace(/[<>&]/g, '')}</b></div>`).join('');

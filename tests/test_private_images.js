@@ -44,7 +44,7 @@ const MAN = { pack: 'syn-tecken', source: { label: 'syntetiskt' }, license: 'syn
 function writeDir(mut = {}) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'privimg-')); fs.mkdirSync(path.join(dir, 'packs')); fs.mkdirSync(path.join(dir, 'visual')); fs.mkdirSync(path.join(dir, 'assets', 'syn-tecken'), { recursive: true });
   fs.writeFileSync(path.join(dir, 'packs', 'syn-tecken.json'), JSON.stringify(mut.pack || PACK)); fs.writeFileSync(path.join(dir, 'work.json'), '[]');
-  fs.writeFileSync(path.join(dir, 'visual', 'syn-tecken.visual.json'), JSON.stringify(mut.vis || VIS)); fs.writeFileSync(path.join(dir, 'assets', 'syn-tecken', 'manifest.json'), JSON.stringify(mut.man || MAN));
+  if (mut.vis !== null) fs.writeFileSync(path.join(dir, 'visual', 'syn-tecken.visual.json'), JSON.stringify(mut.vis || VIS)); fs.writeFileSync(path.join(dir, 'assets', 'syn-tecken', 'manifest.json'), JSON.stringify(mut.man || MAN));
   for (const [id, b] of Object.entries(mut.imgs || IMGS)) fs.writeFileSync(path.join(dir, 'assets', 'syn-tecken', id + '.png'), b);
   return dir;
 }
@@ -68,9 +68,12 @@ const bundle = (dir) => { const out = path.join(dir, 'ut.json'); const r = spawn
       ['manifest utan rätt att använda (license)', { man: { ...MAN, license: undefined } }, /license/],
       ['ett svar utanför alternativen', { vis: { ...VIS, items: [...VIS.items, { id: 'sm-z', form: 'symbol-meaning', kp: KP_V, prompt: 'Vad?', image: 'ring', options: [{ text: 'A' }, { text: 'B' }, { text: 'C' }], answer: 5 }] } }, /giltigt svar/],
       ['sortering där ett kort saknar grupp', { vis: { ...VIS, items: [...VIS.items, { id: 'sort-2', form: 'sort', kp: KP_B, prompt: 'Sortera', bins: ['A', 'B'], cards: [{ image: 'ring' }, { image: 'torn' }, { image: 'streck-svart' }], answer: { ring: 'A' } }] } }, /rätt grupp/],
+      ['ett dubblerat bild-id i manifestet', { man: { ...MAN, assets: [...MAN.assets, { ...MAN.assets[0] }] } }, /dubblerat/],
+      ['bilduppgifter direkt i paketet (förbi kontrollen)', { pack: { ...PACK, visual: VIS.items }, vis: null }, /bara komma från visual/],
       ['en bildfil utanför paketets mapp', { man: { ...MAN, assets: [...MAN.assets, { id: 'ut', file: '../../packs/syn-tecken.json' }] } }, /filen saknas/],
     ];
     for (const [name, mut, re] of neg) { const r = bundle(writeDir(mut)); ok(r.code !== 0 && re.test(r.txt), `bundle stoppar: ${name} (${r.txt.slice(0, 140).replace(/\n/g, ' ')})`); }
+    { const d2 = writeDir(); const f2 = path.join(d2, 'assets', 'syn-tecken', 'ring.png'); fs.unlinkSync(f2); fs.symlinkSync(path.join(d2, 'assets', 'syn-tecken', 'prick.png'), f2); const r = bundle(d2); ok(r.code !== 0 && /symboliska länkar/.test(r.txt), 'bundle stoppar: en symbolisk länk i stället för en bildfil'); }
 
     /* 2. Appen */
     const boot = async (o = {}) => { const w = mkWin({ seed: 11, fixedClock: true, file: o.file }); await sleep(40); const T = tools(w); const PA = T.PA; PA().FAMILY.apply(FIX); PA().load(); return { w, T, PA }; };
@@ -99,13 +102,17 @@ const bundle = (dir) => { const out = path.join(dir, 'ut.json'); const r = spawn
       // visning i ett riktigt pass
       PA().DB.profiles.k8.exams = [{ id: 'ex-syn', title: 'Teckenförhör', date: SOON, kps: [cidV, cidB], skillIds: [], deckIds: [] }]; PA().LE.invalidate('k8'); PA().rerender(); const D = v2tools(w, T);
       toStart(T); T.click(T.$('[data-kid="k8"]')); if (T.$('[data-pet]')) T.click(T.$('[data-pet]'));
-      let seenImg = 0, seenAltLeak = 0, srcBad = 0, rounds = 0;
+      let seenImg = 0, seenAltLeak = 0, srcBad = 0, rounds = 0, wrongVis = 0;
       for (let k = 0; k < 6 && seenImg < 3; k++) { PA().V2.start(PA().KIDS.find(x => x.id === 'k8'), 'mission', { examId: 'ex-syn' }); let g = 0;
         while (PA().S && PA().S.v2 && T.$('#qcard') && g++ < 40) { rounds++; const q = PA().S.queue[PA().S.i]; const imgs = [...w.document.querySelectorAll('#qcard img')];
           if (q.vid) { if (imgs.length) seenImg++; for (const im of imgs) { if (!/^data:image\/png;base64,/.test(im.getAttribute('src') || '')) srcBad++; const ans = q.type === 'choicetext' && !q.choiceAssets ? q.choices[q.answer] : q.type === 'text' ? q.answer[0] : ''; if (ans && im.alt.toLowerCase().includes(String(ans).toLowerCase())) seenAltLeak++; } }
-          D.answer(() => false); w.__advance(4000); } w.__advance(86400000); }
+          if (q.vid && rounds % 2 === 0) wrongVis++; D.answer(() => !!q.vid && rounds % 2 === 0); w.__advance(4000); } w.__advance(86400000); }
       ok(seenImg >= 2, `bilduppgifter visas i passet med bild (${seenImg} av ${rounds} uppgifter)`); ok(srcBad === 0, 'bilden kommer bara från den kontrollerade cachen (data-URL)'); ok(seenAltLeak === 0, 'alt-texten avslöjar aldrig svaret');
       ok(!w.document.querySelector('[onerror]'), 'inga händelseattribut i sidan');
+      // v1:s Felbok sparar bara text: en fel besvarad bilduppgift får aldrig hamna där (då skulle den visas utan bild)
+      ok(wrongVis >= 1 && !(PA().DB.profiles.k8.mistakes || []).some(m => /Bild \d|tecken/i.test(JSON.stringify(m))), `fel på bilduppgifter hamnar aldrig i v1:s Felbok (${wrongVis} fel prövade)`);
+      // förklaringskortet (Rescue) visar lösningen med bilderna
+      { const vqs = all.filter(q => q.choiceAssets || q.type === 'sort' || q.type === 'match'); const sols = vqs.map(q => PA().V2.visualSolution(q)); ok(sols.length >= 3 && sols.every(x => /data-asset="syn-tecken\//.test(x.fig) && !/Bild \d/.test(x.answer)), `förklaringskortet visar rätt bild(er), inte bara etiketter (${sols.length})`); }
       // cachen hör till familjen
       ok(!!w.localStorage.getItem('pluggappen.assets.v1'), 'bilderna cachas lokalt för offline');
       w.eval('DB.settings.family = "en-annan-familj"'); PA().FAMILY.loadContentLocal(); ok(!w.localStorage.getItem('pluggappen.assets.v1') && Object.keys(A(w).ok).length === 0, 'familjebyte: bildcachen töms');
@@ -124,11 +131,19 @@ const bundle = (dir) => { const out = path.join(dir, 'ut.json'); const r = spawn
       ok(vq.join() === 'sm-prick', `bara uppgiften vars alla bilder är hela finns kvar (${vq.join()})`);
       // manifest med farliga eller felaktiga poster: tas bort en och en
       const evil = { ...B, assets: [...B.assets, { id: '"><img src=x onerror=alert(1)>', rev: 'a'.repeat(64), mime: 'image/png', w: 1, h: 1, bytes: 20 }, { id: 'syn-tecken/stor', rev: 'b'.repeat(64), mime: 'image/png', w: 1, h: 1, bytes: 5000000 }, { id: 'syn-tecken/svg', rev: 'c'.repeat(64), mime: 'image/svg+xml', w: 1, h: 1, bytes: 20 }, { id: 'syn-tecken/hog', rev: 'd'.repeat(64), mime: 'image/png', w: 1, h: 4000, bytes: 20 }] };
+      { const A2 = A(w); ok(A2.clean([{ id: 'syn-tecken/x', rev: 'e'.repeat(64), mime: '__proto__', w: 1, h: 1, bytes: 20 }, { id: 'syn-tecken/y', rev: 'f'.repeat(64), mime: 'toString', w: 1, h: 1, bytes: 20 }]).length === 0, 'manifestet: ärvda egenskaper som bildtyp godtas inte'); }
       PA().FAMILY.applyContent(evil); ok(Object.keys(A(w).man).length === 5, 'manifestet: farligt id, för stor fil, SVG och för hög upplösning tas bort');
       // fel upplösning i lagringen (manifestet säger något annat)
       const dimsBad = JSON.parse(JSON.stringify(store)); const pr = dimsBad[rev('prick')]; pr.b64 = png(9, 8, [200, 160, 0]).toString('base64');
       const { w: w2, PA: PA2 } = await boot(); mockSync(w2, PA2, dimsBad); PA2().FAMILY.applyContent(B); await A(w2).pull(); ok(!A(w2).ready('syn-tecken/prick'), `fel bild under rätt namn godtas inte (${A(w2).bad[rev('prick')]})`);
     }
+    /* 3b. Borttagna bilder rensas, och en hämtning utan await låser inte kommande hämtningar (granskning) */
+    { const { w, PA } = await boot(); mockSync(w, PA, store); PA().FAMILY.applyContent(B); await A(w).pull(); ok(Object.keys(A(w).ok).length === 5, 'alla bilder hämtade');
+      const fewer = { ...B, updatedAt: B.updatedAt + 1, assets: B.assets.filter(a => a.id !== 'syn-tecken/kors') }; PA().FAMILY.applyContent(fewer);
+      const cache = JSON.parse(w.localStorage.getItem('pluggappen.assets.v1') || '{}'); const korsRev = B.assets.find(a => a.id === 'syn-tecken/kors').rev;
+      ok(!A(w).ok[korsRev] && !(cache.items || {})[korsRev], 'en bild som inte längre finns i manifestet rensas ur minnet och cachen');
+      const n0 = await A(w).pull(); ok(n0 === 0 && !A(w).busy, `en hämtning där allt redan finns låser inget (${n0}, busy ${!!A(w).busy})`);
+      PA().FAMILY.applyContent(B); const n1 = await A(w).pull(); ok(n1 === 1 && A(w).ready('syn-tecken/kors'), `en ny bild i manifestet hämtas i samma session (${n1})`); }
     /* 4. Testa mig utan bilder: inga bilduppgifter, och resultatet säger det */
     { const { w, T, PA } = await boot(); mockSync(w, PA, {}); PA().FAMILY.applyContent(B); await A(w).pull(); const D = v2tools(w, T);
       const cids = [KP_V, KP_B].map(k => PA().PACKS.cidOf('syn-tecken', k)); PA().DB.profiles.k8.exams = [{ id: 'ex-syn', title: 'Teckenförhör', date: SOON, kps: cids, skillIds: [], deckIds: [] }]; PA().LE.invalidate('k8'); PA().rerender();

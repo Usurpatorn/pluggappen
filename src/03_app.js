@@ -999,7 +999,7 @@ function submitMath() {
   if (S.v2 && S.v2.exp) xp = EXP.flowXp(q, xp);
   LE.observe(S, q, correct); // Fas 3B: skuggläge – loggar bevis, påverkar inte v1
   if (S.mode === 'felbok') { const p = prof(S.kid.id); if (correct) { clearMistake(p, q.mistakeId); save(); } }
-  else if (!correct && !v2ch && !(q.type === 'sort' || q.type === 'match' || q.build)) { noteMistake(prof(S.kid.id), q); save(); }   // v3-aktiviteter hör till v2:s Felbok – v1:s Felbok kan inte visa dem (granskning)
+  else if (!correct && !v2ch && !q.vid && !(q.type === 'sort' || q.type === 'match' || q.build)) { noteMistake(prof(S.kid.id), q); save(); }   // 3.5: bilduppgifter aldrig i v1:s Felbok (den sparar bara text – bilden skulle saknas)   // v3-aktiviteter hör till v2:s Felbok – v1:s Felbok kan inte visa dem (granskning)
   if (correct) { S.streak++; if (S.streak >= 3 && !(typeof EXP !== 'undefined' && EXP.poActive())) { const b = Math.min(10, S.streak * 2); xp += b; prof(S.kid.id).xp += b; save(); } } else S.streak = 0;
   S.xp += xp; S.results.push(correct);
   let v2evs = null; const v2rw = S.v2 ? S.v2.rewards.length : 0;

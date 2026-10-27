@@ -24,13 +24,14 @@ const ASSETS = {
     for (const a of (Array.isArray(list) ? list : []).slice(0, ASSETS.MAX_COUNT)) {
       if (!a || typeof a !== 'object') continue; const id = String(a.id || ''), rev = String(a.rev || '');
       const w = Number(a.w), h = Number(a.h), bytes = Number(a.bytes);
-      if (!ASSETS.ID_RE.test(id) || !ASSETS.REV_RE.test(rev) || !ASSETS.MIME[a.mime] || seen.has(id)) continue;
+      if (!ASSETS.ID_RE.test(id) || !ASSETS.REV_RE.test(rev) || !Object.prototype.hasOwnProperty.call(ASSETS.MIME, a.mime) || seen.has(id)) continue;
       if (!(Number.isInteger(w) && w >= 1 && w <= ASSETS.MAX_DIM && Number.isInteger(h) && h >= 1 && h <= ASSETS.MAX_DIM && Number.isInteger(bytes) && bytes >= 16 && bytes <= ASSETS.MAX_BYTES)) continue;
       seen.add(id); out.push({ id, rev, mime: a.mime, w, h, bytes });
     }
     return out;
   },
-  setManifest(list) { ASSETS.man = {}; for (const a of list || []) ASSETS.man[a.id] = a; ASSETS.ver++; },
+  // Nytt manifest: bilder som inte längre hänvisas till tas bort ur minnet och den lokala cachen (granskning)
+  setManifest(list) { ASSETS.man = {}; for (const a of list || []) ASSETS.man[a.id] = a; const keep = new Set(Object.values(ASSETS.man).map(a => a.rev)); let gone = 0; for (const rev of Object.keys(ASSETS.ok)) if (!keep.has(rev)) { delete ASSETS.ok[rev]; gone++; } if (gone) ASSETS.saveLocal(); ASSETS.ver++; },
   ready(id) { const a = ASSETS.man[id]; return !!(a && ASSETS.ok[a.rev]); },
   allReady(ids) { return Array.isArray(ids) && ids.length > 0 && ids.every(ASSETS.ready); },
   url(id) { const a = ASSETS.man[id]; return a ? ASSETS.ok[a.rev] || null : null; },
@@ -61,7 +62,7 @@ const ASSETS = {
     if (typeof b64 !== 'string' || !b64 || b64.length > Math.ceil(ASSETS.MAX_BYTES / 3) * 4 + 4 || !/^[A-Za-z0-9+/]+={0,2}$/.test(b64)) return 'ogiltig kodning';
     let u; try { u = ASSETS.b64bytes(b64); } catch (e) { return 'ogiltig kodning'; }
     if (u.length !== a.bytes || u.length > ASSETS.MAX_BYTES) return 'fel storlek';
-    const magic = ASSETS.MIME[a.mime]; if (!magic || !magic.every((x, i) => u[i] === x)) return 'fel bildtyp';
+    const magic = Object.prototype.hasOwnProperty.call(ASSETS.MIME, a.mime) ? ASSETS.MIME[a.mime] : null; if (!magic || !magic.every((x, i) => u[i] === x)) return 'fel bildtyp';
     const d = ASSETS.dims(u, a.mime); if (!d || d.w !== a.w || d.h !== a.h || d.w > ASSETS.MAX_DIM || d.h > ASSETS.MAX_DIM || d.w < 1 || d.h < 1) return 'fel upplösning';
     if (ASSETS.sha256(u) !== a.rev) return 'fel kontrollsumma';
     return null;
@@ -82,7 +83,7 @@ const ASSETS = {
   docUrl(rev) { return `https://firestore.googleapis.com/v1/projects/${SYNC.cfg.projectId}/databases/(default)/documents/families/${encodeURIComponent(SYNC.family)}/assets/${rev}?key=${SYNC.cfg.apiKey}`; },
   async pull() {
     if (ASSETS.busy) return ASSETS.busy;
-    ASSETS.busy = (async () => {
+    const job = (async () => {
       let added = 0;
       try {
         if (typeof SYNC === 'undefined' || !SYNC.active || !SYNC.cfg) return 0;
@@ -92,10 +93,11 @@ const ASSETS = {
             const d = await r.json(); const b64 = d && d.fields && d.fields.b64 && d.fields.b64.stringValue; if (ASSETS.accept(a, b64)) added++; } catch (e) { /* offline – försök igen senare */ }
         }
         if (added) { ASSETS.ver++; ASSETS.saveLocal(); }
-      } finally { ASSETS.busy = null; }
+      } catch (e) { /* ignore */ }
       return added;
     })();
-    return ASSETS.busy;
+    ASSETS.busy = job; job.finally(() => { if (ASSETS.busy === job) ASSETS.busy = null; });   // granskning: en körning utan await fick inte låsa kommande hämtningar
+    return job;
   },
   /* ---------- visning: bara via DOM, aldrig HTML från innehållet ---------- */
   // Platshållare som koden (inte innehållet) skriver: <span class="vimg" data-asset="paket/namn" data-alt="…">. id:t är kontrollerat.
