@@ -35,6 +35,7 @@ const V2 = {
   peekPlan(kid) { const C = LE.state(kid); const now = LE.sessClock(C); const { plan } = LE.plan(kid, V2.n(kid, C), now); return { plan, C, now }; },
   korBtn(kid) {
     return V2.safe(() => {
+      { const sc = V2.scopeCard(kid); if (sc) return sc; }
       const p = prof(kid.id); if (!LE.canStart(kid, p)) return `<button class="go-btn" data-v2="kor"><div><div class="t">${LBL(kid).go}</div><div class="s">Hämtar det senaste …</div></div><div class="arrow">${ICON.arrow}</div></button>`;
       const { plan } = V2.peekPlan(kid);
       if (plan.light && V2.doneToday(p)) return `<div class="card pad-lg stack" style="gap:6px;text-align:center"><div style="font-size:1.6rem">✅</div><div style="font-weight:800;font-family:var(--display);font-size:1.15rem">Bra jobbat. Du är klar för idag.</div><button class="link" data-v2="extra" style="align-self:center">Öva extra</button></div>`;
@@ -58,6 +59,24 @@ const V2 = {
   missionShare(plan, cids) { const set = new Set(cids); const slots = plan.filter(s => s.role !== 'boss'); return { n: slots.filter(s => set.has(s.cid)).length, of: slots.length }; },
   /* 2.2: uppdraget = närmaste prov/läxa/glosförhör med datum inom MISSION_DAYS (familjens skoluppgifter eller förälderns prov) */
   MISSION_DAYS: 28,
+  // 3.1: "Bara prov och läxor" – förälderns val per barn (settings.scope = 'exams' | 'all', synkas på senaste ändring)
+  scopeOn(p) { return !!(p && p.settings && p.settings.scope === 'exams' && V2.engineOf(p) === 'v2'); },
+  // Hemmet när "Bara prov och läxor" inte har något att öva: ett ärligt kort i stället för en knapp som startar något annat.
+  scopeCard(kid) {
+    const p = prof(kid.id); if (!V2.scopeOn(p) || (typeof EXP !== 'undefined' && EXP.on(kid) && EXP.coreDone(p))) return '';
+    const pl = V2.peekPlan(kid).plan; if (!pl.scopeEmpty) return '';
+    // Proven/läxorna inom horisonten: de med inlagda områden (det som tränas) och de utan (säg det ärligt, inte "inget prov")
+    const win = LE.exams(kid, p).map(e => ({ e, d: daysUntil(e.date) })).filter(x => x.d >= 0 && x.d <= V2.MISSION_DAYS).sort((a, b) => a.d - b.d);
+    const mapped = win.filter(x => V2.examCidsActive(kid, x.e).length); const unm = win.filter(x => !V2.examCidsActive(kid, x.e).length);
+    const T = (e) => String((e && e.title) || 'provet'); const kindOf = (e) => (typeof EXP !== 'undefined' && EXP.isExam(e) ? 'Provets' : 'Läxans');
+    const g = mapped[0] || null;
+    const head = pl.scopeEmpty === 'idle' ? 'INGET ATT ÖVA IDAG' : unm.length ? `${esc(T(unm[0].e).toUpperCase())} · INTE INLAGT ÄNNU` : 'INGA PROV ELLER LÄXOR JUST NU';
+    const txt = pl.scopeEmpty === 'idle' ? `Allt inför ${esc(T(g && g.e))} är övat för idag. Kom tillbaka imorgon.`
+      : unm.length ? `${kindOf(unm[0].e)} områden är inte inlagda i appen ännu. När de läggs in börjar Kör! med dem.` : 'Kör! tränar bara inlagda prov och läxor. När något läggs in börjar du här.';
+    const more = pl.scopeEmpty === 'idle' && unm.length ? `<div class="muted" style="font-size:.9rem">${unm.map(x => esc(T(x.e))).join(', ')}: områdena är inte inlagda i appen ännu.</div>` : '';
+    return `<section class="card pad-lg mission stack" aria-label="${esc(head)}"><div class="eyebrow">${head}</div><div style="font-size:1rem">${txt}</div>${more}${g ? `<button class="btn ghost wide" data-v2="testa" data-exam="${esc(g.e.id)}">Testa mig</button>` : ''}</section>`;
+  },
+  scopeCids(kid, p) { if (!V2.scopeOn(p)) return null; const out = new Set(); for (const e of LE.exams(kid, p)) { const d = daysUntil(e.date); if (!(d >= 0 && d <= V2.MISSION_DAYS)) continue; for (const c of V2.examCidsActive(kid, e)) out.add(c); } return [...out]; },
   mission(kid) {
     const p = prof(kid.id); const list = LE.exams(kid, p).map(e => ({ e, d: daysUntil(e.date) })).filter(x => x.d >= 0 && x.d <= V2.MISSION_DAYS);
     list.sort((a, b) => a.d - b.d || (b.e.priority === 'high') - (a.e.priority === 'high') || (a.e.id < b.e.id ? -1 : 1)); return list[0] || null;
@@ -99,12 +118,12 @@ const V2 = {
         const days = daysUntil(e.date); const st = V2.examStatus(kid, e, C, now); const shown = st.per.slice(0, 6);
         // Hotfix 2.1.1: knappen startar provets egen träning (bara provets koncept) – och finns bara när provet har kopplade områden
         const cids = V2.examCidsActive(kid, e); const mp = cids.length ? V2.safe(() => V2.plan(kid, 'mission', C, now, null, { examId: e.id }), 'missionPeek', []) : [];
-        const msg = st.ready ? 'Bra koll på det som övats. Kör! fortsätter repetera – och vila gärna dagen före.' : days <= 1 ? 'Lugnt och kort idag.' : 'Kör! väljer det som gör mest nytta inför provet.';   // v3 (ärlig intelligens): inga påståenden som motorn inte kan backa upp
+        const msg = V2.scopeOn(prof(kid.id)) && !V2.peekPlan(kid).plan.length ? 'Inget att öva inför provet idag – kom tillbaka imorgon.' : st.ready ? 'Bra koll på det som övats. Kör! fortsätter repetera – och vila gärna dagen före.' : days <= 1 ? 'Lugnt och kort idag.' : 'Kör! väljer det som gör mest nytta inför provet.';   // v3 (ärlig intelligens): inga påståenden som motorn inte kan backa upp
         return `<div class="card pad-lg exam stack" style="gap:12px">
         <div class="row"><div class="grow"><div class="eyebrow">${esc(e.title)} · ${fmtDate(e.date)}</div><div class="days">${days > 0 ? days : 'Idag'}</div><div style="opacity:.85">${days > 1 ? 'dagar kvar' : days === 1 ? 'dag kvar' : 'Lycka till!'}</div></div></div>
         ${st.per.length && st.per.every(x => x.ready === 'För lite underlag') ? `<div style="font-size:.95rem;opacity:.9">${st.per.length} områden på provet. Kör några pass så ser du här vad som sitter.</div>` : `<div class="stack" style="gap:6px">${shown.map(x => `<div class="row" style="justify-content:space-between;gap:8px"><span style="font-weight:700">${esc(x.name)}</span><span class="pill ${V2.READY_CLS[x.ready]}" style="font-size:.75rem">${V2.READY_TXT[x.ready]}</span></div>`).join('')}${st.per.length > shown.length ? `<div style="opacity:.8;font-size:.85rem">+ ${st.per.length - shown.length} till</div>` : ''}</div>`}
         <div style="font-size:.9rem;opacity:.9">${msg}</div>
-        ${cids.length && !mp.length ? `<div style="font-size:.9rem;opacity:.9">Just nu finns inget att öva just för provet – inget är förfallet och inget nytt tas in idag. Kör! fortsätter med det viktigaste.</div><div class="row"><button class="btn ghost grow" data-v2="testa" data-exam="${esc(e.id)}">Testa mig</button></div>` : ''}
+        ${cids.length && !mp.length ? `<div style="font-size:.9rem;opacity:.9">Just nu finns inget att öva just för provet – inget är förfallet och inget nytt tas in idag.${V2.scopeOn(prof(kid.id)) ? '' : ' Kör! fortsätter med det viktigaste.'}</div><div class="row"><button class="btn ghost grow" data-v2="testa" data-exam="${esc(e.id)}">Testa mig</button></div>` : ''}
         ${cids.length && mp.length ? `<div class="row"><button class="btn grow" data-v2="mission" data-exam="${esc(e.id)}">Öva inför provet · cirka ${V2.mins(Math.max(1, mp.length))} minuter</button><button class="btn ghost" data-v2="testa" data-exam="${esc(e.id)}">Testa mig</button></div>`
           : `<div style="font-size:.9rem;opacity:.9">Provets områden är inte inlagda i appen ännu, så det finns inget att öva just för det här provet. Be en vuxen lägga in vad provet handlar om.</div>`}
       </div>`; }).join('');
@@ -407,7 +426,7 @@ const V2 = {
     save(); const won = V2.safe(() => checkBadges(kid), 'badges', []) || [];
     if (V.exam) return V2.examResult(won);
     const next = V2.safe(() => V2.peekPlan(kid).plan, 'nextPlan', null);
-    const klar = V.light || !!(next && next.light);
+    const klar = V.light || !!(next && (next.light || next.scopeEmpty || !next.length));   // 3.1: inget "Ett pass till" när dagens plan är tom
     const fbNow = V2.safe(() => LE2.felbokVisible(C.L, LE.now()).length, 'fb', 0); const newFb = Math.max(0, fbNow - V.fbBefore); const cap = LE2.DECISIONS.O8_felbokDisplay[C.pol.name] || 5;
     const quests = dailyQuests(kid); const claimable = quests.filter(q => q.done && !q.claimed);
     const young = C.pol.name === 'younger'; const gems = V.rewards.reduce((a, r) => a + r.gems, 0);
@@ -465,7 +484,7 @@ const V2 = {
     if (a === 'teachok') return V2.teachDone();
     if (a === 'qr') return V2.safe(() => V2.reportQ(el), 'report');
     if (a === 'endPreview') return V2.endPreview();
-    if (a === 'engine' || a === 'engineAsk' || a === 'preview' || a === 'exp') return V2.parentClick(a, el);
+    if (a === 'engine' || a === 'engineAsk' || a === 'preview' || a === 'exp' || a === 'scope') return V2.parentClick(a, el);
     if (!kid) return;
     // Ett oväntat fel i v2 får aldrig stoppa barnet: logga och kör v1:s Kör! i stället
     const ok = V2.safe(() => { V2.act(a, el, kid); return true; }, 'click:' + a, false);
@@ -549,6 +568,7 @@ const V2 = {
     if (a === 'engineAsk') { state.v2ask = kid.id; return VIEWS.parent(); }
     if (a === 'engine') { const v = el.dataset.val; state.v2ask = null; if (v === 'v2' || v === 'v1') { const p = prof(kid.id); p.settings.engine = v; p.settings.engineAt = LE.now(); /* serverkorrigerad tid */ LE.invalidate(kid.id); save(); toast(v === 'v2' ? `v2 på för ${kid.name}` : `${kid.name} kör v1`); } return VIEWS.parent(); }
     if (a === 'preview') return V2.startPreview(kid);
+    if (a === 'scope') { const p = prof(kid.id); p.settings.scope = el.dataset.val === 'exams' ? 'exams' : 'all'; p.settings.scopeAt = LE.now(); LE.invalidate(kid.id); save(); toast(p.settings.scope === 'exams' ? `Bara prov och läxor för ${kid.name}` : `${kid.name}: Kör! tränar allt`); return VIEWS.parent(); }
     if (a === 'exp') { EXP.set(kid, el.dataset.val); LE.invalidate(kid.id); toast(el.dataset.val === 'default' ? 'Standard för åldern' : `${(EXP.KINDS[el.dataset.val] || {}).name || ''} för ${kid.name}`); return VIEWS.parent(); }
   },
   // Förälderns förhandsvisning: hela barnflödet med v2 på en kopia. Inget sparas, inget synkas; allt återställs när den avslutas.

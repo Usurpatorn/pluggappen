@@ -96,3 +96,12 @@ med `PREVIEW=1` till `<sajten>/preview/`. Produktionen publiceras som vanligt. M
 - Tester som skyddar släppet: `test_exp_v3`, `test_ux_v3`, `test_promise_exec`, `test_golden_cases`, `test_golden_explore`,
   `test_keypad`, `test_preview`, `test_review_v3`, `test_v1_regression`; integritetskontroll av varje commit (`scripts/privacy-history.mjs`).
 
+## 3.1.0 – Bara prov och läxor (från 2026-10-27)
+- **Förälderns val per barn:** Föräldraläge → barnet → Motor v2 → *Vad Kör! tränar*: **Allt** (standard, som förut) eller **Bara prov
+  och läxor**. Sparas som `settings.scope = 'exams' | 'all'` + `scopeAt` (synkas på senaste ändringen, som upplevelsen).
+- På: Kör! och FLOW tränar bara inlagda prov och läxor inom 28 dygn – samma motor och regler, begränsad med planerarens egen `only`
+  (som provträningen 2.1.1). Hemmet visar ett ärligt kort när inget finns ("Inga prov eller läxor just nu", "… inte inlagt ännu",
+  "Inget att öva idag"); Öva på egen hand och Testa mig finns kvar. Gäller v2/v3 (alla upplevelser och Klassisk), inte reservmotorn v1.
+- Hemmets plan och FLOW-förhandsvisningen räknas med samma klocka som när passet startar (`LE.sessClock`).
+- Rollback: 3.0.1 (`release-3.0.1-85e4353`) och 2.1.1 ignorerar `scope` och behåller fältet. Test: `test_scope_exams.js`.
+
