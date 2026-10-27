@@ -190,6 +190,7 @@ async function exitAndReload(P, cloud, seed, how = 'exit') {
       ok(learnOf(P2.PA.DB.profiles.k2) === learnOf(B2) && learnOf(cloud.prof('k2')) === learnOf(B2), 'Tvåan: barnets samtidiga läge gäller överallt efter testet');
       ok(learnOf(P2.PA.DB.profiles.k4) === learnOf(A4) && learnOf(cloud.prof('k4')) === learnOf(A4), 'Byta barn: syskonets profil orörd');
       ok(!hasTestDev(cloud.snap()) && !hasTestDev(JSON.stringify(realDump(P2))), 'Tvåan: inga testbevis någonstans');
+      ok(P.localStorage.getItem('pluggappen.v1') === PROD_KEY && P2.localStorage.getItem('pluggappen.v1') === PROD_KEY, 'Tvåan: produktionens data på samma enhet orörd');
       void A2;
     }
 
@@ -223,6 +224,7 @@ async function exitAndReload(P, cloud, seed, how = 'exit') {
       const { P2, hash } = await exitAndReload(P3, cloud, 27);
       ok(hash === '#foralder-tm1' && learnOf(P2.PA.DB.profiles.k4) === learnOf(A4) && learnOf(cloud.prof('k4')) === learnOf(A4), 'Fyran: efter testet är barnets riktiga Felbok, bevis och belöningar orörda');
       ok(reqC === 0 && cloud.writes('preview').length === 0, `Fyran: inga begäranden under testet (${reqC}), inga skrivningar någonsin`);
+      ok(P3.localStorage.getItem('pluggappen.v1') === PROD_KEY && P2.localStorage.getItem('pluggappen.v1') === PROD_KEY, 'Fyran: produktionens data på samma enhet orörd');
     }
 
     /* ================= D. Stänger säkert ================= */
@@ -271,8 +273,10 @@ async function exitAndReload(P, cloud, seed, how = 'exit') {
       try { await P.fetch(`https://firestore.googleapis.com/v1/projects/pluggappen/databases/(default)/documents/families/${FAM}/profiles?key=x`, { method: 'POST', body: '{}' }); } catch (e) { rej++; }
       const m0 = cloud.log.length; await P.fetch(`https://firestore.googleapis.com/v1/projects/pluggappen/databases/(default)/documents/families/${FAM}/members/u1?key=x`, { method: 'PATCH', body: '{}' });
       ok(rej === 2 && cloud.log.length === m0 + 1 && cloud.writes('preview').filter(x => /profiles/.test(x.path)).length === 0, 'Nätverksskyddet: skrivning till profiles nekas, medlemskap släpps igenom');
-      let rej2 = 0; for (const [m, u] of [['DELETE', `families/${FAM}/members/u1`], ['PATCH', `families/${FAM}/meta/info?key=x&updateMask.fieldPaths=joinCode&updateMask.fieldPaths=rotatedAt`], ['PATCH', `families/${FAM}/members/u2?key=x&updateMask.fieldPaths=role`]]) { try { await P.fetch(`https://firestore.googleapis.com/v1/projects/pluggappen/databases/(default)/documents/${u}`, { method: m, body: '{}' }); } catch (e) { rej2++; } }
+      let rej2 = 0; for (const [m, u] of [['DELETE', `families/${FAM}/members/u1`], ['PATCH', `families/${FAM}/meta/info?key=x&updateMask.fieldPaths=joinCode&updateMask.fieldPaths=rotatedAt`], ['PATCH', `families/${FAM}/members/u2?key=x&updateMask.fieldPaths=role`]]) { const n0 = cloud.log.length; try { const rr = await P.fetch(`https://firestore.googleapis.com/v1/projects/pluggappen/databases/(default)/documents/${u}`, { method: m, body: '{}' }); if (rr && rr.status === 403 && cloud.log.length === n0) rej2++; } catch (e) { rej2++; } }
       ok(rej2 === 3, 'Nätverksskyddet: radering, byte av parkopplingskod och byte av roll nekas i testversionen');
+      { const m0 = cloud.log.length; const rr = await P.fetch(`https://firestore.googleapis.com/v1/projects/pluggappen/databases/(default)/documents/families/${FAM}/meta/info?key=x`, { method: 'PATCH', body: '{}' });
+        ok(rr && rr.status === 403 && cloud.log.length === m0, 'Nätverksskyddet: familjens meta/info skrivs aldrig (svarar "finns redan", parkopplingen fortsätter)'); }
       unlock(P); T.click(P.document.querySelector('[data-tab="settings"]'));
       ok(!P.document.querySelector('[data-act="deleteFamilyData"], [data-act="copyFamLink"], #memberList') && /hanteras i den vanliga appen/.test(P.document.body.textContent), 'Testversionen: familj, enheter och radering hanteras inte här');
       { P.PA.FAMILY.update(c => { c.kids[0].name = 'Ändrad i testversionen'; }); await P.PA.FAMILY.pull(); ok(P.PA.FAMILY.cfg.kids[0].name !== 'Ändrad i testversionen' && JSON.stringify(P.PA.FAMILY.cfg) === JSON.stringify(JSON.parse(JSON.parse(cloud.docs[`families/${FAM}/profiles/_config`]).fields.json.stringValue)), 'Testversionen: familjens inställningar är en spegel (lokal ändring ersätts)'); }
