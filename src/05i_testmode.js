@@ -43,17 +43,28 @@ const TM = {
   // synkade läget (märkt). Utan molnkoppling: enhetens läge (det är det riktiga).
   async freshProd(kidId) {
     clearTimeout(saveTimer); flushSave();
-    if (SYNC.active) {
-      const dirty = KIDS.map(k => k.id).filter(id => { const q = prof(id); return SYNC.pending.has(id) || (q && (q.updatedAt || 0) > (q.syncedAt || 0)); });
-      clearTimeout(SYNC.pushTimer); SYNC.pending.clear();
-      for (const id of dirty) { const okp = await TM.timed(SYNC.push(id)); if (okp !== true) { SYNC.schedulePush(id); return { ok: false, why: 'Det finns ändringar som inte hunnit sparas i familjens data. Försök igen när enheten är online.' }; } }
-      if (dirty.length) flushSave();
-      const before = SYNC.status; await TM.timed(SYNC.refresh(kidId)); void before;
-      const q = prof(kidId); if ((q.updatedAt || 0) > (q.syncedAt || 0)) { const okq = await TM.timed(SYNC.push(kidId)); if (okq !== true) { SYNC.schedulePush(kidId); return { ok: false, why: 'Barnets läge håller på att synkas. Försök igen om en stund.' }; } flushSave(); }   // t.ex. bevis som återställdes vid hämtningen
-      if (SYNC.status !== 'ok') return { ok: true, at: q.syncedAt || Date.now(), stale: true };
-      return { ok: true, at: Date.now() };
-    }
-    return { ok: true, at: Date.now(), local: true };
+    if (!SYNC.active) return { ok: true, at: Date.now(), local: true };
+    const NET = 'Det finns ändringar som inte hunnit sparas i familjens data. Försök igen när enheten är online.';
+    const dirty = (id) => { const q = prof(id); return SYNC.pending.has(id) || !!(q && (q.updatedAt || 0) > (q.syncedAt || 0)); };
+    const dirtyIds = () => KIDS.map(k => k.id).filter(dirty);
+    const fail = (why) => { for (const id of dirtyIds()) SYNC.schedulePush(id); return { ok: false, why }; };   // allt som väntar laddas upp som vanligt senare
+    // Ett barn med ändringar som inte sparats i familjens data: först slås de ihop med det som finns där (samma väg som vanlig synk –
+    // aldrig en blind uppladdning över en annan enhets nyare data eller en radering), sedan laddas resultatet upp. Fel → false.
+    const settle = async (id) => {
+      const r = await TM.timed(SYNC.refresh(id)); if (r === undefined || SYNC.status !== 'ok') return false;
+      if (!dirty(id)) return true;
+      SYNC.pending.delete(id); return (await TM.timed(SYNC.push(id))) === true;
+    };
+    // 1. Allt som väntar på att laddas upp (alla barn): sammanslaget och uppladdat – annars inget test.
+    for (const id of dirtyIds()) if (!(await settle(id))) return fail(NET);
+    flushSave();
+    // 2. Barnets senaste läge (vanlig hämtning och sammanslagning). Utan nät: senast synkade läget, märkt.
+    const r = await TM.timed(SYNC.refresh(kidId)); const stale = r === undefined || SYNC.status !== 'ok';
+    // 3. Hämtningen kan ha lagt något i kön (ett barn som inte finns i familjens data än, en återställd bevislogg): samma väg en gång till.
+    for (const id of dirtyIds()) if (stale || !(await settle(id))) return fail(stale ? NET : 'Familjens data håller på att synkas. Försök igen om en stund.');
+    if (dirtyIds().length) return fail('Familjens data håller på att synkas. Försök igen om en stund.');   // ingenting får vänta i kön när testet stänger synken
+    flushSave(); const q = prof(kidId);
+    return { ok: true, at: stale ? (q.syncedAt || Date.now()) : Date.now(), stale };
   },
   // Hämtningar får inte hänga för evigt: efter 12 s räknas det som utan nät (testet startar inte från ett osäkert läge).
   timed(pr, ms = 12000) { return Promise.race([pr, new Promise(res => setTimeout(() => res(undefined), ms))]); },
@@ -65,13 +76,15 @@ const TM = {
     if (typeof V2 !== 'undefined' && V2.sandbox) V2.restoreSandbox();
     TM.msg('Hämtar ' + kid.name + 's riktiga läge…'); TM.starting = true; let fr;
     try {
-      try { if (await TM.timed(FAMILY.pull())) { load(); } } catch (e) { /* familjens inställningar från förra hämtningen */ }
+      try { clearTimeout(saveTimer); flushSave(); if (await TM.timed(FAMILY.pull())) { load(); } } catch (e) { /* familjens inställningar från förra hämtningen */ }   // spara först: load() läser från lagringen
       try { await TM.timed(FAMILY.pullContent()); } catch (e) { /* skolinnehållet från förra hämtningen används */ }
       fr = await TM.freshReal(kidId);
     } finally { TM.starting = false; }
     if (!fr.ok) return TM.msg(fr.why);
-    if (TM.on || !parentUnlocked || state.screen !== 'parent' || !kidById(kidId)) return;   // föräldern hann lämna föräldraläget medan det hämtades
-    clearTimeout(saveTimer); flushSave(); SYNC.pending.clear(); clearTimeout(SYNC.pushTimer);
+    if (TM.on || !parentUnlocked || state.screen !== 'parent' || !kidById(kidId) || (typeof V2 !== 'undefined' && V2.sandbox)) return;   // föräldern hann lämna föräldraläget (eller starta en förhandsvisning) medan det hämtades
+    clearTimeout(saveTimer); flushSave();
+    if (!TM.preview && SYNC.active && SYNC.pending.size) return TM.msg('Familjens data håller på att synkas. Försök igen om en stund.');   // den vanliga appen: inget får tyst falla ur kön
+    SYNC.pending.clear(); clearTimeout(SYNC.pushTimer);   // (testadressen laddar aldrig upp – kön är tom eller betydelselös där)
     const before = localStorage.__realDump(); const realProfile = JSON.stringify(prof(kidId)); TM.before = before;
     // Från här: lagringen är en kopia i minnet (för resten av sidans liv) och nätverksskyddet nekar alla skrivningar.
     try { localStorage.__tmBegin(); Object.defineProperty(window, '__PV_TM', { value: true, writable: false, configurable: false }); } catch (e) { /* kontrolleras nedan */ }
@@ -99,7 +112,7 @@ const TM = {
     if (typeof S !== 'undefined' && S && S.timer) clearInterval(S.timer); try { location.replace(location.pathname + location.search + '#foralder-' + code); } catch (e) { /* ignore */ } TM.reload(); },
   reload() { try { location.reload(); } catch (e) { /* sidan kan inte laddas om: kopian ligger kvar i minnet och sparas ändå aldrig */ } },
   // Efter omladdningen: en rad till föräldern (ingen data bärs över – bara resultatet i adressens #).
-  note(code) { TM.lastNote = code === 'tm1' ? 'Testläget är avslutat. Inget från testet sparades eller skickades: testversionens lagrade data är byte för byte som före testet, och testläget skickar aldrig något till familjens data.' : code === 'tm2' ? 'Testläget startade inte (isoleringen gick inte att garantera). Inget sparades.' : code === 'tm0' ? 'Testläget är avslutat. Testet sparade inget, men den lagrade datan ändrades under testet – troligen av testversionen i en annan flik. Kontrollera barnets läge i den vanliga appen.' : null; },
+  note(code) { TM.lastNote = code === 'tm1' ? 'Testläget är avslutat. Inget från testet sparades eller skickades: enhetens lagrade data är byte för byte som före testet, och testläget skickar aldrig något till familjens data.' : code === 'tm2' ? 'Testläget startade inte (isoleringen gick inte att garantera). Inget sparades.' : code === 'tm0' ? 'Testläget är avslutat. Testet sparade inget, men den lagrade datan ändrades under testet – troligen av testversionen i en annan flik. Kontrollera barnets läge i den vanliga appen.' : null; },
 };
 // Sidan visas igen ur webbläsarens bakåt-cache (t.ex. Safari) mitt i ett test: avsluta i stället för att fortsätta med kopian.
 if (typeof window !== 'undefined' && window.addEventListener) window.addEventListener('pageshow', (e) => { if (e && e.persisted && TM.on) TM.exit(); });

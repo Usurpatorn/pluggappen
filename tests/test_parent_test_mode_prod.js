@@ -214,6 +214,56 @@ const fsRequests = (cloud, from, dev) => cloud.log.slice(from).filter(x => x.dev
       ok(c.reloaded && c.hash === '#foralder-tm1' && learnOf(c.P2.PA.DB.profiles.k4) === learnOf(A4) && learnOf(cloud.prof('k4')) === learnOf(A4), 'Byta barn: testet avslutas, Fyrans läge orört');
       ok(!hasTestDev(cloud.snap()) && !hasTestDev(JSON.stringify(allStored(c.P2))), 'Inga testbevis i familjens data eller på enheten');
     }
+
+    /* ===== E. Oberoende granskning 3.2 (BLOCKER): väntande ändringar slås ihop INNAN de laddas upp – aldrig en blind uppladdning ===== */
+    // E1: förälderns enhet har en ändring för Fyran som inte hunnit laddas upp; Fyran har spelat på sin egen enhet EFTER förälderns
+    //     senaste hämtning (läge B). Föräldern testar ett ANNAT barn. Familjens data ska ha B + förälderns ändring – aldrig A + ändringen.
+    {
+      const cloud = mkCloud(); const C = await childDevice(cloud, 35); await childPlays(C, 'k4', 0.2, 81); C.__advance(DAY);
+      const P = await parentDevice(cloud, 50, C.__now()); const A = cloud.prof('k4');
+      C.__advance(3600000); await childPlays(C, 'k4', 0.2, 82); const B = cloud.prof('k4');
+      ok(learnOf(B) !== learnOf(A) && (B.le.log || []).length > (A.le.log || []).length, 'E1: barnet har spelat efter förälderns senaste hämtning (B ≠ A)');
+      P.__advance(2 * 3600000); const cfg = P.PA.SYNC.cfg; P.PA.SYNC.cfg = { ...cfg, projectId: 'offline-test' };
+      P.PA.setKid('k4'); P.PA.DB.profiles.k4.settings.goal = 9; P.PA.save(); await sleep(1800);   // uppladdningen misslyckas utan nät
+      ok(P.PA.DB.profiles.k4.updatedAt > P.PA.DB.profiles.k4.syncedAt, 'E1: förälderns ändring väntar på uppladdning');
+      P.PA.SYNC.cfg = cfg;   // nätet tillbaka – ingen hämtning har skett
+      ok(await enterTest(P, 'k2'), 'E1: testet av ett annat barn startar när väntande ändringar kunnat slås ihop och laddas upp');
+      const S = cloud.prof('k4'); const sLog = new Set((S.le.log || []).map(e => JSON.stringify(e)));
+      ok((B.le.log || []).every(e => sLog.has(JSON.stringify(e))), 'E1: barnets nya bevis (B) finns kvar i familjens data – ingen tillbakarullning till A');
+      ok(S.xp >= B.xp && Object.keys(S.words || {}).length >= Object.keys(B.words || {}).length, 'E1: barnets XP och ord (B) finns kvar');
+      ok(S.settings.goal === 9, 'E1: förälderns väntande ändring finns också med');
+      const l1 = cloud.log.length; const T = tools(P); const D = v2tools(P, T); const r = rng(83); P.PA.go('home'); const go = T.$('[data-v2="kor"]'); if (go) { T.click(go); D.run(() => r() < 0.4, 40); }
+      ok(fsRequests(cloud, l1, 'parent').length === 0, 'E1: inget skickat under testet');
+      const { P2 } = await exitProd(P, cloud, 51); await C.PA.SYNC.refresh('k4');
+      ok(!hasTestDev(cloud.snap()) && learnOf(C.PA.DB.profiles.k4) === learnOf(cloud.prof('k4')), 'E1: barnets enhet och familjens data är samma riktiga läge efter testet');
+      void P2;
+    }
+    // E2: radering på en annan enhet (tombstone) medan förälderns enhet har en gammal ändring som väntar: raderingen gäller.
+    {
+      const cloud = mkCloud(); const C = await childDevice(cloud, 36); await childPlays(C, 'k4', 0.2, 84); C.__advance(DAY);
+      const P = await parentDevice(cloud, 52, C.__now());
+      const cfg = P.PA.SYNC.cfg; P.PA.SYNC.cfg = { ...cfg, projectId: 'offline-test' };
+      P.PA.setKid('k4'); P.PA.DB.profiles.k4.settings.goal = 9; P.PA.save(); await sleep(1800);
+      ok(P.PA.DB.profiles.k4.updatedAt > P.PA.DB.profiles.k4.syncedAt, 'E2: förälderns gamla ändring väntar på uppladdning');
+      C.__advance(3600000); await C.PA.deleteKidData('k4'); const tomb = cloud.prof('k4');
+      ok(tomb && tomb.resetAt && !(tomb.le && (tomb.le.log || []).length), 'E2: Fyrans data är raderad på en annan enhet');
+      P.__advance(2 * 3600000); P.PA.SYNC.cfg = cfg;
+      ok(await enterTest(P, 'k2'), 'E2: testet av ett annat barn startar');
+      const S = cloud.prof('k4');
+      ok(S.resetAt === tomb.resetAt && !(S.le && (S.le.log || []).length) && !S.xp, 'E2: raderingen gäller – förälderns gamla kopia laddades inte upp över den');
+      ok(P.PA.TM.before && !hasTestDev(cloud.snap()), 'E2: inga testbevis i familjens data');
+      await exitProd(P, cloud, 53);
+    }
+    // E3 (granskningens SHOULD-FIX): något som ligger i uppladdningskön när testet ska börja tas aldrig tyst bort – testet startar inte.
+    {
+      const cloud = mkCloud(); const C = await childDevice(cloud, 37); await childPlays(C, 'k4', 0.2, 85); C.__advance(DAY);
+      const P = await parentDevice(cloud, 54, C.__now());
+      const orig = P.PA.TM.freshProd; P.PA.TM.freshProd = async (id) => { const res = await orig(id); P.PA.SYNC.pending.add('k4'); return res; };   // en uppladdning hamnar i kön precis innan testet
+      unlock(P); tools(P).click(P.document.querySelector('[data-tab="k2"]')); tools(P).click(P.document.querySelector('[data-tm="start"][data-kid-id="k2"]:not([data-exp])')); await sleep(300);
+      ok(!P.PA.TM.on && /håller på att synkas/.test(P.document.body.textContent), 'E3: väntande uppladdning när testet ska börja → testet startar inte (ärligt besked)');
+      ok(P.PA.SYNC.pending.has('k4'), 'E3: den väntande uppladdningen finns kvar i kön');
+      P.PA.TM.freshProd = orig;
+    }
   } catch (e) { fails++; console.log('EXC', e.stack); }
   finally { try { fs.rmSync(path.join(DIST, 'preview'), { recursive: true, force: true }); } catch (e) { /* ignore */ } }
   for (const l of info) console.log('  ·', l);
