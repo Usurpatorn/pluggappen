@@ -98,7 +98,7 @@ await check('enhet utan rätt kod kan inte gå med', false, () => setDoc(doc(as(
 if (!OLD) {
   await seed();
   const REV = 'a'.repeat(64), REV2 = 'b'.repeat(64); const asset = { b64: 'iVBORw0KGgo=', mime: 'image/png', bytes: 8, w: 1, h: 1 };
-  await env.withSecurityRulesDisabled(async (ctx) => { for (const fam of [FAM_SHORT, FAM_LONG, FAM_OTHER]) await setDoc(doc(ctx.firestore(), `families/${fam}/assets/${REV}`), asset); });
+  await env.withSecurityRulesDisabled(async (ctx) => { const db = ctx.firestore(); for (const fam of [FAM_SHORT, FAM_LONG, FAM_OTHER]) await setDoc(doc(db, `families/${fam}/assets/${REV}`), asset); });   // en instans per kontext
   for (const fam of [FAM_SHORT, FAM_LONG]) {
     const A = `families/${fam}/assets/${REV}`; const label = fam === FAM_LONG ? 'familj med övergångsväg öppen' : 'familj utan övergångsväg';
     await check(`[${label}] oinloggad kan inte läsa en privat bild (inte heller via övergångsvägen)`, false, () => getDoc(doc(as(null), A)));
