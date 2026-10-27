@@ -352,8 +352,11 @@ const V2 = {
     return `${S.v2.exp ? '' : `<div class="eyebrow">${rescue ? 'Vi tar det tillsammans' : 'En kort förklaring först'}</div>`}
       ${ex ? `<div class="steps"><div class="eyebrow">${ex.fromFail ? 'Uppgiften du nyss fick' : 'Exempel'}</div>${ex.fig ? `<div class="figwrap">${safeHtml(ex.fig)}</div>` : ''}<div style="font-weight:700;margin:6px 0">${safeHtml(ex.text)}</div>${S.v2.exp && ex.steps.length === 1 ? `<p style="margin:4px 0 0">${safeHtml(ex.steps[0])}</p>` : `<ol>${ex.steps.map(st => `<li>${safeHtml(st)}</li>`).join('')}</ol>`}${S.v2.exp && /^\s*(<[^>]+>\s*)*Svar\s*:/i.test(String(ex.steps[ex.steps.length - 1] || '')) ? '' : `<p style="margin-top:8px">Svar: <b>${esc(ex.answer)}</b></p>`}</div>` : ''}
       ${s.method ? `<details class="sketch"><summary>${S.v2.exp ? `<span class="ic" aria-hidden="true">${ICON.book}</span>` : '📖'} Läs mer om ${esc(s.short || s.name)}</summary><div class="method" style="margin-top:8px">${safeHtml(s.method)}</div></details>` : ''}
+      ${S.v2.exp && ex && V2.sayOk(s) ? `<button class="btn ghost fb-say" data-speak="${esc(RECALL.strip([ex.text, ...(ex.steps || []), 'Svar: ' + ex.answer].join('. ')))}" data-lang="sv" aria-label="Läs upp förklaringen"><span class="ic" aria-hidden="true">${ICON.speaker}</span> Läs upp</button>` : ''}
       <button class="btn big wide" data-v2="teachok">${rescue ? 'Nu provar vi tillsammans →' : 'Jag är redo – nu provar jag →'}</button>`;
   },
+  // 3.3: uppläsning av återkoppling och förklaringar – inte när läsningen själv prövas (samma regler som frågan), bara med enhetens röst
+  sayOk(skill, q) { if (typeof TTS === 'undefined' || !TTS.ok || S.v2.exam) return false; if (q ? !V2.canSpeak(q) : (skill && (skill.readAloud === false || V2.READ_OFF.has(skill.id)))) return false; return S.v2.C.pol.name === 'younger' || !!prof(S.kid.id).settings.tts; },
   afterRender(item) {
     const fb0 = document.getElementById('fb'); if (fb0) { fb0.setAttribute('aria-live', 'polite'); fb0.setAttribute('role', 'status'); }   // granskning L13
     if (item && item.cat === 'learn') { setTimeout(() => document.querySelector('[data-v2="teachok"]')?.focus({ preventScroll: true }), 50); return; }
@@ -417,6 +420,7 @@ const V2 = {
     if ((evs || []).some(e => e.type === 'defer')) parts.push('Vi sparar den här till ett annat pass. Bra kämpat!');
     const fb = document.getElementById('fb'); if (!fb) return;
     if (parts.length) fb.insertAdjacentHTML('beforeend', `<div class="hint" style="margin-top:8px">${parts.join('<br>')}</div>`);
+    if (S.v2.exp && q && V2.sayOk(q.skill, q)) { const f = fb.querySelector('.feedback'); if (f) f.insertAdjacentHTML('afterend', `<button class="btn ghost fb-say" data-speak-fb="1" aria-label="Läs upp återkopplingen"><span class="ic" aria-hidden="true">${ICON.speaker}</span> Läs upp</button>`); }
     if (q && q.spec && !S.v2.exam) fb.insertAdjacentHTML('beforeend', `<div style="text-align:right;margin-top:6px"><button class="link" data-v2="qr" style="font-size:.8rem;opacity:.75">Den här frågan är konstig</button></div>`);
   },
   /* 2.1 Innehållshälsa: barnet kan markera en fråga som konstig. Sparar bara dygn + uppgifts-id + kunskapspunkt (ingen fritext, ingen tid).
@@ -428,7 +432,7 @@ const V2 = {
   },
   examAnswered(q, correct, raw) {
     const V = S.v2; const your = q.cat === 'word' ? raw : q.type === 'choicetext' ? (q.choices || [])[S.selected] : q.choices ? T.n(Number(S.selected)) : q.type === 'order' ? 'din ordning' : q.type === 'sort' ? 'din sortering' : q.type === 'match' ? 'dina par' : raw;
-    V.answers.push({ text: q.cat === 'word' ? String(q.prompt || q.word.t) : q.text, html: q.cat !== 'word', your: your == null ? '' : String(your), correct: q.cat === 'word' ? q.word.w : answerDisplay(q), ok: !!correct, paper: !!q.paper, steps: q.cat === 'word' ? [`${esc(q.word.w)} = ${esc(q.word.t)}`] : (q.steps || []), lvl: q.level || 1 });
+    V.answers.push({ text: q.cat === 'word' ? String(q.prompt || q.word.t) : q.text, html: q.cat !== 'word', your: your == null ? '' : String(your), correct: q.cat === 'word' ? q.word.w : answerDisplay(q), ok: !!correct, isError: q.isError === true, spot: q.challenge === 'spot', paper: !!q.paper, steps: q.cat === 'word' ? [`${esc(q.word.w)} = ${esc(q.word.t)}`] : (q.steps || []), lvl: q.level || 1 });
     nextQuestion();
   },
   /* ---------- Slut på passet ---------- */
@@ -497,7 +501,7 @@ const V2 = {
       <div class="card exam-list"><div class="eyebrow" style="margin-bottom:8px">Svar och förklaringar</div>
         ${V.answers.map((a, i) => `<details style="padding:8px 0;border-top:1px solid var(--line)" ${a.ok ? '' : 'open'}><summary style="cursor:pointer"><b>${i + 1}.</b> ${V.exp ? `<span class="sdot ${a.ok ? 'ok' : 'todo'}" role="img" aria-label="${a.ok ? 'Stämde' : 'Öva mer'}"></span>` : a.ok ? '✅' : '🔁'} <span class="muted" style="font-size:.9rem">${esc(RECALL.strip(a.text).slice(0, 70))}${RECALL.strip(a.text).length > 70 ? '…' : ''}</span></summary>
           <div style="margin-top:6px">${a.html ? safeHtml(a.text) : esc(a.text)}</div>
-          <div style="margin-top:4px;font-size:.95rem">${a.paper ? '✏️ På papper · ' : ''}Ditt svar: <b>${esc(a.your || '–')}</b> · Rätt svar: <b>${esc(a.correct)}</b>${a.paper ? `<div class="muted" style="font-size:.85rem">${a.ok ? 'Ditt svar stämmer.' : 'Svaret stämmer inte.'} Jämför din uträkning med lösningen – appen har bara sett svaret.</div>` : ''}</div>
+          <div style="margin-top:4px;font-size:.95rem">${a.paper ? '✏️ På papper · ' : ''}${a.isError ? (a.ok ? `Du hittade felet: <s>${esc(a.correct)}</s> – det påståendet stämmer inte.` : `Ditt val: <b>${esc(a.your || '–')}</b>${a.your ? ' – det stämmer, men det var inte felet' : ''}. Felet var: <s>${esc(a.correct)}</s> (stämmer inte).`) : a.spot && !a.ok ? `Ditt val: <b>${esc(a.your || '–')}</b> – den lösningen stämmer. Felet fanns i: <b>${esc(a.correct)}</b>.` : `Ditt svar: <b>${esc(a.your || '–')}</b> · Rätt svar: <b>${esc(a.correct)}</b>`}${a.paper ? `<div class="muted" style="font-size:.85rem">${a.ok ? 'Ditt svar stämmer.' : 'Svaret stämmer inte.'} Jämför din uträkning med lösningen – appen har bara sett svaret.</div>` : ''}</div>
           ${a.steps.length ? `<div class="steps" style="margin-top:6px"><ol>${a.steps.map(st => `<li>${safeHtml(st)}</li>`).join('')}</ol></div>` : ''}</details>`).join('')}
       </div>
       <button class="btn big wide" data-v2="kor">Öva på det som behövs</button>

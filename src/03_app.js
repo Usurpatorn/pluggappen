@@ -420,13 +420,12 @@ VIEWS.start = () => {
     <p class="muted">Vem ska plugga?</p>
   </div>
   <div class="stack" style="margin-top:14px">
-    ${KIDS.map(k => { const p = prof(k.id); const lvl = levelOf(p.xp); const today = p.days[todayKey()] || { c: 0 }; return `
+    ${KIDS.map(k => { const p = prof(k.id); return `
     <button class="card tap kid-card" data-kid="${k.id}" data-hue="${k.hue}">
       <div class="avatar">${isTeen(k) ? k.name[0] : isSport(k) ? '🏒' : (p.pet ? petEmoji(p) : k.emoji)}</div>
       <div class="grow">
         <div class="name">${esc(k.name)}</div>
-        <div class="meta">${k.grade} · Nivå ${lvl} ${levelNameFor(k, lvl)}</div>
-        <div class="row" style="margin-top:6px;gap:6px">${p.streak > 0 ? `<span class="pill">🔥 ${p.streak} dag${p.streak > 1 ? 'ar' : ''}</span>` : ''}<span class="pill ${today.c >= goalFor(k.id) ? 'good' : ''}">${today.c}/${goalFor(k.id)} idag</span></div>
+        <div class="meta">${k.grade}</div>
       </div>
       <span class="chev">›</span>
     </button>`; }).join('')}
@@ -768,6 +767,7 @@ VIEWS.practice = () => {
     ${S.v2 ? V2.progressBar() + V2.chip(item) : `<div class="progress">${S.queue.map((_, i) => `<i class="${i < S.i ? (S.results[i] ? 'ok' : 'no') : i === S.i ? 'cur' : ''}"></i>`).join('')}</div>`}
     <div class="card pad-lg stack" id="qcard" style="gap:16px">${body}</div>
   </div>`);
+  { const qc0 = document.getElementById('qcard'); if (qc0 && S.v2 && item.isError === true) qc0.dataset.iserr = '1'; S.wsel = null; }   // svaret är felet – i alla v2-lägen
   { const qc = document.getElementById('qcard'); if (qc && S.v2 && S.v2.exp) { const m = EXP.modeOf(item); qc.dataset.mode = m.mode; if (m.role) qc.dataset.role = m.role; if (S.v2.exam) qc.dataset.exam = '1'; if (item.isError === true) qc.dataset.iserr = '1';
     qc.querySelectorAll('.sort-pool').forEach(pl => { if ([...pl.children].some(b => (b.textContent || '').trim().length > 16)) pl.classList.add('long'); });   // 3.3: långa sorteringskort får en hel rad
     qc.querySelectorAll('.wchoices:not(.spot-sols)').forEach(w => { if ([...w.children].some(b => { const t = (b.textContent || '').trim(); return t.length > 16 || t.split(/\s+/).some(x => x.length > 11); })) w.classList.add('one-col'); });   // 3.3: långa ord får en hel rad i stället för att brytas mitt i
@@ -824,7 +824,7 @@ function mathBody(q, kid, isTest) {
       <div id="inputArea">${inputHtml}</div>
       <div id="fb"></div>
       <div class="row" id="actions">
-        ${q.type === 'match' || (v3 && (q.type === 'choicetext' || q.choices)) ? '' : `<button class="btn grow" id="submit" ${q.choices || q.type === 'choicetext' || q.type === 'order' || q.type === 'sort' || q.build ? 'disabled' : ''}>Svara</button>`}
+        ${q.type === 'match' || (v3 && !isTest && (q.type === 'choicetext' || q.choices)) ? '' : `<button class="btn grow" id="submit" ${q.choices || q.type === 'choicetext' || q.type === 'order' || q.type === 'sort' || q.build ? 'disabled' : ''}>Svara</button>`}
         ${q.type === 'order' ? `<button class="btn ghost" id="undoOrder">⌫</button>` : ''}${q.build ? `<button class="btn ghost" id="undoBuild" aria-label="Ta bort senaste bokstaven">⌫</button>` : ''}
         ${isTest ? '' : `<button class="btn ghost" id="hintBtn">${v3 ? `<span class="ic" aria-hidden="true">${ICON.bulb}</span>` : '💡'} Ledtråd</button>`}
       </div>
@@ -844,8 +844,8 @@ function initSketch() {
 function wordBody(ex) {
   const lang = ex.deck.lang; const head = `<div class="row" style="justify-content:space-between"><span class="eyebrow">${S.v2 && typeof V2.num() === 'string' ? V2.num() : `${S.v2 ? V2.num() : S.i + 1} av ${S.v2 ? V2.total() : S.queue.length}`} · ${esc(ex.title || 'Nytt ord')}</span><span>${LANGS[lang]?.flag || ''}</span></div>`;
   if (ex.kind === 'intro') { const sv = lang === 'sv'; return `${head}<div class="word-card"><div class="eyebrow">${sv ? 'Nytt kort' : 'Nytt ord'}</div><div class="we">${ex.word.e || '✨'}</div><div class="ww">${esc(sv ? ex.word.t : ex.word.w)}</div><div class="wt">${esc(sv ? ex.word.w : ex.word.t)}</div>${sv ? '' : speakBtn(ex.word.w, lang)}</div><div class="row" id="actions"><button class="btn grow big" id="next">Jag har sett det → </button></div>`; }
-  if (ex.kind === 'pick') return `${head}<div class="word-card"><div class="we" style="font-size:${ex.promptEmoji ? '3.6rem' : '0'}">${ex.promptEmoji}</div><div class="ww">${esc(ex.prompt)}</div>${ex.speak ? speakBtn(ex.word.w, lang) : ''}</div><div class="wchoices">${ex.choices.map(c => `<button class="wchoice" data-wchoice="${c.id}">${c.e ? `<span class="ce">${esc(c.e)}</span>` : ''}<span>${esc(c.label)}</span></button>`).join('')}</div><div id="fb"></div><div class="row" id="actions"></div>`;
-  if (ex.kind === 'listen') return `${head}<div class="word-card"><div class="eyebrow">Tryck och lyssna</div>${speakBtn(ex.word.w, lang, 'big')}<button class="pill" data-speak="${esc(ex.word.w)}" data-lang="${lang}" data-rate="0.6">🐢 Långsamt</button></div><div class="wchoices">${ex.choices.map(c => `<button class="wchoice" data-wchoice="${c.id}"><span>${esc(c.label)}</span></button>`).join('')}</div><div id="fb"></div><div class="row" id="actions"></div>`;
+  if (ex.kind === 'pick') return `${head}<div class="word-card"><div class="we" style="font-size:${ex.promptEmoji ? '3.6rem' : '0'}">${ex.promptEmoji}</div><div class="ww">${esc(ex.prompt)}</div>${ex.speak ? speakBtn(ex.word.w, lang) : ''}</div><div class="wchoices">${ex.choices.map(c => `<button class="wchoice" data-wchoice="${c.id}">${c.e ? `<span class="ce">${esc(c.e)}</span>` : ''}<span>${esc(c.label)}</span></button>`).join('')}</div><div id="fb"></div><div class="row" id="actions">${S.v2 && S.v2.exam ? '<button class="btn grow" id="submit" disabled>Svara</button>' : ''}</div>`;
+  if (ex.kind === 'listen') return `${head}<div class="word-card"><div class="eyebrow">Tryck och lyssna</div>${speakBtn(ex.word.w, lang, 'big')}<button class="pill" data-speak="${esc(ex.word.w)}" data-lang="${lang}" data-rate="0.6">🐢 Långsamt</button></div><div class="wchoices">${ex.choices.map(c => `<button class="wchoice" data-wchoice="${c.id}"><span>${esc(c.label)}</span></button>`).join('')}</div><div id="fb"></div><div class="row" id="actions">${S.v2 && S.v2.exam ? '<button class="btn grow" id="submit" disabled>Svara</button>' : ''}</div>`;
   if (ex.kind === 'match') {
     S.match = { left: R.shuffle(ex.pairs.map(w => ({ id: w.id, label: w.w }))), right: R.shuffle(ex.pairs.map(w => ({ id: w.id, label: w.t }))), done: new Set(), sel: null, mistakes: 0, firstTry: new Set(ex.pairs.map(w => w.id)) };
     return `${head}<p style="text-align:center;font-weight:700">Para ihop ${LANGS[lang]?.name.toLowerCase() || 'orden'} med svenska</p><div class="match-grid"><div class="match-col">${S.match.left.map(t => `<button class="mtile" data-mside="l" data-mid="${t.id}">${esc(t.label)}</button>`).join('')}</div><div class="match-col">${S.match.right.map(t => `<button class="mtile" data-mside="r" data-mid="${t.id}">${esc(t.label)}</button>`).join('')}</div></div><div id="fb"></div><div class="row" id="actions"></div>`;
@@ -865,6 +865,8 @@ function onPractice(e) {
   if (item.cat === 'math') return onMath(e, item);
   const ex = item;
   const wc = t.closest('[data-wchoice]');
+  if (wc && S.v2 && S.v2.exam) { document.querySelectorAll('.wchoice').forEach(b => b.classList.toggle('sel', b === wc)); S.wsel = wc.dataset.wchoice; const sb = document.getElementById('submit'); if (sb) sb.disabled = false; return; }   // Testa mig: ett tryck väljer, Svara lämnar in – ingen återkoppling förrän efteråt
+  if (t.closest('#submit') && S.v2 && S.v2.exam && S.wsel != null && (ex.kind === 'pick' || ex.kind === 'listen')) { const c = ex.choices.find(x => String(x.id) === String(S.wsel)); document.querySelectorAll('.wchoice').forEach(b => { b.disabled = true; }); return finishWord(ex, S.wsel === ex.correctId, null, null, c ? c.label : ''); }
   if (wc) { const id = wc.dataset.wchoice; const correct = id === ex.correctId; document.querySelectorAll('.wchoice').forEach(b => { b.disabled = true; if (b.dataset.wchoice === ex.correctId) b.classList.add('ok'); else if (b.dataset.wchoice === id) b.classList.add('no'); }); return finishWord(ex, correct, ex.kind === 'pick' && ex.rev ? ex.word.w : null); }
   const mt = t.closest('[data-mid]');
   if (mt && S.match) {
@@ -924,32 +926,35 @@ function startListening(ex) {
   try { rec.start(); } catch (e) { status.textContent = 'Kunde inte starta mikrofonen.'; }
 }
 function renderSlots() { const el = document.getElementById('slots'); el.innerHTML = S.spell.picked.length ? S.spell.picked.map(x => `<span class="ltile">${esc(x.c)}</span>`).join('') : `<span class="muted" style="font-size:.9rem;align-self:center">Tryck på bokstäverna</span>`; document.getElementById('submit').disabled = !S.spell.picked.length; }
-function finishWord(ex, correct, revealForeign, note) {
+function finishWord(ex, correct, revealForeign, note, picked) {
   S.answered = true;
   let xp = recordWordAnswer(S.kid.id, ex.word.id, correct); if (S.v2 && S.v2.exp) xp = EXP.flowXp(ex, xp);   // granskning: FLOW-XP även för ord
   if (S.mode === 'felbok') { const p = prof(S.kid.id); if (correct) { clearMistake(p, 'w_' + ex.word.id); save(); } }
   else if (!correct) { noteMistake(prof(S.kid.id), ex); save(); }
   if (correct) { S.streak++; } else S.streak = 0;
   S.xp += xp; S.results.push(correct);
-  if (S.v2) { V2.observeWord(ex, correct); if (S.v2.exam) return V2.examAnswered(ex, correct, document.getElementById('ans')?.value || ''); }
+  if (S.v2) { V2.observeWord(ex, correct); if (S.v2.exam) return V2.examAnswered(ex, correct, picked != null ? picked : (document.getElementById('ans')?.value || '')); }
   const fb = document.getElementById('fb');
   if (correct) { beep('ok', S.streak); xpPop(xp); fb.innerHTML = `<div class="feedback ok"><span style="font-size:1.4rem">✅</span><div><div class="big">${R.pick(['¡Muy bien!', 'Rätt!', 'Snyggt!', 'Perfekt!', 'Boom!'])}</div><div class="sub">${esc(ex.word.w)} = ${esc(ex.word.t)}${note ? `<br>${note}` : ''}</div></div></div>`; }
   else { beep('no'); fb.innerHTML = `<div class="feedback no"><span style="font-size:1.4rem">❌</span><div><div class="big">Inte riktigt</div><div class="sub"><b>${esc(ex.word.w)}</b> = ${esc(ex.word.t)}. Ordet kommer tillbaka snart.</div></div></div>`; if (!correct && S.mode === 'practice' && !S.v2 && S.queue.length < 18) S.queue.push({ ...makeWordExercise(ex.deck, ex.word, 'pick'), cat: 'word' }); }
   if (TTS.ok && prof(S.kid.id).settings.tts) TTS.speak(ex.word.w, ex.deck.lang);
   document.querySelectorAll('.ltile, #undoTile').forEach(b => b.disabled = true);
   document.getElementById('actions').innerHTML = `<button class="btn grow" id="next">${(S.v2 ? V2.hasNext() : S.i + 1 < S.queue.length) ? 'Nästa →' : 'Visa resultat'}</button>`;
+  if (S.v2 && S.v2.exp) document.getElementById('fb')?.scrollIntoView?.({ block: 'nearest' });   // 3.3: Nästa täcker aldrig återkopplingen (som för övriga uppgifter)
   document.getElementById('next').focus({ preventScroll: true });
 }
 function renderOrder() { const el = document.getElementById('orderSlots'); const O = S.order; el.innerHTML = O.picked.length ? O.picked.map((i, n) => `<div class="otile picked"><span class="onum">${n + 1}</span>${S.queue[S.i].items[i]}</div>`).join('') : `<span class="muted" style="font-size:.9rem;align-self:center">Tryck på stegen i rätt ordning</span>`; document.getElementById('submit').disabled = O.picked.length !== S.queue[S.i].items.length; }
+// 3.3: när svaret är färdigbyggt (sortera, ordna, bygg) rullas Svara fram om den ligger under kanten – barnet ska aldrig leta efter den
+function submitInView() { if (!(S.v2 && S.v2.exp)) return; const sb = document.getElementById('submit'); if (!sb || sb.disabled || typeof sb.getBoundingClientRect !== 'function') return; const r = sb.getBoundingClientRect(); if (r.height && r.bottom > (window.innerHeight || 0) - 8 && sb.scrollIntoView) sb.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
 function onMath(e, q) {
-  if (EXP.onMath(e, q)) return;   // v3: sortera, para ihop, bygg ordet
+  if (EXP.onMath(e, q)) { submitInView(); return; }   // v3: sortera, para ihop, bygg ordet
   const ot = e.target.closest('[data-otile]');
-  if (ot && S.order) { ot.classList.add('used'); S.order.picked.push(Number(ot.dataset.otile)); renderOrder(); return; }
+  if (ot && S.order) { ot.classList.add('used'); S.order.picked.push(Number(ot.dataset.otile)); renderOrder(); submitInView(); return; }
   if (e.target.closest('#undoOrder') && S.order) { const last = S.order.picked.pop(); if (last !== undefined) document.querySelector(`[data-otile="${last}"]`)?.classList.remove('used'); renderOrder(); return; }
   const key = e.target.closest('[data-key]'); const input = document.getElementById('ans');
   if (key && input) { const k = key.dataset.key; if (k === '⌫') input.value = input.value.trimEnd().slice(0, -1).trimEnd(); else input.value = (input.value + k).replace(/\s{2,}/g, ' '); input.focus({ preventScroll: true }); return; }
   const ch = e.target.closest('[data-choice]');
-  if (ch) { document.querySelectorAll('.choice, .wchoice, .tapword').forEach(c => c.classList.remove('sel')); ch.classList.add('sel'); S.selected = Number(ch.dataset.choice); { const sb0 = document.getElementById('submit'); if (sb0) sb0.disabled = false; } if (S.kid.template === 'ak2' || prof(S.kid.id).settings.focus || q.type === 'choicetext' || (S.v2 && S.v2.exp)) { const sb = document.getElementById('submit'); if (sb) sb.click(); else submitMath(); } return; }
+  if (ch) { document.querySelectorAll('.choice, .wchoice, .tapword').forEach(c => c.classList.remove('sel')); ch.classList.add('sel'); S.selected = Number(ch.dataset.choice); { const sb0 = document.getElementById('submit'); if (sb0) sb0.disabled = false; } if (!(S.v2 && S.v2.exam) && (S.kid.template === 'ak2' || prof(S.kid.id).settings.focus || q.type === 'choicetext' || (S.v2 && S.v2.exp))) { const sb = document.getElementById('submit'); if (sb) sb.click(); else submitMath(); } return; }
   if (e.target.closest('#hintBtn')) { S.usedHelp = true; document.getElementById('fb').innerHTML = `<div class="hint">💡 ${safeHtml(q.hint)}</div>`; e.target.closest('#hintBtn').disabled = true; return; }
   if (e.target.closest('#explainBtn')) { S.usedHelp = true; showSteps(q, true); return; }
   if (e.target.closest('#submit')) { submitMath(); }
@@ -997,9 +1002,10 @@ function submitMath() {
   S.xp += xp; S.results.push(correct);
   let v2evs = null; const v2rw = S.v2 ? S.v2.rewards.length : 0;
   if (S.v2) { v2evs = V2.observe(q, correct); if (S.v2.exam) return V2.examAnswered(q, correct, raw); }
-  if (q.choices || q.type === 'choicetext') document.querySelectorAll('.choice, .wchoice, .tapword').forEach(c => { const v = Number(c.dataset.choice); if (v === q.answer) c.classList.add('ok'); else if (v === S.selected) c.classList.add('no'); c.disabled = true; });
+  const errItem = q.isError === true || q.challenge === 'spot';   // svaret ÄR felet: det man valde i stället är sant – det får aldrig se falskt ut
+  if (q.choices || q.type === 'choicetext') document.querySelectorAll('.choice, .wchoice, .tapword').forEach(c => { const v = Number(c.dataset.choice); if (v === q.answer) c.classList.add('ok'); else if (v === S.selected) c.classList.add(errItem ? 'true-pick' : 'no'); c.disabled = true; });
   if (input) input.disabled = true;
-  const xpE = S.v2 && S.v2.exp; const boss = xpE && q.spec && q.spec.role === 'boss'; const errQ = xpE && q.isError === true;   // 3.3: i "hitta felet"-frågor är svaret felet – aldrig "Rätt svar: <det felaktiga>"   // 3.3: Bossen märks när den är klarad (samma rättning)
+  const xpE = S.v2 && S.v2.exp; const boss = xpE && q.spec && q.spec.role === 'boss'; const errQ = !!S.v2 && q.isError === true;   // 3.3: i "hitta felet"-frågor är svaret felet – aldrig "Rätt svar: <det felaktiga>"   // 3.3: Bossen märks när den är klarad (samma rättning)
   const pick = R.pick(['Snyggt!', 'Rätt!', 'Perfekt!', 'Så ska det se ut!', 'Boom!', 'Exakt!']);   // dras alltid (samma slumpföljd som förut)
   const praise = boss ? (xpE === 'explore' ? '👑 Du besegrade bossen!' : xpE === 'grow' ? '👑 Bossen klarad!' : 'Bossuppgiften klar.') : xpE === 'achieve' ? ({ 'Boom!': 'Rätt.', 'Så ska det se ut!': 'Stämmer.', 'Snyggt!': 'Rätt.', 'Perfekt!': 'Stämmer.' }[pick] || pick) : pick;
   if (S.revealed && (q.paper || q.type === 'sort' || q.type === 'match' || q.build)) fb.innerHTML = `<div class="feedback warn"><span style="font-size:1.4rem">👀</span><div><div class="big">Nu vet du hur man gör</div><div class="sub">Du får en liknande uppgift igen om en stund.</div></div></div>`;   // granskning: efter "Visa hur man gör" aldrig "Svaret stämmer inte"
@@ -1022,9 +1028,9 @@ function submitMath() {
     else { beep('no'); fb.innerHTML = `<div class="feedback no"><span style="font-size:1.4rem">✍️</span><div><div class="big">Svaret behöver mer</div><div class="sub">${hitTxt}${missTxt}</div></div></div>`; }
     if (!isTest || !correct) showSteps(q, false);
   }
-  else if (correct) { beep('ok', S.streak); xpPop(xp); fb.innerHTML = `<div class="feedback ok"><span style="font-size:1.4rem">✅</span><div><div class="big">${praise}${S.streak >= 3 && !boss && !(S.v2 && S.v2.exp === 'achieve') ? ` <span class="nw">${S.streak} i rad 🔥</span>` : ''}</div><div class="sub">${xpE && q.challenge === 'spot' && (q.steps || [])[0] ? safeHtml(q.steps[0]) : errQ ? `Felet: <s>${esc(answerDisplay(q))}</s>${(q.steps || [])[0] ? `<br>${safeHtml(q.steps[0])}` : ''}` : esc(answerDisplay(q))}${res.note ? `<br>${res.note}` : ''}</div></div></div>`; }
+  else if (correct) { beep('ok', S.streak); xpPop(xp); fb.innerHTML = `<div class="feedback ok"><span style="font-size:1.4rem">✅</span><div><div class="big">${praise}${S.streak >= 3 && !boss && !(S.v2 && S.v2.exp === 'achieve') ? ` <span class="nw">${S.streak} i rad 🔥</span>` : ''}</div><div class="sub">${xpE && q.challenge === 'spot' && (q.steps || [])[0] ? safeHtml(q.steps[0]) : errQ ? `Du hittade felet: <s>${esc(answerDisplay(q))}</s> stämmer inte.${(q.steps || [])[0] ? `<br>${safeHtml(q.steps[0])}` : ''}` : esc(answerDisplay(q))}${res.note ? `<br>${res.note}` : ''}</div></div></div>`; }
   else if (S.revealed) { fb.innerHTML = `<div class="feedback warn"><span style="font-size:1.4rem">👀</span><div><div class="big">Nu vet du hur man gör</div><div class="sub">Du får en liknande uppgift igen om en stund.</div></div></div>`; }
-  else { beep('no'); fb.innerHTML = `<div class="feedback no"><span style="font-size:1.4rem">❌</span><div><div class="big">Inte riktigt</div><div class="sub">${errQ ? `Felet var: <s>${esc(answerDisplay(q))}</s>` : `Rätt svar: <b>${esc(answerDisplay(q))}</b>`}${q.choices || q.type === 'choicetext' || !raw || (S.v2 && S.v2.exp === 'explore') ? '' : ` · Du svarade: ${esc(raw)}`}</div></div></div>`; if (!isTest) showSteps(q, false); }
+  else { beep('no'); fb.innerHTML = `<div class="feedback no"><span style="font-size:1.4rem">❌</span><div><div class="big">Inte riktigt</div><div class="sub">${errQ ? `Det du valde stämmer – det var inte felet. Felet var: <s>${esc(answerDisplay(q))}</s> (stämmer inte)` : xpE && q.challenge === 'spot' ? `Lösningen du valde stämmer – felet fanns i en annan. Rätt svar: <b>${esc(answerDisplay(q))}</b>` : `Rätt svar: <b>${esc(answerDisplay(q))}</b>`}${q.choices || q.type === 'choicetext' || !raw || (S.v2 && S.v2.exp === 'explore') ? '' : ` · Du svarade: ${esc(raw)}`}</div></div></div>`; if (!isTest) showSteps(q, false); }
   document.getElementById('hintBtn')?.remove(); document.getElementById('explainBtn')?.remove();
   if (boss && correct && !(S.v2 && S.v2.exam)) document.getElementById('qcard')?.classList.add('boss-won');   // 3.3: ett litet ögonblick när Bossen är klarad (bara visning)
   if (S.v2) V2.feedbackExtra(v2evs, v2rw, q);
@@ -1353,6 +1359,7 @@ async function deleteFamilyData() {
 /* ========= Event delegation ========= */
 app.addEventListener('click', (e) => {
   const t = e.target;
+  const sf = t.closest('[data-speak-fb]'); if (sf) { const fb = document.getElementById('fb'); const txt = fb ? [...fb.querySelectorAll('.feedback .big, .feedback .sub, .hint, .order-correct li, .steps:not(details) > .eyebrow + p, .steps:not(details) li, details[open] > ol li, details[open] > p')].map(e => (e.textContent || '').trim()).filter(Boolean).join('. ') : ''; if (txt) TTS.speak(txt, 'sv', 0.9); return; }   // 3.3: läs upp återkopplingen (det som syns, inte det som är hopfällt)
   const sp = t.closest('[data-speak]'); if (sp) { if (sp.dataset.highlight) speakHighlight(document.getElementById('qtext'), sp.dataset.lang); else TTS.speak(sp.dataset.speak, sp.dataset.lang, sp.dataset.rate ? Number(sp.dataset.rate) : 0.9); return; }
   const tmBtn = t.closest('[data-tm]'); if (tmBtn && typeof TM !== 'undefined') { if (tmBtn.dataset.tm === 'start') TM.start(tmBtn.dataset.kidId, tmBtn.dataset.exp || null); return; }
   if (t.closest('[data-tm-exit]') && typeof TM !== 'undefined') return TM.exit();

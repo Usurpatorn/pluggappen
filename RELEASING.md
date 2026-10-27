@@ -203,6 +203,21 @@ med `PREVIEW=1` till `<sajten>/preview/`. Produktionen publiceras som vanligt. M
     spalter på iPad (barn, flikar och Testa som barnet till vänster) för barn med v2 – v1:s föräldravy är oförändrad.
   - **Små etiketter** minst 12 px (nivå), lägen i Testa mig/provkort 13 px. **Styrknappar** (Ledtråd, Jag fattar inte, Läs upp,
     Kladdyta, Läs mer) med linjeikoner i v3; karaktär och glädje (stationer, roller, KLAR) är kvar som emoji.
+- **Fas A (ägarbeslut 2026-10-27, stänger 3.3):**
+  - "Vilket påstående är fel?" och Hitta felet: det man valde i stället är SANT – märks "Stämmer" (aldrig rött) och texten säger
+    "Det du valde stämmer – det var inte felet. Felet var: … (stämmer inte)". Gäller alla v2-upplevelser inklusive Klassisk och
+    Testa mig-resultatet. Inget nytt sparat fält: svaren i Testa mig finns bara i minnet under passet; bevisen är orörda.
+  - Testa mig: ett tryck väljer (går att ändra), Svara lämnar in – för tal, ord och påståenden. Ingen återkoppling under testet.
+  - Läs upp på återkoppling och förklaringskort (enhetens röst; Yngre alltid, övriga med Uppläsning på) – aldrig när läsningen
+    själv prövas (samma regel som frågan: `V2.canSpeak`).
+  - Startsidan: barnkorten visar namn, klass och figur – inte syskonens nivå, streak eller dagens antal. Det är INTE
+    serverisolering: alla enheter i familjen kan fortfarande läsa hela familjens data tills Family Platform (barnbunden enhet) är
+    driftsatt. v1-referensen är omgjord från samma 1.2.0-bygge med samma normalisering av startsidan; allt annat är oförändrat.
+  - Nästa täcker aldrig återkopplingen (rullningen lämnar plats för den fasta knappraden, även för ord); när ett byggt svar
+    (sortera, ordna, bygg) är klart rullas Svara fram; låg telefon: mindre figur och uppläsning som ikon. Förälderns flikar på
+    telefon i två rader (v2-barn). Lägespiller med läsbar kontrast (alla lägen).
+  - Nytt CI-jobb **Layout och tillgänglighet i Chromium** (`tests/browser/layout.js`, Playwright + axe-core, fyra storlekar) –
+    krävs före publicering och release-tagg.
 - Tillgänglighet: axe-core (WCAG 2.1 A/AA) 0 fynd på 24 skärmar i 375, 390, 820 och 1180 px.
 - Test: `test_ux33.js` och `test_ux33_final.js` (krokar = uppgiften, två rutor utan förlust/dubbletter, Hitta felet/Baklänges rättas som förut, löftena
   ordagrant, lugnt Testa mig). Rollback: `release-3.2.2-1544484` (profilformatet är oförändrat, så rollback kräver ingen migrering; enda innehållsskillnaden i lagrad data är grammatikrättelsen "1 färgad" i stegtext som v1-Felboken kopierar).

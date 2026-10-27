@@ -564,7 +564,7 @@ html { overflow-x: clip; }
 }
 @media (min-width: 1100px) and (orientation: landscape) { :root:not([data-exp="classic"]) .wrap { max-width: 1060px; } }
 /* 3.3 föräldraläget: diagnostiken sekundär */
-.seg button[data-sub="v2"] { font-weight: 600; opacity: .8; }
+.seg button[data-sub="v2"] { font-weight: 600; }
 /* 3.3 sista granskningarna */
 :root:not([data-exp="classic"]) .topbar { background: color-mix(in srgb, var(--paper) 92%, transparent); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); box-shadow: 0 1px 0 color-mix(in srgb, var(--ink) 8%, transparent); }
 @media (min-width: 1100px) and (orientation: landscape) {
@@ -667,6 +667,34 @@ html { overflow-x: clip; }
 :root:not([data-exp="classic"]) .rank small { font-size: 12px; }
 :root:not([data-exp="classic"]) :is(.exam-list, .mission, .klar, .exam-hero, .card) .pill:is(.good, .warn, .bad, :not([class*=" "])) { font-size: max(.82rem, 13px) !important; }
 .btn.klar-up { text-transform: uppercase; letter-spacing: .02em; }
+/* Svaret är felet: det man valde i stället är SANT – neutral ram och "Stämmer", aldrig rött. Felet märks "Stämmer inte". */
+:is(.choice, .wchoice, .tapword).true-pick { position: relative; background: var(--card) !important; border-color: color-mix(in srgb, var(--ink) 35%, var(--line)) !important; color: var(--ink) !important; opacity: 1; }
+:is(.choice, .wchoice, .tapword).true-pick::after { content: 'Stämmer'; position: absolute; top: -9px; right: 8px; padding: 0 8px; border-radius: 999px; background: var(--soft); color: var(--ink); font: 800 .75rem/1.6 var(--body, system-ui); letter-spacing: .02em; text-decoration: none; }
+#qcard[data-iserr] :is(.wchoice, .choice, .tapword).ok { position: relative; }
+#qcard[data-iserr] :is(.wchoice, .choice, .tapword).ok::after { content: 'Stämmer inte'; position: absolute; top: -9px; right: 8px; padding: 0 8px; border-radius: 999px; background: var(--warn); color: #3b2a00; font: 800 .75rem/1.6 var(--body, system-ui); letter-spacing: .02em; display: inline-block; text-decoration: none; }
+.wchoice.spot-sol.true-pick::after { content: 'Den här stämmer'; }
+.wchoice.spot-sol.true-pick .sol-l { background: var(--soft); color: var(--ink-2); }
+.btn.fb-say { min-height: 44px; padding: 0 14px; margin-top: 8px; align-self: flex-start; }
+#fb .btn.fb-say { display: inline-flex; align-items: center; gap: 6px; }
+/* Nästa täcker aldrig återkopplingen: rullningen efter svaret lämnar plats för den fasta knappraden */
+:root:not([data-exp="classic"]) #fb { scroll-margin-bottom: 104px; scroll-margin-top: 72px; }
+/* Förälderns flikar på smal telefon: alla syns (två rader) i stället för att rulla bort */
+@media (max-width: 600px) { .seg.p-sub { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)); border-radius: 16px; overflow: visible; } .seg.p-sub button { min-height: 40px; padding: 0 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } }
+/* Låg telefon (iPhone SE): uppgiften, svaret och Svara ryms utan att rulla – mindre figur, uppläsningen som ikon i hörnet */
+@media (max-width: 430px) and (max-height: 720px) {
+  :root[data-exp="explore"] #qcard .q-top.solo { position: absolute; top: 10px; right: 10px; z-index: 1; }
+  :root[data-exp="explore"] #qcard .q-top.solo + * { padding-right: 50px; }
+  :root[data-exp="explore"] #qcard .q-top.solo button[data-speak] { font-size: 0; width: 44px; min-height: 44px; padding: 0; justify-content: center; }
+  :root[data-exp="explore"] #qcard .q-top.solo button[data-speak] .ic { font-size: 20px; }
+  :root:not([data-exp="classic"]) #qcard .figwrap svg { max-height: 132px; width: auto; }
+  :root:not([data-exp="classic"]) #qcard { gap: 12px; padding-top: 18px; padding-bottom: 18px; }
+  :root:not([data-exp="classic"]) .stack:has(> #qcard) { gap: 10px; }
+  #qcard[data-mode="sort"] .sbin { min-height: 56px; }
+  #qcard[data-mode="sort"] .sort-pool, #qcard[data-mode="sort"] .sort-bins { gap: 6px; }
+  #qcard[data-mode="sort"] .stile, #qcard[data-mode="order"] .otile { min-height: 44px; padding-top: 8px; padding-bottom: 8px; }
+}
+/* Lägespiller med läsbar kontrast (WCAG AA) i ljust och mörkt läge – alla lägen, med avsikt */
+.pill.warn { color: color-mix(in srgb, var(--warn) 45%, var(--ink)); } .pill.bad { color: color-mix(in srgb, var(--bad) 60%, var(--ink)); } .pill.good { color: color-mix(in srgb, var(--good) 55%, var(--ink)); }
 .q-pane { display: contents; }
 @media (prefers-reduced-motion: reduce) { .hero-pet, .stile.placed, .klar-icon, .xp-pop { animation: none !important; } }
 </style>

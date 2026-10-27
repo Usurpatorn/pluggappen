@@ -90,7 +90,13 @@ const EMOJI = /\p{Extended_Pictographic}/u;
       ok(!!(q && q.choices), `${kid}: ett flerval med tal att pröva`); if (!q || !S || !S.v2) continue;
       const cur = S.queue[S.i]; S.queue[S.i] = { ...q, cat: 'math', spec: cur.spec, _slotEnd: cur._slotEnd }; PA().rerender();
       ok(!T.$('#submit') && doc.querySelectorAll('#qcard [data-choice]').length === q.choices.length, `${kid}: flerval med tal utan Svara-knapp`);
-      T.click(T.$(`[data-choice="${q.choices.find(c => String(c) !== String(q.answer))}"]`)); ok(!!T.$('#next') && /feedback/.test((T.$('#fb') || {}).innerHTML || ''), `${kid}: ett tryck på ett tal svarade`); toStart(T); }
+      T.click(T.$(`[data-choice="${q.choices.find(c => String(c) !== String(q.answer))}"]`)); ok(!!T.$('#next') && /feedback/.test((T.$('#fb') || {}).innerHTML || ''), `${kid}: ett tryck på ett tal svarade`);
+      // Utmaningen (sällsynt i passen) visas som Utmaning även när uppgiften har en form – tvingad, eftersom den syntetiska körningen sällan når dit
+      for (const form of [undefined, 'multistep', 'application']) { if (T.$('#next')) T.click(T.$('#next')); const S2 = PA().S; if (!S2 || !S2.v2 || !T.$('#qcard')) break; const c2 = S2.queue[S2.i]; if (c2.cat !== 'math') continue;
+        S2.queue[S2.i] = { ...c2, form, spec: { ...c2.spec, mode: 'challenge', role: 'focus' } }; PA().rerender(); const chip = norm((T.$('.act-chip') || {}).textContent);
+        ok(kid === 'k4' ? chip === '🧗 UTMANING · NÄSTA NIVÅ' : chip === '🧗 UTMANING', `${kid}: Utmaningen med formen ${form || 'ingen'} visas som Utmaning ("${chip}")`); C.chal++; D.answer(() => false); w.__advance(4000); }
+      toStart(T); }
+    ok(C.chal >= 4, `Utmaningens etikett prövad (${C.chal})`);
     // 1b. Klassisk är oförändrad: flerval med tal har kvar Svara (utom Yngre/fokus, som i 2.1)
     { const w2 = mkWin({ seed: 5, fixedClock: true }); await sleep(40); const T2 = tools(w2); const P2 = T2.PA; P2().FAMILY.apply(FIX); P2().load(); P2().rerender(); const D2 = v2tools(w2, T2);
       for (const k of P2().KIDS) P2().EXP.set(k, 'classic'); let seen = 0;
