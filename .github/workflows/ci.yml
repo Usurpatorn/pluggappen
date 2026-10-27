@@ -140,9 +140,14 @@ jobs:
           npm ci --no-audit --no-fund
           npm run build
           node tests/test_preview.js
+          # Testadressen är förälderns testmiljö: bara en gren med "Testa som barnet" och dess skydd publiceras (annars skulle den
+          # skriva riktiga bevis i barnens profiler). Testet raderar dist/preview när det är klart – därför före förhandsbygget.
+          test -f tests/test_parent_test_mode.js || { echo "::error::Grenen saknar Testa som barnet – testadressen publiceras inte"; exit 1; }
+          node tests/test_parent_test_mode.js
           PREVIEW=1 bash scripts/build.sh
           node tests/test_privacy.js
           test -f dist/preview/index.html
+          for m in "__tmBegin" "__PV_TM" "testversionen skriver inte barnens data"; do grep -q "$m" dist/preview/index.html || { echo "::error::Testsidan saknar skyddet ($m) – publiceras inte"; exit 1; }; done
       - name: Lägg testadressen bredvid produktionen
         if: ${{ steps.preview.outcome == 'success' }}
         env:
