@@ -47,6 +47,7 @@ const suites = [
   ['Testa som barnet (testadressen): kopia i minnet, inga skrivningar, byte för byte före = efter, barnet spelar samtidigt', 'test_parent_test_mode.js'],
   ['Hotfix 3.0.1: glosrepetition i ett v3-pass – ämnet som rubrik, hemmet säger vad som repeteras, samma plan på hemmet som i KÖR', 'test_hotfix_301.js'],
   ['3.1 Bara prov och läxor (förälderns val per barn): Kör!/FLOW bara inlagda prov och läxor, ärligt hem utan prov, standard oförändrad', 'test_scope_exams.js'],
+  ['3.1.2 Bossens variation: annan aktivitet och annat faktum än uppgiften före (samma punkt, nivå och format), annars som förut', 'test_boss_variety.js'],
   ['Experience v3: löfte → utförande för varje primär knapp (Explore/Grow/Achieve/Klassisk × tio tillstånd)', 'test_promise_exec.js'],
 ];
 let failed = 0; const rows = [];
