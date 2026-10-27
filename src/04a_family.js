@@ -72,7 +72,7 @@ const FAMILY = {
     const work = (Array.isArray(c.work) ? c.work : []).filter(obj).slice(0, 80).map(w => ({
       id: str(w.id, 40), kid: str(w.kid, 24), type: FAMILY.WORK_TYPES.includes(w.type) ? w.type : 'practice', title: str(w.title, 60), subject: str(w.subject, 30),
       date: /^\d{4}-\d{2}-\d{2}$/.test(w.date || '') ? w.date : '', packs: ids(w.packs, 20, /^[a-z0-9-]{2,48}$/), kps: ids(w.kps, 200, /^k:[a-z0-9-]{2,48}\/[a-z0-9-]{2,48}$/),
-      skills: ids(w.skills, 60, /^[a-z0-9_]{2,40}$/), decks: ids(w.decks, 30, /^[A-Za-z0-9_-]{1,40}$/), priority: w.priority === 'high' ? 'high' : 'normal',
+      skills: ids(w.skills, 60, /^[a-z0-9_]{2,40}$/), decks: ids(w.decks, 30, /^[A-Za-z0-9_-]{1,40}$/), priority: w.priority === 'high' ? 'high' : 'normal', weight: w.weight === 'major' || w.weight === 'minor' ? w.weight : undefined,   /* 3.4: förälderns val av storlek (valfritt) */
       teacherQs: (Array.isArray(w.teacherQs) ? w.teacherQs : []).filter(obj).slice(0, 80).map(t => ({ n: str(String(t.n || ''), 12), q: str(t.q, 400), a: str(t.a, 200), alias: (Array.isArray(t.alias) ? t.alias : []).map(x => str(x, 80)).filter(Boolean).slice(0, 8), not: (Array.isArray(t.not) ? t.not : []).map(x => str(x, 200)).filter(x => x && ![t.a, ...(Array.isArray(t.alias) ? t.alias : [])].some(a => typeof a === 'string' && a.trim().toLowerCase() === x.trim().toLowerCase())).slice(0, 5), kps: ids(t.kps, 8, /^k:[a-z0-9-]{2,48}\/[a-z0-9-]{2,48}$/), typed: !!t.typed, src: src(t.src) })).filter(t => t.q),
       src: src(w.src),
       // Experience v3 (tillägg, äldre versioner ignorerar dem): lärarens målområden (Testa mig rapporterar per område), lärarens betoning
@@ -117,7 +117,7 @@ function buildKids() {
     const v2skills = typeof PACKS !== 'undefined' ? PACKS.newSkillsFor({ id: c.id, template: c.template }) : [];
     const work = FAMILY.workFor(c.id);
     // Lärarens frågor räknas in i provets kunskapspunkter (en fråga kan pröva flera punkter; en punkt kan prövas av flera frågor)
-    const workExams = work.filter(w => w.date && w.type !== 'practice').map(w => ({ id: 'w:' + w.id, title: w.title, date: w.date, skillIds: w.skills.slice(), deckIds: w.decks.slice(), kps: [...new Set([...w.kps, ...w.teacherQs.flatMap(t => t.kps)])], work: w.id, kind: w.type, priority: w.priority }));
+    const workExams = work.filter(w => w.date && w.type !== 'practice').map(w => ({ id: 'w:' + w.id, title: w.title, date: w.date, skillIds: w.skills.slice(), deckIds: w.decks.slice(), kps: [...new Set([...w.kps, ...w.teacherQs.flatMap(t => t.kps)])], work: w.id, kind: w.type, priority: w.priority, weight: w.weight }));
     const focusCids = [...new Set([...work.filter(w => w.type === 'practice').flatMap(w => w.kps), ...work.flatMap(w => (w.focus && w.focus.kps) || [])])];
     const focusSkills = [...new Set(work.flatMap(w => (w.focus && w.focus.skills) || []))];   // v3: lärarens betoning → motorns befintliga fokusvikt
     KIDS.push({ id: c.id, name: c.name, grade: tpl.grade, emoji: c.emoji, hue: c.hue, theme: c.theme, teen: c.theme === 'teen', template: c.template, note: c.note, paper: c.paper, cfgDecks: c.decks.map(deckFromConfig), cfgExams: c.exams, skills, v2skills, workExams, focusCids, focusSkills });

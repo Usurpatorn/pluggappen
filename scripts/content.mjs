@@ -39,6 +39,7 @@ else if (cmd === 'bundle') {
     if (!w.kid || !w.title) werr.push(`${at}: kid och title krävs`); if (!TYPES.includes(w.type)) werr.push(`${at}: type måste vara ${TYPES.join('/')}`);
     if (w.date && !/^\d{4}-\d{2}-\d{2}$/.test(w.date)) werr.push(`${at}: date måste vara ÅÅÅÅ-MM-DD`); if (w.type !== 'practice' && !w.date) werr.push(`${at}: ${w.type} behöver ett datum`);
     for (const k of w.kps || []) if (!known.has(k)) werr.push(`${at}: okänd kunskapspunkt ${k}`);
+    if (w.weight != null && !['major', 'minor'].includes(w.weight)) werr.push(`${at}: weight måste vara major eller minor (eller utelämnas: standard efter type)`);   // 3.4
     for (const t of w.teacherQs || []) {
       if (!t.n || !t.q) werr.push(`${at}: lärarfråga behöver n och q`); if (!(t.kps || []).length) werr.push(`${at} fråga ${t.n}: kps saknas (vilka kunskapspunkter prövar frågan?)`);
       for (const k of t.kps || []) if (!known.has(k)) werr.push(`${at} fråga ${t.n}: okänd kunskapspunkt ${k}`);

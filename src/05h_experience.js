@@ -66,7 +66,7 @@ const EXP = {
     const list = names.slice(0, 3); if (rev) list.push('Revansch'); if (rep) list.push(EXP.repLabel(kid, C, plan.filter(x => x.role === 'remember' || x.role === 'warmup')));
     const st = []; for (const s of plan) { const k = EXP.stationOf(s, C); if (!st.includes(k)) st.push(k); }
     // Achieve: dela upp i det som hör till nästa prov och det som också övas idag (med momentens fulla namn)
-    const g = EXP.goalOf(kid).now; const inExam = new Set(g ? LE.examCids(C, g.e) : []); const ex = [], also = [];
+    const g = EXP.goalOf(kid, plan).now; const inExam = new Set(g ? LE.examCids(C, g.e) : []); const ex = [], also = [];
     const fullName = (cid) => { const d = C.cat[cid] || {}; return d.kind === 'kp' ? (PACKS.skillFor(kid, d.ref) || {}).name || EXP.nameOf(kid, C, cid) : d.kind === 'skill' ? ((V2.skillOf(kid, cid) || {}).name || d.name) : EXP.nameOf(kid, C, cid); };
     // UX-granskning: provets moment syns även när de kommer som repetition, Revansch eller Boss ("Repetition: Parenteser") – annars sa
     // rubriken "algebra" medan listan bara visade annat
@@ -101,9 +101,17 @@ const EXP = {
       <div class="mission-sub">${sub}</div>
       ${canMore ? `<button class="btn big wide secondary btn-2l" data-v2="flow">${esc(flowLabel)}<span class="btn-sub"><span class="sep"> · </span>cirka ${EXP.flowMins(kid)} min</span></button>` : `<div class="muted">${rest ? 'Bra jobbat idag! Det du har övat sätter sig bäst om du vilar nu.' : 'Allt för idag är gjort.'}</div>`}</section>`;
   },
+  // 3.4: en tom plan (t.ex. kvällen före ett prov utan något sett att repetera) får ingen KÖR-knapp som inte startar något och inga "0 uppgifter"
+  emptyCard(kid, title, extra = '') {
+    const ds = LE.exams(kid, prof(kid.id)).filter(e => LE.isMajor(e)).map(e => daysUntil(e.date)).filter(d => d >= 0 && d <= 1); const eve = ds.length > 0;
+    return `<section class="card pad-lg mission empty stack" aria-label="${esc(title)}"><div class="eyebrow">${esc(title)}</div>
+      <div class="mission-sub">${eve ? (Math.min(...ds) === 0 ? 'På provdagen' : 'Dagen före ett prov') + ' tar Kör! inte in något nytt – och inget väntar på repetition idag.' : 'Kör! har inget som gör nytta just nu.'}</div>
+      <div class="muted">Vila gärna, eller öva på egen hand nedanför.</div>${extra}</section>`;
+  },
   exploreHome(kid, p) {
     if (EXP.coreDone(p)) return EXP.doneCard(kid, p, 'ÄVENTYRET KLART!', 'Du är klar för idag.', 'ETT ÄVENTYR TILL');
     const s = EXP.summary(kid);
+    if (!s.n) return EXP.emptyCard(kid, 'DAGENS ÄVENTYR');
     const pet = p.pet && p.pet !== 'none' && typeof petEmoji === 'function' ? `<div class="hero-pet" aria-hidden="true">${petEmoji(p)}</div>` : '';   // 3.3: följeslagaren hör hemma i äventyret
     return `<section class="card pad-lg mission explore stack" aria-label="Dagens äventyr">${pet}<div class="eyebrow">DAGENS ÄVENTYR</div>
       <div class="mission-title">${s.n} små utmaningar</div><div class="muted">cirka ${s.mins} min${s.list.filter(x => x !== 'Repetition' && x !== 'Revansch').length ? ` · ${s.list.filter(x => x !== 'Repetition' && x !== 'Revansch').slice(0, 2).map(esc).join(' och ')}` : ''}</div>${EXP.chips(s.stations)}
@@ -112,7 +120,8 @@ const EXP = {
   growHome(kid, p) {
     const m = V2.mission(kid); const label = LBL(kid).go.toUpperCase();
     if (EXP.coreDone(p)) return EXP.doneCard(kid, p, 'RUNDAN KLAR!', 'Du är klar för idag.', 'EN RUNDA TILL');
-    const s = EXP.summary(kid); const sh = EXP.examShare(kid, m, s.plan); const ex = m && sh.n > 0; const pr = EXP.progress(kid); const C = s.C; const fb = V2.felbok(kid, C, LE.now()); const todo = fb.items.filter(x => x.state === 'todo').length;
+    const s0 = EXP.summary(kid); if (!s0.n) return EXP.emptyCard(kid, 'DAGENS RUNDA');
+    const s = s0; const sh = EXP.examShare(kid, m, s.plan); const ex = m && sh.n > 0; const pr = EXP.progress(kid); const C = s.C; const fb = V2.felbok(kid, C, LE.now()); const todo = fb.items.filter(x => x.state === 'todo').length;
     // 3.3: motorns tre lägen med barnets ord – "sitter", "på väg", "övar" – och en rubrik som säger vad stapeln är
     const parts = [[pr['Säker'], 'sitter', 'skra'], [pr['På väg'], 'på väg', 'pvg'], [pr['Tränar'] + pr['Behöver repetition'], 'övar', 'trnar']].filter(x => x[0] > 0);   // bara lägen som finns – ingen "0 sitter"
     const tot3 = parts.reduce((a, x) => a + x[0], 0);
@@ -127,9 +136,11 @@ const EXP = {
       ${goalRow}
       ${todo ? `<button class="btn ghost wide" data-v2="revansch">Hellre revansch först? · ${todo} ${todo === 1 ? 'sak' : 'saker'}</button>` : ''}</section>`;
   },
-  goalOf(kid) {
+  goalOf(kid, plan) {
     const p = prof(kid.id); const all = LE.exams(kid, p).map(e => ({ e, d: daysUntil(e.date) })).filter(x => x.d >= 0).sort((a, b) => a.d - b.d || (b.e.priority === 'high') - (a.e.priority === 'high') || (a.e.id < b.e.id ? -1 : 1));
-    const now = all.find(x => x.d <= V2.MISSION_DAYS) || null;   // nästa mål: inom uppdragets horisont (samma som Study Mission)
+    // 3.4 flera mål: rubriken är målet som dagens plan faktiskt tränar mest (lika → närmast), inte bara det närmaste datumet
+    const win = all.filter(x => x.d <= V2.MISSION_DAYS); let now = win[0] || null;
+    if (plan && win.length > 1) { let best = null, bn = 0; for (const x of win) { const n = EXP.examShare(kid, x, plan).n; if (n > bn) { bn = n; best = x; } } if (best) now = best; }
     return { now, next: now ? all.find(x => x !== now && x.d <= 60) || null : null };   // "Sedan:" – bara en rad, aldrig en andra plan
   },
   isExam(e) { return e && (e.kind === 'exam' || /prov|förhör|test/i.test(e.title || '')); },
@@ -149,10 +160,11 @@ const EXP = {
       : `<div class="muted" style="font-size:.95rem">Inget behöver övas för ${EXP.isExam(m.e) ? 'provet' : 'uppgiften'} just nu – appen tar det när det är dags.</div>`;
   },
   achieveHome(kid, p) {
-    const g = EXP.goalOf(kid); const m = g.now;
-    const sedan = g.next ? `<div class="then">Sedan: <b>${esc(g.next.e.title.toUpperCase())}</b> · <span class="nw">${esc(fmtDate(g.next.e.date).toUpperCase())}</span></div>` : '';
+    const plan0 = V2.peekPlan(kid).plan; const g = EXP.coreDone(p) ? EXP.goalOf(kid, EXP.peekFlow(kid)) : EXP.goalOf(kid, plan0); const m = g.now;
+    const sedan = g.next ? `<div class="then">${m && g.next.d < m.d ? 'Före det' : 'Sedan'}: <b>${esc(g.next.e.title.toUpperCase())}</b> · <span class="nw">${esc(fmtDate(g.next.e.date).toUpperCase())}</span></div>` : '';
     if (EXP.coreDone(p)) { const fsh = EXP.examShare(kid, m, EXP.peekFlow(kid)); return EXP.doneCard(kid, p, 'DAGENS PLAN KLAR', 'Appen håller koll på resten.', m && EXP.isExam(m.e) && EXP.mostly(fsh) ? 'FORTSÄTT MOT PROVET' : 'FORTSÄTT') + EXP.goalDetail(kid, m); }
-    const s = EXP.summary(kid); const sh = EXP.examShare(kid, m, s.plan); const ex = m && sh.n > 0;   // provrubrik bara när dagens pass innehåller provet
+    const s = EXP.summary(kid, plan0); if (!s.n) return EXP.emptyCard(kid, 'DAGENS PLAN', sedan) + EXP.goalDetail(kid, m);
+    const sh = EXP.examShare(kid, m, s.plan); const ex = m && sh.n > 0;   // provrubrik bara när dagens pass innehåller provet
     const when = m ? `${esc(fmtDate(m.e.date).toUpperCase())} · ${m.d === 0 ? 'idag' : m.d === 1 ? 'imorgon' : `om ${m.d} dagar`}` : '';
     const head = ex ? `<div class="eyebrow">NÄSTA MÅL</div><div class="goal-title">${esc(m.e.title.toUpperCase())}</div><div class="goal-date">${when}</div>`
       : `<div class="eyebrow">DAGENS PLAN</div>${s.list[0] ? `<div class="goal-title">${esc(s.list[0].toUpperCase())}</div>` : ''}`;
@@ -339,7 +351,7 @@ const EXP = {
   },
   finish(kid, V, sum, won, extraCards) {
     const e = V.exp; const p = prof(kid.id); const flow = V.mode === 'flow';
-    const g = e === 'achieve' ? EXP.goalOf(kid).now : null;
+    const g = e === 'achieve' ? EXP.goalOf(kid, V.plan).now : null;
     const mission = V.mode === 'mission';   // provets egen träning (2.1.1) är inte dagens plan
     // Granskning: efter provträning, Revansch o.d. FÖRE dagens plan erbjuds dagens plan – inte FLOW (FLOW kommer bara efter CORE)
     const corePending = V.mode !== 'kor' && !flow && !EXP.coreDone(p) && V2.safe(() => V2.peekPlan(kid).plan.length > 0, 'corePending', false);   // 3.1: ingen Kör!-knapp som inte startar något

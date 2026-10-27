@@ -222,3 +222,58 @@ med `PREVIEW=1` till `<sajten>/preview/`. Produktionen publiceras som vanligt. M
 - Tillgänglighet: axe-core (WCAG 2.1 A/AA) 0 fynd på 24 skärmar i 375, 390, 820 och 1180 px.
 - Test: `test_ux33.js` och `test_ux33_final.js` (krokar = uppgiften, två rutor utan förlust/dubbletter, Hitta felet/Baklänges rättas som förut, löftena
   ordagrant, lugnt Testa mig). Rollback: `release-3.2.2-1544484` (profilformatet är oförändrat, så rollback kräver ingen migrering; enda innehållsskillnaden i lagrad data är grammatikrättelsen "1 färgad" i stegtext som v1-Felboken kopierar).
+
+## 3.4.0 – Flera mål och oregelbundet plugg (gren `le-multigoal`, bygger på 3.3)
+- **Problemet (återskapat och kvar som test):** det närmaste målet, oavsett storlek, satte provveckans broms på ny inlärning i hela
+  planen. Ett litet förhör kunde därför stoppa nytt i ett större prov fem dygn senare och i ett tredje prov ännu senare.
+  `tests/test_le_multigoal.js` ger 11 fel mot 3.3-bygget och är grönt på 3.4.
+- **Reglerna nu (`LE2.planSession`, `LE.isMajor`, CFG.exam):**
+  - **Bara ett större mål** (prov) bromsar ny inlärning i hela planen: inget nytt dagen före eller på provdagen, sedan stegvis
+    veckan före.
+  - **Ett mindre mål** (läxförhör eller glosförhör) väger 0,6 i prioriteten. Dess sista dygn tas inga osedda koncept in som bara hör
+    till det målet. De sista tre dygnen går minst en tredjedel av passet till det (ett större prov får hälften).
+  - **Standard utan storlek:** `exam` och prov som lagts in i appen utan typ räknas som större, alltså som före 3.4.
+    `homework`/`vocab` räknas som mindre.
+  - **Förälderns val** gäller före standarden:
+    - i appen: Prov → Storlek när provet läggs in, och Översikt → mål och täckning → Ändra. Valet sparas på provet och synkas
+      som en ändring av det.
+    - skoluppgifter: fältet `weight` via det privata innehållsflödet.
+  - **Veckan före ett större prov** bromsas annat nytt, men provets egna osedda koncept får introduceras.
+  - **Täckningstryck:** ett mål med fler osedda koncept än dygn kvar innan sina tre sista får +1 nytt per pass under ett annat provs
+    vecka. Det gäller aldrig vid överlast.
+  - **Målrättvisa:** ett större prov inom 14 dygn vars övade koncept inte setts på 3 dygn, när ett annat mål ligger närmare, får
+    ett av dem i passet. Det är alltid repetition, aldrig nytt. Ett ensamt prov påverkas inte, så säsongerna är oförändrade.
+  - **Gemensamma koncept** är ett koncept i motorn med samma bevis och belöningar. Förhörets sista dygn stoppar inte ett koncept som
+    också hör till ett senare prov.
+  - **Rättelse (M8):** ett osett koncept vars förkunskap saknas kom förut in via provets vikt utan att räknas som nytt, också dagen
+    före ett prov. Nu gäller "inget nytt" dagen före och på provdagen för allt osett.
+  - **Rättelse:** en tom plan fick en Boss utan koncept. Nu blir ingen Boss skapad, och hemmet säger ärligt att det inte finns något
+    att köra, i stället för att visa en KÖR-knapp som inte startar något.
+- **Hemmets rubrik** är målet som dagens plan tränar mest (lika antal → det närmaste), inte bara det närmaste datumet. Om det andra
+  målet kommer tidigare står det "Före det:".
+- **Föräldern: mål och täckning** (Översikt, v2). För varje mål visas:
+  - storleken och varför den gäller (standard eller förälderns val);
+  - hur många områden som är påbörjade i appen;
+  - en **risk** när fler områden är opåbörjade än det finns dygn kvar innan målets sista dygn.
+
+  Planeraren använder samma regel. Kortet ger ingen prognos, inga procent och ingen skuld.
+- **Jämförelse** med samma fixturer och frön (4 frön × rätt-andel 0,7/0,85, syntetiska datum: mindre förhör dag 17, större prov dag 22
+  och dag 30). Siffran är antal koncept introducerade före datum:
+
+  | Mål | 3.3 | 3.4 |
+  |---|---|---|
+  | förhör (14 koncept) | 11,3 | 10,4 |
+  | algebra (7) | 5,3 | 6,8 |
+  | kemi (19) | 7,3 | 7,4 |
+
+  - Kemi: tillbakahämtning ett senare dygn 6,4 → 7,4. Ett uppehåll på fem dygn eller mer före provet förekom i 2 av 8 körningar
+    och förekommer nu i 0 av 8.
+  - Inget koncept tog mer än ett stadiesteg samma dygn, och inget nytt koncept nådde stadium 2 samma dygn (0 i båda byggena).
+    Högst 4 nya koncept per dygn i båda byggena.
+  - Kontroll (bara algebra och kemi): algebra 7,0 → 7,0, kemi 13,8 → 12,8. Av kemis −1,0 kommer −0,7 från M8-rättelsen: inget
+    osett dagen före algebraprovet.
+  - Den bindande gränsen är inlärningstakten (ungefär ett nytt koncept per dag när mycket pågår). Det är därför risken visas för
+    föräldern i stället för att barnet överbelastas.
+- **Mutationsprövat:** 13 avsiktliga fel i reglerna, rubriken och det tomma hemmet fångas av testet.
+- **Rollback:** 3.3-bygget. Det tillagda fältet `weight` på prov ignoreras av äldre versioner, som då räknar alla mål som större
+  (beteendet före 3.4). Inget annat i profilen ändras.

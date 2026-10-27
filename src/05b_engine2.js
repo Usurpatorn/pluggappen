@@ -43,7 +43,7 @@ const LE2 = (() => {
     subjectWaitDays: 7,                                  // ämnesrättvisa: ett ämne med behov som inte övats på 7 dygn får full extra vikt
     recentHours: 20,                                     // K-14 rotation: övat inom 20 h → låt något annat få turen först
     due: { base: 0.5, slope: 0.5, maintFactor: 0.6, maintStage: 4 },
-    exam: { horizon: 21, ramp: 19, power: 1.5, floor: 0.25, readyDamp: 0.5, weekDays: 7, examFirstDays: 7, minShareLast3: 0.5 },
+    exam: { horizon: 21, ramp: 19, power: 1.5, floor: 0.25, readyDamp: 0.5, weekDays: 7, examFirstDays: 7, minShareLast3: 0.5, minorWeight: 0.6, minorShareLast3: 0.34, goalWaitDays: 3, goalWaitWindow: 14 },   // 3.4: ett mindre mål väger lägre och tar en mindre del av sina sista dygn
     // K-14: begränsad repetitionsskuld
     // loadCap: hur många halvlärda koncept (stadium ≤1) innan nytt bromsas. starveSessions: även bromsat kommer något nytt efter så många pass
     // (svält-skydd), men bara om lasten är under 2×loadCap; annars först efter starveSessionsHard pass (nytt ovanpå allt som glöms hjälper ingen).
@@ -315,7 +315,7 @@ const LE2 = (() => {
       // ämnesrättvisa: något i ämnet behöver övas men ämnet har inte övats på länge
       const sw = (ctx.subjWait || {})[def.subject]; if (sw != null && (comps.due || comps.fb || comps.weak || comps.new || comps.stale)) comps.subj = Math.min(1, sw / CFG.subjectWaitDays);
     }
-    const ex = (ctx.exams || []).filter(e => e.concepts.includes(cid)).map(e => examUrgency(Math.ceil((e.at - now) / DAY)) * (e.ready ? CFG.exam.readyDamp : 1));
+    const ex = (ctx.exams || []).filter(e => e.concepts.includes(cid)).map(e => examUrgency(Math.ceil((e.at - now) / DAY)) * (e.ready ? CFG.exam.readyDamp : 1) * (e.major === false ? CFG.exam.minorWeight : 1));
     if (ex.length) { const u = Math.max(...ex); if (u > 0) comps.exam = u * (1 - conf(c)) + u * CFG.exam.floor; }
     if (def.focus) comps.focus = 1;
     if (c && c.lastSeen && now - c.lastSeen < CFG.recentHours * 3600000 && !(comps.exam > 0 && ex.some(u => u > 0)) && def.kind !== 'deck') comps.recent = -1;
@@ -357,7 +357,12 @@ const LE2 = (() => {
     const light = valuable <= S.klarValuable; if (light) n = Math.min(n, S.klarMax);
     const restart = ctx.lastSessionAt && (now - ctx.lastSessionAt) / DAY > S.restartDays; if (restart) n = Math.max(range[0], Math.round(n * 0.75));
     const maxItems = restart ? n + 2 : Math.max(pol.maxItems, n + 2);
-    const examDays = Math.min(99, ...(ctx.exams || []).map(e => Math.ceil((e.at - now) / DAY)).filter(d => d >= 0));
+    const exs = (ctx.exams || []).map(e => ({ e, d: Math.ceil((e.at - now) / DAY) })).filter(x => x.d >= 0);
+    const examDays = Math.min(99, ...exs.map(x => x.d));
+    // 3.4 flera mål: bara ett STÖRRE mål (prov) bromsar ny inlärning i hela planen. Ett mindre (läxförhör, glosförhör – eller förälderns val)
+    // får sin egen prioritet och sina sista dygn, men stryper inte inlärning för andra mål. Utan uppgift om storlek: som förut (större).
+    const majorDays = Math.min(99, ...exs.filter(x => x.e.major !== false).map(x => x.d));
+    const eveOnlyMinor = (cid) => { const gs = exs.filter(x => (x.e.concepts || []).includes(cid)); return gs.length > 0 && gs.every(x => x.e.major === false && x.d <= 1); };   // ett mindre måls sista dygn: inga osedda koncept som bara hör dit
     const examFirst = (a, b) => (examDays <= CFG.exam.examFirstDays ? ((b.parts.exam > 0) - (a.parts.exam > 0)) : 0);
     const subjOf = (cid) => cat[cid].subject; const subjects = new Set(); const used = new Map(); const newGuard = new Set();
     const canUse = (cid, max = 2) => (used.get(cid) || 0) < max && (subjects.has(subjOf(cid)) || subjects.size < pol.maxSubjects);
@@ -382,43 +387,65 @@ const LE2 = (() => {
     // svält-skydd: vanlig överlast → nytt efter 4 pass; kraftig överlast (≥2×tak) → efter 8; extrem (≥3×tak) → efter 12. Aldrig permanent stopp.
     const starved = load < 2 * cap ? sinceNew >= B.starveSessions : sinceNew >= B.starveSessionsHard * (load >= 3 * cap ? 1.5 : 1);
     // provets sista dygn: inget nytt; tre dygn före: bara om svält; provvecka: ett nytt koncept på en plats
-    const maxNew0 = examDays <= 1 ? 0 : examDays <= 3 ? (starved ? 1 : 0) : overloaded ? (starved ? 1 : 0) : examDays <= CFG.exam.weekDays ? 1 : pol.maxNew;
+    const maxNew0 = majorDays <= 1 ? 0 : majorDays <= 3 ? (starved ? 1 : 0) : overloaded ? (starved ? 1 : 0) : majorDays <= CFG.exam.weekDays ? 1 : pol.maxNew;
     // Experience v3 (FLOW) och 2.1.1 (provträning): ett extrablock samma dygn får bara det som är kvar av dygnets gräns för ny inlärning (opts.newCap). CORE oförändrat.
     const maxNew = opts.newCap != null ? Math.max(0, Math.min(maxNew0, opts.newCap)) : maxNew0;
-    let newTaken = 0; const isNewC = (cid) => !(L.c[cid] && L.c[cid].n > 0);
+    let newTaken = 0; const isNewC = (cid) => !(L.c[cid] && L.c[cid].n > 0); for (const r of ranked) if (isNewC(r.cid) && eveOnlyMinor(r.cid)) newGuard.add(r.cid);
+    // 3.4 täckningstryck: ett mål vars osedda koncept är minst lika många som dygnen kvar före dess sista tre dygn behöver en introduktion
+    // varje pass – ett annat större provs vecka får då inte strypa det helt (+1 per pass, aldrig vid överlast; risken visas för föräldern).
+    const pressed = new Set(); for (const x of exs) { const un = (x.e.concepts || []).filter(c => cat[c] && cat[c].active !== false && cat[c].kind !== 'deck' && isNewC(c)); if (un.length && un.length >= Math.max(1, x.d - 3)) un.forEach(c => pressed.add(c)); }
+    const extraPressed = majorDays > 3 && majorDays <= CFG.exam.weekDays && !overloaded ? 1 : 0; let pressedExtra = 0;
+    // Ett större provs vecka (4–7 dygn kvar) bromsar annat nytt – men provets egna osedda koncept får introduceras som vanligt (det är förberedelsen)
+    const nearSet = new Set(exs.filter(x => x.e.major !== false && x.d === majorDays).flatMap(x => x.e.concepts || []));
+    const weekOwn = majorDays > 3 && majorDays <= CFG.exam.weekDays && !overloaded ? Math.min(pol.maxNew, opts.newCap != null ? opts.newCap : pol.maxNew) : 0;
+    const newOk = (cid) => { if (newTaken < maxNew) return true; if (nearSet.has(cid) && newTaken < weekOwn) return true; if (pressed.has(cid) && pressedExtra < extraPressed && (opts.newCap == null || newTaken < opts.newCap)) return true; return false; };
+    const tookNew = (cid) => { if (newTaken >= maxNew && !(nearSet.has(cid) && newTaken < weekOwn)) pressedExtra++; newTaken++; };
     // Provets sista tre dygn (och provet inte klart): minst halva passet till provets koncept – innan något annat fyller passet.
     // Granskning M8: aldrig osedda koncept här utöver maxNew (provkvällen: inget nytt alls).
     if (examDays <= 3 && (ctx.exams || []).some(e => Math.ceil((e.at - now) / DAY) <= 3 && !e.ready)) {
-      const want = Math.ceil((n - bossReserve) * CFG.exam.minShareLast3); let have = slots.filter(x => x.parts && x.parts.exam > 0).length;
+      const onlyMinor = (ctx.exams || []).filter(e => Math.ceil((e.at - now) / DAY) <= 3 && !e.ready).every(e => e.major === false);
+      const want = Math.ceil((n - bossReserve) * (onlyMinor ? CFG.exam.minorShareLast3 : CFG.exam.minShareLast3)); let have = slots.filter(x => x.parts && x.parts.exam > 0).length;
       for (const r of ranked.filter(x => x.parts.exam > 0)) { if (have >= want) break; const nw = isNewC(r.cid); if (nw && (newTaken >= maxNew || newGuard.has(r.cid))) continue; if (canUse(r.cid, 2)) { take(r, r.parts.fb > 0 ? 'revansch' : r.parts.due > 0 ? 'remember' : 'focus'); have++; if (nw) { newGuard.add(r.cid); newTaken++; } } }
     }
     // Ämnesrättvisa (K-14): ett ämne med något att öva som inte övats på en vecka får sin bästa uppgift tidigt i passet (nytt bara inom maxNew).
     for (const sj of Object.keys(ctx.subjWait || {}).filter(x => ctx.subjWait[x] >= CFG.subjectWaitDays).sort()) {
       if (slots.some(x => subjOf(x.cid) === sj)) continue;
-      const r = ranked.find(x => subjOf(x.cid) === sj && canUse(x.cid, 1) && (['due', 'fb', 'weak', 'stale'].some(k => (x.parts[k] || 0) > 0) || ((x.parts.new || 0) > 0 && newTaken < maxNew)));
+      const r = ranked.find(x => subjOf(x.cid) === sj && canUse(x.cid, 1) && (['due', 'fb', 'weak', 'stale'].some(k => (x.parts[k] || 0) > 0) || ((x.parts.new || 0) > 0 && newTaken < maxNew && !newGuard.has(x.cid))));
       if (r) { take(r, r.parts.fb > 0 ? 'revansch' : r.parts.due > 0 ? 'remember' : 'focus'); if (r.parts.new > 0 && !(L.c[r.cid] && L.c[r.cid].n > 0)) { newGuard.add(r.cid); newTaken++; } }
     }
-    const newPick = maxNew > newTaken ? newList.find(x => canUse(x.cid, 2) && !newGuard.has(x.cid)) : null;
-    if (newPick) { take(newPick, 'focus'); if (n > S.klarMax + 1 && examDays > CFG.exam.weekDays) take(newPick, 'focus'); newTaken++; }
+    // 3.4 målrättvisa: ett större prov inom två veckor (utanför sina egna sista tre dygn, där provets andel gäller) vars övade koncept inte
+    // setts på tre dygn får ett av dem i passet – repetition, aldrig nytt – så att ett annat måls vecka inte ger provet ett långt uppehåll.
+    // Bara när ett annat mål ligger närmare (det är då ett mål kan trängas undan); ett ensamt prov har redan provets vikt (säsong D oförändrad).
+    for (const x of exs.filter(y => y.e.major !== false && y.d > 3 && y.d <= CFG.exam.goalWaitWindow && exs.some(z => z !== y && z.d < y.d)).sort((a, b) => a.d - b.d)) {
+      const cs = (x.e.concepts || []).filter(c => L.c[c] && L.c[c].n > 0 && cat[c] && cat[c].active !== false && cat[c].kind !== 'deck');
+      if (!cs.length || slots.some(sl => cs.includes(sl.cid)) || slots.length >= n - bossReserve - 1) continue;
+      if ((now - Math.max(...cs.map(c => L.c[c].lastSeen || 0))) / DAY < CFG.exam.goalWaitDays) continue;
+      const r = ranked.find(y => cs.includes(y.cid) && canUse(y.cid, 1)); if (r) take(r, r.parts.fb > 0 ? 'revansch' : 'remember');
+    }
+    const newPick = newList.find(x => canUse(x.cid, 2) && !newGuard.has(x.cid) && newOk(x.cid)) || null;
+    if (newPick) { take(newPick, 'focus'); if (n > S.klarMax + 1 && majorDays > CFG.exam.weekDays) take(newPick, 'focus'); tookNew(newPick.cid); }
     // 2) Kommer du ihåg? K-14: andelen växer med skulden (40 → 50 → 60 %) men aldrig över dagens tak; provvecka 25 %
     const backlog = dueBacklog(L, cat, now);
-    const share = examDays <= CFG.exam.weekDays ? B.shareExam : backlog > 2 * pol.dueCap ? B.shareMax : backlog > pol.dueCap ? B.shareHigh : B.share;
+    const share = majorDays <= CFG.exam.weekDays ? B.shareExam : backlog > 2 * pol.dueCap ? B.shareMax : backlog > pol.dueCap ? B.shareHigh : B.share;
     const dueSlots = Math.max(1, Math.min(Math.round(n * share), n - bossReserve - slots.length - 1));
     let dueTaken = 0; for (const r of dueList) { if (dueTaken >= dueSlots || (ctx.dueDoneToday || 0) + dueTaken >= pol.dueCap) break; if (!used.has(r.cid) && canUse(r.cid, 1)) { take(r, 'remember'); dueTaken++; } }
     // K-14: det som väntat längst göms aldrig – minst ett koncept som "väntat länge" får plats i varje pass (även provveckor)
     { const want = examDays <= 3 ? 1 : backlog > 2.5 * pol.dueCap ? 3 : backlog > 1.5 * pol.dueCap ? 2 : 1; let have = slots.filter(x => x.parts && x.parts.stale > 0).length;
       for (const st of ranked.filter(r => r.parts.stale > 0 && !used.has(r.cid) && canUse(r.cid, 1) && (examDays > 3 || r.parts.stale >= W.stale)).sort((a, b) => ((L.c[a.cid] || {}).due || 0) - ((L.c[b.cid] || {}).due || 0) || (a.cid < b.cid ? -1 : 1))) { if (have >= want || slots.length >= n - bossReserve) break; take(st, 'remember'); have++; } }
     // 3) Revansch (efter uppehåll: högst en, och först efter dagens fokus – återkomsten ska inte börja med gamla fel)
-    const fbSlots = examDays <= 1 || restart ? S.revanschExamEve : S.revansch; let fbTaken = 0; const revAt = slots.length; const revSlots = [];
+    const fbSlots = majorDays <= 1 || restart ? S.revanschExamEve : S.revansch; let fbTaken = 0; const revAt = slots.length; const revSlots = [];
     for (const r of fbList) { if (fbTaken >= fbSlots) break; if (canUse(r.cid, 1)) { take(r, 'revansch'); fbTaken++; } }
     if (restart) revSlots.push(...slots.splice(revAt));
     // 4) Dagens fokus
     for (const r of focusList.concat(newList)) {
       if (slots.length >= n - bossReserve) break;
       const isNew = r.parts.new > 0 && !(L.c[r.cid] && L.c[r.cid].n > 0);
-      if (isNew && newTaken >= maxNew) continue;
+      if (isNew && !newOk(r.cid)) continue;
+      // 3.4 rättelse (M8): osett med förkunskap kvar har parts.new 0 och kommer in via provets vikt utan att räknas som nytt. Provkvällen
+      // (större prov ≤ 1 dygn) och ett mindre måls sista dygn får det inte komma in alls. Övriga dygn oförändrat (simuleringarna K-14/F).
+      if (isNewC(r.cid) && (majorDays <= 1 || eveOnlyMinor(r.cid))) continue;
       if (!canUse(r.cid, 2)) continue;
-      take(r, 'focus'); if (isNew) newTaken++;
+      take(r, 'focus'); if (isNew) tookNew(r.cid);
       // K-14: med hög repetitionsskuld prioriteras bredd – ett svagt koncept får bara en plats (nytt får fortfarande två: introduktion + övning)
       if (slots.length < n - bossReserve && canUse(r.cid, 2) && (isNew || ((r.parts.exam > 0 || r.parts.weak > 0) && backlog <= B.breadthAbove * pol.dueCap))) take(r, 'focus');
     }
@@ -438,7 +465,7 @@ const LE2 = (() => {
     // Granskning L2 (prövat och förkastat): att trimma planen till exakt n försämrade K-14 (svaga koncept väntade längre). Planen får vara
     // högst ett par uppgifter över n; passköraren stoppar alltid vid policyns maxItems (yngre 10, mellan 12, äldre 14).
     // 6) Bossen: väljs när den ska spelas (bland koncept som gått bra i passet) – aldrig ett just misslyckat koncept
-    if (bossReserve && slots.length < n) { const bossC = slots.filter(s => s.role === 'focus' || s.role === 'remember').map(s => s.cid).find(cid => !(L.c[cid] && L.c[cid].fb && L.c[cid].fb.s === 'open')); slots.push({ cid: bossC || (slots[0] && slots[0].cid), role: 'boss', why: WHY_TEXT.boss, P: 0, parts: {}, dynamic: true, examC: examDays <= CFG.exam.examFirstDays ? (ctx.exams || []).flatMap(e => e.concepts) : [] }); }
+    if (bossReserve && slots.length && slots.length < n) { const bossC = slots.filter(s => s.role === 'focus' || s.role === 'remember').map(s => s.cid).find(cid => !(L.c[cid] && L.c[cid].fb && L.c[cid].fb.s === 'open')); slots.push({ cid: bossC || (slots[0] && slots[0].cid), role: 'boss', why: WHY_TEXT.boss, P: 0, parts: {}, dynamic: true, examC: examDays <= CFG.exam.examFirstDays ? (ctx.exams || []).flatMap(e => e.concepts) : [] }); }
     // Ingen utfyllnad med lågt värde: hellre ett kortare pass (lärande per minut) – men ett andra försök på dagens fokus/nya koncept får fylla
     for (const x of slots.filter(y => y.role === 'focus').map(y => y.cid)) { if (slots.length >= n - bossReserve) break; if (canUse(x, 2)) { const r = ranked.find(y => y.cid === x); if (r) take(r, 'focus'); } }
     // Passets båge: uppvärmning → minnas → revansch → fokus/nytt → övning → utmaning → boss (efter uppehåll: revansch efter fokus)

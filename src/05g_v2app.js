@@ -540,6 +540,34 @@ const V2 = {
     if (r.k === 'depth') return 'Det mesta sitter. Utmaningarna ger fördjupning – fortsätt gärna med korta pass.';
     return `Fortsätt som nu: ett kort pass om dagen (cirka ${r.minutes} min).`;
   },
+  // 3.4 flera mål: storleken styr bromsen (bara ett STÖRRE mål bromsar annat nytt). Standard: prov = större, läxförhör/glosförhör = mindre,
+  // inlagt prov utan typ = större (som före 3.4). Föräldern kan ändra inlagda prov här; skoluppgifter ändras i skoluppgiften (weight).
+  sizeOf(e) { const major = LE.isMajor(e); return { major, txt: major ? 'Större (prov)' : 'Mindre (förhör eller läxa)', why: e.weight ? 'ditt val' : (e.kind === 'homework' || e.kind === 'vocab') ? 'standard för läxa och förhör' : 'standard för prov' }; },
+  // 3.4 fas C: täckningsrisken för föräldern – ärligt, utan prognos från gles historik. Regeln är densamma som planerarens täckningstryck:
+  // fler osedda områden än dagar kvar före provets sista tre dagar (då tar appen inte in nytt för provet).
+  goalsCard(kid) {
+    return V2.safe(() => {
+      const p = prof(kid.id); if (!p.le || !LE.canStart(kid, p)) return ''; const C = LE.state(kid);
+      const list = LE.exams(kid, p).map(e => ({ e, d: daysUntil(e.date) })).filter(x => x.d >= 0 && x.d <= 60).sort((a, b) => a.d - b.d || (a.e.id < b.e.id ? -1 : 1)); if (!list.length) return '';
+      const seen = (cid) => !!(C.L.c[cid] && C.L.c[cid].n > 0); let totUn = 0;
+      const rows = list.map(({ e, d }) => {
+        const cids = V2.examCidsActive(kid, e).filter(cid => !(C.cat[cid] && C.cat[cid].kind === 'deck')); const un = cids.filter(cid => !seen(cid)).length; totUn += un;
+        const sz = V2.sizeOf(e); const room = Math.max(0, d - (sz.major ? 3 : 1)); const own = (p.exams || []).some(x => x.id === e.id);
+        const cov = !cids.length ? `<div class="muted" style="font-size:.9rem">Områdena är inte inlagda i appen – appen kan inte förbereda för det här.</div>`
+          : !un ? `<div style="font-size:.9rem">Alla ${cids.length} områden är påbörjade i appen.</div>`
+          : un > room ? `<div class="hint" style="font-size:.9rem"><b>Risk:</b> ${un} av ${cids.length} områden är inte påbörjade, och det är ${room} ${room === 1 ? 'dag' : 'dagar'} kvar innan ${sz.major ? 'provets sista tre dagar' : 'sista dagen'} (då tar appen inte in nytt för det). Allt hinner kanske inte introduceras i appen – särskilt om några dagar blir utan pass. Överväg att prioritera eller öva en del på annat sätt.</div>`
+          : `<div style="font-size:.9rem">${un} av ${cids.length} områden är inte påbörjade än · ${room} ${room === 1 ? 'dag' : 'dagar'} kvar innan ${sz.major ? 'provets sista tre dagar' : 'sista dagen'}.</div>`;
+        const btn = own ? `<button class="btn ghost" style="min-height:36px;padding:0 10px" data-ex-weight="${esc(e.id)}">Ändra till ${sz.major ? 'mindre' : 'större'}</button>` : '';
+        return `<div class="stack" style="gap:4px;padding:8px 0;border-top:1px solid var(--line)"><div class="row" style="justify-content:space-between;gap:8px"><b>${esc(e.title)}</b><span class="muted" style="font-size:.85rem">${esc(fmtDate(e.date))} · ${d === 0 ? 'idag' : d === 1 ? 'imorgon' : `om ${d} dagar`}</span></div>
+          <div class="row" style="justify-content:space-between;gap:8px;flex-wrap:wrap"><span style="font-size:.9rem">${sz.txt} · <span class="muted">${sz.why}${own ? '' : ' · ändras i skoluppgiften'}</span></span>${btn}</div>${cov}</div>`;
+      });
+      return `<div class="card stack" style="gap:6px"><div class="eyebrow">${esc(kid.name)} · mål och täckning</div>
+        <div class="muted" style="font-size:.85rem">Bara ett större mål bromsar annat nytt veckan före. Ett mindre mål får egen tid men stoppar inte förberedelsen för andra prov.</div>
+        ${rows.join('')}
+        ${list.length > 1 && totUn ? `<div class="muted" style="font-size:.85rem">Totalt ${totUn} områden som inte är påbörjade, i ${list.length} mål. Appen planerar om från dagens läge varje gång – missade dagar räknas inte som skuld.</div>` : ''}
+        <div class="muted" style="font-size:.8rem">Påbörjat betyder övat i appen, inte att det sitter. Inget här är en prognos för provresultatet.</div></div>`;
+    }, 'goalsCard', '');
+  },
   insightsCard(kid) {
     return V2.safe(() => {
       const p = prof(kid.id); if (!p.le) return ''; const C = LE.state(kid); const now = LE.now(); const ctx = LE.ctx(kid, p, C, now);

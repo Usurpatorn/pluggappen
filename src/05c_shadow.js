@@ -38,6 +38,9 @@ const LE = {
   // 2.1: ett moments koncept i motorn – kunskapspunkterna om momentet har ett Concept Pack, annars momentet självt
   cidsOfSkill(C, skillId) { const k = (C.kpsOf || {})[skillId]; return k && k.length ? k.filter(cid => C.cat[cid]) : (C.cat[LECAT.skillCid(skillId)] ? [LECAT.skillCid(skillId)] : []); },
   // 2.1: prov = familjens/förälderns prov i profilen + skoluppgifter med datum från familjens privata innehåll (ändras aldrig i profilen)
+  // 3.4: ett större mål (prov) bromsar ny inlärning i hela planen; ett mindre (läxförhör/glosförhör) gör det inte. Förälderns val (weight) går först.
+  // Standard: type/kind 'homework' och 'vocab' är mindre, allt annat (prov, egna inlagda prov utan typ) är större – som före 3.4.
+  isMajor(e) { if (!e) return true; if (e.weight === 'major') return true; if (e.weight === 'minor') return false; return !(e.kind === 'homework' || e.kind === 'vocab'); },
   exams(kid, p) { const rm = p.removedDefaults || []; return [...(p.exams || []), ...((kid && kid.workExams) || []).filter(w => !rm.includes(w.id) && !(p.exams || []).some(x => x.id === w.id))]; },
   examCids(C, e) { return [...new Set([...(e.skillIds || []).flatMap(id => LE.cidsOfSkill(C, id)), ...(e.kps || []).filter(cid => C.cat[cid])])]; },
   // Härlett tillstånd (bas + logg → L), cachat per barn. Migrerar v1 → le första gången (deterministiskt, v1 orört).
@@ -70,7 +73,7 @@ const LE = {
   srcOf(S, hint) { const o = S.opts || {}; if (o.bonus) return 'bonus'; if (hint === 'kor') return 'kor'; if (S.mode === 'test') return 'test'; if (S.mode === 'felbok') return 'felbok'; if (o.wordsOnly || (o.deckIds && o.deckIds.length && !(o.skillIds || []).length)) return 'lang'; if ((o.skillIds || []).length === 1) return 'skill'; return 'mix'; },
   // Planeringskontext från verkliga data (prov, senaste passens ämnen, glosor att repetera)
   ctx(kid, p, C, now, exclId) {
-    const exams = LE.exams(kid, p).filter(e => e.date && daysUntil(e.date) >= 0).map(e => ({ at: new Date(e.date + 'T08:00:00').getTime(), concepts: [...LE.examCids(C, e), ...(e.deckIds || []).map(LECAT.deckCid)] }));
+    const exams = LE.exams(kid, p).filter(e => e.date && daysUntil(e.date) >= 0).map(e => ({ at: new Date(e.date + 'T08:00:00').getTime(), concepts: [...LE.examCids(C, e), ...(e.deckIds || []).map(LECAT.deckCid)], major: LE.isMajor(e) }));
     const recs = (p.le.shadow || []).filter(r => r.id !== exclId);
     const flat = recs.slice(-2).flatMap(r => [...new Set((r.v1 || []).map(cid => (C.cat[cid] || {}).subject || 'lang'))]);
     const share = {}; for (const s of flat) share[s] = (share[s] || 0) + 1 / flat.length;
