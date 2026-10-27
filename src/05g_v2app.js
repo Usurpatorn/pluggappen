@@ -126,7 +126,7 @@ const V2 = {
         <div class="row"><div class="grow"><div class="eyebrow">${esc(e.title)} · ${fmtDate(e.date)}</div><div class="days">${days > 0 ? days : 'Idag'}</div><div style="opacity:.85">${days > 1 ? 'dagar kvar' : days === 1 ? 'dag kvar' : 'Lycka till!'}</div></div></div>
         ${st.per.length && st.per.every(x => x.ready === 'För lite underlag') ? `<div style="font-size:.95rem;opacity:.9">${st.per.length} områden på provet. Kör några pass så ser du här vad som sitter.</div>` : `<div class="stack" style="gap:6px">${shown.map(x => `<div class="row" style="justify-content:space-between;gap:8px"><span style="font-weight:700">${esc(x.name)}</span><span class="pill ${V2.READY_CLS[x.ready]}" style="font-size:.75rem">${V2.READY_TXT[x.ready]}</span></div>`).join('')}${st.per.length > shown.length ? `<div style="opacity:.8;font-size:.85rem">+ ${st.per.length - shown.length} till</div>` : ''}</div>`}
         <div style="font-size:.9rem;opacity:.9">${msg}</div>
-        ${cids.length && !mp.length ? `<div style="font-size:.9rem;opacity:.9">Inget behöver övas för provet just nu – appen tar det när det är dags.${V2.scopeOn(prof(kid.id)) ? '' : ' Kör! fortsätter med det viktigaste.'}</div><div class="row"><button class="btn ghost grow" data-v2="testa" data-exam="${esc(e.id)}">Testa mig</button></div>` : ''}
+        ${cids.length && !mp.length ? `<div style="font-size:.9rem;opacity:.9">Just nu finns inget att öva just för provet – inget är förfallet och inget nytt tas in idag.${V2.scopeOn(prof(kid.id)) ? '' : ' Kör! fortsätter med det viktigaste.'}</div><div class="row"><button class="btn ghost grow" data-v2="testa" data-exam="${esc(e.id)}">Testa mig</button></div>` : ''}
         ${cids.length && mp.length ? `<div class="row"><button class="btn grow" data-v2="mission" data-exam="${esc(e.id)}">Öva inför provet · cirka ${V2.mins(Math.max(1, mp.length))} minuter</button><button class="btn ghost" data-v2="testa" data-exam="${esc(e.id)}">Testa mig</button></div>`
           : `<div style="font-size:.9rem;opacity:.9">Provets områden är inte inlagda i appen ännu, så det finns inget att öva just för det här provet. Be en vuxen lägga in vad provet handlar om.</div>`}
       </div>`; }).join('');
@@ -303,7 +303,7 @@ const V2 = {
   speakBtn(q, p) {
     if (!V2.canSpeak(q)) return '';
     if (S.v2.C.pol.name === 'younger') return `<button class="btn ghost" data-speak="${esc(V2.sayText(q))}" data-lang="sv" style="min-height:${S.v2.exp ? 48 : 36}px;padding:0 12px" aria-label="Läs upp frågan">🔊 Läs upp</button>`;
-    return p.settings.tts ? `<button class="icon-btn" data-speak="${esc(q.text.replace(/<[^>]+>/g, ''))}" data-lang="sv" data-highlight="1" style="width:${S.v2.exp ? 44 : 36}px;height:${S.v2.exp ? 44 : 36}px" aria-label="Läs upp">${ICON.speaker}</button>` : '';
+    return p.settings.tts ? `<button class="icon-btn" data-speak="${esc(q.text.replace(/<[^>]+>/g, ''))}" data-lang="sv"${S.v2.exp && q.challenge === 'spot' ? '' : ' data-highlight="1"'} style="width:${S.v2.exp ? 44 : 36}px;height:${S.v2.exp ? 44 : 36}px" aria-label="Läs upp">${ICON.speaker}</button>` : '';
   },
   /* ---------- Visning under passet ---------- */
   // v3 (slutverifieringen): planerade uppgifter som faktiskt återstår i passkörarens kö (utan Ny chans/Rescue/extra lätta), högst så många

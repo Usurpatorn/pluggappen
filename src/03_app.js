@@ -300,7 +300,7 @@ function confetti(n = 120) {
   })();
 }
 function toast(msg) { const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 2500); }
-function xpPop(n) { if (!(n > 0)) return; if (typeof S !== 'undefined' && S && S.v2 && (S.v2.exp === 'achieve' || S.v2.exp === 'explore')) return;   /* Explore: inga poäng (UX: flygarna täckte texten) */   /* v3 Achieve: inga XP-flygare – kompetensen är belöningen */ const d = document.createElement('div'); d.className = 'xp-pop'; d.textContent = `+${n} XP`; document.body.appendChild(d); setTimeout(() => d.remove(), 1100); }
+function xpPop(n) { if (!(n > 0) && typeof S !== 'undefined' && S && S.v2 && S.v2.exp) return; if (typeof S !== 'undefined' && S && S.v2 && (S.v2.exp === 'achieve' || S.v2.exp === 'explore')) return;   /* Explore: inga poäng (UX: flygarna täckte texten) */   /* v3 Achieve: inga XP-flygare – kompetensen är belöningen */ const d = document.createElement('div'); d.className = 'xp-pop'; d.textContent = `+${n} XP`; document.body.appendChild(d); setTimeout(() => d.remove(), 1100); }
 
 /* ========= Sync code (move progress between phone and tablet) ========= */
 function encodeProfile(kidId) {
@@ -361,8 +361,8 @@ function applyLook(kid) {
   root.setAttribute('data-paper', p ? (p.paper || 'rutat') : 'rutat');
   // 3.3: upplevelsen styr formspråket (Explore/Grow/Achieve) – bara utseende
   let xp = 'classic'; try { if (kid && typeof EXP !== 'undefined' && EXP.on(kid)) xp = EXP.of(kid); } catch (e) { /* klassisk */ } root.setAttribute('data-exp', xp);
-  root.style.removeProperty('--acc'); root.style.removeProperty('--acc-soft'); root.style.removeProperty('--acc-ink');
-  if (p && p.accent && ACCENTS[p.accent]) { const [a, s, i] = ACCENTS[p.accent]; root.style.setProperty('--acc', a); root.style.setProperty('--acc-soft', s); root.style.setProperty('--acc-ink', i); }
+  root.style.removeProperty('--acc'); root.style.removeProperty('--acc-soft'); root.style.removeProperty('--acc-ink'); root.style.removeProperty('--cta');
+  if (p && p.accent && ACCENTS[p.accent]) { const [a, s, i] = ACCENTS[p.accent]; root.style.setProperty('--acc', a); root.style.setProperty('--cta', a); root.style.setProperty('--acc-soft', s); root.style.setProperty('--acc-ink', i); }
   document.body.classList.toggle('focus', !!(p && p.settings.focus));
   root.setAttribute('data-font', p && p.settings.font === 'lexend' ? 'lexend' : 'standard'); root.setAttribute('data-size', p && p.settings.textsize === 'large' ? 'large' : 'normal');
   // Ljust är standard överallt; mörkt bara om barnet valt det. null = följ telefonen.
@@ -747,7 +747,7 @@ function startSession(kid, opts) {
 }
 
 VIEWS.practice = () => {
-  document.querySelectorAll('.xp-pop').forEach(x => x.remove()); confettiStop();   // 3.3: en flygare får aldrig ligga kvar över nästa uppgift
+  document.querySelectorAll('.xp-pop').forEach(x => x.remove()); if (S && S.v2 && S.v2.exp) confettiStop();   // 3.3: en flygare får aldrig ligga kvar över nästa uppgift
   const item = S.queue[S.i]; const kid = S.kid; const p = prof(kid.id);
   const isTest = S.mode === 'test' || !!(S.v2 && S.v2.exam); const focus = p.settings.focus;
   const title = S.v2 ? V2.title(item) : isTest ? 'Provläge' : S.mode === 'felbok' ? 'Felboken' : item.cat === 'word' ? esc(item.deck.name) : esc(item.skill.short || item.skill.name);
@@ -765,7 +765,7 @@ VIEWS.practice = () => {
   </div>`);
   { const qc = document.getElementById('qcard'); if (qc && S.v2 && S.v2.exp) { const m = EXP.modeOf(item); qc.dataset.mode = m.mode; if (m.role) qc.dataset.role = m.role; if (S.v2.exam) qc.dataset.exam = '1';
     qc.querySelectorAll('.wchoices:not(.spot-sols)').forEach(w => { if ([...w.children].some(b => (b.textContent || '').split(/\s+/).some(x => x.length > 12))) w.classList.add('one-col'); });   // 3.3: långa ord får en hel rad i stället för att brytas mitt i
-    if (['num', 'expr', 'choice', 'paper', 'reverse', 'text', 'tap'].includes(m.mode)) {   // 3.3: två rutor på liggande iPad (display:contents annars)
+    if (['num', 'expr', 'choice', 'paper', 'reverse', 'type', 'tap'].includes(m.mode)) {   // 3.3: två rutor på liggande iPad (display:contents annars)
       const main = document.createElement('div'), side = document.createElement('div'); main.className = 'q-pane q-main'; side.className = 'q-pane q-side';
       [...qc.children].forEach(c => (['inputArea', 'fb', 'actions', 'explainBtn', 'sketch'].includes(c.id) ? side : main).appendChild(c));
       if (side.children.length && main.children.length) { qc.append(main, side); qc.classList.add('split'); } else { [...main.children, ...side.children].forEach(c => qc.appendChild(c)); main.remove(); side.remove(); } } } }   // 3.3: aktivitetens formspråk (bara CSS-krokar)
@@ -779,7 +779,7 @@ VIEWS.practice = () => {
 };
 function mathBody(q, kid, isTest) {
   const vars = q.variables || [q.variable];
-  if (q.type === 'order') { let sh = R.shuffle(q.items.map((t, i) => ({ t, i }))); if (sh.length > 1 && sh.every((x, k) => x.i === k)) sh = [...sh.slice(1), sh[0]]; S.order = { picked: [], shuffled: sh }; }   // 3.3: aldrig redan i rätt ordning (det vore gratis) – ingen extra slump
+  if (q.type === 'order') { let sh = R.shuffle(q.items.map((t, i) => ({ t, i }))); if (S.v2 && S.v2.exp && sh.length > 1 && sh.every((x, k) => x.i === k)) sh = [...sh.slice(1), sh[0]]; S.order = { picked: [], shuffled: sh }; }   // 3.3: aldrig redan i rätt ordning (det vore gratis) – ingen extra slump
   const v3 = !!(S.v2 && S.v2.exp);   // Experience v3: aktiviteter i stället för bara textkort (samma fråga, samma rättning)
   // 3.3 Hitta felet: de tre lösningarna blir själva korten man väljer bland (samma val, samma index, samma rättning)
   const spot = v3 && q.challenge === 'spot' && q.type === 'choicetext' && typeof q.text === 'string' ? (() => { const parts = q.text.split('<div style="margin:6px 0">'); if (parts.length !== (q.choices || []).length + 1) return null; return { head: parts[0], rows: parts.slice(1).map(r => r.replace(/<\/div>\s*$/, '').replace(/^<b>[A-C]\.<\/b>\s*/, '')) }; })() : null;
@@ -793,7 +793,7 @@ function mathBody(q, kid, isTest) {
     : q.type === 'open'
     ? `<textarea class="answer-input" id="ans" rows="4" style="text-align:left;font-family:var(--body);font-weight:400;font-size:1.05rem;min-height:110px;resize:vertical" placeholder="Skriv med egna ord, som på ett prov. Få med de viktiga begreppen."></textarea><p class="muted" style="font-size:.85rem;margin-top:6px">Appen letar efter ${q.keys.length} nyckelbegrepp i ditt svar.</p>`
     : q.type === 'choicetext' && spot
-    ? `<div class="wchoices spot-sols" id="choices">${spot.rows.map((r, i) => `<button class="wchoice spot-sol" data-choice="${i}" aria-label="${esc(q.choices[i] || '')}"><span class="sol-l" aria-hidden="true">${esc(String(q.choices[i] || '').slice(-1))}</span><span class="sol-b">${safeHtml(r)}</span></button>`).join('')}</div>`
+    ? `<div class="wchoices spot-sols" id="choices">${spot.rows.map((r, i) => `<button class="wchoice spot-sol" data-choice="${i}" aria-label="${esc((q.choices[i] || '') + ': ' + String(r).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim())}"><span class="sol-l" aria-hidden="true">${esc(String(q.choices[i] || '').slice(-1))}</span><span class="sol-b">${safeHtml(r)}</span></button>`).join('')}</div>`
     : q.type === 'choicetext'
     ? `<div class="wchoices" id="choices">${q.choices.map((c, i) => `<button class="wchoice" data-choice="${i}"><span>${esc(c)}</span></button>`).join('')}</div>`
     : q.choices
@@ -811,7 +811,7 @@ function mathBody(q, kid, isTest) {
         : `<input class="answer-input" id="ans" autocomplete="off" autocapitalize="off" placeholder="Skriv svaret" aria-label="Ditt svar">`;
   const p = prof(kid.id); const calm = !!(S.v2 && S.v2.calm && !isTest);   // v3 lugn presentation: färre siffror och mindre brus
   const head = calm || v3 ? '' : `<span class="eyebrow">${S.v2 && S.v2.exp && typeof V2.num() === 'string' ? V2.num() : `Uppgift ${S.v2 ? V2.num() : S.i + 1} av ${S.v2 ? V2.total() : S.queue.length}`}${isTest && q.part ? ` · ${q.part}-nivå` : ''}${!isTest && !p.settings.focus ? ` · ${esc(q.skill.short || '')}` : ''}</span>`;
-  return `<div class="row q-top${head ? '' : ' solo'}" style="justify-content:space-between">${head || '<span></span>'}<span class="row" style="gap:8px">${S.v2 ? V2.speakBtn(q, p) : TTS.ok && p.settings.tts ? `<button class="icon-btn" data-speak="${esc(q.text.replace(/<[^>]+>/g, ''))}" data-lang="sv" data-highlight="1" style="width:36px;height:36px" aria-label="Läs upp">${ICON.speaker}</button>` : ''}${calm || v3 ? '' : `<span class="lvl-dots"${S.v2 ? ' role="img"' : ''} aria-label="Svårighet ${q.level}">${[1, 2, 3].map(i => `<i class="${i <= q.level ? 'on' : ''}"></i>`).join('')}</span>`}</span></div>
+  return `<div class="row${v3 ? ' q-top' + (head ? '' : ' solo') : ''}" style="justify-content:space-between">${head || '<span></span>'}<span class="row" style="gap:8px">${S.v2 ? V2.speakBtn(q, p) : TTS.ok && p.settings.tts ? `<button class="icon-btn" data-speak="${esc(q.text.replace(/<[^>]+>/g, ''))}" data-lang="sv" data-highlight="1" style="width:36px;height:36px" aria-label="Läs upp">${ICON.speaker}</button>` : ''}${calm || v3 ? '' : `<span class="lvl-dots"${S.v2 ? ' role="img"' : ''} aria-label="Svårighet ${q.level}">${[1, 2, 3].map(i => `<i class="${i <= q.level ? 'on' : ''}"></i>`).join('')}</span>`}</span></div>
       ${q.fig ? `<div class="figwrap">${safeHtml(q.fig)}</div>` : ''}
       <div class="question" id="qtext">${safeHtml(spot ? spot.head : q.text)}</div>${rev ? `<div class="rev-target" aria-hidden="true"><span class="rev-k">Det här ska det bli</span><span class="rev-v">${esc(rev)}</span><span class="rev-q">↓ Skriv en uppgift som ger det</span></div>` : ''}${q.paper ? EXP.paperNote(q) : ''}
       <div id="inputArea">${inputHtml}</div>
@@ -971,7 +971,7 @@ function checkAnswer(q, raw) {
 }
 const answerDisplay = (q) => q.type === 'sort' ? q.bins.map(b => `${b}: ${q.items.filter(t => q.answer[t] === b).join(', ')}`).join(' · ') : q.type === 'match' ? q.pairs.map(x => `${x[0]} – ${x[1]}`).join(' · ') : q.type === 'expr' ? Poly.format(q.answer) : q.type === 'num' ? T.n(q.answer) : q.type === 'choicetext' ? q.choices[q.answer] : q.type === 'open' ? q.model : q.type === 'order' ? 'se ordningen nedan' : (q.display || q.answer[0]);
 function submitMath() {
-  confettiStop(); const q = S.queue[S.i]; const input = document.getElementById('ans');
+  if (S.v2 && S.v2.exp) confettiStop(); const q = S.queue[S.i]; const input = document.getElementById('ans');
   const xr = EXP.raw(q); const raw = xr != null ? xr : q.type === 'order' ? 'order' : q.choices || q.type === 'choicetext' ? (S.selected === undefined ? '' : String(S.selected)) : input.value;
   const res = (q.v2check ? V2.check : checkAnswer)(q, raw); const fb = document.getElementById('fb');
   if (res.status === 'empty') { toast(q.type === 'order' ? 'Placera alla steg först' : q.type === 'sort' ? 'Sortera alla kort först' : q.build ? 'Bygg ordet först' : 'Skriv ett svar först'); return; }
@@ -992,7 +992,8 @@ function submitMath() {
   if (q.choices || q.type === 'choicetext') document.querySelectorAll('.choice, .wchoice, .tapword').forEach(c => { const v = Number(c.dataset.choice); if (v === q.answer) c.classList.add('ok'); else if (v === S.selected) c.classList.add('no'); c.disabled = true; });
   if (input) input.disabled = true;
   const xpE = S.v2 && S.v2.exp; const boss = xpE && q.spec && q.spec.role === 'boss';   // 3.3: Bossen märks när den är klarad (samma rättning)
-  const praise = boss ? (xpE === 'explore' ? '👑 Du besegrade bossen!' : xpE === 'grow' ? '👑 Bossen klarad!' : 'Bossuppgiften klar.') : R.pick(['Snyggt!', 'Rätt!', 'Perfekt!', 'Så ska det se ut!', 'Boom!', 'Exakt!']);
+  const pick = R.pick(['Snyggt!', 'Rätt!', 'Perfekt!', 'Så ska det se ut!', 'Boom!', 'Exakt!']);   // dras alltid (samma slumpföljd som förut)
+  const praise = boss ? (xpE === 'explore' ? '👑 Du besegrade bossen!' : xpE === 'grow' ? '👑 Bossen klarad!' : 'Bossuppgiften klar.') : pick;
   if (S.revealed && (q.paper || q.type === 'sort' || q.type === 'match' || q.build)) fb.innerHTML = `<div class="feedback warn"><span style="font-size:1.4rem">👀</span><div><div class="big">Nu vet du hur man gör</div><div class="sub">Du får en liknande uppgift igen om en stund.</div></div></div>`;   // granskning: efter "Visa hur man gör" aldrig "Svaret stämmer inte"
   else if (q.paper) { if (correct) { beep('ok', S.streak); xpPop(xp); } else beep('no'); fb.innerHTML = EXP.paperFeedback(q, correct, raw); }   // v3: bara svaret är sett – aldrig "lösningen är korrekt"
   else if (q.type === 'sort' || q.type === 'match' || q.build) {
@@ -1442,4 +1443,4 @@ function boot(snap) {
   else go('start');
 }
 if (!window.PLUGG_STOP) window.claude?.hot?.ready ? window.claude.hot.ready(boot) : boot(window.claude?.hot?.data ?? null);   // PLUGG_STOP: testversionen på fel adress (se scripts/build.sh)
-window.PA = { TM: typeof TM !== 'undefined' ? TM : null, LE, LE2, LECAT, LER, V2, EXP, RECALL, CHG, PACKS, checkAnswer, answerDisplay, makeQuestion, mergeProfiles, get S() { return S; }, get DB() { return DB; }, get B() { return B; }, Poly, R, mathBody, xpPop, KIDS, TEMPLATES, FAMILY, AUTH, deleteKidData, deleteFamilyData, buildKids, load, flushSave, rerender: () => VIEWS[state.screen] && VIEWS[state.screen](), BUILTIN_DECKS, SYNC, save, setKid: (id) => { state.kid = id; }, go: (sc) => go(sc), version: '3.0' };
+window.PA = { TM: typeof TM !== 'undefined' ? TM : null, LE, LE2, LECAT, LER, V2, EXP, RECALL, CHG, PACKS, checkAnswer, answerDisplay, makeQuestion, mergeProfiles, get S() { return S; }, get DB() { return DB; }, get B() { return B; }, Poly, R, mathBody, xpPop, TTS, KIDS, TEMPLATES, FAMILY, AUTH, deleteKidData, deleteFamilyData, buildKids, load, flushSave, rerender: () => VIEWS[state.screen] && VIEWS[state.screen](), BUILTIN_DECKS, SYNC, save, setKid: (id) => { state.kid = id; }, go: (sc) => go(sc), version: '3.0' };

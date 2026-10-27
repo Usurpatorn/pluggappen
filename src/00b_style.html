@@ -272,7 +272,7 @@ body:has(.progress.v3, .trail, section.mission, .klar) .icon-btn { width: 44px; 
 /* ===================== 3.3 World-Class Experience – bara utseende =====================
    Krokar: html[data-exp=explore|grow|achieve|classic] och #qcard[data-mode][data-role][data-exam]. Ingen logik. */
 :root { --cta: var(--acc); --cta-glow: var(--acc-glow); --ease: cubic-bezier(.2, .8, .2, 1); --ink-2: #3c4558; }
-:root:not([data-theme="dark"])[data-hue="rod"], :root:not([data-theme="dark"])[data-hue="blaugrana"] { --cta: #232b3d; --cta-glow: rgba(35,43,61,.28); }   /* lagets röda färg är identitet – rött betyder annars fel */
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --ink-2: #c5cbd8; } } :root[data-theme="dark"] { --ink-2: #c5cbd8; }
 .btn { background: var(--cta); }
 .go-btn { background: var(--cta); box-shadow: 0 10px 26px -12px var(--cta-glow), 0 1px 2px rgba(0,0,0,.1); }
 html { overflow-x: clip; }
@@ -325,8 +325,8 @@ html { overflow-x: clip; }
 :root:not([data-exp="classic"]) #qcard { gap: 16px; }
 :root:not([data-exp="classic"]) .answer-input { border-color: var(--line); }
 :root:not([data-exp="classic"]) .answer-input:focus { border-color: var(--ink); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ink) 10%, transparent); outline: none; }
-.act-chip.role-revansch { background: var(--warn-soft); color: #7a4f0e; }
-.act-chip.role-boss { background: color-mix(in srgb, var(--acc-soft) 70%, var(--card)); box-shadow: 0 0 0 1.5px var(--acc) inset; }
+:root:not([data-exp="classic"]) .act-chip.role-revansch { background: var(--warn-soft); color: #7a4f0e; }
+:root:not([data-exp="classic"]) .act-chip.role-boss { background: color-mix(in srgb, var(--acc-soft) 70%, var(--card)); box-shadow: 0 0 0 1.5px var(--acc) inset; }
 #qcard[data-role="boss"] { border: 2px solid color-mix(in srgb, var(--acc) 55%, var(--card)); box-shadow: 0 16px 36px -22px var(--acc-glow), var(--shadow); }
 :root[data-exp="explore"] #qcard[data-role="boss"] { background: linear-gradient(180deg, color-mix(in srgb, var(--acc-soft) 45%, var(--card)) 0, var(--card) 140px); }
 :root[data-exp="achieve"] #qcard[data-role="boss"] { border-color: var(--ink); border-width: 1.5px; }
@@ -340,8 +340,8 @@ html { overflow-x: clip; }
 @keyframes settle { from { transform: translateY(-10px) scale(1.08); opacity: .5; } to { transform: none; opacity: 1; } }
 /* Para ihop: lika stora kort, klara par syns */
 :root:not([data-exp="classic"]) .match-col { grid-auto-rows: 1fr; }
-.mtile.done { opacity: 1; background: var(--good-soft); border-color: var(--good); color: var(--ink); position: relative; }
-.mtile.done::after { content: '✓'; position: absolute; top: 4px; right: 8px; font-size: .85rem; color: var(--good); font-weight: 800; }
+:root:not([data-exp="classic"]) .mtile.done { opacity: 1; background: var(--good-soft); border-color: var(--good); color: var(--ink); position: relative; }
+:root:not([data-exp="classic"]) .mtile.done::after { content: '✓'; position: absolute; top: 4px; right: 8px; font-size: .85rem; color: var(--good); font-weight: 800; }
 /* Ordna: en plats för varje steg */
 #qcard[data-mode="order"] #orderSlots { min-height: 60px; padding: 10px; border: 2px dashed color-mix(in srgb, var(--ink) 18%, var(--line)); border-radius: 14px; background: var(--soft); }
 #qcard[data-mode="order"] .order-pool .otile { font-family: var(--display); font-weight: 700; font-size: 1.05rem; }
@@ -378,7 +378,7 @@ html { overflow-x: clip; }
 #fb .steps.why { padding: 0; background: transparent; }
 #fb .steps.why > summary { cursor: pointer; min-height: 44px; display: inline-flex; align-items: center; gap: 6px; font-weight: 700; color: var(--ink-2); }
 #fb .steps.why[open] { background: var(--soft); padding: 4px 14px 12px; }
-:root[data-exp="grow"] .xp-pop { top: calc(env(safe-area-inset-top, 0px) + 84px); left: auto; right: max(16px, calc(50% - 300px)); transform: none; font-size: 1rem; padding: 4px 12px; border-radius: 999px; background: var(--good-soft); text-shadow: none; animation: xpchip .9s var(--ease) forwards; }
+:root[data-exp="grow"] .xp-pop { top: calc(env(safe-area-inset-top, 0px) + 84px); left: auto; right: max(16px, calc(50% - 300px)); transform: none; font-size: 1rem; padding: 4px 12px; border-radius: 999px; background: var(--good-soft); color: var(--good-ink); text-shadow: none; animation: xpchip .9s var(--ease) forwards; }
 @keyframes xpchip { 0% { opacity: 0; transform: translateY(6px); } 20% { opacity: 1; transform: none; } 80% { opacity: 1; } 100% { opacity: 0; transform: translateY(-8px); } }
 
 /* Knapparna: Svara alltid nåbar, hjälpen lugnare */
@@ -412,7 +412,7 @@ html { overflow-x: clip; }
 
 /* iPad: utformat för ytan, inte en utdragen telefon */
 @media (min-width: 768px) {
-  .wrap { max-width: 760px; }
+  :root:not([data-exp="classic"]) .wrap { max-width: 760px; }
   :root:not([data-exp="classic"]) #qcard { padding: 28px 32px; }
   :root:not([data-exp="classic"]) .question { font-size: 1.32rem; }
   :root:not([data-exp="classic"]) .wchoice { min-height: 74px; }
@@ -424,7 +424,7 @@ html { overflow-x: clip; }
   .klar { padding: 36px 32px; }
 }
 @media (min-width: 1100px) and (orientation: landscape) {
-  .wrap { max-width: 1060px; }
+  :root:not([data-exp="classic"]) .wrap { max-width: 1060px; }
   :root:not([data-exp="classic"]) .home-v3 { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 16px; align-items: start; }
   :root:not([data-exp="classic"]) .home-v3 > :first-child { grid-row: 1 / span 8; }
   #qcard.split { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); column-gap: 36px; align-items: start; }
@@ -451,9 +451,9 @@ html { overflow-x: clip; }
 .seg { max-width: 100%; overflow-x: auto; scrollbar-width: none; } .seg::-webkit-scrollbar { display: none; } .seg button { flex: 0 0 auto; }
 /* 3.3 granskning A/B ------------------------------------------------------------------------------------------- */
 /* Lagets röda färg: identitet, aldrig ytor och ramar (rött betyder fel). Accenten blir marinblå i v3; laget syns i märket. */
-:root:not([data-exp="classic"]):is([data-hue="rod"], [data-hue="blaugrana"]) { --acc: #2b3a67; --acc-soft: #e7eaf3; --acc-ink: #1f2a4d; --acc-glow: rgba(43,58,103,.22); --cta: #232b3d; }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]):not([data-exp="classic"]):is([data-hue="rod"], [data-hue="blaugrana"]) { --acc: #9fb0e0; --acc-soft: #222b44; --acc-ink: #dfe6ff; --acc-glow: rgba(159,176,224,.25); } }
-:root[data-theme="dark"]:not([data-exp="classic"]):is([data-hue="rod"], [data-hue="blaugrana"]) { --acc: #9fb0e0; --acc-soft: #222b44; --acc-ink: #dfe6ff; --acc-glow: rgba(159,176,224,.25); }
+:root:not([data-exp="classic"]):is([data-hue="rod"], [data-hue="blaugrana"]) { --acc: #2b3a67; --acc-soft: #e7eaf3; --acc-ink: #1f2a4d; --acc-glow: rgba(43,58,103,.22); --cta: #232b3d; --cta-glow: rgba(35,43,61,.28); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]):not([data-exp="classic"]):is([data-hue="rod"], [data-hue="blaugrana"]) { --acc: #9fb0e0; --acc-soft: #222b44; --acc-ink: #dfe6ff; --acc-glow: rgba(159,176,224,.25); --cta: #3b4c80; } }
+:root[data-theme="dark"]:not([data-exp="classic"]):is([data-hue="rod"], [data-hue="blaugrana"]) { --acc: #9fb0e0; --acc-soft: #222b44; --acc-ink: #dfe6ff; --acc-glow: rgba(159,176,224,.25); --cta: #3b4c80; }
 :root:not([data-exp="classic"])[data-hue="rod"] .rank { box-shadow: inset 0 -4px 0 #c8202a; } :root:not([data-exp="classic"])[data-hue="blaugrana"] .rank { box-shadow: inset 0 -4px 0 #a50044; }
 :root:not([data-exp="classic"])[data-paper="lulea"] body { background-image: repeating-linear-gradient(0deg, transparent 0 46px, rgba(216,35,42,.06) 46px 48px), repeating-linear-gradient(90deg, transparent 0 46px, rgba(20,30,60,.04) 46px 47px); }
 /* Fokusringen bara för tangentbord */

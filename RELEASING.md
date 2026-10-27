@@ -163,5 +163,14 @@ med `PREVIEW=1` till `<sajten>/preview/`. Produktionen publiceras som vanligt. M
 - Testa mig: neutral framstegsstapel (avslöjar inte rätt/fel), resultat per mål ("Öva mer: …", "N av M svar stämde"), inga ✅/🔁.
 - iPad (≥768 px) bredare kort och större text; liggande (≥1100 px) hem i två spalter och uppgifter i två rutor. Långa ord bryts.
   `prefers-reduced-motion` stänger av rörelser.
+- Granskningarnas åtgärder: rött betyder bara fel (lagets röda färg blir marinblå accent i v3, ett köpt accentfärgsval vinner
+  fortfarande), Ordna/Para ihop börjar aldrig färdiglösta (rättning oförändrad; tidigare kunde en blandning råka ge facit),
+  klara par ställs på samma rad, inga konfetti över ett fel svar, klarad Boss märks, Hitta felet läses upp i sin helhet och
+  skärmläsaren hör varje lösning, KLAR visar knapparna först.
+- **Gäller alla lägen (även Klassisk/v1), med avsikt:** kontrast för ej tagna märken (WCAG AA), `html{overflow-x:clip}` med
+  `.stack{grid-template-columns:minmax(0,1fr)}` (breda flikar vidgade tidigare hela kolumnen och gav sidledsscroll),
+  scrollbara flikrader, `lang="sv"` och svensk avstavning i den fristående varianten, `--ink-2` i mörkt läge. Övriga 3.3-regler är
+  avgränsade till `:root:not([data-exp="classic"])`. Klassiskt läge behåller sin text om tom provträning.
+- Tillgänglighet: axe-core (WCAG 2.1 A/AA) 0 fynd på 24 skärmar i 375, 390, 820 och 1180 px.
 - Test: `test_ux33.js` (krokar = uppgiften, två rutor utan förlust/dubbletter, Hitta felet/Baklänges rättas som förut, löftena
   ordagrant, lugnt Testa mig). Rollback: `release-3.2.2-1544484` (profilerna är oförändrade, så rollback kräver ingen migrering).
