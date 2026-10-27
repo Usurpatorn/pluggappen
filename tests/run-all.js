@@ -11,6 +11,7 @@ const suites = [
   ['Språk: lektioner och ordkontroll', 'test_lang.js'],
   ['Faktabanker: geografi + kemi', 'test_so.js'],
   ['Synk: två enheter, delta-merge', 'test_sync.js'],
+  ['3.2.1 Synkens integritet: villkorad skrivning, trevägssammanslagning, raderingar, kö och nya försök (fall A–G)', 'test_sync_integrity.js'],
   ['Åtkomst: identitet, medlemskap, regler, radering', 'test_auth.js'],
   ['Indatasäkerhet (XSS)', 'test_xss.js'],
   ['Integritet: inga familjeuppgifter i bundlen', 'test_privacy.js'],

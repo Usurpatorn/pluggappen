@@ -1,11 +1,15 @@
 const { JSDOM } = require('jsdom'); const fs = require('fs');
 const html = fs.readFileSync(__dirname + '/../dist/index.html', 'utf8').replace(/<script src=[^>]+><\/script>/, '').replace('"__FIREBASE_PROJECT_ID__"', '"demo"').replace('"__FIREBASE_API_KEY__"', '"key"');
 const cloud = {}; // path -> doc
+let writeClock = 0;
 const mkFetch = (log) => async (url, opts = {}) => {
   const path = url.split('/documents/')[1].split('?')[0];
   log.push((opts.method || 'GET') + ' ' + path);
   if (!opts.method) { if (!cloud[path]) return { status: 404, ok: false }; return { status: 200, ok: true, json: async () => cloud[path] }; }
-  cloud[path] = JSON.parse(opts.body); return { status: 200, ok: true, json: async () => cloud[path] };
+  // som Firestore: villkorade skrivningar (currentDocument.*) och updateTime på varje skrivning (3.2.1: appen skriver alltid villkorat)
+  const qs = new URL(url).searchParams; const ut = qs.get('currentDocument.updateTime'), ex = qs.get('currentDocument.exists');
+  if ((ut !== null && (!cloud[path] || cloud[path].updateTime !== ut)) || (ex === 'false' && cloud[path]) || (ex === 'true' && !cloud[path])) { log.push('NEKAD ' + path); return { status: 400, ok: false, json: async () => ({ error: { status: 'FAILED_PRECONDITION' } }) }; }
+  cloud[path] = JSON.parse(opts.body); cloud[path].updateTime = new Date(Date.UTC(2026, 0, 1) + (++writeClock) * 1000).toISOString(); return { status: 200, ok: true, json: async () => cloud[path] };
 };
 function device(name, storage) {
   const dom = new JSDOM('<!doctype html>' + html, { runScripts: 'outside-only', pretendToBeVisual: true, url: 'https://plugg.example/' });

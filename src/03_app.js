@@ -47,7 +47,7 @@ let saveTimer = null;
 function save() {
   if (typeof V2 !== 'undefined' && V2.sandbox) return; // förälderns förhandsvisning av v2: inget sparas eller synkas
   const target = state.screen === 'parent' ? state.tab : state.kid;
-  if (target && DB.profiles[target]) { const d = DB.profiles[target]; d.updatedAt = Date.now(); d.since = d.since || { xp: 0, gems: 0, days: {} }; if (d._lx != null) { d.since.xp += d.xp - d._lx; d.since.gems += d.gems - d._lg; } d._lx = d.xp; d._lg = d.gems; SYNC.schedulePush(target); }
+  if (target && DB.profiles[target]) { const d = DB.profiles[target]; d.updatedAt = Math.max(Date.now(), (d.syncedAt || 0) + 1); d.since = d.since || { xp: 0, gems: 0, days: {} }; if (d._lx != null) { d.since.xp += d.xp - d._lx; d.since.gems += d.gems - d._lg; } d._lx = d.xp; d._lg = d.gems; SYNC.schedulePush(target); }
   clearTimeout(saveTimer); saveTimer = setTimeout(flushSave, 150);
 }
 // Granskning H2: under förälderns förhandsvisning skrivs barnets RIKTIGA profil (ögonblicksbilden) – aldrig förhandsvisningens kopia.
