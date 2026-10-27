@@ -133,3 +133,19 @@ med `PREVIEW=1` till `<sajten>/preview/`. Produktionen publiceras som vanligt. M
   är en kontur; beröm visas i grönt (rött betyder bara fel); siffrorna på väg/tränar i textfärg; långa ord bryts i sorteringslådor;
   klara par syns tydligare; jämn radbrytning i knappar; iPad (≥768 px) får större målrubrik och KÖR-knapp; låga skärmar en kompaktare
   pappersnotis. Rollback: `release-3.2.0-3e2a6d2`.
+## 3.2.2 – Synkens integritet (2026-10-27)
+- **Varje skrivning av en barnprofil är villkorad** på den serverversion enheten senast slog ihop eller själv skrev (basen) (`currentDocument.updateTime`, eller
+  `currentDocument.exists=false` för en ny profil). Har en annan enhet hunnit skriva nekar Firestore; enheten hämtar, slår ihop och
+  försöker igen (högst tre gånger per omgång, sedan nya omgångar efter 5 s, 15 s, 60 s, 120 s – och direkt när nätet kommer tillbaka
+  eller appen visas igen). Okänd version → hämta först. Ingen blind skrivning av en hel profil.
+- **Kön tappar aldrig:** ett barn lämnar uppladdningskön först när skrivningen bekräftats.
+- **Trevägssammanslagning** mot den senast kända serverversionen (`DB.syncBase` – bara på enheten, aldrig i profilen): det som inte
+  ändrats på enheten tas från familjens data, även raderade prov, egna ordlistor och avstängda ordlistor. Bevislogg, XP, ord, Felboken
+  m.m. slås ihop som förut. Saknas basen (första gången efter uppdateringen) gäller den tidigare sammanslagningen.
+- **Serverns tid avgör** om en version redan finns på enheten – aldrig enheternas klockor. Ett sent svar med en äldre version ignoreras.
+- **Förlorat svar:** en skrivning som kom fram fast svaret gick förlorat känns igen (`DB.syncSent`) – inget räknas två gånger.
+- Basen gäller bara samma familj och bara när profilens `syncedAt` är basens version; en helt synkad profil blir sin egen bas innan den
+  första ändringen.
+- Test: `test_sync_integrity.js` (fall A–M och återgång), `tests/rules/sync_precondition.test.mjs` (Firestore-emulatorn i CI).
+- Rollback: föregående release-tagg. Profilernas format är oförändrat; en äldre version ignorerar `DB.syncBase` (men skriver då åter
+  utan villkor).

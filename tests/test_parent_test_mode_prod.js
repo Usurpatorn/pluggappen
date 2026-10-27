@@ -8,6 +8,7 @@
    (aktiviteter, uppläsning, fel/Rescue, KLAR, FLOW igen) · Fyran/Grow med en annan upplevelse i testet · väntande ändringar (skickas
    först – utan nät startar testet inte) · ladda om, bakåt (sidan ur cachen), dold/synlig, nät borta/tillbaka under testet · avsluta. */
 'use strict';
+const { withCommit } = require('./le/fscommit.js');
 const { execFileSync } = require('child_process'); const fs = require('fs'); const path = require('path');
 const { JSDOM } = require('jsdom');
 const { rng, T_FIXED, tools } = require('./le/childflow.js');
@@ -49,7 +50,7 @@ function mk({ html, url, dev, cloud, storage = null, seed = 1, now = T_FIXED, tw
   const dom = new JSDOM(tweak ? tweak(html) : html, { runScripts: 'dangerously', pretendToBeVisual: true, url, beforeParse(w) {
     w.scrollTo = () => {}; w.matchMedia = () => ({ matches: false, addEventListener() {} }); w.HTMLCanvasElement.prototype.getContext = () => null;
     w.Math.random = rng(seed); const RD = w.Date; let t = now; class FD extends RD { constructor(...a) { if (a.length) super(...a); else super(t); } static now() { return t; } } w.Date = FD; w.__advance = (ms) => { t += ms; }; w.__now = () => t;
-    w.fetch = cloud.fetchFor(dev, () => w.__now()); w.addEventListener('error', (e) => e.preventDefault());
+    w.fetch = withCommit(cloud.fetchFor(dev, () => w.__now())); w.addEventListener('error', (e) => e.preventDefault());
     w.__spoken = []; w.speechSynthesis = { getVoices: () => [{ lang: 'sv-SE', name: 'Alva' }], speak(u) { w.__spoken.push(u.text); }, cancel() {}, onvoiceschanged: null }; w.SpeechSynthesisUtterance = function (t) { this.text = t; };
     if (storage) for (const [k, v] of Object.entries(storage)) w.localStorage.setItem(k, v);
   } });
@@ -274,8 +275,8 @@ const fsRequests = (cloud, from, dev) => cloud.log.slice(from).filter(x => x.dev
       const P = await parentDevice(cloud, 55, C.__now()); const A = cloud.prof('k4');
       const cfg = P.PA.SYNC.cfg; P.PA.SYNC.cfg = { ...cfg, projectId: 'offline-test' };
       P.PA.setKid('k4'); P.PA.DB.profiles.k4.settings.goal = 9; P.PA.save(); await sleep(1800); P.PA.SYNC.cfg = cfg;
-      const orig = cloud.fetchFor('parent', () => P.__now()); let raced = false, B = null;
-      P.fetch = async (u, o) => { if (!raced && o && String(o.method).toUpperCase() === 'PATCH' && /profiles\/k4/.test(String(u))) { raced = true; C.__advance(3600000); await childPlays(C, 'k4', 0.2, 87); B = cloud.prof('k4'); } return orig(u, o); };
+      const orig = withCommit(cloud.fetchFor('parent', () => P.__now())); let raced = false, B = null;
+      P.fetch = async (u, o) => { if (!raced && o && ((String(o.method).toUpperCase() === 'PATCH' && /profiles\/k4/.test(String(u))) || (String(u).includes('/documents:commit') && /profiles\/k4"/.test(String(o.body))))) { raced = true; C.__advance(3600000); await childPlays(C, 'k4', 0.2, 87); B = cloud.prof('k4'); } return orig(u, o); };
       ok(await enterTest(P, 'k2'), 'E4: testet startar efter att uppladdningen gjorts om');
       const S = cloud.prof('k4'); const sLog = new Set((S.le.log || []).map(e => JSON.stringify(e)));
       ok(raced && B && learnOf(B) !== learnOf(A), 'E4: barnet laddade upp B mitt emellan');
@@ -292,7 +293,9 @@ const fsRequests = (cloud, from, dev) => cloud.log.slice(from).filter(x => x.dev
       P.PA.setKid('k4'); P.PA.go('home'); P.PA.DB.profiles.k4.settings.goal = 8; P.PA.save(); await sleep(1800); P.PA.go('start');
       ok(cloud.prof('k4').settings.goal === 8, 'E5: förälderns vanliga ändring synkad (med klockan före)');
       C.__advance(3600000); await C.PA.SYNC.refresh('k4'); await childPlays(C, 'k4', 0.2, 92); const B = cloud.prof('k4');
-      ok((B.updatedAt || 0) <= (P.PA.DB.profiles.k4.syncedAt || 0), 'E5: barnets nya läge har en äldre tidsstämpel än förälderns senaste synk (klockskillnaden)');
+      // (från 3.2.2 markerar barnets enhet alltid en ändring som nyare än sin senaste synk, så tidsstämpeln blir inte längre äldre här;
+      //  samma läge från en äldre app prövas i test_sync_integrity.js fall J – skyddet nedan ska hålla i båda fallen)
+      info.push(`E5: barnets tidsstämpel ${(B.updatedAt || 0) <= (P.PA.DB.profiles.k4.syncedAt || 0) ? 'äldre' : 'nyare'} än förälderns senaste synk`);
       P.__advance(60000); const cfg = P.PA.SYNC.cfg; P.PA.SYNC.cfg = { ...cfg, projectId: 'offline-test' };
       P.PA.setKid('k4'); P.PA.go('home'); P.PA.DB.profiles.k4.settings.goal = 9; P.PA.save(); await sleep(1800); P.PA.SYNC.cfg = cfg; P.PA.go('start');
       ok(await enterTest(P, 'k2'), 'E5: testet startar');

@@ -9,15 +9,19 @@ const html = fs.readFileSync(__dirname + '/../dist/index.html', 'utf8').replace(
 const FIX = require('./test_fixture_family.json');
 let fails = 0, checks = 0; const ok = (c, m) => { checks++; if (!c) { fails++; console.log('FAIL', m); } };
 const cloud = {}; let serverClock = Date.UTC(2026, 9, 25, 12);
+const { withCommit } = require('./le/fscommit.js');
 const mkFetch = () => async (url, opts = {}) => {
   const path = url.split('/documents/')[1].split('?')[0];
   if (!opts.method) { if (!cloud[path]) return { status: 404, ok: false }; return { status: 200, ok: true, json: async () => cloud[path] }; }
   if (opts.method === 'DELETE') { delete cloud[path]; return { status: 200, ok: true, json: async () => ({}) }; }
+  // som Firestore: villkorade skrivningar (currentDocument.*, 3.2.2)
+  const qs = new URL(url).searchParams; const ut = qs.get('currentDocument.updateTime'), ex = qs.get('currentDocument.exists');
+  if ((ut !== null && (!cloud[path] || cloud[path].updateTime !== ut)) || (ex === 'false' && cloud[path]) || (ex === 'true' && !cloud[path])) return { status: 400, ok: false, json: async () => ({ error: { status: 'FAILED_PRECONDITION' } }) };
   serverClock += 1000; cloud[path] = { ...JSON.parse(opts.body), updateTime: new Date(serverClock).toISOString() }; return { status: 200, ok: true, json: async () => cloud[path] };
 };
 function device(name) {
   const dom = new JSDOM('<!doctype html>' + html, { runScripts: 'outside-only', pretendToBeVisual: true, url: 'https://plugg.example/' });
-  const w = dom.window; w.scrollTo = () => {}; w.matchMedia = () => ({ matches: false }); w.HTMLCanvasElement.prototype.getContext = () => null; w.fetch = mkFetch();
+  const w = dom.window; w.scrollTo = () => {}; w.matchMedia = () => ({ matches: false }); w.HTMLCanvasElement.prototype.getContext = () => null; w.fetch = withCommit(mkFetch());
   for (const sc of [...w.document.querySelectorAll('script')]) if (sc.textContent.trim()) w.eval(sc.textContent);
   w.__name = name; return w;
 }

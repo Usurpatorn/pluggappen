@@ -1,5 +1,5 @@
 // Membership / access-control test: simulates Identity Toolkit + a Firestore that enforces firestore.rules semantics.
-const { JSDOM } = require('jsdom'); const fs = require('fs');
+const { JSDOM } = require('jsdom'); const fs = require('fs'); const { withCommit } = require('./le/fscommit.js');
 const html = fs.readFileSync(__dirname + '/../dist/index.html', 'utf8').replace(/<script src=[^>]+><\/script>/, '');
 const FIX = require('./test_fixture_family.json');
 
@@ -33,6 +33,7 @@ function rules(method, path, uid, body) {
   }
   return 403;
 }
+let writeClock = 0;
 const mkFetch = (log) => async (url, opts = {}) => {
   log.push((opts.method || 'GET') + ' ' + url.split('/v1/')[1].split('?')[0]);
   if (url.includes('identitytoolkit')) { const uid = 'uid' + (++uidCounter); const tok = 'tok_' + uid; tokens[tok] = uid; return { ok: true, status: 200, json: async () => ({ localId: uid, idToken: tok, refreshToken: 'ref_' + uid, expiresIn: '3600' }) }; }
@@ -44,13 +45,17 @@ const mkFetch = (log) => async (url, opts = {}) => {
   const st = rules(method, path, uid, body); if (st !== 200) return { ok: false, status: st, json: async () => ({}) };
   if (method === 'GET') { if (!cloud[path]) return { ok: false, status: 404, json: async () => ({}) }; return { ok: true, status: 200, json: async () => cloud[path] }; }
   if (method === 'DELETE') { delete cloud[path]; return { ok: true, status: 200, json: async () => ({}) }; }
+  // som Firestore: villkorade skrivningar (currentDocument.*) och updateTime på varje skrivning (3.2.1: appen skriver alltid villkorat)
+  const qs = new URL(url).searchParams; const ut = qs.get('currentDocument.updateTime'), ex = qs.get('currentDocument.exists');
+  if ((ut !== null && (!cloud[path] || cloud[path].updateTime !== ut)) || (ex === 'false' && cloud[path]) || (ex === 'true' && !cloud[path])) return { ok: false, status: 400, json: async () => ({ error: { status: 'FAILED_PRECONDITION' } }) };
   if (url.includes('updateMask')) { cloud[path] = cloud[path] || { fields: {} }; Object.assign(cloud[path].fields, body.fields); } else cloud[path] = body;
+  cloud[path].updateTime = new Date(Date.UTC(2026, 0, 1) + (++writeClock) * 1000).toISOString();
   return { ok: true, status: 200, json: async () => cloud[path] };
 };
 function device(name, storage) {
   const dom = new JSDOM('<!doctype html>' + html, { runScripts: 'outside-only', pretendToBeVisual: true, url: 'https://plugg.example/' });
   const w = dom.window; w.scrollTo = () => {}; w.matchMedia = () => ({ matches: false }); w.HTMLCanvasElement.prototype.getContext = () => null; w.confirm = () => true; w.prompt = () => null;
-  const log = []; w.fetch = mkFetch(log); w.__log = log; w.crypto = w.crypto || {}; if (!w.crypto.getRandomValues) w.crypto.getRandomValues = (a) => { for (let i = 0; i < a.length; i++) a[i] = Math.floor(Math.random() * 2 ** 32); return a; };
+  const log = []; w.fetch = withCommit(mkFetch(log)); w.__log = log; w.crypto = w.crypto || {}; if (!w.crypto.getRandomValues) w.crypto.getRandomValues = (a) => { for (let i = 0; i < a.length; i++) a[i] = Math.floor(Math.random() * 2 ** 32); return a; };
   if (storage) for (const [k, v] of Object.entries(storage)) w.localStorage.setItem(k, v);
   for (const sc of [...dom.window.document.querySelectorAll('script')]) if (sc.textContent.trim()) w.eval(sc.textContent);
   w.__name = name; return w;
