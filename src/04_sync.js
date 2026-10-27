@@ -9,6 +9,8 @@
    All requests go through SYNC.fetch, which adds the device's Firebase ID token when AUTH is available (see 04b_auth.js). */
 // Fält som bara beskriver synken (ingår inte i trevägsjämförelsen)
 const SYNC_META = new Set(['syncedAt', 'updatedAt', 'since', '_lx', '_lg']);
+// Firestores svar på en villkorad skrivning som inte gick igenom för att dokumentet ändrats (testas mot emulatorn: tests/rules/sync_precondition.test.mjs)
+const SYNC_IS_CONFLICT = (status, st) => status === 409 || status === 412 || ((status === 400 || status === 404) && /FAILED_PRECONDITION|NOT_FOUND|ALREADY_EXISTS|ABORTED/.test(st || ''));
 const SYNC = {
   fetch(url, opts) { return (typeof AUTH !== 'undefined' && AUTH.ready) ? AUTH.fetch(url, opts) : fetch(url, opts); },
   cfg: (typeof window !== 'undefined' && window.PLUGG_SYNC && window.PLUGG_SYNC.projectId && window.PLUGG_SYNC.apiKey) ? window.PLUGG_SYNC : null,
@@ -17,56 +19,72 @@ const SYNC = {
   // Testadressen (<sajten>/preview/, scripts/build.sh): förälderns testmiljö. Barnprofilerna där är en spegel av familjens data –
   // den hämtar men laddar aldrig upp (nätverksskyddet i testsidan nekar dessutom varje skrivning till profiles/).
   pv() { return typeof window !== 'undefined' && window.PLUGG_PREVIEW === true && window.__PV_LS === true; },
-  status: 'off', lastError: null, pushTimer: null, pending: new Set(), lastPull: {}, docTime: {}, busy: false, again: false, retryN: 0, retryTimer: null,
+  status: 'off', lastError: null, pushTimer: null, pending: new Set(), lastPull: {}, pullRes: {}, missingFam: {}, busy: false, again: false, retryN: 0, retryTimer: null,
   url(kidId) { return `https://firestore.googleapis.com/v1/projects/${SYNC.cfg.projectId}/databases/(default)/documents/families/${encodeURIComponent(SYNC.family)}/profiles/${kidId}?key=${SYNC.cfg.apiKey}`; },
+  // pullRes[kid]: 'ok' | 'missing' (finns inte) | 'empty' | 'error' – resultatet av just den senaste hämtningen av barnet
   async pull(kidId) {
     if (!SYNC.active) return null;
+    SYNC.pullRes[kidId] = 'error';
     try {
       const r = await SYNC.fetch(SYNC.url(kidId), { cache: 'no-store' });
-      if (r.status === 404) { SYNC.status = 'ok'; SYNC.docTime[kidId] = false; return null; }   // docTime: dokumentets version vid senaste hämtningen (false = finns inte)
+      if (r.status === 404) { SYNC.status = 'ok'; SYNC.pullRes[kidId] = 'missing'; return null; }
       if (!r.ok) throw new Error('HTTP ' + r.status);
-      const doc = await r.json(); SYNC.docTime[kidId] = doc.updateTime || null; const json = doc.fields?.json?.stringValue; const updatedAt = Number(doc.fields?.updatedAt?.integerValue || 0);
-      if (!json) return null;
-      SYNC.status = 'ok'; SYNC.lastError = null;
-      return { profile: JSON.parse(json), updatedAt, updateTime: doc.updateTime || null, serverTime: doc.updateTime ? Date.parse(doc.updateTime) : 0 };
+      const doc = await r.json(); const json = doc.fields?.json?.stringValue; const updatedAt = Number(doc.fields?.updatedAt?.integerValue || 0);
+      if (!json) { SYNC.pullRes[kidId] = 'empty'; return null; }
+      SYNC.status = 'ok'; SYNC.lastError = null; SYNC.pullRes[kidId] = 'ok';
+      return { profile: JSON.parse(json), raw: json, updatedAt, updateTime: doc.updateTime || null, serverTime: doc.updateTime ? Date.parse(doc.updateTime) : 0 };
     } catch (e) { SYNC.status = 'error'; SYNC.lastError = e.message; return null; }
   },
-  // Villkorad skrivning. pre = den version skrivningen gäller (standard: den senast hämtade); okänd version → ingen skrivning.
+  // Den version en skrivning är villkorad på = den serverversion enheten senast SLOG IHOP eller själv skrev (basen) – aldrig bara en
+  // hämtad version (granskning B1: en hämtning som inte slogs ihop får inte göra nästa skrivning "villkorad" men i praktiken blind).
+  // false = dokumentet finns inte (skapas med exists=false); undefined = okänd → hämta och slå ihop först.
+  ver(kidId) { const b = SYNC.baseOf(kidId); if (b && b.t) return b.t; if (!b && SYNC.missingFam[kidId] === SYNC.family && SYNC.family) return false; return undefined; },
+  // Det som skickats räknas som synkat (även när svaret gick förlorat men skrivningen kom fram – granskning S1)
+  markSent(q, u, s0) {
+    if ((q.updatedAt || 0) === u) { q.since = { xp: 0, gems: 0, days: {} }; }
+    else { s0 = s0 || {}; const s1 = q.since || {}; const days = {};
+      for (const [k, d] of Object.entries(s1.days || {})) { const o = (s0.days || {})[k] || {}; const n = { n: (d.n || 0) - (o.n || 0), c: (d.c || 0) - (o.c || 0), xp: (d.xp || 0) - (o.xp || 0) }; if (n.n > 0 || n.c > 0 || n.xp > 0) days[k] = n; }
+      q.since = { xp: Math.max(0, (s1.xp || 0) - (s0.xp || 0)), gems: (s1.gems || 0) - (s0.gems || 0), days }; }   // ändrat under tiden: bara det som skickats räknas
+    q.syncedAt = u; q._lx = q.xp; q._lg = q.gems;
+  },
+  save() { try { localStorage.setItem(STORE_KEY, dbJSON()); } catch (e) { /* ignore */ } },
+  // Villkorad skrivning. pre = den version skrivningen gäller (standard: basens); okänd version → ingen skrivning.
   // Svar: true (skrivet), 'conflict' (dokumentet har ändrats/versionen okänd – hämta, slå ihop, försök igen) eller false (fel/utan nät).
   async push(kidId, pre) {
     if (SYNC.pv()) return false;   // testadressen laddar aldrig upp barnens data
     if (typeof V2 !== 'undefined' && V2.sandbox && V2.sandbox.kidId === kidId) return; // granskning H2: förhandsvisningen laddas aldrig upp
     if (!SYNC.active) return false;
-    if (pre === undefined) pre = SYNC.docTime[kidId];
+    if (pre === undefined) pre = SYNC.ver(kidId);
     if (pre === undefined || pre === null) return 'conflict';   // aldrig en blind skrivning: hämta först
-    const p = prof(kidId); const updatedAt = p.updatedAt || Date.now(); const sentJson = JSON.stringify(p); const sent = JSON.parse(sentJson);
+    const p = prof(kidId); if (!p) return false;
+    const updatedAt = p.updatedAt || Date.now(); const sentJson = JSON.stringify(p); const sent = JSON.parse(sentJson);
+    // kom ihåg skrivningen (på enheten) innan den skickas: kommer den fram men svaret går förlorat känns den igen vid nästa hämtning
+    if (!DB.syncSent || typeof DB.syncSent !== 'object') DB.syncSent = {}; DB.syncSent[kidId] = { fam: SYNC.family, h: SYNC.hash(sentJson), u: updatedAt, since: sent.since || null }; SYNC.save();
     try {
       const body = { fields: { json: { stringValue: sentJson }, updatedAt: { integerValue: String(updatedAt) }, kid: { stringValue: kidId } } };
       const cond = pre === false ? '&currentDocument.exists=false' : '&currentDocument.updateTime=' + encodeURIComponent(pre);
       const r = await SYNC.fetch(SYNC.url(kidId) + '&mask.fieldPaths=updatedAt' + cond, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       if (!r.ok) {
         let st = ''; try { const j = await r.json(); st = (j && j.error && j.error.status) || ''; } catch (e) { /* inget svar */ }
-        if (r.status === 409 || r.status === 412 || ((r.status === 400 || r.status === 404) && /FAILED_PRECONDITION|NOT_FOUND|ALREADY_EXISTS|ABORTED/.test(st))) { delete SYNC.docTime[kidId]; SYNC.status = 'ok'; return 'conflict'; }
+        if (SYNC_IS_CONFLICT(r.status, st)) { SYNC.status = 'ok'; return 'conflict'; }
         throw new Error('HTTP ' + r.status);
       }
-      SYNC.status = 'ok'; SYNC.lastError = null;
+      SYNC.status = 'ok'; SYNC.lastError = null; delete DB.syncSent[kidId];
       const q = prof(kidId);   // profilen kan ha ersatts (hämtning) eller ändrats under skrivningen
-      if (q === p && (q.updatedAt || 0) === updatedAt) { q.syncedAt = updatedAt; q.since = { xp: 0, gems: 0, days: {} }; q._lx = q.xp; q._lg = q.gems; }
-      else if (q === p) { q.syncedAt = updatedAt; const s0 = sent.since || {}, s1 = q.since || {}; const days = {};
-        for (const [k, d] of Object.entries(s1.days || {})) { const o = (s0.days || {})[k] || {}; const n = { n: (d.n || 0) - (o.n || 0), c: (d.c || 0) - (o.c || 0), xp: (d.xp || 0) - (o.xp || 0) }; if (n.n > 0 || n.c > 0 || n.xp > 0) days[k] = n; }
-        q.since = { xp: Math.max(0, (s1.xp || 0) - (s0.xp || 0)), gems: (s1.gems || 0) - (s0.gems || 0), days }; }   // ändrat under tiden: bara det som skickats räknas som synkat
+      if (q) SYNC.markSent(q, updatedAt, sent.since);
       let doc = null; try { doc = await r.json(); } catch (e) { /* inget svar */ }
-      SYNC.setBase(kidId, sent, doc && doc.updateTime); try { localStorage.setItem(STORE_KEY, dbJSON()); } catch (e) { /* ignore */ }
-      try { if (doc && doc.updateTime) { SYNC.docTime[kidId] = doc.updateTime; if (typeof LE !== 'undefined') LE.anchor(kidId, Date.parse(doc.updateTime), true); } else delete SYNC.docTime[kidId]; } catch (e) { delete SYNC.docTime[kidId]; }
+      SYNC.setBase(kidId, sent, doc && doc.updateTime, updatedAt); SYNC.save();
+      if (doc && doc.updateTime && typeof LE !== 'undefined') { try { LE.anchor(kidId, Date.parse(doc.updateTime), true); } catch (e) { /* ingen serverklocka – ok */ } }
       return true;
     } catch (e) { SYNC.status = 'error'; SYNC.lastError = e.message; return false; }
   },
   dirty(kidId) { const q = prof(kidId); return !!(q && (q.updatedAt || 0) > (q.syncedAt || 0)); },
   // Hämta → slå ihop → villkorad skrivning, högst tre försök. true = inget kvar att skriva.
   async sync1(kidId) {
+    if (!prof(kidId)) return true;   // barnet finns inte längre i familjen på den här enheten
     for (let i = 0; i < 3; i++) {
-      if (i > 0 || SYNC.docTime[kidId] === undefined || SYNC.docTime[kidId] === null) { await SYNC.refresh(kidId, true); if (SYNC.status !== 'ok' || SYNC.docTime[kidId] === undefined) return false; }
-      if (!SYNC.dirty(kidId) && SYNC.docTime[kidId] !== false) return true;   // (finns inte i familjens data än: skapas)
+      if (i > 0 || SYNC.ver(kidId) === undefined) { await SYNC.refresh(kidId, true); const res = SYNC.pullRes[kidId]; if ((res !== 'ok' && res !== 'missing') || SYNC.ver(kidId) === undefined) return false; }
+      if (!SYNC.dirty(kidId) && SYNC.ver(kidId) !== false) return true;   // (finns inte i familjens data än: skapas)
       const r = await SYNC.push(kidId); if (r === true) { if (!SYNC.dirty(kidId)) return true; i = -1; continue; }   // ändrat under skrivningen: en omgång till
       if (r !== 'conflict') return false;
     }
@@ -81,7 +99,7 @@ const SYNC = {
       let failed = false;
       try {
         do { SYNC.again = false; failed = false;
-          for (const id of [...SYNC.pending]) { if (!SYNC.active) break; const ok = await SYNC.sync1(id); if (ok && !SYNC.dirty(id)) SYNC.pending.delete(id); else if (!ok) failed = true; }
+          for (const id of [...SYNC.pending]) { if (!SYNC.active) break; let ok = false; try { ok = await SYNC.sync1(id); } catch (e) { ok = false; SYNC.lastError = e && e.message; } if (ok && !SYNC.dirty(id)) SYNC.pending.delete(id); else if (!ok) failed = true; }
         } while (SYNC.again && !failed && SYNC.pending.size);
       } finally { SYNC.busy = false; }
       if (SYNC.pending.size) SYNC.retryLater(failed); else { SYNC.retryN = 0; clearTimeout(SYNC.retryTimer); }
@@ -97,29 +115,52 @@ const SYNC = {
     const ids = (arr) => (arr || []).map(x => x && typeof x === 'object' ? x.id : x).filter(x => x != null);
     const per = (arr) => Object.fromEntries((arr || []).filter(x => x && x.id != null).map(x => [x.id, SYNC.hash(x)]));
     return { v: 1, h, s, exams: per(p.exams), decks: per(p.decks), enabledDecks: ids(p.enabledDecks), removedDefaults: ids(p.removedDefaults) }; },
-  setBase(kidId, p, t) { if (!DB.syncBase || typeof DB.syncBase !== 'object') DB.syncBase = {}; const b = SYNC.snap(p); if (b) b.t = t || null; DB.syncBase[kidId] = b; },
-  baseOf(kidId) { const b = DB.syncBase && DB.syncBase[kidId]; return b && b.v === 1 ? b : null; },
+  // t = serverns updateTime, u = profilens updatedAt i den versionen. Basen gäller bara för samma familj och bara så länge
+  // profilens syncedAt är just den versionen (efter en återgång till en äldre app och tillbaka: ingen bas – säker väg).
+  setBase(kidId, p, t, u) { if (!DB.syncBase || typeof DB.syncBase !== 'object') DB.syncBase = {}; const b = SYNC.snap(p); if (b) { b.t = t || null; b.u = u || 0; b.fam = SYNC.family; } DB.syncBase[kidId] = b; },
+  // Saknas basen (första gången efter uppdateringen) men profilen är helt synkad: den ÄR den senast synkade versionen – använd den som bas
+  // innan den ändras (anropas av save() innan en ändring markeras), så att även den första ändringen slås ihop trevägs.
+  ensureBase(kidId) { const q = prof(kidId); if (!q || !SYNC.cfg || !SYNC.family || SYNC.baseOf(kidId) || (q.updatedAt || 0) > (q.syncedAt || 0) || !q.syncedAt) return; SYNC.setBase(kidId, q, null, q.syncedAt); },
+  baseOf(kidId) { const b = DB.syncBase && DB.syncBase[kidId]; const q = prof(kidId); return b && b.v === 1 && b.fam === SYNC.family && q && (q.syncedAt || 0) === b.u ? b : null; },
+  // serverns tider (RFC 3339, upp till nanosekunder) jämförs exakt: sekunder, sedan bråkdelen
+  cmpTime(a, b) { const sp = (x) => { const m = String(x).match(/^(.*?:\d\d)(?:\.(\d+))?Z$/); return m ? [Date.parse(m[1] + 'Z'), (m[2] || '').padEnd(9, '0')] : [Date.parse(x) || 0, '000000000']; }; const A = sp(a), B = sp(b); return A[0] !== B[0] ? A[0] - B[0] : A[1] < B[1] ? -1 : A[1] > B[1] ? 1 : 0; },
   // Pull remote for a kid and merge into local. Returns true if local changed.
   async refresh(kidId, inFlush) {   // inFlush: anropad av kön (som själv skriver) – lägg inte till i kön igen
     if (typeof V2 !== 'undefined' && V2.sandbox && V2.sandbox.kidId === kidId) return false; // förälderns förhandsvisning pågår
     const remote = await SYNC.pull(kidId); SYNC.lastPull[kidId] = Date.now();
-    if (typeof V2 !== 'undefined' && V2.sandbox && V2.sandbox.kidId === kidId) return false; // förhandsvisningen startade medan hämtningen pågick
+    if (typeof V2 !== 'undefined' && V2.sandbox && V2.sandbox.kidId === kidId) return false; // förhandsvisningen startade medan hämtningen pågick (basen orörd → nästa skrivning nekas om något ändrats)
     if (SYNC.pv()) return remote && !(typeof TM !== 'undefined' && TM.on) ? SYNC.mirror(kidId, remote, true) : false;   // testadressen: familjens data gäller alltid
-    if (!remote) { if (!inFlush && SYNC.active && SYNC.status === 'ok') SYNC.schedulePush(kidId); return false; }
-    const local = prof(kidId); const base = SYNC.baseOf(kidId);
+    const local = prof(kidId);
+    if (!remote) {
+      if (SYNC.pullRes[kidId] === 'missing' && local) { if (DB.syncBase) DB.syncBase[kidId] = null; SYNC.missingFam[kidId] = SYNC.family; }   // finns inte: skapas (exists=false)
+      if (!inFlush && SYNC.active && SYNC.status === 'ok') SYNC.schedulePush(kidId); return false;
+    }
+    SYNC.missingFam[kidId] = null; if (!local) return false;
+    const base = SYNC.baseOf(kidId);
+    // granskning S2: ett sent svar med en äldre serverversion än den enheten redan har rullar aldrig tillbaka
+    if (base && base.t && remote.updateTime && SYNC.cmpTime(remote.updateTime, base.t) < 0) return false;
+    // granskning S1: enhetens egen skrivning kom fram fast svaret gick förlorat – räknas som skriven (inte som en främmande version)
+    const sentRec = DB.syncSent && DB.syncSent[kidId];
+    if (sentRec && sentRec.fam === SYNC.family && remote.raw && SYNC.hash(remote.raw) === sentRec.h && remote.updatedAt === sentRec.u) {
+      SYNC.markSent(local, sentRec.u, sentRec.since); delete DB.syncSent[kidId]; SYNC.setBase(kidId, remote.profile, remote.updateTime, remote.updatedAt); SYNC.save();
+      if (typeof LE !== 'undefined' && remote.serverTime) LE.anchor(kidId, remote.serverTime);
+      return false;
+    }
     // Tombstone: a parent deleted this child's data on another device → reset here instead of re-uploading our copy.
-    if (remote.profile.resetAt && remote.profile.resetAt > (local.resetAt || 0)) { const fresh = { ...defaultProfile(kidId), resetAt: remote.profile.resetAt, syncedAt: remote.updatedAt, updatedAt: remote.updatedAt }; fresh._lx = fresh.xp; fresh._lg = fresh.gems; DB.profiles[kidId] = fresh; rollover(fresh); SYNC.setBase(kidId, remote.profile, remote.updateTime); try { localStorage.setItem(STORE_KEY, dbJSON()); } catch (e) { /* ignore */ } return true; }
-    // Har vi redan den här versionen? Med en känd serverversion avgör serverns tid (updateTime) – aldrig enheternas klockor, som kan gå fel.
+    if (remote.profile.resetAt && remote.profile.resetAt > (local.resetAt || 0)) { const fresh = { ...defaultProfile(kidId), resetAt: remote.profile.resetAt, syncedAt: remote.updatedAt, updatedAt: remote.updatedAt }; fresh._lx = fresh.xp; fresh._lg = fresh.gems; DB.profiles[kidId] = fresh; rollover(fresh); SYNC.setBase(kidId, remote.profile, remote.updateTime, remote.updatedAt); SYNC.save(); return true; }
+    // Har vi redan den här versionen? Bara serverns tid avgör, och bara med en giltig bas – aldrig enheternas klockor (granskning B2).
     const localChanged = (local.updatedAt || 0) > (local.syncedAt || 0);
-    if (base && base.t && remote.updateTime ? base.t === remote.updateTime : (local.syncedAt || 0) >= remote.updatedAt) { if (!base && !localChanged) { SYNC.setBase(kidId, remote.profile, remote.updateTime); try { localStorage.setItem(STORE_KEY, dbJSON()); } catch (e) { /* ignore */ } } return false; }
-    const merged = localChanged ? mergeProfiles(local, remote.profile, base) : { ...defaultProfile(kidId), ...remote.profile, since: { xp: 0, gems: 0, days: {} } };
+    if (base && base.t && remote.updateTime && base.t === remote.updateTime) return false;
+    // Utan giltig bas: en ren profil tar familjens version; en ändrad slås ALLTID ihop (familjens värde för inställningar och övriga
+    // fält, union för bevis, prov och ordlistor – inget kan försvinna, men en radering kan komma tillbaka en gång).
+    const merged = localChanged ? mergeProfiles(local, remote.profile, base, { serverWins: !base }) : { ...defaultProfile(kidId), ...remote.profile, since: { xp: 0, gems: 0, days: {} } };
     // Fas 3B: v2-bevisloggen slås alltid ihop (union), även när lokalt inte ändrats – skyddar mot att en äldre app skrivit över den.
     let leRestored = false;
     if (!localChanged && (local.le || remote.profile.le) && typeof LE !== 'undefined') { merged.le = LE.mergeLE(local.le, remote.profile.le); leRestored = !!(merged.le && (merged.le.log || []).length > ((remote.profile.le || {}).log || []).length); }
     // leRestored: markera bara som lokalt ändrad – laddas upp vid nästa vanliga sparning (ingen extra uppladdning som kan krocka med en annan enhet)
     merged.syncedAt = remote.updatedAt; merged.updatedAt = localChanged ? Math.max(Date.now(), remote.updatedAt + 1) : leRestored ? Math.max(Date.now(), remote.updatedAt + 1) : remote.updatedAt; merged._lx = merged.xp; merged._lg = merged.gems;
-    DB.profiles[kidId] = merged; rollover(merged); SYNC.setBase(kidId, remote.profile, remote.updateTime);
-    try { localStorage.setItem(STORE_KEY, dbJSON()); } catch (e) { /* ignore */ }
+    DB.profiles[kidId] = merged; rollover(merged); SYNC.setBase(kidId, remote.profile, remote.updateTime, remote.updatedAt);
+    SYNC.save();
     if (typeof LE !== 'undefined') { LE.invalidate(kidId); if (remote.serverTime) LE.anchor(kidId, remote.serverTime); }
     if (localChanged && !inFlush) SYNC.schedulePush(kidId);
     return true;
@@ -146,7 +187,7 @@ const SYNC = {
 // a = enhetens profil (med osynkade ändringar), b = familjens data. base (3.2.1) = senast kända serverversion: det som inte ändrats
 // här sedan dess tas från familjens data (även raderingar). Utan base: som förut (inget kan försvinna, men en radering kan komma tillbaka).
 const MERGED_KEYS = new Set(['xp', 'gems', 'streak', 'lastDay', 'freezes', 'sessions', 'perfect', 'skills', 'words', 'days', 'weekCorrect', 'resetAt', 'badges', 'unlocked', 'decks', 'exams', 'enabledDecks', 'removedDefaults', 'tests', 'blitz', 'quests', 'settings', 'mistakes', 'mistakesCleared', 'v3', 'le']);
-function mergeProfiles(a, b, base) {
+function mergeProfiles(a, b, base, opts) {
   const out = { ...defaultProfile(a.kidId || b.kidId || 'x'), ...b, ...a };
   const since = a.since || { xp: 0, gems: 0, days: {} };
   out.xp = Math.max((b.xp || 0) + (since.xp || 0), a.xp || 0); out.gems = Math.max((b.gems || 0) + (since.gems || 0), 0); out.streak = Math.max(a.streak || 0, b.streak || 0);
@@ -175,6 +216,11 @@ function mergeProfiles(a, b, base) {
   const q = [a.quests, b.quests].filter(Boolean).sort((x, y) => (x.date || '').localeCompare(y.date || '')).pop(); out.quests = q || null;
   if (a.quests && b.quests && a.quests.date === b.quests.date) out.quests = { date: a.quests.date, items: a.quests.items.map((it, i) => { const o = b.quests.items[i]; return !o ? it : { ...it, progress: Math.max(it.progress, o.progress), done: it.done || o.done, claimed: it.claimed || o.claimed }; }) };
   out.pet = a.pet || b.pet; out.settings = { ...(b.settings || {}), ...(a.settings || {}) };
+  if (!base && opts && opts.serverWins) {   // utan bas (första synken efter uppdateringen, granskning B2): familjens värde för inställningar och övriga fält
+    out.settings = { ...(a.settings || {}), ...(b.settings || {}) }; out.pet = b.pet || a.pet;
+    for (const k of Object.keys(b)) if (!MERGED_KEYS.has(k) && !SYNC_META.has(k)) out[k] = b[k];
+    for (const k of ['engine', 'lePolicy', 'exp', 'scope']) { const sa = a.settings || {}, sb = b.settings || {}; if ((sa[k + 'At'] || 0) > (sb[k + 'At'] || 0)) { if (sa[k] === undefined) delete out.settings[k]; else out.settings[k] = sa[k]; out.settings[k + 'At'] = sa[k + 'At']; } }   // val med egen tidsstämpel: senaste gäller
+  }
   if (base) {   // trevägs per inställning och per övrigt fält: oförändrat här sedan basen → familjens värde (även borttaget)
     const sa = a.settings || {}, sb = b.settings || {}, none = SYNC.hash(undefined);
     for (const k of new Set([...Object.keys(sa), ...Object.keys(sb)])) if (SYNC.hash(sa[k]) === ((base.s || {})[k] || none)) { if (sb[k] === undefined) delete out.settings[k]; else out.settings[k] = sb[k]; }

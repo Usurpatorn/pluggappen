@@ -25,7 +25,7 @@ const URL0 = 'https://example.org/pluggappen/'; const FAM = 'test-fam-123';
 
 /* ---------- låtsad Firestore med villkorade skrivningar ---------- */
 function mkCloud() {
-  const docs = {}; const log = []; let clock = T_FIXED; const hooks = [];
+  const docs = {}; const log = []; let clock = T_FIXED; const hooks = []; const lose = { n: 0 };
   const fetchFor = (dev, nowFn) => async (url, opts = {}) => {
     const method = String(opts.method || 'GET').toUpperCase(); url = String(url);
     if (url.includes('/projects/offline-test/')) throw new TypeError('Failed to fetch');   // utan nät
@@ -37,11 +37,13 @@ function mkCloud() {
     if (method === 'PATCH') {
       const q = new URL(url).searchParams; const ut = q.get('currentDocument.updateTime'); const ex = q.get('currentDocument.exists');
       if ((ut !== null && (!docs[p] || JSON.parse(docs[p]).updateTime !== ut)) || (ex === 'false' && docs[p]) || (ex === 'true' && !docs[p])) { log.push({ dev, method: 'PATCH-NEKAD', path: p, at: log.length }); return { ok: false, status: 400, json: async () => ({ error: { status: 'FAILED_PRECONDITION' } }) }; }
-      clock = Math.max(clock + 1000, nowFn ? nowFn() : 0); const body = JSON.parse(opts.body); const d = { name: p, fields: body.fields, updateTime: new Date(clock).toISOString().replace('Z', '123456Z') }; docs[p] = JSON.stringify(d); return { ok: true, status: 200, json: async () => JSON.parse(docs[p]) }; }
+      clock = Math.max(clock + 1000, nowFn ? nowFn() : 0); const body = JSON.parse(opts.body); const d = { name: p, fields: body.fields, updateTime: new Date(clock).toISOString().replace('Z', '123456Z') }; docs[p] = JSON.stringify(d); if (lose.n > 0) { lose.n--; throw new TypeError('Failed to fetch (svaret gick förlorat)'); } return { ok: true, status: 200, json: async () => JSON.parse(docs[p]) }; }
     return { ok: false, status: 400, json: async () => ({}) };
   };
   const prof = (kid) => { const d = docs[`families/${FAM}/profiles/${kid}`]; return d ? JSON.parse(JSON.parse(d).fields.json.stringValue) : null; };
-  return { docs, log, hooks, fetchFor, prof };
+  // put: en blind skrivning från en äldre app (3.2.0 eller tidigare) med dess egen klocka
+  const put = (kid, pr, updatedAt) => { const p = `families/${FAM}/profiles/${kid}`; clock += 1000; docs[p] = JSON.stringify({ name: p, fields: { json: { stringValue: JSON.stringify(pr) }, updatedAt: { integerValue: String(updatedAt) }, kid: { stringValue: kid } }, updateTime: new Date(clock).toISOString().replace('Z', '123456Z') }); };
+  return { docs, log, hooks, lose, put, fetchFor, prof };
 }
 function mk(cloud, dev, seed, now = T_FIXED) {
   const dom = new JSDOM(PROD_HTML, { runScripts: 'dangerously', pretendToBeVisual: true, url: URL0, beforeParse(w) {
@@ -209,6 +211,55 @@ const core = (p) => JSON.stringify(canon(Object.fromEntries(Object.entries(p || 
       await SLOW.PA.SYNC.refresh('k4'); await FAST.PA.SYNC.refresh('k4');
       ok(contains(SLOW.PA.DB.profiles.k4, B) && contains(FAST.PA.DB.profiles.k4, B), 'H: båda enheterna får barnets nya bevis trots klockskillnaden');
       edit(SLOW, 'k4', (p) => { p.settings.tts = false; }); await settle(SLOW, 8000); keptAll(cloud.prof('k4'), B, 'H'); ok(cloud.prof('k4').settings.tts === false, 'H: enheten som går efter kan ändra igen');
+    }
+
+    /* ===== Den oberoende granskningens fynd (3.2.2): varje fall föll på utkastet ===== */
+    // I (B1): en förhandsvisning startar medan en hämtning pågår – den hämtade versionen slogs aldrig ihop och får inte bli villkoret
+    {
+      const cloud = mkCloud(); const C = await firstDevice(cloud, 'barn', 101); await play(C, 'k4', 0.3, 60); await settle(C);
+      C.__advance(DAY); const P = await device(cloud, 'förälder', 102, C.__now());
+      C.__advance(3600000); await play(C, 'k4', 0.3, 61); await settle(C); const B = cloud.prof('k4');
+      P.__advance(2 * 3600000); edit(P, 'k4', (p) => { p.settings.goal = 9; }); clearTimeout(P.PA.SYNC.pushTimer);
+      let armed = true; cloud.hooks.push(async (dev, method) => { if (armed && dev === 'förälder' && method === 'GET') { armed = false; P.PA.V2.startPreview({ id: 'k4' }); } });
+      await P.PA.SYNC.refresh('k4'); ok(!!P.PA.V2.sandbox, 'I: förhandsvisningen startade under hämtningen');
+      P.PA.V2.endPreview(); await settle(P, 9000);
+      const S = cloud.prof('k4'); keptAll(S, B, 'I'); ok(S.settings.goal === 9, 'I: förälderns ändring kom fram efteråt');
+    }
+    // J (B2): första synken efter uppdateringen (ingen bas) med en osynkad ändring, medan en äldre app med en klocka som går efter
+    //    har skrivit barnets nyare läge – den får aldrig hoppas över på grund av klockorna
+    {
+      const cloud = mkCloud(); const C = await firstDevice(cloud, 'barn', 111); await play(C, 'k4', 0.3, 62); await settle(C);
+      C.__advance(DAY); const P = await device(cloud, 'förälder', 112, C.__now()); const pSynced = P.PA.DB.profiles.k4.syncedAt;
+      C.__advance(3600000); await play(C, 'k4', 0.3, 63); C.PA.flushSave(); offline(C); C.PA.SYNC.pending.clear(); clearTimeout(C.PA.SYNC.pushTimer); clearTimeout(C.PA.SYNC.retryTimer);
+      cloud.put('k4', JSON.parse(JSON.stringify(C.PA.DB.profiles.k4)), pSynced); const B = cloud.prof('k4');   // blind skrivning, tidsstämpel = förälderns senaste synk
+      delete P.PA.DB.syncBase; P.__advance(2 * 3600000); edit(P, 'k4', (p) => { p.settings.goal = 9; }); await settle(P, 8000);
+      const S = cloud.prof('k4'); keptAll(S, B, 'J'); ok(S.settings.goal === 9, 'J: förälderns ändring finns med');
+    }
+    // K (S1): skrivningen kom fram men svaret gick förlorat – XP, diamanter och dagens räknare räknas inte två gånger
+    {
+      const cloud = mkCloud(); const C = await firstDevice(cloud, 'barn', 121); await play(C, 'k2', 0.3, 64); await settle(C);
+      C.__advance(3600000); cloud.lose.n = 1; await play(C, 'k2', 0.3, 65);
+      const q = C.PA.DB.profiles.k2; const xp = q.xp, gems = q.gems; const day = Object.keys(q.days).sort().pop(); const n = q.days[day].n;
+      await sleep(1800); online(C); await settle(C, 12000);
+      const S = cloud.prof('k2'); ok(S.xp === xp && S.gems === gems && S.days[day].n === n, `K: inget räknas två gånger (XP ${S.xp}/${xp}, diamanter ${S.gems}/${gems}, dagens svar ${S.days[day].n}/${n})`);
+      ok(C.PA.DB.profiles.k2.xp === xp && !C.PA.SYNC.pending.size, 'K: enheten visar samma och inget ligger kvar i kön');
+    }
+    // L (S2): ett sent svar med en äldre version rullar aldrig tillbaka enheten
+    {
+      const cloud = mkCloud(); const C = await firstDevice(cloud, 'barn', 131); await play(C, 'k2', 0.3, 66); await settle(C);
+      const orig = cloud.fetchFor('barn', () => C.__now()); let gate = null, release;
+      C.fetch = async (url, opts = {}) => { const r = await orig(url, opts); if (gate && String(opts.method || 'GET') === 'GET') { const body = r.ok ? await r.json() : null; const g = gate; gate = null; await g; return { ok: r.ok, status: r.status, json: async () => body }; } return r; };
+      C.__advance(3600000); await play(C, 'k2', 0.3, 67); const xpLocal = C.PA.DB.profiles.k2.xp;
+      gate = new Promise(res => { release = res; }); const late = C.PA.SYNC.refresh('k2');
+      await sleep(1700); await C.PA.SYNC.flush(); release(); await late;
+      ok(C.PA.DB.profiles.k2.xp === xpLocal && cloud.prof('k2').xp === xpLocal, `L: det sena svaret ignoreras (XP ${C.PA.DB.profiles.k2.xp} = ${xpLocal})`);
+    }
+    // M: ett fel inuti en synkomgång stoppar inte kön – den försöker igen
+    {
+      const cloud = mkCloud(); const P = await firstDevice(cloud, 'förälder', 141); let boom = 1; const orig = P.PA.SYNC.refresh;
+      P.PA.SYNC.refresh = async (...a) => { if (boom > 0) { boom--; throw new Error('trasig profil'); } return orig.apply(P.PA.SYNC, a); };
+      delete P.PA.DB.syncBase; edit(P, 'k8', (p) => { p.settings.goal = 17; }); await settle(P, 12000); P.PA.SYNC.refresh = orig;
+      await settle(P, 12000); ok(cloud.prof('k8').settings.goal === 17 && !P.PA.SYNC.pending.size, 'M: ett undantag i en omgång – nytt försök senare, ändringen kommer fram');
     }
 
     /* ================= Återgång (rollback): profilernas format är oförändrat ================= */

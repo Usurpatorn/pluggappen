@@ -6,8 +6,12 @@ if (!process.env.FIRESTORE_EMULATOR_HOST) { console.error('kräver Firestore-emu
 const FAM = 'syntetisk-familj-' + Math.random().toString(36).slice(2, 8);
 const URL0 = `http://${process.env.FIRESTORE_EMULATOR_HOST}/v1/projects/demo-pluggappen/databases/(default)/documents/families/${FAM}/profiles/k1?key=x`;
 const H = { 'Content-Type': 'application/json', Authorization: 'Bearer owner' };
-// exakt samma klassning som SYNC.push i src/04_sync.js
-const isConflict = (status, st) => status === 409 || status === 412 || ((status === 400 || status === 404) && /FAILED_PRECONDITION|NOT_FOUND|ALREADY_EXISTS|ABORTED/.test(st));
+// appens egen klassning (SYNC_IS_CONFLICT i src/04_sync.js) – läses ur källkoden, så att testet och appen aldrig kan glida isär
+import fs from 'node:fs'; import path from 'node:path';
+const SRC = fs.readFileSync(path.resolve(path.dirname(new URL(import.meta.url).pathname), '../../src/04_sync.js'), 'utf8');
+const line = SRC.split('\n').find(l => l.startsWith('const SYNC_IS_CONFLICT = '));
+if (!line) { console.error('SYNC_IS_CONFLICT saknas i src/04_sync.js'); process.exit(1); }
+const isConflict = new Function(line.replace('const SYNC_IS_CONFLICT = ', 'return ').replace(/;\s*$/, ''))();
 let fails = 0; const check = (name, cond, extra = '') => { console.log(`${cond ? 'ok  ' : 'FAIL'} ${name}${extra ? ' – ' + extra : ''}`); if (!cond) fails++; };
 const body = (n) => JSON.stringify({ fields: { json: { stringValue: JSON.stringify({ xp: n }) }, updatedAt: { integerValue: String(1000 + n) }, kid: { stringValue: 'k1' } } });
 const patch = async (cond, n) => { const r = await fetch(URL0 + '&mask.fieldPaths=updatedAt' + cond, { method: 'PATCH', headers: H, body: body(n) }); let j = null; try { j = await r.json(); } catch (e) { /* inget */ } return { r, j, st: (j && j.error && j.error.status) || '' }; };

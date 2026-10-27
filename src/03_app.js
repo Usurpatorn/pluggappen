@@ -47,7 +47,7 @@ let saveTimer = null;
 function save() {
   if (typeof V2 !== 'undefined' && V2.sandbox) return; // förälderns förhandsvisning av v2: inget sparas eller synkas
   const target = state.screen === 'parent' ? state.tab : state.kid;
-  if (target && DB.profiles[target]) { const d = DB.profiles[target]; d.updatedAt = Math.max(Date.now(), (d.syncedAt || 0) + 1); d.since = d.since || { xp: 0, gems: 0, days: {} }; if (d._lx != null) { d.since.xp += d.xp - d._lx; d.since.gems += d.gems - d._lg; } d._lx = d.xp; d._lg = d.gems; SYNC.schedulePush(target); }
+  if (target && DB.profiles[target]) { const d = DB.profiles[target]; if (typeof SYNC !== 'undefined' && SYNC.ensureBase) SYNC.ensureBase(target); d.updatedAt = Math.max(Date.now(), (d.syncedAt || 0) + 1); d.since = d.since || { xp: 0, gems: 0, days: {} }; if (d._lx != null) { d.since.xp += d.xp - d._lx; d.since.gems += d.gems - d._lg; } d._lx = d.xp; d._lg = d.gems; SYNC.schedulePush(target); }
   clearTimeout(saveTimer); saveTimer = setTimeout(flushSave, 150);
 }
 // Granskning H2: under förälderns förhandsvisning skrivs barnets RIKTIGA profil (ögonblicksbilden) – aldrig förhandsvisningens kopia.
@@ -1297,7 +1297,7 @@ async function deleteKidData(kidId) {
   const now = Date.now(); const fresh = { ...defaultProfile(kidId), resetAt: now, updatedAt: now, syncedAt: now }; fresh._lx = 0; fresh._lg = 0;
   DB.profiles[kidId] = fresh; try { localStorage.setItem(STORE_KEY, dbJSON()); } catch (e) { /* ignore */ }
   if (!SYNC.active) return false;
-  try { const body = { fields: { json: { stringValue: JSON.stringify(fresh) }, updatedAt: { integerValue: String(now) }, kid: { stringValue: kidId } } }; const r = await SYNC.fetch(SYNC.url(kidId), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); return r.ok; } catch (e) { return false; }
+  try { const body = { fields: { json: { stringValue: JSON.stringify(fresh) }, updatedAt: { integerValue: String(now) }, kid: { stringValue: kidId } } }; const r = await SYNC.fetch(SYNC.url(kidId), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); if (r.ok) { let doc = null; try { doc = await r.json(); } catch (e) { /* inget svar */ } SYNC.setBase(kidId, fresh, doc && doc.updateTime, now); SYNC.save(); } return r.ok; } catch (e) { return false; }   // radering = avsiktligt ovillkorad (gravsten); enhetens bas följer med
 }
 async function deleteFamilyData() {
   let n = 0; const del = async (url) => { try { const r = await SYNC.fetch(url, { method: 'DELETE' }); if (r.ok) n++; } catch (e) { /* ignore */ } };
