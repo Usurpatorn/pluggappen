@@ -344,6 +344,11 @@ const PACKS = (() => {
       // om motorn inte bad om fritt minne. Bara valet av variant; motorns bevisregler är desamma (UX-granskning: Bossen var ofta en kopia).
       if (opts.vary && opts.vary.depthBoss && opts.format !== 'recall') { const dp = all0.filter(v => DEPTH.has(v.form) && v.lvl <= L); if (dp.length) pool = dp; }   // aldrig över nivån motorn bad om (verifieringspass)
       if (opts.vary && opts.vary.stretch) { const act = all0.filter(v => v.ui !== 'choice' && v.ui !== 'type' && v.lvl <= L + 1 && (opts.format !== 'recall' || v.form === 'recall') && (opts.format !== 'depth' || DEPTH.has(v.form))); if (act.length) pool = act; }
+      // 3.1.2 (ägarens beslut): Bossen på samma kunskapspunkt som uppgiften precis innan tar helst en ANNAN aktivitet och ett annat faktum
+      // (inte sortera → sortera samma kort igen). Bara inom det urval som redan gäller – samma punkt, samma nivågräns, samma format som
+      // motorn bad om. Finns inget sådant: annat faktum i samma aktivitet; finns inte heller det: som förut.
+      if (opts.vary && opts.vary.boss && opts.vary.prevKp === cid) { const fkOf = (v) => v.key.split('|').slice(0, 2).join('|'); const pu = opts.vary.prevUi || opts.vary.last; const okF = (v) => !opts.vary.prevFk || fkOf(v) !== opts.vary.prevFk;
+        const alt = pool.filter(v => v.ui !== pu && okF(v)); if (alt.length) pool = alt; else { const alt2 = pool.filter(okF); if (alt2.length) pool = alt2; } }
     }
     const iid = opts.itemId || ((q) => q.text);
     const built = (v) => finish(ent, v, v.build(rnd), pol);
