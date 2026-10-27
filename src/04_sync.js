@@ -6,7 +6,10 @@ const SYNC = {
   fetch(url, opts) { return (typeof AUTH !== 'undefined' && AUTH.ready) ? AUTH.fetch(url, opts) : fetch(url, opts); },
   cfg: (typeof window !== 'undefined' && window.PLUGG_SYNC && window.PLUGG_SYNC.projectId && window.PLUGG_SYNC.apiKey) ? window.PLUGG_SYNC : null,
   get family() { return (DB.settings.family || '').trim(); },
-  get active() { return !!(SYNC.cfg && SYNC.family); },
+  get active() { return !!(SYNC.cfg && SYNC.family) && !(typeof TM !== 'undefined' && TM.on); },   // Testa som barnet: ingen synk alls under testet
+  // Testadressen (<sajten>/preview/, scripts/build.sh): förälderns testmiljö. Barnprofilerna där är en spegel av familjens data –
+  // den hämtar men laddar aldrig upp (nätverksskyddet i testsidan nekar dessutom varje skrivning till profiles/).
+  pv() { return typeof window !== 'undefined' && window.PLUGG_PREVIEW === true && window.__PV_LS === true; },
   status: 'off', lastError: null, pushTimer: null, pending: new Set(), lastPull: {},
   url(kidId) { return `https://firestore.googleapis.com/v1/projects/${SYNC.cfg.projectId}/databases/(default)/documents/families/${encodeURIComponent(SYNC.family)}/profiles/${kidId}?key=${SYNC.cfg.apiKey}`; },
   async pull(kidId) {
@@ -22,6 +25,7 @@ const SYNC = {
     } catch (e) { SYNC.status = 'error'; SYNC.lastError = e.message; return null; }
   },
   async push(kidId) {
+    if (SYNC.pv()) return false;   // testadressen laddar aldrig upp barnens data
     if (typeof V2 !== 'undefined' && V2.sandbox && V2.sandbox.kidId === kidId) return; // granskning H2: förhandsvisningen laddas aldrig upp
     if (!SYNC.active) return false;
     const p = prof(kidId); const updatedAt = p.updatedAt || Date.now();
@@ -34,12 +38,13 @@ const SYNC = {
       return true;
     } catch (e) { SYNC.status = 'error'; SYNC.lastError = e.message; return false; }
   },
-  schedulePush(kidId) { if (!SYNC.active || !kidId) return; SYNC.pending.add(kidId); clearTimeout(SYNC.pushTimer); SYNC.pushTimer = setTimeout(async () => { const ids = [...SYNC.pending]; SYNC.pending.clear(); for (const id of ids) await SYNC.push(id); SYNC.render(); }, 1500); },
+  schedulePush(kidId) { if (!SYNC.active || !kidId || SYNC.pv()) return; SYNC.pending.add(kidId); clearTimeout(SYNC.pushTimer); SYNC.pushTimer = setTimeout(async () => { const ids = [...SYNC.pending]; SYNC.pending.clear(); for (const id of ids) await SYNC.push(id); SYNC.render(); }, 1500); },
   // Pull remote for a kid and merge into local. Returns true if local changed.
   async refresh(kidId) {
     if (typeof V2 !== 'undefined' && V2.sandbox && V2.sandbox.kidId === kidId) return false; // förälderns förhandsvisning pågår
     const remote = await SYNC.pull(kidId); SYNC.lastPull[kidId] = Date.now();
     if (typeof V2 !== 'undefined' && V2.sandbox && V2.sandbox.kidId === kidId) return false; // förhandsvisningen startade medan hämtningen pågick
+    if (SYNC.pv()) return remote && !(typeof TM !== 'undefined' && TM.on) ? SYNC.mirror(kidId, remote, true) : false;   // testadressen: familjens data gäller alltid
     if (!remote) { if (SYNC.active && SYNC.status === 'ok') SYNC.schedulePush(kidId); return false; }
     const local = prof(kidId);
     // Tombstone: a parent deleted this child's data on another device → reset here instead of re-uploading our copy.
@@ -56,6 +61,17 @@ const SYNC = {
     try { localStorage.setItem(STORE_KEY, dbJSON()); } catch (e) { /* ignore */ }
     if (typeof LE !== 'undefined') { LE.invalidate(kidId); if (remote.serverTime) LE.anchor(kidId, remote.serverTime); }
     if (localChanged) SYNC.schedulePush(kidId);
+    return true;
+  },
+  // Testadressen: ersätt den lokala kopian med familjens data (ingen sammanslagning – inget lokalt får bli kvar eller laddas upp).
+  // lazy: hoppa över när kopian redan är exakt den versionen och inte ändrats lokalt.
+  mirror(kidId, remote, lazy) {
+    const local = prof(kidId);
+    const clean = local && (local.updatedAt || 0) <= (local.syncedAt || 0);
+    if (lazy && clean && (local.syncedAt || 0) >= remote.updatedAt) return false;   // redan den versionen (eller nyare: ett sent svar rullar aldrig tillbaka)
+    const m = { ...defaultProfile(kidId), ...remote.profile, since: { xp: 0, gems: 0, days: {} } }; m.syncedAt = remote.updatedAt; m.updatedAt = remote.updatedAt; m._lx = m.xp; m._lg = m.gems;
+    DB.profiles[kidId] = m; rollover(m); try { localStorage.setItem(STORE_KEY, dbJSON()); } catch (e) { /* ignore */ }
+    if (typeof LE !== 'undefined') { LE.invalidate(kidId); if (remote.serverTime) LE.anchor(kidId, remote.serverTime); }
     return true;
   },
   async refreshAll() { let changed = false; for (const k of KIDS) if (await SYNC.refresh(k.id)) changed = true; SYNC.render(); return changed; },

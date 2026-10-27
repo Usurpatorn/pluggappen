@@ -14,7 +14,7 @@ const LE = {
   POLICY_TXT: { younger: 'Yngre', middle: 'Mellan', older: 'Äldre' },
   guard(fn, where) { if (!LE.on) return undefined; try { return fn(); } catch (e) { LE.errors.push({ where, msg: String(e && e.message || e).slice(0, 120), t: Date.now() }); if (LE.errors.length > 20) LE.errors.shift(); return undefined; } },
   // Förhandsvisningen (förälder) får ett eget enhets-id: dess löpnummer kan aldrig krocka med barnets riktiga bevis (granskning H2)
-  dev() { const b = LE.devBase(); return typeof V2 !== 'undefined' && V2.sandbox ? b + '~p' : b; },
+  dev() { const b = LE.devBase(); return typeof TM !== 'undefined' && TM.on ? b + '~t' : typeof V2 !== 'undefined' && V2.sandbox ? b + '~p' : b; },   // ~t: Testa som barnet (sparas aldrig)
   devBase() {
     if (LE._dev) return LE._dev; let d = null;
     try { d = localStorage.getItem('pluggappen.dev'); } catch (e) { /* ignore */ }

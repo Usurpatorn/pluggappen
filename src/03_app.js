@@ -300,6 +300,7 @@ function xpPop(n) { if (typeof S !== 'undefined' && S && S.v2 && (S.v2.exp === '
 
 /* ========= Sync code (move progress between phone and tablet) ========= */
 function encodeProfile(kidId) {
+  if (typeof TM !== 'undefined' && TM.on) return '';   // Testa som barnet: testkopian får aldrig lämna sidan (en synkkod kan klistras in i den vanliga appen)
   const p = prof(kidId); const payload = JSON.stringify({ k: kidId, t: Date.now(), p });
   try { if (window.LZString) return 'PA2.' + LZString.compressToEncodedURIComponent(payload); } catch (e) { /* fall through */ }
   return 'PA1.' + btoa(unescape(encodeURIComponent(payload)));
@@ -365,7 +366,10 @@ function kidById(id) { return KIDS.find(k => k.id === id); }
 // Appens namn kommer från familjekonfigurationen (t.ex. "Familjen Xs Pluggapp"); utan konfiguration heter den bara Pluggapp.
 function appName() { return (FAMILY.cfg && FAMILY.cfg.appName) || 'Pluggapp'; }
 function logoHtml() { const n = appName(); const i = n.lastIndexOf(' '); return i > 0 ? `${esc(n.slice(0, i))} <span>${esc(n.slice(i + 1))}</span>` : `<span>${esc(n)}</span>`; }
-function go(screen, extra = {}) { if (S && S.timer) clearInterval(S.timer); if (typeof V2 !== 'undefined' && V2.sandbox && (screen === 'start' || screen === 'parent')) V2.restoreSandbox(); state = { ...state, screen, ...extra }; if (screen === 'start' || screen === 'parent') { state.kid = null; applyLook(null); } else applyLook(kidById(state.kid)); VIEWS[screen](); }
+function go(screen, extra = {}) { if (typeof TM !== 'undefined' && TM.on && (screen === 'start' || screen === 'parent')) return TM.exit();   // byta barn / lämna = avsluta testet (sidan laddas om)
+  if (typeof TM !== 'undefined' && TM.on && (TM.on.broken || screen === 'sync')) return;   // under testet: ingen synkkod (kopian lämnar aldrig sidan); trasig isolering: bara avsluta
+  if (typeof TM !== 'undefined' && TM.preview && !TM.on && !(typeof V2 !== 'undefined' && V2.sandbox) && !['start', 'parent'].includes(screen)) screen = 'start';   // testadressen: barnens vyer bara i testläget
+  if (S && S.timer) clearInterval(S.timer); if (typeof V2 !== 'undefined' && V2.sandbox && (screen === 'start' || screen === 'parent')) V2.restoreSandbox(); state = { ...state, screen, ...extra }; if (screen === 'start' || screen === 'parent') { state.kid = null; applyLook(null); } else applyLook(kidById(state.kid)); VIEWS[screen](); }
 function topbar(title, back, right = '') { return `<div class="topbar"><button class="icon-btn" data-go="${back}" aria-label="Tillbaka">${ICON.back}</button><div class="title grow">${title}</div>${right}</div>`; }
 function daysUntil(dateStr) { const d = new Date(dateStr + 'T00:00:00'); const now = new Date(); now.setHours(0, 0, 0, 0); return Math.round((d - now) / DAYMS); }
 const fmtDate = (s) => new Date(s + 'T00:00:00').toLocaleDateString('sv-SE', { day: 'numeric', month: 'long' });
@@ -394,6 +398,10 @@ VIEWS.start = () => {
     <button class="link" data-go="parent" style="align-self:center;margin-top:8px">Förälder</button>
   </div>`);
   }
+  if (typeof TM !== 'undefined' && TM.preview) return render(`
+  <div class="start-hero stack" style="gap:6px"><div class="logo">${logoHtml()}</div><p class="muted">Testversion – för föräldern</p></div>
+  <div class="stack" style="margin-top:14px"><div class="card stack" style="gap:10px"><p style="font-size:.95rem">Barnen använder den vanliga appen. Här kan du testa som ett av barnen utan att något sparas: <b>Föräldraläge → barnet → Testa som …</b></p>
+    <button class="btn big wide" data-go="parent">Föräldraläge</button><div id="syncState">${SYNC.badge()}</div></div></div>`);
   render(`
   <div class="start-hero stack" style="gap:6px">
     <div class="logo">${logoHtml()}</div>
@@ -486,7 +494,7 @@ VIEWS.home = () => {
     })();
   if (x3) return homeV3(kid, p, { lvl, pct, next, quests, subjectsHtml });   // Experience v3: egen, lugnare startsida (Klassisk/v1 oförändrade nedan)
   render(`
-  ${topbar(esc(kid.name), 'start', `<span class="pill ${p.streak ? 'warn' : ''}" title="Dagar i rad">${ICON.flame} ${p.streak}</span><button class="pill" data-go="shop" style="min-height:36px"><span class="gem">${ICON.gem} ${p.gems}</span></button><button class="icon-btn" data-go="sync" aria-label="Synka enheter" title="Synka telefon och iPad">${ICON.sync}</button><button class="icon-btn" data-act="sound" aria-label="Ljud">${DB.settings.sound ? ICON.speaker : ICON.mute}</button>`)}
+  ${topbar(esc(kid.name), 'start', `<span class="pill ${p.streak ? 'warn' : ''}" title="Dagar i rad">${ICON.flame} ${p.streak}</span><button class="pill" data-go="shop" style="min-height:36px"><span class="gem">${ICON.gem} ${p.gems}</span></button>${typeof TM !== 'undefined' && TM.on ? '' : `<button class="icon-btn" data-go="sync" aria-label="Synka enheter" title="Synka telefon och iPad">${ICON.sync}</button>`}<button class="icon-btn" data-act="sound" aria-label="Ljud">${DB.settings.sound ? ICON.speaker : ICON.mute}</button>`)}
   <div class="stack" style="margin-top:6px">
     ${isSport(kid) ? `<div class="player-card lulea"><div><div class="rating">${lvl}</div><div class="pos">${['C', 'LW', 'RW', 'D', 'G'][lvl % 5]}</div></div><div class="grow" style="position:relative"><div class="pname">${esc(kid.name)}</div><div class="ptitle">${levelNameFor(kid, lvl)} · ${p.xp} poäng</div><div class="pstats"><div><b>${p.streak}</b>${LBL(kid).streakWord}</div><div><b>${today.c}/${goal}</b>mål idag</div><div><b>${p.weekCorrect || 0}</b>rätt i veckan</div></div><div class="xpbar"><i style="width:${pct}%"></i></div><div style="font-size:.75rem;opacity:.8;margin-top:4px">${next - p.xp} poäng till ${levelNameFor(kid, lvl + 1)}</div></div></div>` : `<div class="card stack" style="gap:12px">
       <div class="hero">${isTeen(kid) ? `<div class="rank">${lvl}<small>nivå</small></div>` : `<div class="pet">${petEmoji(p)}<span class="lvl">${lvl}</span></div>`}
@@ -518,7 +526,7 @@ function homeV3(kid, p, o) {
   const ident = isSport(kid) ? `<div class="card row ident" style="gap:12px"><div class="rank" style="min-width:48px">${o.lvl}<small>${['C', 'LW', 'RW', 'D', 'G'][o.lvl % 5]}</small></div><div class="grow"><div style="font-weight:800;font-family:var(--display)">${esc(kid.name)} · ${levelNameFor(kid, o.lvl)}</div><div class="xpbar" style="margin-top:6px"><i style="width:${o.pct}%"></i></div></div></div>`
     : isTeen(kid) ? '' : `<div class="card row ident" style="gap:12px"><div class="pet" style="width:56px;height:56px;font-size:1.9rem">${petEmoji(p)}<span class="lvl">${o.lvl}</span></div><div class="grow"><div style="font-weight:800;font-family:var(--display)">${esc(petOf(p).name || '')}</div><div class="xpbar" style="margin-top:6px"><i style="width:${o.pct}%"></i></div></div></div>`;
   render(`
-  ${topbar(esc(kid.name), 'start', `${p.gems ? `<button class="pill" data-go="shop" style="min-height:36px"><span class="gem">${ICON.gem} ${p.gems}</span></button>` : ''}<button class="icon-btn" data-go="sync" aria-label="Synka enheter" title="Synka telefon och iPad">${ICON.sync}</button><button class="icon-btn" data-act="sound" aria-label="Ljud">${DB.settings.sound ? ICON.speaker : ICON.mute}</button>`)}
+  ${topbar(esc(kid.name), 'start', `${p.gems ? `<button class="pill" data-go="shop" style="min-height:36px"><span class="gem">${ICON.gem} ${p.gems}</span></button>` : ''}${typeof TM !== 'undefined' && TM.on ? '' : `<button class="icon-btn" data-go="sync" aria-label="Synka enheter" title="Synka telefon och iPad">${ICON.sync}</button>`}<button class="icon-btn" data-act="sound" aria-label="Ljud">${DB.settings.sound ? ICON.speaker : ICON.mute}</button>`)}
   <div class="stack" style="margin-top:6px">
     ${EXP.home(kid)}
     ${EXP.coreDone(p) ? '' : V2.felbokCard(kid)}
@@ -1106,7 +1114,7 @@ function endBlitz() {
 let parentUnlocked = false;
 VIEWS.parent = () => {
   if (!parentUnlocked) {
-    render(`${topbar('Föräldraläge', 'start')}
+    render(`${topbar('Föräldraläge', 'start')}${typeof TM !== 'undefined' && TM.lastNote ? `<div class="feedback good" role="status" style="margin-top:12px"><span>✓</span><div>${esc(TM.lastNote)}</div></div>` : ''}
     <div class="stack" style="margin-top:20px"><div class="card pad-lg stack" style="text-align:center;gap:14px"><h2>Ange kod</h2><p class="muted">Fyra siffror. Standardkoden är 1234 – byt den under ⚙.</p>
       <div class="pin">${[0, 1, 2, 3].map(i => `<input inputmode="numeric" maxlength="1" data-pin="${i}" aria-label="Siffra ${i + 1}">`).join('')}</div><p class="muted" id="pinMsg" style="min-height:1.4em"></p></div></div>`);
     const inputs = [...document.querySelectorAll('[data-pin]')]; inputs[0].focus();
@@ -1122,7 +1130,7 @@ VIEWS.parent = () => {
     const p = prof(kid.id);
     const subTabs = [['overview', 'Översikt'], ['exams', 'Prov'], ['decks', 'Glosor'], ['settings', 'Inställningar'], ['v2', 'Motor v2']];
     body = `<div class="seg" style="width:100%;display:flex">${subTabs.map(([id, l]) => `<button class="${sub === id ? 'on' : ''}" style="flex:1" data-sub="${id}">${l}</button>`).join('')}</div>`;
-    if (sub === 'overview') body += parentOverview(kid, p);
+    if (sub === 'overview') body += (typeof TM !== 'undefined' ? TM.card(kid) : '') + parentOverview(kid, p);
     else if (sub === 'exams') body += parentExams(kid, p);
     else if (sub === 'decks') body += parentDecks(kid, p);
     else if (sub === 'v2') body += V2.engineCard(kid) + (V2.engineOf(p) === 'v2' ? V2.insightsCard(kid) + V2.explainCard(kid) + V2.healthCard(kid) : '') + LE.view(kid);
@@ -1133,9 +1141,9 @@ VIEWS.parent = () => {
       <div class="toggle"><div><div class="tl">Ljud</div><div class="td">Pling vid rätt/fel</div></div><button class="switch ${DB.settings.sound ? 'on' : ''}" data-act="toggleSound" aria-label="Ljud"></button></div>
       <div class="row" style="gap:8px;align-items:center;flex-wrap:wrap"><button class="btn ghost" data-act="testSound">Testa ljud</button><span class="muted" style="font-size:.85rem" id="soundState">${typeof window !== 'undefined' && window.PLUGG_BUILD ? 'Version ' + window.PLUGG_BUILD : ''}</span></div>
       <button class="btn secondary" data-act="savePin">Spara kod</button></div>
-      ${familyCard()}
+      ${typeof TM !== 'undefined' && TM.preview ? `<div class="card"><p class="muted" style="font-size:.95rem">Familjen, enheterna, påminnelserna och radering hanteras i den vanliga appen – inte i testversionen.</p></div>` : familyCard()}
       ${LE.summaryCard()}
-      ${SYNC.cfg ? `${syncCard()}${PUSH.card('parent', 'parent')}${deleteCard()}` : ''}
+      ${SYNC.cfg && !(typeof TM !== 'undefined' && TM.preview) ? `${syncCard()}${PUSH.card('parent', 'parent')}${deleteCard()}` : ''}
       <div class="card stack" style="gap:8px"><div class="eyebrow">Så fungerar appen</div>
       <p style="font-size:.95rem"><b>Kör! (Learning Engine v2):</b> appen håller koll på vad varje barn kan och när det behöver repeteras. Kör! sätter ihop ett kort pass: något att minnas, dagens fokus, revansch på det som gick fel och ibland en utmaning. Fel blir Felboken – en ny fråga om samma sak ett annat pass. När inget mer är värdefullt säger appen "Du är klar för idag". Om något inte fungerar: välj v1 per barn under barnet → Motor v2.</p>
       <p style="font-size:.95rem"><b>Matte (v1):</b> alla uppgifter slumpas – obegränsat med övning. Svårigheten höjs efter fyra rätt i rad och sänks efter tre fel. "Kör!" väljer det barnet behöver mest: prov inom 30 dagar, annars dagens uppdrag. Fel svar återkommer senare i sprinten.</p>
@@ -1144,8 +1152,10 @@ VIEWS.parent = () => {
       <p style="font-size:.95rem"><b>Motivation:</b> följeslagare som växer med XP, tre dagliga uppdrag, ädelstenar och butik, streak med frys, veckoutmaning, märken och blixtläge.</p>
       <p style="font-size:.95rem" class="muted">Framsteg sparas på barnets enhet. Flytta med kod under Översikt.</p></div>`;
   }
+  const tmNote = typeof TM !== 'undefined' && TM.lastNote ? `<div class="feedback good" role="status"><span>✓</span><div>${esc(TM.lastNote)}</div></div>` : ''; if (typeof TM !== 'undefined') TM.lastNote = null;
+  const pvNote = typeof TM !== 'undefined' && TM.preview ? `<div class="muted" style="font-size:.85rem">Testversion: ändringar här sparas inte i familjens data. Gör dem i den vanliga appen.</div>` : '';
   render(`${topbar('Föräldraläge', 'start')}
-  <div class="stack" style="margin-top:6px">
+  <div class="stack" style="margin-top:6px">${tmNote}${pvNote}
     <div class="tabs">${KIDS.map(k => `<button class="${tab === k.id ? 'on' : ''}" data-tab="${k.id}">${esc(k.name)}</button>`).join('')}<button class="${tab === 'settings' ? 'on' : ''}" data-tab="settings">⚙</button></div>
     ${body}
   </div>`);
@@ -1305,6 +1315,8 @@ async function deleteFamilyData() {
 app.addEventListener('click', (e) => {
   const t = e.target;
   const sp = t.closest('[data-speak]'); if (sp) { if (sp.dataset.highlight) speakHighlight(document.getElementById('qtext'), sp.dataset.lang); else TTS.speak(sp.dataset.speak, sp.dataset.lang, sp.dataset.rate ? Number(sp.dataset.rate) : 0.9); return; }
+  const tmBtn = t.closest('[data-tm]'); if (tmBtn && typeof TM !== 'undefined') { if (tmBtn.dataset.tm === 'start') TM.start(tmBtn.dataset.kidId, tmBtn.dataset.exp || null); return; }
+  if (t.closest('[data-tm-exit]') && typeof TM !== 'undefined') return TM.exit();
   const goBtn = t.closest('[data-go]'); if (goBtn) { const dest = goBtn.dataset.go; if (B && B.timer) clearInterval(B.timer); if (dest === 'home' && !state.kid) return go('start'); return go(dest); }
   const kidBtn = t.closest('[data-kid]'); if (kidBtn) { state.kid = kidBtn.dataset.kid; state.subj = null; go('home'); if (SYNC.active && Date.now() - (SYNC.lastPull[state.kid] || 0) > 20000) SYNC.refresh(state.kid).then(ch => { if (ch && state.screen === 'home') VIEWS.home(); }); return; }
   const petBtn = t.closest('[data-pet]'); if (petBtn) { const p = prof(state.kid); p.pet = petBtn.dataset.pet; save(); confetti(); return go('home'); }
@@ -1363,6 +1375,7 @@ app.addEventListener('click', (e) => {
     if (a === 'addExam') { const p = prof(state.tab); const title = document.getElementById('exTitle').value.trim(); const date = document.getElementById('exDate').value; if (!title || !date) return toast('Fyll i vad och datum'); const skillIds = [...document.querySelectorAll('input[name=ex_skill]:checked')].map(x => x.value); const deckIds = [...document.querySelectorAll('input[name=ex_deck]:checked')].map(x => x.value); p.exams.push({ id: 'ex' + Date.now(), title, date, skillIds, deckIds }); save(); toast('Provet är inlagt'); return VIEWS.parent(); }
     if (a === 'saveDeck') { const p = prof(state.tab); const name = document.getElementById('dkName').value.trim(); const lang = document.getElementById('dkLang').value; const lines = document.getElementById('dkWords').value.split('\n').map(l => l.trim()).filter(Boolean); const words = []; for (const l of lines) { const parts = l.split('=').map(x => x.trim()); if (parts.length >= 2 && parts[0] && parts[1]) words.push({ id: 'w' + Date.now() + '_' + words.length, w: parts[0], t: parts[1], e: parts[2] || '' }); } if (!name || !words.length) return toast('Ge läxan ett namn och minst ett ord'); if (state.editDeck) { const d = p.decks.find(x => x.id === state.editDeck.id); const keep = new Map(d.words.map(w => [w.w.toLowerCase(), w.id])); words.forEach(w => { if (keep.has(w.w.toLowerCase())) w.id = keep.get(w.w.toLowerCase()); }); Object.assign(d, { name, lang, words, noSpell: lang === 'sv' }); state.editDeck = null; } else { const deck = { id: 'custom_' + Date.now(), lang, name, emoji: lang === 'es' ? '🇪🇸' : lang === 'en' ? '🇬🇧' : '🗂️', level: 1, builtin: false, noSpell: lang === 'sv', words }; p.decks.push(deck); p.enabledDecks.push(deck.id); } save(); toast(`${words.length} ord sparade`); return VIEWS.parent(); }
     if (a === 'cancelEdit') { state.editDeck = null; return VIEWS.parent(); }
+    if ((a === 'syncCopy' || a === 'syncPaste' || a === 'export') && typeof TM !== 'undefined' && TM.on) return;
     if (a === 'syncCopy') { const code = encodeProfile(state.kid); const area = document.getElementById('syncArea'); area.innerHTML = `<textarea class="cards" id="syncTa" readonly style="min-height:80px;font-size:.8rem">${code}</textarea><p class="muted" style="font-size:.9rem;margin-top:6px" id="syncMsg">Koden är markerad.</p>`; const ta = document.getElementById('syncTa'); ta.focus(); ta.select(); navigator.clipboard?.writeText(code).then(() => { document.getElementById('syncMsg').textContent = 'Kopierad! Öppna appen på den andra enheten, tryck på synk-ikonen och välj Klistra in kod.'; }).catch(() => {}); return; }
     if (a === 'syncPaste') { const area = document.getElementById('syncArea'); area.innerHTML = `<textarea class="cards" id="syncTa" placeholder="Klistra in koden här" style="min-height:80px;font-size:.8rem"></textarea><button class="btn secondary" style="margin-top:8px" id="doSync">Läs in</button><div id="syncMsg"></div>`; try { navigator.clipboard?.readText?.().then(t => { if (decodeProfile(t)) document.getElementById('syncTa').value = t.trim(); }).catch(() => {}); } catch (e) { /* no clipboard read */ } document.getElementById('doSync').addEventListener('click', () => { const obj = decodeProfile(document.getElementById('syncTa').value); if (!obj) return toast('Koden gick inte att läsa'); if (obj.k && obj.k !== state.kid) return toast(`Den här koden är ${kidById(obj.k)?.name || 'någon annans'} – välj rätt profil först`); const here = prof(state.kid); const incoming = obj.p; const warn = activityScore(here) > activityScore(incoming); document.getElementById('syncMsg').innerHTML = `<div class="feedback ${warn ? 'warn' : 'ok'}" style="margin-top:8px"><span>${warn ? '⚠️' : '✅'}</span><div><div class="big">${warn ? 'Koden har mindre framsteg än den här enheten' : 'Koden ser bra ut'}</div><div class="sub">Koden: ${incoming.xp} XP, ${activityScore(incoming)} övningar${obj.t ? ', från ' + new Date(obj.t).toLocaleString('sv-SE', { dateStyle: 'short', timeStyle: 'short' }) : ''}. Här: ${here.xp} XP, ${activityScore(here)} övningar. Det som finns här ersätts.</div><div class="row" style="margin-top:8px"><button class="btn" style="min-height:40px" id="confirmSync">Ersätt och läs in</button></div></div></div>`; document.getElementById('confirmSync').addEventListener('click', () => { DB.profiles[state.kid] = { ...defaultProfile(state.kid), ...incoming }; save(); applyLook(kidById(state.kid)); toast('Framstegen är inlästa'); go('home'); }); }); return; }
     if (a === 'export') { const code = encodeProfile(state.tab); const area = document.getElementById('ioArea'); area.innerHTML = `<textarea class="cards" id="ioTa" readonly style="min-height:90px">${code}</textarea><p class="muted" style="font-size:.9rem;margin-top:6px">Koden är markerad – kopiera den.</p>`; const ta = document.getElementById('ioTa'); ta.focus(); ta.select(); navigator.clipboard?.writeText(code).then(() => toast('Kod kopierad')).catch(() => {}); return; }
@@ -1392,6 +1405,7 @@ function boot(snap) {
   if (SYNC.cfg && SYNC.family) { try { history.replaceState(null, '', location.pathname + '#fam-' + SYNC.family); } catch (e) { /* ignore */ } } // bara familje-id i adressfältet – aldrig parkopplingskoden
   AUTH.load();
   if (SYNC.active) { ensureMembership().then(() => FAMILY.pull()).then((cfgChanged) => FAMILY.pullContent().then(cc => cfgChanged || cc, () => cfgChanged)).then((cfgChanged) => { if (cfgChanged) { load(); if (state.screen === 'start') VIEWS.start(); } return SYNC.refreshAll(); }).then((changed) => { if (state.screen === 'start' || (changed && state.screen === 'home')) VIEWS[state.screen](); }); document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && SYNC.active && state.screen !== 'practice' && state.screen !== 'blitzplay') SYNC.refreshAll().then((changed) => { if (changed && VIEWS[state.screen]) VIEWS[state.screen](); }); }); }
+  if (typeof TM !== 'undefined' && TM.preview) { if (/^foralder-tm[012]$/.test(h)) { TM.note(h.slice(9)); try { history.replaceState(null, '', location.pathname + (SYNC.family ? '#fam-' + SYNC.family : '')); } catch (e) { /* ignore */ } h = 'foralder'; } else if (h !== 'foralder') h = ''; }   // testadressen: inga djuplänkar till barnen
   const [hk, hact] = h.split('-');
   if (snap && snap.kid && kidById(snap.kid)) { state.kid = snap.kid; go('home'); }
   else if (kidById(hk) && hact === 'kor') { state.kid = hk; applyLook(kidById(hk)); const kid = kidById(hk); const p = prof(hk); if (!p.pet) { p.pet = isTeen(kid) || isSport(kid) ? 'none' : PETS[0].id; save(); } if (V2.on(kid)) { go('home'); V2.click({ dataset: { v2: 'kor' } }, kid); } else { LE.nextSrc = 'kor'; startSession(kid, recommendSprint(kid).opts); } }
@@ -1401,4 +1415,4 @@ function boot(snap) {
   else go('start');
 }
 if (!window.PLUGG_STOP) window.claude?.hot?.ready ? window.claude.hot.ready(boot) : boot(window.claude?.hot?.data ?? null);   // PLUGG_STOP: testversionen på fel adress (se scripts/build.sh)
-window.PA = { LE, LE2, LECAT, LER, V2, EXP, RECALL, CHG, PACKS, checkAnswer, answerDisplay, makeQuestion, mergeProfiles, get S() { return S; }, get DB() { return DB; }, get B() { return B; }, Poly, KIDS, TEMPLATES, FAMILY, AUTH, deleteKidData, deleteFamilyData, buildKids, load, flushSave, rerender: () => VIEWS[state.screen] && VIEWS[state.screen](), BUILTIN_DECKS, SYNC, save, setKid: (id) => { state.kid = id; }, version: '3.0' };
+window.PA = { TM: typeof TM !== 'undefined' ? TM : null, LE, LE2, LECAT, LER, V2, EXP, RECALL, CHG, PACKS, checkAnswer, answerDisplay, makeQuestion, mergeProfiles, get S() { return S; }, get DB() { return DB; }, get B() { return B; }, Poly, KIDS, TEMPLATES, FAMILY, AUTH, deleteKidData, deleteFamilyData, buildKids, load, flushSave, rerender: () => VIEWS[state.screen] && VIEWS[state.screen](), BUILTIN_DECKS, SYNC, save, setKid: (id) => { state.kid = id; }, go: (sc) => go(sc), version: '3.0' };

@@ -35,6 +35,7 @@ const FAMILY = {
       const doc = await r.json(); const remote = JSON.parse(doc.fields?.json?.stringValue || 'null');
       if (!FAMILY.valid(remote)) return false;
       if (!FAMILY.cfg || (remote.updatedAt || 0) > (FAMILY.cfg.updatedAt || 0)) { FAMILY.apply(remote); return true; }
+      if (typeof SYNC.pv === 'function' && SYNC.pv() && JSON.stringify(remote) !== JSON.stringify(FAMILY.cfg)) { FAMILY.apply(remote); return true; }   // testadressen: familjens inställningar gäller alltid (spegel)
     } catch (e) { /* offline – keep local */ }
     return false;
   },
