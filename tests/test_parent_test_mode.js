@@ -231,8 +231,9 @@ async function exitAndReload(P, cloud, seed, how = 'exit') {
     {
       const cloud = mkCloud(); const C = await childDevice(cloud, 14); await childPlays(C, 'k8', 0.2, 60);
       // vanliga appen: ingen knapp, start vägras
-      { unlock(C); tools(C).click(C.document.querySelector('[data-tab="k8"]')); ok(!C.document.querySelector('[data-tm]') && C.PA.TM && !C.PA.TM.available(), 'Vanliga appen: "Testa som" finns inte (inte bara dold)');
-        const d0 = realDump(C); await C.PA.TM.start('k8'); ok(!C.PA.TM.on && same(realDump(C), d0), 'Vanliga appen: start vägras och inget ändras'); }
+      // 3.2: den vanliga appen har Testa som barnet i föräldraläget (prövas fullt i test_parent_test_mode_prod.js); utanför föräldraläget vägras start
+      { C.PA.go('start'); const d0 = allStored(C); await C.PA.TM.start('k8'); ok(!C.PA.TM.on && same(allStored(C), d0), 'Vanliga appen: start utanför föräldraläget vägras och inget ändras');
+        unlock(C); tools(C).click(C.document.querySelector('[data-tab="k8"]')); ok(!!C.document.querySelector('[data-tm="start"]') && C.PA.TM.available(), 'Vanliga appen: "Testa som" finns i föräldraläget'); C.PA.go('start'); }
       // gammal lagring utan omkoppling (en äldre testsida): ingen knapp
       { const old = (h) => h.replace(/__tmBegin: function \(\) \{[^}]*\}, /, ''); const W = mk({ html: PV_HTML, url: PV_URL, dev: 'preview', cloud, tweak: old }); await sleep(30); W.PA.DB.settings.family = FAM; await W.PA.FAMILY.pull(); W.PA.load(); await W.PA.SYNC.refreshAll(); unlock(W); tools(W).click(W.document.querySelector('[data-tab="k8"]'));
         ok(!W.PA.TM.available() && !W.document.querySelector('[data-tm]'), 'Lagring som inte kan kopplas om: testläget erbjuds inte'); }
