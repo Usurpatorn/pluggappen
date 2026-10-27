@@ -81,10 +81,13 @@ const FAMILY = {
       focus: obj(w.focus) ? { skills: ids(w.focus.skills, 20, /^[a-z0-9_]{2,40}$/), kps: ids(w.focus.kps, 100, /^k:[a-z0-9-]{2,48}\/[a-z0-9-]{2,48}$/) } : { skills: [], kps: [] },
       missing: (Array.isArray(w.missing) ? w.missing : []).filter(obj).slice(0, 20).map(m => ({ label: str(m.label, 80), kind: ['pdf', 'book', 'format', 'video', 'lab', 'questions', 'other'].includes(m.kind) ? m.kind : 'other', note: str(m.note, 120) })).filter(m => m.label),
     })).filter(w => w.id && w.kid && w.title);
-    return { v: 1, updatedAt: Number(c.updatedAt) || 0, packs, work };
+    // 3.5 privata bilder: manifestet (id → oföränderlig revision). Bilderna själva hämtas separat och kontrolleras (src/05j_assets.js).
+    const assets = typeof ASSETS !== 'undefined' ? ASSETS.clean(c.assets) : [];
+    return { v: 1, updatedAt: Number(c.updatedAt) || 0, packs, work, assets };
   },
   applyContent(c) {
     const cl = FAMILY.cleanContent(c); FAMILY.content = cl;
+    if (typeof ASSETS !== 'undefined') { ASSETS.setManifest((cl && cl.assets) || []); ASSETS.loadLocal(); }
     PACKS.clearPrivate(); for (const pk of (cl && cl.packs) || []) PACKS.register(pk, { private: true });
     try { if (cl) localStorage.setItem(FAMILY.CONTENT_KEY, JSON.stringify({ ...cl, fam: FAMILY.famId() })); } catch (e) { /* ignore */ }
     buildKids(); if (typeof LE !== 'undefined') LE.C = {};
@@ -92,13 +95,15 @@ const FAMILY = {
   // Granskning 2.1 (H4): den lokala kopian hör till EN familj – byter enheten familj (eller familjen raderas) används den aldrig igen
   famId() { return typeof DB !== 'undefined' && DB.settings ? String(DB.settings.family || '') : ''; },
   loadContentLocal() { try { const raw = localStorage.getItem(FAMILY.CONTENT_KEY); if (!raw) return; const c = JSON.parse(raw); if ((c.fam || '') !== FAMILY.famId()) return FAMILY.clearContent(); FAMILY.applyContent(c); } catch (e) { /* ignore */ } },
-  clearContent() { FAMILY.content = null; PACKS.clearPrivate(); try { localStorage.removeItem(FAMILY.CONTENT_KEY); } catch (e) { /* ignore */ } buildKids(); if (typeof LE !== 'undefined') LE.C = {}; },
+  clearContent() { FAMILY.content = null; PACKS.clearPrivate(); if (typeof ASSETS !== 'undefined') { ASSETS.setManifest([]); ASSETS.clearLocal(); } try { localStorage.removeItem(FAMILY.CONTENT_KEY); } catch (e) { /* ignore */ } buildKids(); if (typeof LE !== 'undefined') LE.C = {}; },
   async pullContent() {
     if (!SYNC.active) return false;
     try {
       const r = await SYNC.fetch(SYNC.url('_content'), { cache: 'no-store' }); if (r.status === 404) { if (FAMILY.content) { FAMILY.clearContent(); return true; } return false; } if (!r.ok) return false;
       const doc = await r.json(); const remote = JSON.parse(doc.fields?.json?.stringValue || 'null'); if (!remote) return false;
-      if (!FAMILY.content || (remote.updatedAt || 0) !== (FAMILY.content.updatedAt || 0)) { FAMILY.applyContent(remote); return true; }
+      let changed = false; if (!FAMILY.content || (remote.updatedAt || 0) !== (FAMILY.content.updatedAt || 0)) { FAMILY.applyContent(remote); changed = true; }
+      if (typeof ASSETS !== 'undefined' && Object.keys(ASSETS.man).length && (await ASSETS.pull()) > 0) changed = true;   // 3.5: bilder som saknas lokalt
+      return changed;
     } catch (e) { /* offline – behåll lokalt */ }
     return false;
   },

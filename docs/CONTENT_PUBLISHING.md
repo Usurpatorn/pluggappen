@@ -97,3 +97,62 @@ utan att något skolmaterial lämnar repot.
 - Appklienter kan aldrig skriva `_content` (firestore.rules, verifierat i emulatorn och i Rules Playground).
 - Utskrifterna i loggarna innehåller aldrig innehållet, familjekoden eller token.
 - Prövat i CI mot Googles Firestore-emulator: `tests/rules/publish.test.mjs`.
+
+## Privata bilder (3.5)
+Bilder ur familjens material, till exempel karttecken, publiceras med samma flöde. De hamnar **aldrig** i app-repot, bygget eller
+publika CI-artefakter.
+
+**Lagring.** Varje bild ligger som ett eget dokument i familjens Firestore: `families/{familj}/assets/{sha256}`, med fälten
+`{ b64, mime, bytes, w, h }`.
+- `_content.assets` är manifestet: `[{ id: "paket/namn", rev, mime, w, h, bytes }]`.
+- Revisionen är bildens sha256. Ett dokument skrivs därför aldrig om: en ändrad bild får en ny revision.
+- **Inga nya molnresurser, ingen ny behörighet:** tjänstekontot `content-publisher` har redan `roles/datastore.user` och skriver
+  dokumenten som `_content`.
+- **Ingen ny kostnad i praktiken.** Firestores gratisnivå är 1 GiB lagrat, 50 000 läsningar och 20 000 skrivningar per dygn
+  (verifierat mot Googles dokumentation, se nedan). Ett 30-tal bilder på några kB läses en gång per enhet och cachas sedan.
+
+**Åtkomst** styrs av `firestore.rules`, `match /assets/{rev}`:
+- bara familjens medlemmar läser;
+- ingen appklient skriver eller raderar;
+- övergångsvägen gäller inte.
+
+Det finns inga offentliga länkar. Emulatortestet `tests/rules/rules.test.mjs` visar att oinloggade, icke-medlemmar och en annan
+familj nekas, och att barnets och förälderns enheter får läsa.
+
+**Ordning vid publicering** (`scripts/content.mjs`):
+1. `bundle` – bilderna kontrolleras (PNG/JPEG ur filens byte, högst 200 000 byte och 1024 × 1024, sha256 mot manifestet, ursprung
+   och rätt att använda). Bilduppgifterna kontrolleras med appens egen regel. Ut kommer `_content.json` (bara manifestet) och
+   `_content.assets.json` (bilderna).
+2. `fetch` – backup.
+3. `assets` – laddar upp nya revisioner, bara som nya dokument. En revision som redan finns kontrolleras och hoppas över, så steget
+   kan köras om.
+4. `verify-assets` – varje bild som innehållet hänvisar till läses tillbaka och kontrolleras.
+5. `publish --expect` – vägrar (kod 4) om någon refererad bild saknas eller är skadad. Därför pekar aktivt innehåll aldrig på en
+   saknad bild.
+6. `verify` – återläsning.
+
+`restore` (rollback) gör samma kontroll.
+
+**Lagringstid och rensning.** Verktygen raderar aldrig bilder, eftersom en rollback kan behöva äldre revisioner. Gamla revisioner
+som ingen backup längre hänvisar till kan föräldern ta bort för hand i Firebase-konsolen. Det är frivilligt, och utrymmet är
+försumbart.
+
+**I appen** (`src/05j_assets.js`):
+- varje bild kontrolleras igen (typ, storlek, upplösning och sha256) innan den visas;
+- en uppgift visas bara när alla dess bilder är hela, och den blir aldrig en textuppgift utan bild;
+- alt-texten skrivs av appen och är neutral, så den avslöjar aldrig svaret;
+- bilderna cachas i enhetens lokala lagring, knutet till familjen.
+
+Cachen töms vid familjebyte och när enheten kopplas bort. **En kopia som redan finns på en enhet kan inte raderas på distans**
+(till exempel på en avstängd eller borttappad enhet).
+
+Delad enhet: alla profiler på enheten tillhör samma familj och ser samma bilder, precis som resten av familjens innehåll. Separation
+per barn kommer först med Family Platform.
+
+**Ägarsteg innan bilder kan användas:**
+1. Publicera de nya `firestore.rules` i Firebase-konsolen (Firestore → Regler) efter granskning. Kontrollera dem i Rules Playground:
+   en medlem får läsa `families/<familj>/assets/<64 hex>`, en icke-medlem nekas.
+2. Merga app-PR:en och release.
+3. Lägg in stegen `assets` och `verify-assets` i publiceringsworkflowen i det privata repot. Det är förberett i innehålls-PR:en.
+
+Källa för kvoterna: [Firestore – quotas and limits](https://docs.cloud.google.com/firestore/quotas).

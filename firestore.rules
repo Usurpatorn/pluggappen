@@ -42,6 +42,15 @@ service cloud.firestore {
         allow delete: if isMember() && (uid == request.auth.uid || isParent());
       }
 
+      // 3.5 Familjens privata bilder (t.ex. karttecken ur lärarens material): oföränderliga revisioner, dokument-id = sha256 av bilden.
+      // Läses bara av familjens medlemmar (aldrig via övergångsvägen och aldrig av en annan familj). Ingen appklient får skriva eller radera –
+      // de skrivs bara med servicekontot (scripts/content.mjs assets), som går förbi reglerna. Gamla revisioner tas aldrig bort automatiskt
+      // (en rollback av _content kan behöva dem).
+      match /assets/{rev} {
+        allow read: if isMember() && rev.matches('^[0-9a-f]{64}$');
+        allow write: if false;
+      }
+
       // Barnens profiler, familjekonfigurationen (_config), push-prenumerationer (push_*) och körlogg (push_log).
       // _content (familjens privata innehåll: paket, skoluppgifter, facit, provdatum) är SKRIVSKYDDAT för alla appklienter –
       // även för medlemmar och för övergångsvägen med gammal kod. Det skrivs bara med Google-servicekontot (scripts/content.mjs deploy),

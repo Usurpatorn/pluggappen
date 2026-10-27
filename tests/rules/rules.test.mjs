@@ -91,6 +91,26 @@ await check('känd begränsning (dokumenteras, inte stängd i 2.1): enhet med ko
 await check('känd begränsning: barnenhet kan skriva ett syskons profil', true, () => setDoc(doc(as('kidDevice'), `families/${FAM_SHORT}/profiles/k2`), profile()));
 await check('enhet utan rätt kod kan inte gå med', false, () => setDoc(doc(as('intruder'), `families/${FAM_SHORT}/members/intruder`), { role: 'kid', device: 'x', joinedAt: 2, code: 'fel-kod' }));
 
+// 3.5 privata bilder: families/{fam}/assets/{rev} – bara familjens medlemmar läser, ingen appklient skriver. Syntetisk bild (inte en riktig).
+if (!OLD) {
+  await seed();
+  const REV = 'a'.repeat(64), REV2 = 'b'.repeat(64); const asset = { b64: 'iVBORw0KGgo=', mime: 'image/png', bytes: 8, w: 1, h: 1 };
+  await env.withSecurityRulesDisabled(async (ctx) => { for (const fam of [FAM_SHORT, FAM_LONG, FAM_OTHER]) await setDoc(doc(ctx.firestore(), `families/${fam}/assets/${REV}`), asset); });
+  for (const fam of [FAM_SHORT, FAM_LONG]) {
+    const A = `families/${fam}/assets/${REV}`; const label = fam === FAM_LONG ? 'familj med övergångsväg öppen' : 'familj utan övergångsväg';
+    await check(`[${label}] oinloggad kan inte läsa en privat bild (inte heller via övergångsvägen)`, false, () => getDoc(doc(as(null), A)));
+    await check(`[${label}] inloggad icke-medlem kan inte läsa en privat bild`, false, () => getDoc(doc(as('stranger'), A)));
+    await check(`[${label}] en annan familjs enhet kan inte läsa den här familjens bild`, false, () => getDoc(doc(as('otherFamilyDevice'), A)));
+    await check(`[${label}] barnets enhet (medlem) läser familjens bild`, true, () => getDoc(doc(as('kidDevice'), A)));
+    await check(`[${label}] förälderns enhet (medlem) läser familjens bild`, true, () => getDoc(doc(as('parentDevice'), A)));
+    await check(`[${label}] en medlem kan inte skriva en bild`, false, () => setDoc(doc(as('parentDevice'), `families/${fam}/assets/${REV2}`), asset));
+    await check(`[${label}] en medlem kan inte skriva över en bild`, false, () => setDoc(doc(as('kidDevice'), A), { ...asset, b64: 'AAAA' }));
+    await check(`[${label}] en förälder kan inte radera en bild (rollback kan behöva den)`, false, () => deleteDoc(doc(as('parentDevice'), A)));
+    await check(`[${label}] ett dokument-id som inte är en sha256 läses inte`, false, () => getDoc(doc(as('kidDevice'), `families/${fam}/assets/inte-en-hash`)));
+  }
+  await check('den andra familjens enhet läser sin egen bild', true, () => getDoc(doc(as('otherFamilyDevice'), `families/${FAM_OTHER}/assets/${REV}`)));
+  await check('den andra familjens enhet kan inte läsa en bild i en familj där den inte är medlem', false, () => getDoc(doc(as('otherFamilyDevice'), `families/${FAM_SHORT}/assets/${REV}`)));
+}
 await env.cleanup();
 const head = `Firestore-regler i emulatorn (${RULES_FILE}${OLD ? ', förväntar kända hål i ' + MODE : ''}): ${results.length - fails} av ${results.length} som förväntat`;
 console.log(head); for (const r of results) console.log('  ' + r);

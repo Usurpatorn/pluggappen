@@ -433,7 +433,7 @@ const V2 = {
   },
   examAnswered(q, correct, raw) {
     const V = S.v2; const your = q.cat === 'word' ? raw : q.type === 'choicetext' ? (q.choices || [])[S.selected] : q.choices ? T.n(Number(S.selected)) : q.type === 'order' ? 'din ordning' : q.type === 'sort' ? 'din sortering' : q.type === 'match' ? 'dina par' : raw;
-    V.answers.push({ text: q.cat === 'word' ? String(q.prompt || q.word.t) : q.text, html: q.cat !== 'word', your: your == null ? '' : String(your), correct: q.cat === 'word' ? q.word.w : answerDisplay(q), ok: !!correct, isError: q.isError === true, spot: q.challenge === 'spot', falseChal: q.challenge === 'false', paper: !!q.paper, steps: q.cat === 'word' ? [`${esc(q.word.w)} = ${esc(q.word.t)}`] : (q.steps || []), lvl: q.level || 1 });
+    V.answers.push({ text: q.cat === 'word' ? String(q.prompt || q.word.t) : q.text, html: q.cat !== 'word', your: your == null ? '' : String(your), correct: q.cat === 'word' ? q.word.w : answerDisplay(q), ok: !!correct, isError: q.isError === true, spot: q.challenge === 'spot', falseChal: q.challenge === 'false', paper: !!q.paper, steps: q.cat === 'word' ? [`${esc(q.word.w)} = ${esc(q.word.t)}`] : (q.steps || []), lvl: q.level || 1 , fig: q.vassets && q.fig ? q.vassets[0] : undefined, yourA: q.choiceAssets ? q.choiceAssets[S.selected] : undefined, correctA: q.choiceAssets ? q.choiceAssets[q.answer] : undefined});
     nextQuestion();
   },
   /* ---------- Slut på passet ---------- */
@@ -490,12 +490,15 @@ const V2 = {
         : `<button class="btn big wide" data-v2="kor">Ett pass till</button><button class="btn ghost wide" data-go="home">Till startsidan</button>`}
     </div>`);
   },
+  // 3.5: provets bilduppgifter som inte kunde visas (bilderna saknas eller är skadade på enheten) – sägs ärligt, ersätts aldrig av text
+  visMissing(V) { try { if (typeof ASSETS === 'undefined') return false; const cids = new Set((V.plan || []).map(s => s.cid)); for (const pid of PACKS.REG.priv) { const pk = PACKS.REG.packs[pid]; for (const it of (pk && Array.isArray(pk.visual) ? pk.visual : [])) { const kps = it.form === 'match' ? it.kps || [] : [it.kp]; if (it.form !== 'match' && kps.some(k => cids.has(PACKS.cidOf(pid, k))) && !ASSETS.allReady(PACKS.vAssets(pk, it))) return true; } } } catch (e) { /* ignore */ } return false; },
   examResult(won) {
     const V = S.v2; const ok = V.answers.filter(a => a.ok).length; const n = V.answers.length;
     beep(won.length ? 'badge' : 'win');
     render(`${topbar('Testa mig', 'home')}
     <div class="stack" style="margin-top:6px">
     ${V.po ? '<div class="muted" style="font-size:.9rem">Dagens första Testa mig gav poäng – den här omgången är bara för att se läget.</div>' : ''}
+    ${V2.visMissing(V) ? '<div class="card muted" style="font-size:.95rem">Bilduppgifterna kunde inte visas på den här enheten och var inte med i testet. De kommer med när bilderna har laddats.</div>' : ''}
       ${V.exp ? (() => { const f = EXP.examFocus(S.kid, V); return `<div class="card pad-lg summary-hero stack exam-hero" style="gap:6px"><div class="eyebrow">Testa mig${f.title ? ' · ' + esc(f.title) : ''}</div>
         <div class="exam-head">${ok === n ? 'Alla svar stämde den här gången.' : 'Bra att du testade. Nu vet appen vad du ska öva på.'}</div>${f.more.length ? `<div class="exam-focus">Öva mer: <b>${f.more.map(esc).join(', ')}</b></div>` : ''}</div>`; })()
       : `<div class="card pad-lg summary-hero stack" style="gap:6px;text-align:center"><div class="eyebrow">Testa mig · ${fmtTime(Date.now() - S.startedAt)}</div><div class="big">${ok}/${n}</div>
@@ -503,8 +506,8 @@ const V2 = {
       ${V.exp ? EXP.examReport(S.kid, V) : ''}
       <div class="card exam-list"><div class="eyebrow" style="margin-bottom:8px">Svar och förklaringar</div>
         ${V.answers.map((a, i) => `<details style="padding:8px 0;border-top:1px solid var(--line)" ${a.ok ? '' : 'open'}><summary style="cursor:pointer"><b>${i + 1}.</b> ${V.exp ? `<span class="sdot ${a.ok ? 'ok' : 'todo'}" role="img" aria-label="${a.ok ? 'Stämde' : 'Öva mer'}"></span>` : a.ok ? '✅' : '🔁'} <span class="muted" style="font-size:.9rem">${esc(RECALL.strip(a.text).slice(0, 70))}${RECALL.strip(a.text).length > 70 ? '…' : ''}</span></summary>
-          <div style="margin-top:6px">${a.html ? safeHtml(a.text) : esc(a.text)}</div>
-          <div style="margin-top:4px;font-size:.95rem">${a.paper ? '✏️ På papper · ' : ''}${a.isError ? (a.ok ? `Du hittade felet: <s>${esc(a.correct)}</s> – det påståendet stämmer inte.` : `Ditt val: <b>${esc(a.your || '–')}</b>${a.your ? ' – det stämmer, men det var inte felet' : ''}. Felet var: <s>${esc(a.correct)}</s> (stämmer inte).`) : a.falseChal ? (a.ok ? `Du hittade felet: <b>${esc(a.correct)}</b> stämmer inte.` : `Ditt val: <b>${esc(a.your || '–')}</b>${a.your ? ' – det stämmer, men det var inte felet' : ''}. Felet var: <b>${esc(a.correct)}</b> (stämmer inte).`) : a.spot && !a.ok ? `Ditt val: <b>${esc(a.your || '–')}</b> – den lösningen stämmer. Felet fanns i: <b>${esc(a.correct)}</b>.` : `Ditt svar: <b>${esc(a.your || '–')}</b> · Rätt svar: <b>${esc(a.correct)}</b>`}${a.paper ? `<div class="muted" style="font-size:.85rem">${a.ok ? 'Ditt svar stämmer.' : 'Svaret stämmer inte.'} Jämför din uträkning med lösningen – appen har bara sett svaret.</div>` : ''}</div>
+          <div style="margin-top:6px">${a.html ? safeHtml(a.text) : esc(a.text)}</div>${a.fig && typeof ASSETS !== 'undefined' ? `<div class="figwrap">${ASSETS.slot(a.fig, 'Bilden i uppgiften')}</div>` : ''}
+          <div style="margin-top:4px;font-size:.95rem">${a.paper ? '✏️ På papper · ' : ''}${a.isError ? (a.ok ? `Du hittade felet: <s>${esc(a.correct)}</s> – det påståendet stämmer inte.` : `Ditt val: <b>${esc(a.your || '–')}</b>${a.your ? ' – det stämmer, men det var inte felet' : ''}. Felet var: <s>${esc(a.correct)}</s> (stämmer inte).`) : a.falseChal ? (a.ok ? `Du hittade felet: <b>${esc(a.correct)}</b> stämmer inte.` : `Ditt val: <b>${esc(a.your || '–')}</b>${a.your ? ' – det stämmer, men det var inte felet' : ''}. Felet var: <b>${esc(a.correct)}</b> (stämmer inte).`) : a.spot && !a.ok ? `Ditt val: <b>${esc(a.your || '–')}</b> – den lösningen stämmer. Felet fanns i: <b>${esc(a.correct)}</b>.` : a.correctA && typeof ASSETS !== 'undefined' ? `<span class="vans">Ditt svar: ${a.yourA ? ASSETS.slot(a.yourA, 'Din bild') : '–'} · Rätt svar: ${ASSETS.slot(a.correctA, 'Rätt bild')}</span>` : `Ditt svar: <b>${esc(a.your || '–')}</b> · Rätt svar: <b>${esc(a.correct)}</b>`}${a.paper ? `<div class="muted" style="font-size:.85rem">${a.ok ? 'Ditt svar stämmer.' : 'Svaret stämmer inte.'} Jämför din uträkning med lösningen – appen har bara sett svaret.</div>` : ''}</div>
           ${a.steps.length ? `<div class="steps" style="margin-top:6px"><ol>${a.steps.map(st => `<li>${safeHtml(st)}</li>`).join('')}</ol></div>` : ''}</details>`).join('')}
       </div>
       <button class="btn big wide" data-v2="kor">Öva på det som behövs</button>

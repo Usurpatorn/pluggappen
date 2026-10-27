@@ -336,3 +336,33 @@ med `PREVIEW=1` till `<sajten>/preview/`. Produktionen publiceras som vanligt. M
 - **Rollback:** del 1 eller 3.3.
   - 3.3 räknar bara `m:'flow'` och visar "vila nu" efter tre FLOW.
   - Passposterna `more`/`po` påverkar inte 3.3.
+
+## 3.5.0 – Privata bilder (gren `private-images`, ombaserad på 3.4.0)
+- **Bara familjens privata lagring:** `families/{familj}/assets/{sha256}`.
+  - Läses bara av familjens medlemmar (`firestore.rules`). Ingen appklient får skriva.
+  - Inga offentliga länkar. Inga bilder i repot, bygget eller CI.
+  - `_content.assets` är manifestet. Innehållet hänvisar till id:n, aldrig till HTML.
+- **Appen** (`src/05j_assets.js`) kontrollerar varje bild innan den visas: typ ur filens byte (PNG/JPEG), högst 200 000 byte och
+  1024 × 1024, upplösning ur bildens huvud och sha256 = revision.
+  - En bilduppgift (`pack.visual`) byggs bara när **alla** dess bilder är hela. Annars finns den inte. Den blir aldrig en
+    textuppgift utan bild.
+  - Alt-texten skrivs av appen och är neutral. Bilden sätts in via DOM, och textens tvätt är oförändrad.
+  - Testa mig utan bilder säger ärligt att bilduppgifterna inte var med.
+  - Cache per familj. Den töms vid familjebyte och bortkoppling. En redan nedladdad kopia kan inte raderas på distans.
+- **Former:** bild → text, text → bild, skriv namnet, para ihop (inte i Testa mig) och sortera. Flerval räknas enligt motorns
+  befintliga regel och blir aldrig ensamt säker kunskap.
+- **Äldre klienter** (2.0.0–3.3, prövade) läser inte `visual`. Paketet godtas och textuppgifterna är byte-identiska. Därför behövs
+  ingen versionsspärr.
+- **Publicering:**
+  - Ordningen: `bundle` (kontroll) → `fetch` → `assets` (oföränderliga revisioner, kan köras om) → `verify-assets` →
+    `publish --expect` (vägrar om en refererad bild saknas) → `verify`.
+  - `restore` gör samma kontroll. Bilder raderas aldrig av verktygen.
+  - Prövat i emulatorn (`tests/rules/publish.test.mjs`) och för åtkomst (`tests/rules/rules.test.mjs`).
+- **Ägarsteg:**
+  - publicera de nya reglerna (Firebase-konsolen);
+  - merga och släpp appen;
+  - lägg till stegen `assets`/`verify-assets` i det privata repots publicering (förberett i innehålls-PR:en).
+
+  Inga nya molnresurser, ingen ny IAM och ingen ny nyckel behövs.
+- **Rollback:** 3.4- eller 3.3-bygget. Äldre appar ignorerar `visual` och `assets`. Reglerna kan ligga kvar, eftersom de bara lägger
+  till en läsväg för medlemmar.

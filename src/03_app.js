@@ -375,7 +375,7 @@ function applyLook(kid) {
   // Ljust är standard överallt; mörkt bara om barnet valt det. null = följ telefonen.
   if (p && p.settings.dark === true) root.setAttribute('data-theme', 'dark'); else if (p && p.settings.dark === null) root.removeAttribute('data-theme'); else root.setAttribute('data-theme', 'light');
 }
-function render(html) { app.innerHTML = (typeof V2 !== 'undefined' && V2.sandbox ? V2.previewBar() : '') + html; window.scrollTo({ top: 0 }); }
+function render(html) { app.innerHTML = (typeof V2 !== 'undefined' && V2.sandbox ? V2.previewBar() : '') + html; if (typeof ASSETS !== 'undefined') ASSETS.hydrate(app); window.scrollTo({ top: 0 }); }   // 3.5: privata bilder sätts in via DOM
 function kidById(id) { return KIDS.find(k => k.id === id); }
 // Appens namn kommer från familjekonfigurationen (t.ex. "Familjen Xs Pluggapp"); utan konfiguration heter den bara Pluggapp.
 function appName() { return (FAMILY.cfg && FAMILY.cfg.appName) || 'Pluggapp'; }
@@ -804,7 +804,7 @@ function mathBody(q, kid, isTest) {
     : q.type === 'choicetext' && spot
     ? `<div class="wchoices spot-sols" id="choices">${spot.rows.map((r, i) => `<button class="wchoice spot-sol" data-choice="${i}" aria-label="${esc((q.choices[i] || '') + ': ' + String(r).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim())}"><span class="sol-l" aria-hidden="true">${esc(String(q.choices[i] || '').slice(-1))}</span><span class="sol-b">${safeHtml(r)}</span></button>`).join('')}</div>`
     : q.type === 'choicetext'
-    ? `<div class="wchoices" id="choices">${q.choices.map((c, i) => `<button class="wchoice" data-choice="${i}"><span>${esc(c)}</span></button>`).join('')}</div>`
+    ? `<div class="wchoices${q.choiceAssets ? ' vchoices' : ''}" id="choices">${q.choices.map((c, i) => `<button class="wchoice" data-choice="${i}">${q.choiceAssets && typeof ASSETS !== 'undefined' ? ASSETS.slot(q.choiceAssets[i], c) : ''}<span>${esc(c)}</span></button>`).join('')}</div>`
     : q.choices
     ? `<div class="choices" id="choices">${q.choices.map(c => `<button class="choice" data-choice="${c}">${T.n(c)}</button>`).join('')}</div>`
     : q.type === 'expr'

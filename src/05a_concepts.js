@@ -12,7 +12,7 @@ const LECAT = (() => {
   // 3E: rätt svar ingår (ingen svarstext från barnet) – annars får t.ex. alla rättstavningsuppgifter ("Vilket ord är rätt stavat?") samma id.
   // v3: sortera/para ihop har ett objekt som svar → hash av hela kopplingen. Bara de typerna – övriga id:n (t.ex. algebrauttryck) är oförändrade.
   const ansKey = (q) => { const a = q.type === 'choicetext' && Array.isArray(q.choices) ? q.choices[q.answer] : Array.isArray(q.answer) ? q.answer[0] : (q.type === 'sort' || q.type === 'match') && q.answer && typeof q.answer === 'object' ? 'h' + fnv(Object.keys(q.answer).sort().map(k => k + '\u0001' + q.answer[k]).join('\u0002')) : q.answer && typeof q.answer === 'object' ? Object.keys(q.answer).sort().map(k => k + q.answer[k]).join(',') : q.answer; return a == null ? '' : String(a).slice(0, 60); };   // v3: objektsvar (sortera/para ihop) hashas i sin helhet – finns bara i v3, så inga gamla id ändras
-  const itemId = (q) => 'i' + fnv(String(q.type || (q.choices ? 'mc' : 'q')) + '|' + String(q.text || q.prompt || '').replace(/\s+/g, ' ').trim() + '|' + ansKey(q));
+  const itemId = (q) => q.vid ? 'iv' + fnv(String(q.vid)) : 'i' + fnv(String(q.type || (q.choices ? 'mc' : 'q')) + '|' + String(q.text || q.prompt || '').replace(/\s+/g, ' ').trim() + '|' + ansKey(q));
   // Vilka moment har garanterat egen-svar-format (inte bara flerval)? Matte: ja. Övriga: om öppna frågor finns; annars avgör observerade svar.
   const recallOf = (s, openBank) => (s.group || 'math') === 'math' ? true : (openBank && openBank[s.id] && openBank[s.id].length ? true : null);
   /* Bygg katalogen för ett barn: moment från kursmallen (+ tilläggsmoment) och de glosdeck barnet har. Ren funktion. */
