@@ -121,7 +121,7 @@ const EXP = {
       ${s.list.length ? `<div class="muted" style="font-size:.95rem">Idag: ${s.list.map(esc).join(' · ')}</div>` : ''}${prog}
       ${EXP.go(kid, label)}
       ${m && !ex ? `<div class="muted" style="font-size:.95rem">${EXP.isExam(m.e) ? 'Nästa prov' : 'Nästa uppgift'}: <b>${esc(m.e.title)}</b> · ${esc(fmtDate(m.e.date))}. Dagens runda övar annat.</div>${EXP.missionBtn(kid, m, 'btn wide secondary')}` : ''}
-      ${todo ? `<button class="link" data-v2="revansch" style="align-self:center">Hellre revansch först? · ${todo} ${todo === 1 ? 'sak' : 'saker'}</button>` : ''}</section>`;
+      ${todo ? `<button class="btn ghost wide" data-v2="revansch">Hellre revansch först? · ${todo} ${todo === 1 ? 'sak' : 'saker'}</button>` : ''}</section>`;
   },
   goalOf(kid) {
     const p = prof(kid.id); const all = LE.exams(kid, p).map(e => ({ e, d: daysUntil(e.date) })).filter(x => x.d >= 0).sort((a, b) => a.d - b.d || (b.e.priority === 'high') - (a.e.priority === 'high') || (a.e.id < b.e.id ? -1 : 1));
@@ -270,7 +270,7 @@ const EXP = {
   /* ---------- Aktiviteter: sortera, para ihop, tryck i meningen, bygg ordet ---------- */
   body(q) {
     if (q.type === 'sort') { S.sort = { sel: null, placed: {} }; return `<div class="sortbox"><div class="sort-pool" id="sortPool">${q.items.map((t, i) => `<button class="stile" data-sitem="${i}" aria-pressed="false">${esc(t)}</button>`).join('')}</div><div class="sort-bins">${q.bins.map((b, i) => `<div class="sbin" data-sbin="${i}"><button class="sbin-h" data-sbin="${i}" aria-label="Lägg i ${esc(b)}">${esc(b)}</button><div class="sbin-items" id="sbin${i}" role="list" aria-label="${esc(b)}"></div></div>`).join('')}</div><p class="muted tip">Tryck på ett kort och sedan på rätt grupp. Fel grupp? Tryck på kortet igen.</p></div>`; }
-    if (q.type === 'match') { const L = R.shuffle(q.pairs.map((x, i) => ({ i, t: x[0] }))); let Rr = R.shuffle(q.pairs.map((x, i) => ({ i, t: x[1] }))); if (Rr.length > 1 && Rr.every((x, k) => x.i === L[k].i)) Rr = [...Rr.slice(1), Rr[0]];   /* 3.3: aldrig färdigparat på samma rad (det vore gratis) – ingen extra slump */ S.match2 = { sel: null, done: new Set(), mistakes: 0 }; return `<div class="match-grid v3">${[['l', L], ['r', Rr]].map(([side, arr]) => `<div class="match-col">${arr.map(x => `<button class="mtile" data-m2="${side}" data-mi="${x.i}">${esc(x.t)}</button>`).join('')}</div>`).join('')}</div><p class="muted tip">Tryck på ett kort till vänster och sedan på det som hör ihop.</p>`; }
+    if (q.type === 'match') { const L = R.shuffle(q.pairs.map((x, i) => ({ i, t: x[0] }))); let Rr = R.shuffle(q.pairs.map((x, i) => ({ i, t: x[1] }))); if (S.v2 && S.v2.exp && Rr.length > 1 && Rr.every((x, k) => x.i === L[k].i)) Rr = [...Rr.slice(1), Rr[0]];   /* 3.3: aldrig färdigparat på samma rad (det vore gratis) – ingen extra slump */ S.match2 = { sel: null, done: new Set(), mistakes: 0 }; return `<div class="match-grid v3">${[['l', L], ['r', Rr]].map(([side, arr]) => `<div class="match-col">${arr.map(x => `<button class="mtile" data-m2="${side}" data-mi="${x.i}">${esc(x.t)}</button>`).join('')}</div>`).join('')}</div><p class="muted tip">Tryck på ett kort till vänster och sedan på det som hör ihop.</p>`; }
     return '';
   },
   // 3.3: när alla par är klara står varje par på samma rad (bara visning – rättningen är redan gjord per par)
@@ -296,7 +296,7 @@ const EXP = {
     if (q.type === 'match' && S.match2) {
       const mt = t.closest('[data-m2]'); if (!mt) return false; const M = S.match2; const side = mt.dataset.m2; const i = Number(mt.dataset.mi);
       EXP.hear(q, mt.textContent); if (!M.sel || M.sel.side === side) { document.querySelectorAll('.mtile.sel').forEach(x => x.classList.remove('sel')); M.sel = { side, i, el: mt }; mt.classList.add('sel'); return true; }
-      if (M.sel.i === i) { mt.classList.add('done'); M.sel.el.classList.add('done'); M.sel.el.classList.remove('sel'); M.done.add(i); M.sel = null; beep('tick'); if (M.done.size === q.pairs.length) { EXP.alignPairs(); submitMath(); } return true; }
+      if (M.sel.i === i) { mt.classList.add('done'); M.sel.el.classList.add('done'); M.sel.el.classList.remove('sel'); M.done.add(i); M.sel = null; beep('tick'); if (M.done.size === q.pairs.length) { if (S.v2 && S.v2.exp) EXP.alignPairs(); submitMath(); } return true; }
       M.mistakes++; beep('no'); mt.classList.add('no'); const a = M.sel.el; a.classList.add('no'); a.classList.remove('sel'); M.sel = null; setTimeout(() => { mt.classList.remove('no'); a.classList.remove('no'); }, 450); return true;
     }
     if (q.build && S.build) {
@@ -358,10 +358,10 @@ const EXP = {
         ${e === 'achieve' ? '' : `<div class="klar-icon" aria-hidden="true">${e === 'explore' ? '🗺️' : '🏁'}</div>`}
         <div class="klar-title">${esc(title)}</div>
         ${e === 'achieve' && V.mode === 'kor' ? '<div class="klar-lead">Appen håller koll på resten.</div>' : ''}
-        ${(() => { if (e !== 'achieve' || !g || !EXP.isExam(g.e)) return ''; const sh = EXP.safe(() => EXP.examShare(kid, g, V.plan), 'klarShare', { n: 0 }); return sh.n > 0 ? `<div class="klar-goal">${esc(g.e.title)}: ${sh.n === 1 ? 'en uppgift' : `${sh.n} uppgifter`} idag.</div>` : ''; })()}
+        ${(() => { if (e !== 'achieve' || !g || !EXP.isExam(g.e)) return ''; const sh = EXP.safe(() => EXP.examShare(kid, g, V.plan), 'klarShare', { n: 0 }); return sh.n > 0 ? `<div class="klar-goal">${esc(g.e.title)}: ${sh.n === 1 ? 'en uppgift' : `${sh.n} uppgifter`} i dagens plan.</div>` : ''; })()}
         ${trail}${bossLater}${savedLater}
         ${(() => { const up = [...V.stageUps].filter(cid => ((V.C.L.c[cid] || {}).st || 0) >= 2).length; return up && e !== 'explore' ? `<div>${up === 1 ? 'Ett område' : `${up} områden`} sitter bättre nu</div>` : ''; })()}
-        ${delights}${gems && e === 'grow' ? `<div class="klar-gems">+${gems} 💎</div>` : ''}
+        ${delights || (gems && e === 'grow') ? `<div class="klar-chips">${delights}${gems && e === 'grow' ? `<div class="klar-gems">+${gems} 💎</div>` : ''}</div>` : ''}
         ${e !== 'explore' ? `<div class="klar-score">${sum.ok} av ${sum.n} rätt</div>` : ''}
       </section>
       ${corePending ? `<button class="btn big wide" data-v2="kor">Till dagens plan · cirka ${EXP.mins(V2.peekPlan(kid).plan, kid)} min</button>` : canMore ? `<button class="btn big wide btn-2l" data-v2="flow">${esc(flowLabel)}<span class="btn-sub"><span class="sep"> · </span>cirka ${EXP.flowMins(kid)} min</span></button>` : `<div class="card muted" style="text-align:center">${rested ? 'Bra jobbat idag! Det du har övat sätter sig bäst om du vilar nu.' : 'Allt för idag är gjort.'}</div>`}

@@ -41,12 +41,14 @@ const DISHONEST = /Du är redo|kommer (att )?klara provet|Du kan detta|\b\d{1,3}
         ok(!!qc.querySelector('#fb') && !!qc.querySelector('#actions'), `${id}: #fb och #actions finns kvar i kortet`); }
       else ok(![...qc.children].some(c => c.classList.contains('q-pane')), `${id}: inga tomma rutor för ${m.mode}`); };
     /* feedbacken granskas i samma ögonblick som drivaren trycker Nästa (då är svaret rättat och kortet kvar) */
-    let cur = null; const fbSeen = { why: 0, boss: 0, bossPraise: 0, wrongExplore: 0, aligned: 0, match: 0 };
+    let cur = null; const fbSeen = { mistake: 0, why: 0, boss: 0, bossPraise: 0, wrongExplore: 0, aligned: 0, match: 0 };
     const snap = () => { if (!cur || !T.$('#qcard') || (T.$('#submit') && !T.$('#next') && !T.$('#fb .feedback'))) return;   /* drivarens andra försök (samma i 3.2.2) */
       const { id, it } = cur; cur = null; const fbEl = T.$('#qcard #fb'); if (it.cat === 'learn' || !fbEl) return;
       const fb = norm(fbEl.textContent); const ok1 = !!T.$('#fb .feedback.ok'); const no1 = !!T.$('#fb .feedback.no');
       ok(fb.length > 0, `${id}: feedback hamnar i kortet (${it.cat}/${it.kind || it.type})`); if (id === 'k8') ok(!/\bi rad\b/.test(fb), 'Achieve: inget "N i rad" i berömmet');
       if (it.spec && it.spec.role === 'boss' && ok1 && it.cat !== 'word' && !it.paper && !['sort', 'match', 'order', 'open'].includes(it.type)) { fbSeen.boss++; if (/👑|Bossuppgiften klar/.test(fb)) fbSeen.bossPraise++; }
+      if (it.form === 'mistake' && it.type === 'choicetext' && (ok1 || no1)) { fbSeen.mistake++; ok(!/Rätt svar:/.test(fb) && !!fbEl.querySelector(".feedback s"), `${id}: "hitta felet"-fråga: felet visas överstruket, aldrig som "Rätt svar" (${it.type}/${it.paper ? "papper" : ""} ${fb.slice(0, 90)})`); }
+      if (id === 'k4' && ok1) ok(!w.document.querySelector('.xp-pop'), 'Grow: XP flyger inte över framstegsstapeln');
       if (id === 'k2' && no1) { fbSeen.wrongExplore++; ok(!/Du svarade/.test(fb), 'Explore: fel svar upprepar inte barnets svar'); const st = fbEl.querySelector('.steps'); if (st && it.cat === 'math') { fbSeen.why++; ok(st.matches('details.steps.why') && !st.open, 'Explore: förklaringen ligger bakom "Visa varför"'); } }
       if (it.type === 'match' && T.$('.match-grid.v3')) { fbSeen.match++; const cols = [...w.document.querySelectorAll('.match-grid.v3 .match-col')]; const L = [...cols[0].children].map(x => x.dataset.mi), Rr = [...cols[1].children].map(x => x.dataset.mi);
         if (cols[0].parentElement.classList.contains('paired')) { fbSeen.aligned++; ok(L.join() === Rr.join(), `${id}: klara par står på samma rad`); } }
@@ -60,6 +62,7 @@ const DISHONEST = /Du är redo|kommer (att )?klara provet|Du kan detta|\b\d{1,3}
           ok(!!flow.querySelector('.btn-sub'), `${id}: tiden på egen rad`); }
         const klar = T.$('.klar'); if (klar) ok(!DISHONEST.test(norm(klar.textContent)), `${id}: KLAR utan löften/procent`);
         w.__advance(DAY); } }
+    console.log(`  "hitta felet"-frågor: ${fbSeen.mistake}`); ok(fbSeen.mistake > 0, '"hitta felet"-frågor prövade');
     console.log(`  Explore "Visa varför": ${fbSeen.why}`); ok(fbSeen.why > 0, 'Explore: "Visa varför" prövad');
     console.log(`  feedback: Boss ${fbSeen.bossPraise}/${fbSeen.boss} med Boss-beröm, Explore fel ${fbSeen.wrongExplore}, par ${fbSeen.aligned}/${fbSeen.match} i rad`);
     ok(fbSeen.boss === 0 || fbSeen.bossPraise === fbSeen.boss, 'en klarad Boss märks i berömmet'); ok(fbSeen.match === 0 || fbSeen.aligned >= 1, 'para ihop: paren ställs i rad när alla är klara');

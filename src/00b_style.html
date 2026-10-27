@@ -406,9 +406,9 @@ html { overflow-x: clip; }
 .exam-hero .exam-count { font-size: .9rem; }
 .sdot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0 4px; }
 .sdot.ok { background: var(--good); } .sdot.todo { background: var(--warn); }
-.exam-list details > summary { list-style: none; display: flex; align-items: center; gap: 4px; min-height: 40px; }
-.exam-list details > summary::-webkit-details-marker { display: none; }
-.exam-list details > summary::after { content: '▾'; margin-left: auto; opacity: .55; } .exam-list details[open] > summary::after { content: '▴'; }
+:root:not([data-exp="classic"]) .exam-list details > summary { list-style: none; display: flex; align-items: center; gap: 4px; min-height: 40px; }
+:root:not([data-exp="classic"]) .exam-list details > summary::-webkit-details-marker { display: none; }
+:root:not([data-exp="classic"]) .exam-list details > summary::after { content: '▾'; margin-left: auto; opacity: .55; } :root:not([data-exp="classic"]) .exam-list details[open] > summary::after { content: '▴'; }
 
 /* iPad: utformat för ytan, inte en utdragen telefon */
 @media (min-width: 768px) {
@@ -443,7 +443,7 @@ html { overflow-x: clip; }
 .badge.off .e { filter: grayscale(1); opacity: .5; }
 :root { --good-ink: color-mix(in srgb, var(--good) 82%, #000); }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --good-ink: var(--good); } } :root[data-theme="dark"] { --good-ink: var(--good); }
-.delight, :root:not([data-exp="classic"]) #fb .hint { color: var(--good-ink); }
+.delight { color: var(--good-ink); }
 .btn-2l .btn-sub { opacity: 1; }
 :root[data-exp="achieve"] .xp-pop { display: none; }
 /* Ett brett barn (flikar, långa ord) får aldrig vidga hela kolumnen – annars klipps texten av html{overflow-x:clip} */
@@ -454,7 +454,6 @@ html { overflow-x: clip; }
 :root:not([data-exp="classic"]):is([data-hue="rod"], [data-hue="blaugrana"]) { --acc: #2b3a67; --acc-soft: #e7eaf3; --acc-ink: #1f2a4d; --acc-glow: rgba(43,58,103,.22); --cta: #232b3d; --cta-glow: rgba(35,43,61,.28); }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]):not([data-exp="classic"]):is([data-hue="rod"], [data-hue="blaugrana"]) { --acc: #9fb0e0; --acc-soft: #222b44; --acc-ink: #dfe6ff; --acc-glow: rgba(159,176,224,.25); --cta: #3b4c80; } }
 :root[data-theme="dark"]:not([data-exp="classic"]):is([data-hue="rod"], [data-hue="blaugrana"]) { --acc: #9fb0e0; --acc-soft: #222b44; --acc-ink: #dfe6ff; --acc-glow: rgba(159,176,224,.25); --cta: #3b4c80; }
-:root:not([data-exp="classic"])[data-hue="rod"] .rank { box-shadow: inset 0 -4px 0 #c8202a; } :root:not([data-exp="classic"])[data-hue="blaugrana"] .rank { box-shadow: inset 0 -4px 0 #a50044; }
 :root:not([data-exp="classic"])[data-paper="lulea"] body { background-image: repeating-linear-gradient(0deg, transparent 0 46px, rgba(216,35,42,.06) 46px 48px), repeating-linear-gradient(90deg, transparent 0 46px, rgba(20,30,60,.04) 46px 47px); }
 /* Fokusringen bara för tangentbord */
 :root:not([data-exp="classic"]) button:focus:not(:focus-visible) { outline: none; box-shadow: none; }
@@ -481,6 +480,26 @@ html { overflow-x: clip; }
 .paper-note.short { padding: 8px 12px; font-size: .95rem; }
 /* Inaktiv knapp ser inaktiv ut, inte trasig */
 :root:not([data-exp="classic"]) .btn:disabled { background: var(--soft); color: var(--muted); box-shadow: none; opacity: 1; }
+/* 3.3 omprövning ------------------------------------------------------------------------------------------------- */
+.xp-chip { display: inline-block; vertical-align: middle; margin-left: 6px; padding: 1px 10px; border-radius: 999px; background: var(--card); color: var(--good-ink); font-size: .85rem; font-weight: 800; }
+:root:not([data-exp="classic"]) #fb details.why > summary, :root:not([data-exp="classic"]) #fb details.more-steps > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 6px; min-height: 40px; font-weight: 700; color: var(--ink); }
+:root:not([data-exp="classic"]) #fb details.why > summary::-webkit-details-marker, :root:not([data-exp="classic"]) #fb details.more-steps > summary::-webkit-details-marker { display: none; }
+:root:not([data-exp="classic"]) #fb details.why > summary::before, :root:not([data-exp="classic"]) #fb details.more-steps > summary::before { content: '▸'; font-size: .9em; transition: transform .15s var(--ease); }
+:root:not([data-exp="classic"]) #fb details[open].why > summary::before, :root:not([data-exp="classic"]) #fb details[open].more-steps > summary::before { transform: rotate(90deg); }
+#fb .feedback s { text-decoration-thickness: 2px; }
+/* KLAR: en rubrik, en rad, små chips */
+.klar-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+.klar-achieve .klar-chips { justify-content: flex-start; }
+.klar-chips > div { padding: 4px 12px; border-radius: 999px; background: var(--soft); font-size: .92rem; font-weight: 650; color: var(--ink); }
+.klar .trail.done { flex-wrap: nowrap; gap: 4px; }
+.klar .trail.done .dot { width: clamp(18px, 7.2vw, 34px); height: clamp(18px, 7.2vw, 34px); font-size: clamp(.6rem, 2.6vw, 1.05rem); flex: 0 1 auto; }
+/* Barn: ingen automatisk avstavning – långa svar får en egen rad i stället */
+:root:not([data-exp="classic"]) :is(.choice, .wchoice, .mtile, .stile, .tapword, .otile, .ltile) { -webkit-hyphens: manual; hyphens: manual; overflow-wrap: break-word; }
+/* Explore på smal telefon: alla stationer på en rad */
+@media (max-width: 400px) { :root[data-exp="explore"] .mission.explore .station .si { width: 40px; height: 40px; font-size: 1.2rem; } :root[data-exp="explore"] .mission.explore .stations, :root[data-exp="explore"] .mission.explore .chips { gap: 6px; } }
+/* iPad: större uppgiftstext */
+@media (min-width: 768px) { :root:not([data-exp="classic"]) #qcard .question { font-size: 1.5rem; line-height: 1.35; } }
+@media (min-width: 1100px) and (orientation: landscape) { :root:not([data-exp="classic"]) #qcard .question { font-size: 1.65rem; } }
 .q-pane { display: contents; }
 @media (prefers-reduced-motion: reduce) { .hero-pet, .stile.placed, .klar-icon, .xp-pop { animation: none !important; } }
 </style>

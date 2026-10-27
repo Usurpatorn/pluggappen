@@ -170,7 +170,8 @@ med `PREVIEW=1` till `<sajten>/preview/`. Produktionen publiceras som vanligt. M
 - **Gäller alla lägen (även Klassisk/v1), med avsikt:** kontrast för ej tagna märken (WCAG AA), `html{overflow-x:clip}` med
   `.stack{grid-template-columns:minmax(0,1fr)}` (breda flikar vidgade tidigare hela kolumnen och gav sidledsscroll),
   scrollbara flikrader, `lang="sv"` och svensk avstavning i den fristående varianten, `--ink-2` i mörkt läge. Övriga 3.3-regler är
-  avgränsade till `:root:not([data-exp="classic"])`. Klassiskt läge behåller sin text om tom provträning.
+  avgränsade till `:root:not([data-exp="classic"])`. I Klassiskt syns dessutom några nya klassnamn utan egen stil (`act-chip`,
+  `learn-title`, `exam-list`), en kvarliggande +XP-flygare tas bort när nästa fråga visas, och flikknapparna krymper inte. Klassiskt läge behåller sin text om tom provträning.
 - Tillgänglighet: axe-core (WCAG 2.1 A/AA) 0 fynd på 24 skärmar i 375, 390, 820 och 1180 px.
 - Test: `test_ux33.js` (krokar = uppgiften, två rutor utan förlust/dubbletter, Hitta felet/Baklänges rättas som förut, löftena
   ordagrant, lugnt Testa mig). Rollback: `release-3.2.2-1544484` (profilerna är oförändrade, så rollback kräver ingen migrering).
