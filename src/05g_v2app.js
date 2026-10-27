@@ -549,9 +549,9 @@ const V2 = {
     return V2.safe(() => {
       const p = prof(kid.id); if (!p.le || !LE.canStart(kid, p)) return ''; const C = LE.state(kid);
       const list = LE.exams(kid, p).map(e => ({ e, d: daysUntil(e.date) })).filter(x => x.d >= 0 && x.d <= 60).sort((a, b) => a.d - b.d || (a.e.id < b.e.id ? -1 : 1)); if (!list.length) return '';
-      const seen = (cid) => !!(C.L.c[cid] && C.L.c[cid].n > 0); let totUn = 0;
+      const seen = (cid) => !!(C.L.c[cid] && C.L.c[cid].n > 0); const allUn = new Set();   // totalen räknar ett gemensamt område en gång
       const rows = list.map(({ e, d }) => {
-        const cids = V2.examCidsActive(kid, e).filter(cid => !(C.cat[cid] && C.cat[cid].kind === 'deck')); const un = cids.filter(cid => !seen(cid)).length; totUn += un;
+        const cids = V2.examCidsActive(kid, e).filter(cid => !(C.cat[cid] && C.cat[cid].kind === 'deck')); const un = cids.filter(cid => !seen(cid)).length; cids.filter(cid => !seen(cid)).forEach(c => allUn.add(c));
         const sz = V2.sizeOf(e); const room = Math.max(0, d - (sz.major ? 3 : 1)); const own = (p.exams || []).some(x => x.id === e.id);
         const cov = !cids.length ? `<div class="muted" style="font-size:.9rem">Områdena är inte inlagda i appen – appen kan inte förbereda för det här.</div>`
           : !un ? `<div style="font-size:.9rem">Alla ${cids.length} områden är påbörjade i appen.</div>`
@@ -564,7 +564,7 @@ const V2 = {
       return `<div class="card stack" style="gap:6px"><div class="eyebrow">${esc(kid.name)} · mål och täckning</div>
         <div class="muted" style="font-size:.85rem">Bara ett större mål bromsar annat nytt veckan före. Ett mindre mål får egen tid men stoppar inte förberedelsen för andra prov.</div>
         ${rows.join('')}
-        ${list.length > 1 && totUn ? `<div class="muted" style="font-size:.85rem">Totalt ${totUn} områden som inte är påbörjade, i ${list.length} mål. Appen planerar om från dagens läge varje gång – missade dagar räknas inte som skuld.</div>` : ''}
+        ${list.length > 1 && allUn.size ? `<div class="muted" style="font-size:.85rem">Totalt ${allUn.size} områden som inte är påbörjade, i ${list.length} mål. Appen planerar om från dagens läge varje gång – missade dagar räknas inte som skuld.</div>` : ''}
         <div class="muted" style="font-size:.8rem">Påbörjat betyder övat i appen, inte att det sitter. Inget här är en prognos för provresultatet.</div></div>`;
     }, 'goalsCard', '');
   },

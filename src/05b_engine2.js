@@ -391,14 +391,20 @@ const LE2 = (() => {
     // Experience v3 (FLOW) och 2.1.1 (provträning): ett extrablock samma dygn får bara det som är kvar av dygnets gräns för ny inlärning (opts.newCap). CORE oförändrat.
     const maxNew = opts.newCap != null ? Math.max(0, Math.min(maxNew0, opts.newCap)) : maxNew0;
     let newTaken = 0; const isNewC = (cid) => !(L.c[cid] && L.c[cid].n > 0); for (const r of ranked) if (isNewC(r.cid) && eveOnlyMinor(r.cid)) newGuard.add(r.cid);
-    // 3.4 täckningstryck: ett mål vars osedda koncept är minst lika många som dygnen kvar före dess sista tre dygn behöver en introduktion
-    // varje pass – ett annat större provs vecka får då inte strypa det helt (+1 per pass, aldrig vid överlast; risken visas för föräldern).
-    const pressed = new Set(); for (const x of exs) { const un = (x.e.concepts || []).filter(c => cat[c] && cat[c].active !== false && cat[c].kind !== 'deck' && isNewC(c)); if (un.length && un.length >= Math.max(1, x.d - 3)) un.forEach(c => pressed.add(c)); }
-    const extraPressed = majorDays > 3 && majorDays <= CFG.exam.weekDays && !overloaded ? 1 : 0; let pressedExtra = 0;
-    // Ett större provs vecka (4–7 dygn kvar) bromsar annat nytt – men provets egna osedda koncept får introduceras som vanligt (det är förberedelsen)
+    // 3.4 (efter oberoende granskning): aldrig fler nya koncept per pass än policyn (yngre 1, mellan 2, äldre 3) eller dygnets rest (newCap).
+    const capAll = Math.min(pol.maxNew, opts.newCap != null ? opts.newCap : pol.maxNew);
+    // Det närmaste större provet (kan vara flera samma dygn). Ett ENSAMT prov (inget annat mål) har exakt 3.3:s provveckoregel.
     const nearSet = new Set(exs.filter(x => x.e.major !== false && x.d === majorDays).flatMap(x => x.e.concepts || []));
-    const weekOwn = majorDays > 3 && majorDays <= CFG.exam.weekDays && !overloaded ? Math.min(pol.maxNew, opts.newCap != null ? opts.newCap : pol.maxNew) : 0;
-    const newOk = (cid) => { if (newTaken < maxNew) return true; if (nearSet.has(cid) && newTaken < weekOwn) return true; if (pressed.has(cid) && pressedExtra < extraPressed && (opts.newCap == null || newTaken < opts.newCap)) return true; return false; };
+    const others = exs.some(x => !(x.e.major !== false && x.d === majorDays));
+    const inWeek = majorDays > 3 && majorDays <= CFG.exam.weekDays && !overloaded && others;
+    // Ett större provs vecka (4–7 dygn kvar) bromsar annat nytt – men när flera mål pågår får provets egna osedda koncept introduceras inom
+    // policyns gräns, så att andra mål inte tar provets enda plats.
+    const weekOwn = inWeek ? capAll : 0;
+    // Täckningstryck: ett ANNAT mål vars osedda koncept är minst lika många som dygnen kvar före dess sista tre dygn får +1 nytt per pass
+    // under provets vecka – inom policyns gräns, aldrig vid överlast (risken visas för föräldern).
+    const pressed = new Set(); for (const x of exs) { const un = (x.e.concepts || []).filter(c => !nearSet.has(c) && cat[c] && cat[c].active !== false && cat[c].kind !== 'deck' && isNewC(c)); if (un.length && un.length >= Math.max(1, x.d - 3)) un.forEach(c => pressed.add(c)); }
+    const extraPressed = inWeek ? 1 : 0; let pressedExtra = 0;
+    const newOk = (cid) => { if (newTaken < maxNew) return true; if (newTaken >= capAll) return false; if (nearSet.has(cid) && newTaken < weekOwn) return true; if (pressed.has(cid) && pressedExtra < extraPressed) return true; return false; };
     const tookNew = (cid) => { if (newTaken >= maxNew && !(nearSet.has(cid) && newTaken < weekOwn)) pressedExtra++; newTaken++; };
     // Provets sista tre dygn (och provet inte klart): minst halva passet till provets koncept – innan något annat fyller passet.
     // Granskning M8: aldrig osedda koncept här utöver maxNew (provkvällen: inget nytt alls).
@@ -439,11 +445,12 @@ const LE2 = (() => {
     // 4) Dagens fokus
     for (const r of focusList.concat(newList)) {
       if (slots.length >= n - bossReserve) break;
-      const isNew = r.parts.new > 0 && !(L.c[r.cid] && L.c[r.cid].n > 0);
+      // 3.4 rättelse (M8, utökad efter granskning): osett med förkunskap kvar har parts.new 0 och kom in via provets vikt utan att räknas som
+      // nytt. Ett större provs sista tre dygn räknas det som nytt (inget nytt, utom vid svält); ett mindre måls sista dygn kommer det inte in
+      // alls. Övriga dygn oförändrat (simuleringarna K-14/F).
+      const isNew = isNewC(r.cid) && (r.parts.new > 0 || majorDays <= 3);
       if (isNew && !newOk(r.cid)) continue;
-      // 3.4 rättelse (M8): osett med förkunskap kvar har parts.new 0 och kommer in via provets vikt utan att räknas som nytt. Provkvällen
-      // (större prov ≤ 1 dygn) och ett mindre måls sista dygn får det inte komma in alls. Övriga dygn oförändrat (simuleringarna K-14/F).
-      if (isNewC(r.cid) && (majorDays <= 1 || eveOnlyMinor(r.cid))) continue;
+      if (isNewC(r.cid) && eveOnlyMinor(r.cid)) continue;
       if (!canUse(r.cid, 2)) continue;
       take(r, 'focus'); if (isNew) tookNew(r.cid);
       // K-14: med hög repetitionsskuld prioriteras bredd – ett svagt koncept får bara en plats (nytt får fortfarande två: introduktion + övning)

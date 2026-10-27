@@ -226,7 +226,7 @@ med `PREVIEW=1` till `<sajten>/preview/`. Produktionen publiceras som vanligt. M
 ## 3.4.0 – Flera mål och oregelbundet plugg (gren `le-multigoal`, bygger på 3.3)
 - **Problemet (återskapat och kvar som test):** det närmaste målet, oavsett storlek, satte provveckans broms på ny inlärning i hela
   planen. Ett litet förhör kunde därför stoppa nytt i ett större prov fem dygn senare och i ett tredje prov ännu senare.
-  `tests/test_le_multigoal.js` ger 11 fel mot 3.3-bygget och är grönt på 3.4.
+  `tests/test_le_multigoal.js` ger 26 av 79 kontroller fel mot 3.3-bygget (`LE_HTML=<bygge>`) och är grönt på 3.4.
 - **Reglerna nu (`LE2.planSession`, `LE.isMajor`, CFG.exam):**
   - **Bara ett större mål** (prov) bromsar ny inlärning i hela planen: inget nytt dagen före eller på provdagen, sedan stegvis
     veckan före.
@@ -238,15 +238,22 @@ med `PREVIEW=1` till `<sajten>/preview/`. Produktionen publiceras som vanligt. M
     - i appen: Prov → Storlek när provet läggs in, och Översikt → mål och täckning → Ändra. Valet sparas på provet och synkas
       som en ändring av det.
     - skoluppgifter: fältet `weight` via det privata innehållsflödet.
-  - **Veckan före ett större prov** bromsas annat nytt, men provets egna osedda koncept får introduceras.
-  - **Täckningstryck:** ett mål med fler osedda koncept än dygn kvar innan sina tre sista får +1 nytt per pass under ett annat provs
-    vecka. Det gäller aldrig vid överlast.
+  - **Aldrig fler nya koncept per pass än policyn** (yngre 1, mellan 2, äldre 3) eller dygnets rest (`newCap`).
+  - **Ett ensamt prov** (inget annat mål) har exakt 3.3:s provveckoregel: högst ett nytt per pass 4–7 dygn före, prövat för alla tre
+    policyer.
+  - **Veckan före ett större prov när flera mål pågår:** annat nytt bromsas, men provets egna osedda koncept får introduceras inom
+    policyns gräns. Utan det tog andra mål provets enda plats.
+  - **Täckningstryck:** ett *annat* mål med fler osedda koncept än dygn kvar innan sina tre sista får +1 nytt per pass under provets
+    vecka, inom policyns gräns. Det gäller aldrig vid överlast och aldrig det närmaste provets egna koncept.
   - **Målrättvisa:** ett större prov inom 14 dygn vars övade koncept inte setts på 3 dygn, när ett annat mål ligger närmare, får
     ett av dem i passet. Det är alltid repetition, aldrig nytt. Ett ensamt prov påverkas inte, så säsongerna är oförändrade.
   - **Gemensamma koncept** är ett koncept i motorn med samma bevis och belöningar. Förhörets sista dygn stoppar inte ett koncept som
     också hör till ett senare prov.
-  - **Rättelse (M8):** ett osett koncept vars förkunskap saknas kom förut in via provets vikt utan att räknas som nytt, också dagen
-    före ett prov. Nu gäller "inget nytt" dagen före och på provdagen för allt osett.
+  - **Rättelse (M8, utökad efter granskningen):** ett osett koncept vars förkunskap saknas kom förut in via provets vikt utan att
+    räknas som nytt. Ett större provs sista tre dygn räknas det nu som nytt, så regeln "inget nytt, utom vid svält" gäller allt osett.
+    4–7 dygn före ett ensamt prov är det oförändrat från 3.3 (känd begränsning, lämnad för att inte ändra ett ensamt provs plan).
+  - **Rättelse:** 3.3 kunde krascha (`subject` på ett odefinierat koncept) när planen för Yngre blev tom 2–3 dygn före ett prov.
+    Felet fångades av appens skydd.
   - **Rättelse:** en tom plan fick en Boss utan koncept. Nu blir ingen Boss skapad, och hemmet säger ärligt att det inte finns något
     att köra, i stället för att visa en KÖR-knapp som inte startar något.
 - **Hemmets rubrik** är målet som dagens plan tränar mest (lika antal → det närmaste), inte bara det närmaste datumet. Om det andra
@@ -254,9 +261,12 @@ med `PREVIEW=1` till `<sajten>/preview/`. Produktionen publiceras som vanligt. M
 - **Föräldern: mål och täckning** (Översikt, v2). För varje mål visas:
   - storleken och varför den gäller (standard eller förälderns val);
   - hur många områden som är påbörjade i appen;
-  - en **risk** när fler områden är opåbörjade än det finns dygn kvar innan målets sista dygn.
+  - en **risk** när fler områden är opåbörjade än det finns dygn kvar innan målets dygn utan nytt (större prov: de sista tre;
+    mindre: det sista).
 
-  Planeraren använder samma regel. Kortet ger ingen prognos, inga procent och ingen skuld.
+  Planerarens täckningstryck använder en närliggande regel (minst lika många osedda som dygn före de sista tre). "Områden" i kortet
+  är appens kunskapspunkter och moment, och totalen räknar ett gemensamt område en gång. Kortet ger ingen prognos, inga procent och
+  ingen skuld.
 - **Jämförelse** med samma fixturer och frön (4 frön × rätt-andel 0,7/0,85, syntetiska datum: mindre förhör dag 17, större prov dag 22
   och dag 30). Siffran är antal koncept introducerade före datum:
 
@@ -266,14 +276,23 @@ med `PREVIEW=1` till `<sajten>/preview/`. Produktionen publiceras som vanligt. M
   | algebra (7) | 5,3 | 6,8 |
   | kemi (19) | 7,3 | 7,4 |
 
+  (Siffrorna är oförändrade efter granskningens rättelser.)
+
   - Kemi: tillbakahämtning ett senare dygn 6,4 → 7,4. Ett uppehåll på fem dygn eller mer före provet förekom i 2 av 8 körningar
     och förekommer nu i 0 av 8.
   - Inget koncept tog mer än ett stadiesteg samma dygn, och inget nytt koncept nådde stadium 2 samma dygn (0 i båda byggena).
     Högst 4 nya koncept per dygn i båda byggena.
-  - Kontroll (bara algebra och kemi): algebra 7,0 → 7,0, kemi 13,8 → 12,8. Av kemis −1,0 kommer −0,7 från M8-rättelsen: inget
-    osett dagen före algebraprovet.
+  - Kontroll (bara algebra och kemi): algebra 7,0 → 7,0, kemi 13,8 → 12,3. Skillnaden kommer från M8-rättelsen: inget osett de sista
+    tre dygnen före algebraprovet (granskaren mätte −0,75 av det första −1,0 till M8 på dygnet före).
   - Den bindande gränsen är inlärningstakten (ungefär ett nytt koncept per dag när mycket pågår). Det är därför risken visas för
     föräldern i stället för att barnet överbelastas.
-- **Mutationsprövat:** 15 av 15 avsiktliga fel fångas av testet: reglerna, standard och förälderns val, M8, målrättvisa, rubriken, det tomma hemmet och förälderns kort.
+- **Mutationsprövat:** 15 av 15 egna mutationer fångas. Granskarens egna mutationer: 9 fångades och 7 missades först. Efter
+  rättelserna finns tester för policyns gräns i alla tre policyer, ett ensamt prov, de sista tre dygnen och `weight` på skoluppgifter.
+  Andelen för ett mindre mål (0,34), repetitionsandelen och Revansch-gränsen dagen före är inställningar som inte prövas var för sig.
+- **Kända begränsningar:**
+  - en storleksändring kan gå förlorad i en synk utan gemensam bas när den andra enheten har en egen väntande ändring av samma prov
+    (provets objekt vinner som helhet, som för alla provändringar sedan tidigare);
+  - ett större prov utan inlagda områden bromsar fortfarande annat nytt veckan före (som i 3.3).
+  - ett koncept som planen tar två gånger räknas två gånger mot gränsen (som i 3.3), vilket ger något färre nya än gränsen.
 - **Rollback:** 3.3-bygget. Det tillagda fältet `weight` på prov ignoreras av äldre versioner, som då räknar alla mål som större
   (beteendet före 3.4). Inget annat i profilen ändras.
