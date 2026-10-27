@@ -301,3 +301,36 @@ med `PREVIEW=1` till `<sajten>/preview/`. Produktionen publiceras som vanligt. M
   - ett koncept som planen tar två gånger räknas två gånger mot gränsen (som i 3.3), vilket ger något färre nya än gränsen.
 - **Rollback:** 3.3-bygget. Det tillagda fältet `weight` på prov ignoreras av äldre versioner, som då räknar alla mål som större
   (beteendet före 3.4). Inget annat i profilen ändras.
+
+## 3.4.0 (del 2) – Öva mer: belöningar har tak, lärandet inte (gren `le-more`, bygger på `le-multigoal`)
+- Efter dygnets belönade extrablock (`FLOW_MAX` = 3 FLOW) visar hemmet och KLAR först "Bra jobbat idag! Det du har övat sätter sig
+  bäst om du vilar nu." Därefter, frivilligt:
+  - **Öva mer**: samma plan som FLOW och dygnets gräns för nytt;
+  - **Öva mer inför <mål>**: provträning, alltid inom målet, också Boss, Rescue och omförsök.
+
+  Båda märks "utan poäng".
+- **Utan poäng:** under ett övningsblock återställer `save()` allt som är belöning till läget när blocket började: XP, diamanter,
+  märken, uppdrag, streak och dygnets XP. Det sker på ett ställe och gäller alla vägar. Motorns belöningsliggare förbrukas inte.
+  KLAR säger "Extraövning ger inga poäng – den är bara för att lära."
+- **Belöningstaket gäller också provträning:** efter dygnets tre extrablock är också "Öva inför provet" utan poäng. Förut var
+  provträning obegränsad med full XP.
+- **Lärandet:** svaren blir bevis som vanligt, och fel hanteras med Felboken och motorns sänkning. Motorns befintliga regler gäller:
+  - högst ett stadiesteg per dygn ("redan rätt tidigare idag → räknas som övning");
+  - flerval samma dygn räknas inte två gånger;
+  - kalibreringen tar inte med samma dygn.
+
+  Passposten märks `m:'more', po:1`. Äldre versioner räknar den som ett FLOW-block och visar "vila nu".
+- **Ingen autostart och tydlig slutpunkt:** efter varje block finns "Klar för idag". Inget startar av sig självt, prövat med riktig väntan.
+- **När inget mer gör nytta:** "Det finns inget mer som gör nytta att öva i appen idag …". Om målet har en befintlig resurs (till
+  exempel kemins Begreppa-filmer) visas länken, öppnad säkert i en ny flik. Ingen utfyllnad.
+- **Två enheter offline:** Öva mer ger inga XP- eller diamantdelta att synka. Efter sammanslagning finns bara de belönade blocken,
+  och båda enheternas övningsposter finns kvar.
+- **Simulering** (`tests/le/matrix.js`, scenariot långa pass: KÖR + 3 FLOW + 2 Öva mer varje dygn):
+  - kemi introducerat före provet 7,4 → 13,4 av 19;
+  - samma-dygnssteg 0;
+  - högst 4 nya koncept per dygn (som 3.3);
+  - XP lägre än 3.3 (Öva mer ger ingen XP).
+- **Tester och mutationer:** `tests/test_ova_mer.js` (97 kontroller, k8/k4/k2 och två enheter). Mutationer: 11 av 12 fångas. Den
+  tolfte tar bort ett redundant filter i provträningen. Avgränsningen hålls redan av motorns `only` och Bossens urval, och testet
+  prövar egenskapen.
+- **Rollback:** 3.4 (del 1) eller 3.3. Äldre versioner ignorerar `po` och visar "vila nu" efter tre FLOW-block.

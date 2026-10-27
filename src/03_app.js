@@ -49,6 +49,7 @@ function rollover(p) {
 let saveTimer = null;
 function save() {
   if (typeof V2 !== 'undefined' && V2.sandbox) return; // förälderns förhandsvisning av v2: inget sparas eller synkas
+  if (typeof EXP !== 'undefined' && EXP.capRewards) EXP.capRewards();   // 3.4 fas D: Öva mer ger inga belöningar (före since-beräkningen nedan)
   const target = state.screen === 'parent' ? state.tab : state.kid;
   if (target && DB.profiles[target]) { const d = DB.profiles[target]; d.updatedAt = Math.max(Date.now(), (d.syncedAt || 0) + 1); d.since = d.since || { xp: 0, gems: 0, days: {} }; if (d._lx != null) { d.since.xp += d.xp - d._lx; d.since.gems += d.gems - d._lg; } d._lx = d.xp; d._lg = d.gems; SYNC.schedulePush(target); }
   clearTimeout(saveTimer); saveTimer = setTimeout(flushSave, 150);
