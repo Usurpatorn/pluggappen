@@ -124,3 +124,17 @@ med `PREVIEW=1` till `<sajten>/preview/`. Produktionen publiceras som vanligt. M
 - Testadressen finns kvar (samma funktion, egen lagring) men behövs inte längre för att testa som ett barn.
 - Rollback: `release-3.1.1-bd512ee` (eller senare 3.1.x). Test: `test_parent_test_mode_prod.js`, `test_parent_test_mode.js`.
 
+
+## 3.2.2 – Synkens integritet (utkast, 2026-10-27)
+- **Varje skrivning av en barnprofil är villkorad** på den version enheten senast hämtade (`currentDocument.updateTime`, eller
+  `currentDocument.exists=false` för en ny profil). Har en annan enhet hunnit skriva nekar Firestore; enheten hämtar, slår ihop och
+  försöker igen (högst tre gånger per omgång, sedan nya omgångar efter 5 s, 15 s, 60 s, 120 s – och direkt när nätet kommer tillbaka
+  eller appen visas igen). Okänd version → hämta först. Ingen blind skrivning av en hel profil.
+- **Kön tappar aldrig:** ett barn lämnar uppladdningskön först när skrivningen bekräftats.
+- **Trevägssammanslagning** mot den senast kända serverversionen (`DB.syncBase` – bara på enheten, aldrig i profilen): det som inte
+  ändrats på enheten tas från familjens data, även raderade prov, egna ordlistor och avstängda ordlistor. Bevislogg, XP, ord, Felboken
+  m.m. slås ihop som förut. Saknas basen (första gången efter uppdateringen) gäller den tidigare sammanslagningen.
+- **Serverns tid avgör** om en version redan finns på enheten – aldrig enheternas klockor.
+- Test: `test_sync_integrity.js` (fall A–H och återgång), `tests/rules/sync_precondition.test.mjs` (Firestore-emulatorn i CI).
+- Rollback: föregående release-tagg. Profilernas format är oförändrat; en äldre version ignorerar `DB.syncBase` (men skriver då åter
+  utan villkor).
