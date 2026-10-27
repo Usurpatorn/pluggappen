@@ -127,3 +127,9 @@ med `PREVIEW=1` till `<sajten>/preview/`. Produktionen publiceras som vanligt. M
 - Testadressen finns kvar (samma funktion, egen lagring) men behövs inte längre för att testa som ett barn.
 - Rollback: `release-3.1.2-ec2651c` (eller tidigare 3.1.x). Test: `test_parent_test_mode_prod.js`, `test_parent_test_mode.js`.
 
+
+## 3.2.1 – Visuell kvalitetsgrind (från 2026-10-27)
+- Bara utseende (CSS och knappklasser), ingen logik: KLAR har en enda fylld knapp (nästa runda / fortsätt mot provet), "Klar för idag"
+  är en kontur; beröm visas i grönt (rött betyder bara fel); siffrorna på väg/tränar i textfärg; långa ord bryts i sorteringslådor;
+  klara par syns tydligare; jämn radbrytning i knappar; iPad (≥768 px) får större målrubrik och KÖR-knapp; låga skärmar en kompaktare
+  pappersnotis. Rollback: `release-3.2.0-3e2a6d2`.

@@ -259,4 +259,14 @@ body:has(.progress.v3, .trail, section.mission, .klar) .icon-btn { width: 44px; 
 .tm-bar { position: sticky; top: 0; z-index: 50; background: var(--warn-soft, #fff3d6); border-bottom: 2px solid var(--warn, #c98a00); }
 .tm-bar .tm-in { max-width: 640px; margin: 0 auto; padding: 8px 16px; display: flex; gap: 10px; align-items: center; font-size: .9rem; }
 .tm-bar .btn { min-height: 44px; }
+/* 3.2 visuell granskning (lågrisk, bara utseende): grönt betyder rätt, aldrig rött för framsteg; långa ord bryts i sorteringslådor;
+   klara par syns tydligt; knapptexter radbryts jämnt; iPad får luftigare mål och uppdrag. */
+.delight { color: var(--good); }
+.progress-states b { color: var(--ink); }
+.sbin { min-width: 0; }
+.stile.placed { max-width: 100%; overflow-wrap: anywhere; hyphens: auto; }
+.mtile.done { opacity: .7; }
+.btn { text-wrap: balance; }
+@media (min-width: 768px) { .goal-title { font-size: 2.1rem; } .mission-title { font-size: 1.9rem; } .v3go { min-height: 84px; } }
+@media (max-height: 700px) { .paper-note { padding: 8px 12px; font-size: .95rem; } }
 </style>
