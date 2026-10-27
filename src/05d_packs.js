@@ -361,7 +361,15 @@ const PACKS = (() => {
     const rootOf = (k) => { const [a, b = ''] = String(k || '').split('|'); return a + '|' + b.split('.')[0]; };
     const tierOf = (v) => !bp ? 0 : (bp.prevFk && rootOf(v.key.split('|').slice(0, 2).join('|')) === rootOf(bp.prevFk) ? 2 : 0) + (v.ui === (bp.prevUi || bp.last) ? 1 : 0);
     const tiered = (list) => bp ? [0, 1, 2, 3].flatMap(t => list.filter(v => tierOf(v) === t)) : list;   // stabil: inom varje tur samma ordning som förut
-    const order = tiered(weightedOrder(pool, wOf, rnd));
+    // Aldrig ett svagare minnesprov för variationens skull (granskning 3.1.2): en variant som byter ett eget svar/djup mot igenkänning, eller
+    // går under både motorns nivå och det receptet helst ville ha, kommer efter alla som inte gör det – oavsett aktivitet och faktum.
+    // Jämförelsen görs mot det val som gjorts utan variationen (första kandidaten som går att bygga och inte är nyss sedd).
+    const order0 = weightedOrder(pool, wOf, rnd); let first = null;
+    // (provbygget använder en egen fast slump, så att passets slump – och därmed reservkedjan – är exakt som förut)
+    const fixedRnd = () => { let x = 7; return () => { x = (x * 1103515245 + 12345) & 0x7fffffff; return x / 0x7fffffff; }; };
+    if (bp) for (const v of order0) { const q = finish(ent, v, v.build(fixedRnd()), pol); if (q && !(opts.avoid && opts.avoid.has(iid(q)))) { first = v; break; } }
+    const weak = (v) => !!(bp && first && ((v.form === 'recognition' && first.form !== 'recognition') || v.lvl < Math.min(first.lvl, L0)));
+    const order = bp ? [...tiered(order0.filter(v => !weak(v))), ...tiered(order0.filter(weak))] : order0;
     const tr = (t) => { if (opts.trace) opts.trace.tier = t; };   // för tester: vilket led valet kom ur (ordinarie kandidater eller reserv)
     for (const v of order) { const q = built(v); if (q && !(opts.avoid && opts.avoid.has(iid(q)))) { tr('pool'); return q; } }
     // Allt i det önskade formatet är nyligen använt (t.ex. Felbokens frågor): en ANNAN fråga om samma kunskap går före samma fråga igen
