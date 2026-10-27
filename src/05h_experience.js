@@ -49,7 +49,7 @@ const EXP = {
     if (plan.length > n) { const boss = plan.find(x => x.role === 'boss'); const keep = plan.filter(x => x !== boss).slice(0, boss ? n - 1 : n); const meta = { ...plan }; plan = boss ? [...keep, boss] : keep; Object.assign(plan, { light: meta.light, restart: meta.restart, maxItems: Math.min(meta.maxItems || n + 2, n + 2), maxNew: meta.maxNew, examDays: meta.examDays }); }
     plan.flow = true; plan.newCap = newCap; return plan;
   },
-  peekFlow(kid) { return EXP.safe(() => { const C = LE.state(kid); return EXP.flowPlan(kid, C, LE.now()); }, 'peekFlow', []); },
+  peekFlow(kid) { return EXP.safe(() => { const C = LE.state(kid); return EXP.flowPlan(kid, C, LE.sessClock(C)); }, 'peekFlow', []); },   // 3.1: samma klocka som när FLOW startar
   flowMins(kid) { return EXP.mins(EXP.peekFlow(kid), kid); },
   // "cirka N min": samma uppskattning som Kör! (0,6 min per uppgift) + en extra minut per trolig pappersuppgift (räknas på papper tar längre tid)
   mins(plan, kid) { const C = LE.state(kid); const paper = (EXP.of(kid) !== 'explore') ? plan.filter(s => ['focus', 'practice', 'boss'].includes(s.role) && EXP.PAPER[((C.cat[s.cid] || {}).ref) || '']).length : 0; return V2.mins(plan.length) + Math.min(paper, Math.ceil(plan.length / 2)); },
@@ -88,6 +88,7 @@ const EXP = {
     return EXP.safe(() => {
       const p = prof(kid.id); if (!LE.canStart(kid, p)) return V2.korBtn(kid);
       const e = EXP.of(kid); const welcome = EXP.welcome(kid);
+      { const sc = V2.scopeCard(kid); if (sc) return sc; }   // 3.1: Bara prov och läxor – inget att öva
       return welcome + (e === 'explore' ? EXP.exploreHome(kid, p) : e === 'grow' ? EXP.growHome(kid, p) : EXP.achieveHome(kid, p));
     }, 'home', V2.korBtn(kid));
   },
@@ -376,6 +377,9 @@ const EXP = {
       <div class="seg" role="group" aria-label="Upplevelse" style="flex-wrap:wrap">${Object.entries(EXP.KINDS).map(([k, x]) => `<button class="${k === cur ? 'on' : ''}" aria-pressed="${k === cur}" data-v2="exp" data-val="${k}">${esc(x.name)}</button>`).join('')}</div>
       <div class="muted" style="font-size:.85rem">${esc(EXP.KINDS[cur].desc)}</div>
       ${def ? '' : '<button class="link" data-v2="exp" data-val="default" style="align-self:flex-start">Återställ till standard för åldern</button>'}
+      <div class="eyebrow" style="margin-top:6px">Vad Kör! tränar</div>
+      <div class="seg" role="group" aria-label="Vad Kör! tränar">${[['all', 'Allt'], ['exams', 'Bara prov och läxor']].map(([k, l]) => { const on = (p.settings.scope === 'exams' ? 'exams' : 'all') === k; return `<button class="${on ? 'on' : ''}" aria-pressed="${on}" data-v2="scope" data-val="${k}">${l}</button>`; }).join('')}</div>
+      <div class="muted" style="font-size:.85rem">${p.settings.scope === 'exams' ? `Kör! och extrapassen tränar bara prov och läxor som är inlagda och ligger inom fyra veckor. Finns inget visar appen det, och Öva på egen hand finns kvar.` : 'Kör! tränar allt barnet har: prov och läxor väger tyngst när de närmar sig, och resten repeteras så att det sitter.'}</div>
       ${p.settings.engine === 'v1' ? '<div class="muted" style="font-size:.85rem">Barnet kör reservmotorn v1 – upplevelsen gäller först när v2 är på.</div>' : ''}
       ${sc.length ? `<div style="font-size:.9rem;margin-top:4px"><b>Steg som barnet valde vid egen jämförelse</b> (papper och penna)<div class="muted" style="font-size:.8rem">Barnets eget val när hen jämförde sin uträkning med lösningen. Inget bevis och ingen diagnos – appen har inte sett uträkningen.</div>${sc.map(x => `<div>${esc(x.name)}: ${x.step ? `steg ${Number(x.step)} av ${Number(x.of)}` : 'vet inte'}</div>`).join('')}</div>` : ''}
     </div>`;

@@ -35,6 +35,7 @@ const V2 = {
   peekPlan(kid) { const C = LE.state(kid); const now = LE.sessClock(C); const { plan } = LE.plan(kid, V2.n(kid, C), now); return { plan, C, now }; },
   korBtn(kid) {
     return V2.safe(() => {
+      { const sc = V2.scopeCard(kid); if (sc) return sc; }
       const p = prof(kid.id); if (!LE.canStart(kid, p)) return `<button class="go-btn" data-v2="kor"><div><div class="t">${LBL(kid).go}</div><div class="s">Hämtar det senaste …</div></div><div class="arrow">${ICON.arrow}</div></button>`;
       const { plan } = V2.peekPlan(kid);
       if (plan.light && V2.doneToday(p)) return `<div class="card pad-lg stack" style="gap:6px;text-align:center"><div style="font-size:1.6rem">✅</div><div style="font-weight:800;font-family:var(--display);font-size:1.15rem">Bra jobbat. Du är klar för idag.</div><button class="link" data-v2="extra" style="align-self:center">Öva extra</button></div>`;
@@ -58,6 +59,19 @@ const V2 = {
   missionShare(plan, cids) { const set = new Set(cids); const slots = plan.filter(s => s.role !== 'boss'); return { n: slots.filter(s => set.has(s.cid)).length, of: slots.length }; },
   /* 2.2: uppdraget = närmaste prov/läxa/glosförhör med datum inom MISSION_DAYS (familjens skoluppgifter eller förälderns prov) */
   MISSION_DAYS: 28,
+  // 3.1: "Bara prov och läxor" – förälderns val per barn (settings.scope = 'exams' | 'all', synkas på senaste ändring)
+  scopeOn(p) { return !!(p && p.settings && p.settings.scope === 'exams' && V2.engineOf(p) === 'v2'); },
+  // Hemmet när "Bara prov och läxor" inte har något att öva: ett ärligt kort i stället för en knapp som startar något annat.
+  scopeCard(kid) {
+    const p = prof(kid.id); if (!V2.scopeOn(p) || (typeof EXP !== 'undefined' && EXP.on(kid) && EXP.coreDone(p))) return '';
+    const pl = V2.peekPlan(kid).plan; if (!pl.scopeEmpty) return '';
+    const g = typeof EXP !== 'undefined' ? EXP.goalOf(kid).now : null; const ex = g && V2.examCidsActive(kid, g.e).length;
+    const unmapped = pl.scopeEmpty === 'none' && g;   // ett prov/en läxa finns men dess områden är inte inlagda – säg det, inte "inget prov"
+    const head = unmapped ? `${esc(g.e.title.toUpperCase())} · INTE INLAGT ÄNNU` : pl.scopeEmpty === 'none' ? 'INGA PROV ELLER LÄXOR JUST NU' : 'INGET ATT ÖVA IDAG';
+    const txt = unmapped ? `${EXP.isExam(g.e) ? 'Provets' : 'Läxans'} områden är inte inlagda i appen ännu. När de läggs in börjar Kör! med dem.` : pl.scopeEmpty === 'none' ? 'Kör! tränar bara inlagda prov och läxor. När något läggs in börjar du här.' : `Allt inför ${g ? esc(g.e.title) : 'provet'} är övat för idag. Kom tillbaka imorgon.`;
+    return `<section class="card pad-lg mission stack" aria-label="${esc(head)}"><div class="eyebrow">${head}</div><div style="font-size:1rem">${txt}</div>${ex ? `<button class="btn ghost wide" data-v2="testa" data-exam="${esc(g.e.id)}">Testa mig</button>` : ''}</section>`;
+  },
+  scopeCids(kid, p) { if (!V2.scopeOn(p)) return null; const out = new Set(); for (const e of LE.exams(kid, p)) { const d = daysUntil(e.date); if (!(d >= 0 && d <= V2.MISSION_DAYS)) continue; for (const c of V2.examCidsActive(kid, e)) out.add(c); } return [...out]; },
   mission(kid) {
     const p = prof(kid.id); const list = LE.exams(kid, p).map(e => ({ e, d: daysUntil(e.date) })).filter(x => x.d >= 0 && x.d <= V2.MISSION_DAYS);
     list.sort((a, b) => a.d - b.d || (b.e.priority === 'high') - (a.e.priority === 'high') || (a.e.id < b.e.id ? -1 : 1)); return list[0] || null;
@@ -465,7 +479,7 @@ const V2 = {
     if (a === 'teachok') return V2.teachDone();
     if (a === 'qr') return V2.safe(() => V2.reportQ(el), 'report');
     if (a === 'endPreview') return V2.endPreview();
-    if (a === 'engine' || a === 'engineAsk' || a === 'preview' || a === 'exp') return V2.parentClick(a, el);
+    if (a === 'engine' || a === 'engineAsk' || a === 'preview' || a === 'exp' || a === 'scope') return V2.parentClick(a, el);
     if (!kid) return;
     // Ett oväntat fel i v2 får aldrig stoppa barnet: logga och kör v1:s Kör! i stället
     const ok = V2.safe(() => { V2.act(a, el, kid); return true; }, 'click:' + a, false);
@@ -549,6 +563,7 @@ const V2 = {
     if (a === 'engineAsk') { state.v2ask = kid.id; return VIEWS.parent(); }
     if (a === 'engine') { const v = el.dataset.val; state.v2ask = null; if (v === 'v2' || v === 'v1') { const p = prof(kid.id); p.settings.engine = v; p.settings.engineAt = LE.now(); /* serverkorrigerad tid */ LE.invalidate(kid.id); save(); toast(v === 'v2' ? `v2 på för ${kid.name}` : `${kid.name} kör v1`); } return VIEWS.parent(); }
     if (a === 'preview') return V2.startPreview(kid);
+    if (a === 'scope') { const p = prof(kid.id); p.settings.scope = el.dataset.val === 'exams' ? 'exams' : 'all'; p.settings.scopeAt = LE.now(); LE.invalidate(kid.id); save(); toast(p.settings.scope === 'exams' ? `Bara prov och läxor för ${kid.name}` : `${kid.name}: Kör! tränar allt`); return VIEWS.parent(); }
     if (a === 'exp') { EXP.set(kid, el.dataset.val); LE.invalidate(kid.id); toast(el.dataset.val === 'default' ? 'Standard för åldern' : `${(EXP.KINDS[el.dataset.val] || {}).name || ''} för ${kid.name}`); return VIEWS.parent(); }
   },
   // Förälderns förhandsvisning: hela barnflödet med v2 på en kopia. Inget sparas, inget synkas; allt återställs när den avslutas.

@@ -91,7 +91,14 @@ const LE = {
   activeCat(C, p) { const on = new Set((p.enabledDecks || []).map(LECAT.deckCid)); const out = {}; for (const [id, d] of Object.entries(C.cat)) if (d.kind !== 'deck' || on.has(id)) out[id] = d; return out; },
   plan(kid, n, now, exclId, opts = {}) {
     const p = prof(kid.id); const C = LE.state(kid); const ctx = LE.ctx(kid, p, C, now, exclId);
-    const plan = LE2.planSession(C.L, LE.activeCat(C, p), now, ctx, C.pol, { ...opts, n, sessionNo: C.L.sessN || 0 });   // granskning L1: Utmaning var annat pass · opts.newCap (FLOW, provträning) · opts.only (provträning, 2.1.1)
+    // 3.1 "Bara prov och läxor" (förälderns val per barn): Kör! och FLOW tränar bara inlagda prov och läxor inom uppdragets horisont –
+    // samma motor och samma regler, begränsad med motorns egen only (som provträningen 2.1.1). Provträningen anger sin egen (snävare) only.
+    const sc = !opts.only && typeof V2 !== 'undefined' && V2.scopeCids ? V2.scopeCids(kid, p) : null;
+    if (sc && !sc.length) { const e = []; e.scopeEmpty = 'none'; return { plan: e, ctx, C }; }
+    const plan0 = LE2.planSession(C.L, LE.activeCat(C, p), now, ctx, C.pol, { ...opts, ...(sc ? { only: sc } : {}), n, sessionNo: C.L.sessN || 0 });   // granskning L1: Utmaning var annat pass · opts.newCap (FLOW, provträning) · opts.only (provträning, 2.1.1)
+    if (!sc) return { plan: plan0, ctx, C };
+    const set = new Set(sc); const plan = plan0.filter(s => set.has(s.cid)); for (const k of Object.keys(plan0)) if (!/^\d+$/.test(k)) plan[k] = plan0[k];
+    plan.only = set; if (!plan.some(s => s.role !== 'boss')) { const e = []; e.scopeEmpty = 'idle'; return { plan: e, ctx, C }; }   // bara provets saker – även Bossen; inget att öva idag = inget pass
     return { plan, ctx, C };
   },
   whyKey(s) { if (s.role === 'boss') return 'boss'; const top = Object.entries(s.parts || {}).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1])[0]; return top ? top[0] : 'maintenance'; },
