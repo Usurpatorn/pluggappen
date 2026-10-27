@@ -22,7 +22,7 @@ const EMOJI = /\p{Extended_Pictographic}/u;
   try {
     const w = mkWin({ seed: 21, fixedClock: true }); await sleep(40); const T = tools(w); const PA = T.PA; PA().FAMILY.apply(FIX); PA().load(); PA().rerender();
     let holdNext = false; const D = v2tools(w, { ...T, click: (el) => { if (holdNext && el && el.id === 'next') { holdNext = false; return; } T.click(el); } });   // stannar på återkopplingen när testet vill se den
-    const doc = w.document; const C = { tap: 0, keypad: 0, rescueHint: 0, revWhy: 0, revItems: 0, klar: { explore: 0, grow: 0, achieve: 0 }, rows: 0, learnV3: 0, pet: 0, growFlag: 0 };
+    const doc = w.document; const C = { chal: 0, tap: 0, keypad: 0, rescueHint: 0, revWhy: 0, revItems: 0, klar: { explore: 0, grow: 0, achieve: 0 }, rows: 0, learnV3: 0, pet: 0, growFlag: 0 };
     let rr = 7; const rnd = () => { rr = (rr * 1103515245 + 12345) & 0x7fffffff; return rr / 0x7fffffff; };
     for (let d = 0; d < 6; d++) {
       for (const id of ['k2', 'k4', 'k8']) for (const btn of ['.go-btn[data-v2="kor"]', '[data-v2="flow"]', '[data-v2="revansch"]']) {
@@ -36,6 +36,7 @@ const EMOJI = /\p{Extended_Pictographic}/u;
             ok(!eb.some(t => /^(Vi tar det tillsammans|Steg för steg|En kort förklaring först|Något nytt)$/i.test(t)), `${id}: förklaringskortet upprepar inte etiketten (${eb.join(' | ')})`); }
           const why = T.$('.role-why'); if (why) { whyN++; C.revWhy++; ok(it.spec && it.spec.role === 'revansch', `${id}: Revansch-förklaringen bara på en Revansch-uppgift`); }
           if (it.spec && it.spec.role === 'revansch') C.revItems++;
+          if (it.spec && it.spec.mode === 'challenge' && !exam && !it.paper && !it.rhythm) { C.chal++; ok(chips.length === 1 && /UTMANING/.test(chips[0].textContent) && (exp !== 'grow' || /NÄSTA NIVÅ/.test(chips[0].textContent)), `${id}: Utmaningen syns som Utmaning (${chips.map(c => norm(c.textContent))})`); }
           if (exp === 'grow' && !exam) { ok(!!T.$('.progress-row .pg-end'), `${id}: Grow-rundan har en mållinje`); C.growFlag++; }
           // 3. Rescue: ledtråden räcker när barnet just läst förklaringen
           if (it.cat === 'math' && it.spec && it.spec.help === 'rescue' && !exam) { const fbt = norm((T.$('#fb .hint') || {}).textContent); const justRead = !!(prev && prev.cat === 'learn' && prev.spec && prev.spec.role === 'rescue');
@@ -79,7 +80,7 @@ const EMOJI = /\p{Extended_Pictographic}/u;
     // 4. Grow: Dina N områden – N är summan av siffrorna
     openKid(T, 'k4'); { const gp = T.$('.grow-prog'); if (gp) { const n = +(norm(gp.querySelector('.gp-head').textContent).match(/^Dina (\d+) områden$/i) || [])[1]; const sum = [...gp.querySelectorAll('.progress-states b')].reduce((a, b) => a + +b.textContent, 0);
       ok(n > 0 && n === sum, `Grow: "Dina ${n} områden" = ${sum}`); } else ok(false, 'Grow-hemmet visar Dina områden'); }
-    console.log(`  flerval med ett tryck ${C.tap}, knappsats ${C.keypad}, LÄR-kort ${C.learnV3}, Rescue med bara ledtråd ${C.rescueHint}, Revansch-uppgifter ${C.revItems} (förklarade ${C.revWhy}), Grow-mållinje ${C.growFlag}, KLAR ${JSON.stringify(C.klar)}, följeslagare ${C.pet}, KLAR-rader ${C.rows}`);
+    console.log(`  utmaningar ${C.chal}, flerval med ett tryck ${C.tap}, knappsats ${C.keypad}, LÄR-kort ${C.learnV3}, Rescue med bara ledtråd ${C.rescueHint}, Revansch-uppgifter ${C.revItems} (förklarade ${C.revWhy}), Grow-mållinje ${C.growFlag}, KLAR ${JSON.stringify(C.klar)}, följeslagare ${C.pet}, KLAR-rader ${C.rows}`);
     ok(C.tap > 20 && C.keypad > 5 && C.learnV3 > 5 && C.revItems > 0 && C.revWhy > 0 && C.klar.explore > 2 && C.klar.grow > 2 && C.klar.achieve > 2 && C.rows > 0, 'tillräckligt mycket prövat');
 
     // 1c. Riktat: flerval med tal i Grow och Achieve (ovanligt i passen) – ett tryck svarar, ingen Svara-knapp

@@ -339,7 +339,7 @@ const V2 = {
     let why = '';
     if (S.v2.exp) {   /* 3.3 slutpasset: en etikett per läge, samma skrivsätt och ikon som på startsidan (bara text) */
       const x = S.v2.exp; const V3 = { rescue: x === 'achieve' ? ['STEG FÖR STEG', '🧭'] : ['VI TAR DET TILLSAMMANS', '🤝'], revansch: ['REVANSCH', '💪'], warmup: ['VÄRM UPP', '☀️'], challenge: x === 'grow' ? ['UTMANING · NÄSTA NIVÅ', '🧗'] : ['UTMANING', '🧗'], teach: ['KORT FÖRKLARING', '💡'], easy: ['EXTRA', '➕'] };
-      if ((!formChip || key === 'easy') && V3[key]) [txt, ic] = V3[key]; if (formChip && item.form === 'multistep' && key !== 'easy') ic = '🪜';
+      if ((!formChip || key === 'easy' || key === 'challenge') && V3[key]) [txt, ic] = V3[key]; if (formChip && item.form === 'multistep' && key !== 'easy' && key !== 'challenge') ic = '🪜';   /* Utmaningen och Extra är lägen – de går före formen */
       if (key === 'revansch') { if (S.v2.revFirst == null) S.v2.revFirst = S.i; if (S.v2.revFirst === S.i) why = `<div class="role-why">${x === 'grow' ? 'Returmatch: den här var klurig förut.' : x === 'achieve' ? 'Det här gick fel förut – nu en ny fråga om samma sak.' : 'Den här var klurig förut. Nu tar du revansch!'}</div>`; }   /* vad Revansch betyder – en gång per pass */
     }
     if (!txt) return '';
