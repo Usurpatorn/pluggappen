@@ -177,13 +177,13 @@ med `PREVIEW=1` till `<sajten>/preview/`. Produktionen publiceras som vanligt. M
   fortsätt, Klar för idag – utan statistik); ett kort Boss-ögonblick (gyllene ring) och ett lugnt KLAR-avslut (ringen sluts),
   båda av med `prefers-reduced-motion`; iPad stående med lugn vertikal placering och större mattetext; Sortera med
   instruktionen först, jämna kort och lådor som växer; Ordna visar rätt ordning efter ett fel; föräldraläget säger
-  "20 rätt av 25", visar inte provtid och skriver "Andragradsekvationer" i stället för "x²" (v1:s föräldravy oförändrad).
+  "20 rätt av 25", visar inte provtid och skriver "Enkla andragradsekvationer" i stället för "x²" (v1:s föräldravy oförändrad).
 - Granskningarnas sista åtgärder: rubrikraden har en egen yta; Nästa ligger kvar längst ned efter svaret (aldrig före svaret –
   då täckte den alternativ och lådor); iPad stående toppjusterad med fast avstånd; Hitta felet i en spalt på stående iPad;
-  tre korta alternativ på en rad; "Visa hur" pekar ut rätt alternativ ("Välj det"); ett ensamt förklaringssteg utan "1.";
+  tre korta talalternativ på en rad; "Visa hur" pekar ut rätt alternativ ("Välj det"); ett ensamt förklaringssteg utan "1.";
   Achieve: lugnare beröm och "Steg för steg" i stället för "Vi tar det tillsammans"; Para ihop "Nästan" med gul kant; KLAR säger
   "dagens runda/äventyr" bara efter dagens plan; Grow-KLAR visar nivån och XP kvar; Testa mig-resultatet leder med vad som
   ska övas (inget "N av M"); grammatik "1 färgad" (02k).
 - Tillgänglighet: axe-core (WCAG 2.1 A/AA) 0 fynd på 24 skärmar i 375, 390, 820 och 1180 px.
 - Test: `test_ux33.js` (krokar = uppgiften, två rutor utan förlust/dubbletter, Hitta felet/Baklänges rättas som förut, löftena
-  ordagrant, lugnt Testa mig). Rollback: `release-3.2.2-1544484` (profilerna är oförändrade, så rollback kräver ingen migrering).
+  ordagrant, lugnt Testa mig). Rollback: `release-3.2.2-1544484` (profilformatet är oförändrat, så rollback kräver ingen migrering; enda innehållsskillnaden i lagrad data är grammatikrättelsen "1 färgad" i stegtext som v1-Felboken kopierar).

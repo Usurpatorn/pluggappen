@@ -161,6 +161,10 @@ const DISHONEST = /Du är redo|kommer (att )?klara provet|Du kan detta|\b\d{1,3}
       const li = [...w.document.querySelectorAll('#fb .order-correct li')].map(x => norm(x.textContent));
       ok(JSON.stringify(li) === JSON.stringify(items), `Ordna: rätt ordning efter ett fel (${li.join(' > ')})`);
       ok(!!w.document.querySelector('#fb details.steps.why') || !w.document.querySelector('#fb .steps'), 'Ordna: förklaringen ett tryck bort (ingen dubbel ordning)'); }
+    /* 5b5. "Visa hur" pekar ut det verkligen rätta alternativet */
+    { openKid(T, 'k4'); if (!T.$('.go-btn[data-v2="kor"]')) { w.__advance(DAY); openKid(T, 'k4'); } T.click(T.$('.go-btn[data-v2="kor"]'));
+      const S = PA().S; const it = S.queue[S.i]; const q = { type: 'choicetext', text: 'Vilket är störst?', choices: ['tre', 'nio', 'fem'], answer: 1, steps: ['Nio är störst.'], skill: kidOf('k4').skills[0], cat: 'math', level: 2, spec: { ...(it.spec || {}), role: 'focus' }, _slotEnd: true };
+      S.queue[S.i] = q; PA().rerender(); const eb = T.$('#explainBtn'); if (eb) { T.click(eb); const hl = [...w.document.querySelectorAll('#qcard .reveal-correct')]; ok(hl.length === 1 && hl[0].dataset.choice === '1', 'Visa hur: exakt rätt alternativ markeras'); ok(/Välj det/.test(norm(T.$('#fb').textContent)), 'Visa hur: "Välj det" för flerval'); } else ok(false, 'Visa hur finns'); }
     /* 5b4. KLAR efter Revansch före dagens plan säger inte "dagens runda" */
     for (const id of ['k4', 'k2']) { w.__advance(DAY); openKid(T, id); if (T.$('.go-btn[data-v2="kor"]')) { T.click(T.$('.go-btn[data-v2="kor"]')); D.run(() => true); }   /* ett pass med fel → saker att ta revansch på */
       w.__advance(DAY); openKid(T, id); const rb = T.$('[data-v2="revansch"]'); if (!rb || !T.$('.go-btn[data-v2="kor"]')) continue;
