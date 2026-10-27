@@ -31,7 +31,8 @@ const V2 = {
   deckOf(p, cid) { return allDecks(p).find(d => LECAT.deckCid(d.id) === cid); },
   cname(kid, C, cid) { return (C.cat[cid] || {}).name || cid; },
   /* ---------- Startsidan ---------- */
-  peekPlan(kid) { const C = LE.state(kid); const now = LE.now(); const { plan } = LE.plan(kid, V2.n(kid, C), now); return { plan, C, now }; },
+  // 3.0.1: samma klocka som KÖR (V2.start: LE.sessClock) – annars kunde något som blev aktuellt inom samma minut synas på hemmet men inte i passet
+  peekPlan(kid) { const C = LE.state(kid); const now = LE.sessClock(C); const { plan } = LE.plan(kid, V2.n(kid, C), now); return { plan, C, now }; },
   korBtn(kid) {
     return V2.safe(() => {
       const p = prof(kid.id); if (!LE.canStart(kid, p)) return `<button class="go-btn" data-v2="kor"><div><div class="t">${LBL(kid).go}</div><div class="s">Hämtar det senaste …</div></div><div class="arrow">${ICON.arrow}</div></button>`;
@@ -292,7 +293,9 @@ const V2 = {
   // Anropas efter svaret (passköraren har redan gått vidare): finns det något kvar i planen är det "Nästa", inte "Visa resultat"
   // (granskning v3: Bossen kom efter en knapp som sa "Visa resultat")
   hasNext() { const pr = LER.progress(S.v2.R); return S.i + 1 < S.queue.length || pr.left > 0; },
-  title(item) { return S.v2.exam ? 'Testa mig' : S.v2.mode === 'mission' ? 'Inför ' + esc((LE.exams(S.kid, prof(S.kid.id)).find(e => e.id === S.v2.extra.examId) || {}).title || 'provet') : S.v2.mode === 'revansch' ? 'Revansch' : S.v2.mode === 'readclose' ? 'Minns du?' : item.cat === 'word' ? esc(item.deck.name) : item.skill && S.v2.exp === 'explore' ? ({ math: 'Matte', sv: 'Svenska', en: 'Engelska', no: 'NO', so: 'SO' })[item.skill.group || 'math'] || 'Äventyret' : item.skill ? esc(item.skill.short || item.skill.name) : 'Kör!'; },   // Explore: ämnet, inte momentets interna namn (UX)
+  // 3.0.1: glosor i ett v3-pass heter efter ämnet ("Engelska glosor"), inte efter glosbokens namn – det såg ut som en annan övning än Kör!
+  wordTitle(deck) { const L = (typeof LANGS !== 'undefined' && LANGS[deck && deck.lang]) || null; return !L ? 'Glosor' : deck.lang === 'sv' ? 'Svenska ord' : L.name + ' glosor'; },
+  title(item) { return S.v2.exam ? 'Testa mig' : S.v2.mode === 'mission' ? 'Inför ' + esc((LE.exams(S.kid, prof(S.kid.id)).find(e => e.id === S.v2.extra.examId) || {}).title || 'provet') : S.v2.mode === 'revansch' ? 'Revansch' : S.v2.mode === 'readclose' ? 'Minns du?' : item.cat === 'word' ? esc(S.v2.exp && S.v2.exp !== 'classic' ? V2.wordTitle(item.deck) : item.deck.name) : item.skill && S.v2.exp === 'explore' ? ({ math: 'Matte', sv: 'Svenska', en: 'Engelska', no: 'NO', so: 'SO' })[item.skill.group || 'math'] || 'Äventyret' : item.skill ? esc(item.skill.short || item.skill.name) : 'Kör!'; },   // Explore: ämnet, inte momentets interna namn (UX)
   // v3: N kvar = planerade uppgifter; en Ny chans/Rescue syns som extra och tar inga planerade platser
   topRight() { const pr = LER.progress(S.v2.R); if (S.v2.exp && !S.v2.exam) { const it = S.queue[S.i]; const extra = EXP.isExtra(it); const left = extra ? Math.min(V2.plannedLeft(), Math.max(0, S.v2.R.maxItems - S.v2.R.answered - 1)) : V2.plannedLeft(); const lbl = extra && it.spec.role === 'easy' ? 'Extra' : 'Ny chans'; return extra ? `<span class="left-count">${left ? `${lbl} · sedan ${left} kvar` : lbl}</span>` : `<span class="left-count">${left} kvar</span>`; } return S.v2.exam ? `<span class="pill">Inga ledtrådar · svar efteråt</span>` : `<span class="left-count">${Math.max(0, pr.left)} kvar</span>`; },
   progressBar() { const tot = V2.total();
