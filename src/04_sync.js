@@ -106,7 +106,7 @@ function mergeProfiles(a, b) {
   // Granskning H1: förälderns motorval och policy följer SENASTE ändringen (egen tidsstämpel), inte "lokal enhet vinner" –
   // annars kunde en barnenhet med osynkade ändringar slå på v2 igen efter att föräldern stängt av den.
   // v3: upplevelsen (Explore/Grow/Achieve/Klassisk, settings.exp/expAt) följer samma regel.
-  for (const k of ['engine', 'lePolicy', 'exp']) { const sa = a.settings || {}, sb = b.settings || {}; if ((sb[k + 'At'] || 0) > (sa[k + 'At'] || 0)) { if (sb[k] === undefined) delete out.settings[k]; else out.settings[k] = sb[k]; out.settings[k + 'At'] = sb[k + 'At']; } }
+  for (const k of ['engine', 'lePolicy', 'exp', 'scope']) { const sa = a.settings || {}, sb = b.settings || {}; if ((sb[k + 'At'] || 0) > (sa[k + 'At'] || 0)) { if (sb[k] === undefined) delete out.settings[k]; else out.settings[k] = sb[k]; out.settings[k + 'At'] = sb[k + 'At']; } }
   // Två motorval inom tio minuter som säger olika (t.ex. en förälderenhet vars klocka går fel): välj det säkra läget v1.
   { const sa = a.settings || {}, sb = b.settings || {}; if (sa.engineAt && sb.engineAt && sa.engine !== sb.engine && Math.abs(sa.engineAt - sb.engineAt) < 600000) { out.settings.engine = 'v1'; out.settings.engineAt = Math.max(sa.engineAt, sb.engineAt); } }
   // Felboken (v1): union av båda enheternas poster minus det som klarats (gravstenar). Tidigare skrev den lokala listan över den andra.
