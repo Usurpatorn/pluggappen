@@ -116,3 +116,11 @@ med `PREVIEW=1` till `<sajten>/preview/`. Produktionen publiceras som vanligt. M
   aldrig testadressen ur cachen och byter aldrig en testflik mot appen, och CI publicerar testadressen bara från en gren med
   "Testa som barnet" och dess skydd (testet körs och sidan kontrolleras – annars publiceras produktionen utan testadress).
 
+## 3.2.0 – Testa som barnet i föräldraläget (från 2026-10-27)
+- **Föräldraläge → barnet → Testa som …** finns nu i den vanliga appen (inte bara på testadressen). Samma isolering: lagringen slås om
+  till en kopia i minnet (oåterkalleligt för sidan) och nätverksskyddet nekar alla skrivningar under testet; avsluta, byta barn,
+  ladda om, bakåt = sidan laddas om och kopian finns inte. Utanför testet är appen som förut (samma nycklar, samma nätverk).
+- Före testet skickas väntande ändringar; går det inte (t.ex. utan nät) startar testet inte. Påminnelser och synkkod finns inte under testet.
+- Testadressen finns kvar (samma funktion, egen lagring) men behövs inte längre för att testa som ett barn.
+- Rollback: `release-3.1.1-bd512ee` (eller senare 3.1.x). Test: `test_parent_test_mode_prod.js`, `test_parent_test_mode.js`.
+

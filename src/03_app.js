@@ -508,7 +508,7 @@ VIEWS.home = () => {
       <div class="week" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line)"><div class="grow"><div class="qt" style="font-weight:700;font-size:.95rem">${LBL(kid).week}: ${weekTarget} rätt</div><div class="mastery mid" style="margin-top:4px"><i style="width:${Math.min(100, Math.round((p.weekCorrect || 0) / weekTarget * 100))}%"></i></div></div><span class="m">${p.weekCorrect || 0}/${weekTarget}</span></div>
     </div>
     ${v2 ? V2.examCards(kid) : examCards}
-    ${PUSH.card(kid.id, 'kid')}
+    ${typeof TM !== 'undefined' && TM.on ? '' : PUSH.card(kid.id, 'kid')}
     ${v2 ? V2.felbokCard(kid) : (p.mistakes || []).length ? `<button class="card tap row" data-act="felbok" style="gap:12px"><div class="ic" style="width:44px;height:44px;border-radius:12px;background:var(--bad-soft);color:var(--bad);display:grid;place-items:center;font-size:1.3rem">📕</div><div class="grow"><div style="font-weight:800;font-family:var(--display)">Felboken · ${p.mistakes.length} ${p.mistakes.length === 1 ? 'uppgift' : 'uppgifter'}</div><div class="muted" style="font-size:.9rem">Allt du svarat fel på. Klara dem för att tömma boken.</div></div><span class="chev">›</span></button>` : ''}
     ${subjectsHtml}
     ${kid.note && kid.note.lines.length ? `<div class="card teacher"><div class="eyebrow">${esc(kid.note.title || 'Kommentar från skolan')}</div><ul style="margin-top:6px">${kid.note.lines.map(l => `<li>${esc(l)}</li>`).join('')}</ul></div>` : ''}
@@ -532,7 +532,7 @@ function homeV3(kid, p, o) {
     ${EXP.coreDone(p) ? '' : V2.felbokCard(kid)}
     ${e === 'grow' ? EXP.goalDetail(kid, EXP.goalOf(kid).now) : ''}
     ${ident}
-    ${PUSH.card(kid.id, 'kid')}
+    ${typeof TM !== 'undefined' && TM.on ? '' : PUSH.card(kid.id, 'kid')}
     <details class="card more-fold"><summary><b>Öva på egen hand</b> <span class="muted" style="font-size:.85rem">välj ämne och moment</span></summary>${o.subjectsHtml}</details>
     <details class="card quests-fold"><summary><b>${LBL(kid).quests}</b> ${EXP.coreDone(p) ? '' : `<span class="muted" style="font-size:.85rem">${o.quests.filter(q => q.claimed).length}/${o.quests.length} klara</span>`}</summary>${o.quests.map(q => `<div class="quest ${q.done ? 'done' : ''}"><div class="qi">${q.done ? '✅' : q.icon}</div><div class="grow"><div class="qt">${esc(q.text)}</div><div class="qp">${q.claimed ? 'Klart' : `${Math.min(q.progress, q.target)}/${q.target}`}</div></div>${q.done && !q.claimed ? `<button class="btn claim" data-claim="${q.id}">Hämta</button>` : ''}</div>`).join('')}</details>
     ${kid.note && kid.note.lines.length ? `<div class="card teacher"><div class="eyebrow">${esc(kid.note.title || 'Kommentar från skolan')}</div><ul style="margin-top:6px">${kid.note.lines.map(l => `<li>${esc(l)}</li>`).join('')}</ul></div>` : ''}
@@ -1340,7 +1340,7 @@ app.addEventListener('click', (e) => {
   const tabBtn = t.closest('[data-tab]'); if (tabBtn) { state.tab = tabBtn.dataset.tab; state.sub = 'overview'; state.editDeck = null; return VIEWS.parent(); }
   const subBtn = t.closest('[data-sub]'); if (subBtn) { state.sub = subBtn.dataset.sub; return VIEWS.parent(); }
   const lePol = t.closest('[data-le-pol]'); if (lePol && state.screen === 'parent' && kidById(state.tab)) { const p = prof(state.tab); p.settings.lePolicy = lePol.dataset.lePol || 'auto'; p.settings.lePolicyAt = LE.now(); LE.invalidate(state.tab); save(); return VIEWS.parent(); }
-  const pushBtn = t.closest('[data-push]'); if (pushBtn) { const kidId = pushBtn.dataset.push; const cur = PUSH.current(); if (cur && cur.kid === kidId) { PUSH.disable().then(() => { toast('Påminnelser av'); state.screen === 'parent' ? VIEWS.parent() : VIEWS.home(); }); } else { toast('Slår på…'); PUSH.enable(kidId).then(r => { toast(r.ok ? 'Påminnelser på' : r.msg); state.screen === 'parent' ? VIEWS.parent() : VIEWS.home(); }); } return; }
+  const pushBtn = t.closest('[data-push]'); if (pushBtn && typeof TM !== 'undefined' && TM.on) return; if (pushBtn) { const kidId = pushBtn.dataset.push; const cur = PUSH.current(); if (cur && cur.kid === kidId) { PUSH.disable().then(() => { toast('Påminnelser av'); state.screen === 'parent' ? VIEWS.parent() : VIEWS.home(); }); } else { toast('Slår på…'); PUSH.enable(kidId).then(r => { toast(r.ok ? 'Påminnelser på' : r.msg); state.screen === 'parent' ? VIEWS.parent() : VIEWS.home(); }); } return; }
   const setVal = t.closest('[data-setting-val]'); if (setVal) { const [k, v] = setVal.dataset.settingVal.split(':'); const p = prof(state.tab); p.settings[k] = v; save(); return VIEWS.parent(); }
   const setBtn = t.closest('[data-setting]'); if (setBtn) { const p = prof(state.tab); p.settings[setBtn.dataset.setting] = !p.settings[setBtn.dataset.setting]; save(); return VIEWS.parent(); }
   const sprBtn = t.closest('[data-sprint]'); if (sprBtn) { prof(state.tab).settings.sprint = Number(sprBtn.dataset.sprint); save(); return VIEWS.parent(); }
@@ -1405,7 +1405,8 @@ function boot(snap) {
   if (SYNC.cfg && SYNC.family) { try { history.replaceState(null, '', location.pathname + '#fam-' + SYNC.family); } catch (e) { /* ignore */ } } // bara familje-id i adressfältet – aldrig parkopplingskoden
   AUTH.load();
   if (SYNC.active) { ensureMembership().then(() => FAMILY.pull()).then((cfgChanged) => FAMILY.pullContent().then(cc => cfgChanged || cc, () => cfgChanged)).then((cfgChanged) => { if (cfgChanged) { load(); if (state.screen === 'start') VIEWS.start(); } return SYNC.refreshAll(); }).then((changed) => { if (state.screen === 'start' || (changed && state.screen === 'home')) VIEWS[state.screen](); }); document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && SYNC.active && state.screen !== 'practice' && state.screen !== 'blitzplay') SYNC.refreshAll().then((changed) => { if (changed && VIEWS[state.screen]) VIEWS[state.screen](); }); }); }
-  if (typeof TM !== 'undefined' && TM.preview) { if (/^foralder-tm[012]$/.test(h)) { TM.note(h.slice(9)); try { history.replaceState(null, '', location.pathname + (SYNC.family ? '#fam-' + SYNC.family : '')); } catch (e) { /* ignore */ } h = 'foralder'; } else if (h !== 'foralder') h = ''; }   // testadressen: inga djuplänkar till barnen
+  if (typeof TM !== 'undefined' && /^foralder-tm[012]$/.test(h)) { TM.note(h.slice(9)); try { history.replaceState(null, '', location.pathname + (SYNC.family ? '#fam-' + SYNC.family : '')); } catch (e) { /* ignore */ } h = 'foralder'; }   // efter Testa som barnet: tillbaka till föräldraläget
+  else if (typeof TM !== 'undefined' && TM.preview && h !== 'foralder') h = '';   // testadressen: inga djuplänkar till barnen   // testadressen: inga djuplänkar till barnen
   const [hk, hact] = h.split('-');
   if (snap && snap.kid && kidById(snap.kid)) { state.kid = snap.kid; go('home'); }
   else if (kidById(hk) && hact === 'kor') { state.kid = hk; applyLook(kidById(hk)); const kid = kidById(hk); const p = prof(hk); if (!p.pet) { p.pet = isTeen(kid) || isSport(kid) ? 'none' : PETS[0].id; save(); } if (V2.on(kid)) { go('home'); V2.click({ dataset: { v2: 'kor' } }, kid); } else { LE.nextSrc = 'kor'; startSession(kid, recommendSprint(kid).opts); } }
