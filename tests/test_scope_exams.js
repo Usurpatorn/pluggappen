@@ -13,7 +13,7 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms)); const DAY = 86400000;
 async function boot(seed) { const w = mkWin({ seed, fixedClock: true }); await sleep(40); const T = tools(w); T.PA().FAMILY.apply(FIX); T.PA().load(); T.PA().rerender(); return { w, T, PA: T.PA, D: v2tools(w, T), r: rng(seed) }; }
 (async () => {
   try {
-    // ---------- 1. Standard ("Allt"): exakt samma plan som utan inställningen ----------
+    // ---------- 1. Standard ("Allt"): samma väg som utan inställningen (planen jämfördes även mot 3.0.1 i granskningen: identiska skuggloggar) ----------
     { const { w, T, PA, D, r } = await boot(5); const kid = () => PA().KIDS.find(k => k.id === 'k8'); const p = () => PA().DB.profiles.k8;
       const open = () => { toStart(T); T.click(T.$('[data-kid="k8"]')); if (T.$('[data-pet]')) T.click(T.$('[data-pet]')); };
       for (let d = 0; d < 3; d++) { open(); const g = T.$('[data-v2="kor"]'); if (g) { T.click(g); D.run(() => r() < 0.3, 60); } w.__advance(DAY); }
@@ -21,7 +21,8 @@ async function boot(seed) { const w = mkWin({ seed, fixedClock: true }); await s
       ok(a === b, 'Standard "Allt": planen är exakt densamma som utan inställningen'); }
 
     // ---------- 2. På, ett prov: bara provets områden – även i FLOW; inga glosor ----------
-    for (const seed of [7, 11, 19]) {
+    let flows = 0;
+    for (const seed of [7, 11, 19, 23, 31, 41]) {
       const { w, T, PA, D, r } = await boot(seed); const kid = () => PA().KIDS.find(k => k.id === 'k8'); const p = () => PA().DB.profiles.k8;
       const iso = (d) => new Date(w.Date.now() + d * DAY).toISOString().slice(0, 10);
       const open = () => { toStart(T); T.click(T.$('[data-kid="k8"]')); if (T.$('[data-pet]')) T.click(T.$('[data-pet]')); };
@@ -38,10 +39,16 @@ async function boot(seed) { const w = mkWin({ seed, fixedClock: true }); await s
         const played = []; let n = 0; while (PA().S && PA().S.v2 && T.$('#qcard') && n++ < 60) { const q = PA().S.queue[PA().S.i]; if (q.spec && q.cat !== 'learn') played.push(q.cat === 'word' ? 'ORD' : q.spec.cid); D.answer(() => r() < 0.3); w.__advance(4000); }
         ok(played.length > 0 && played.every(c => U.has(c)), `seed ${seed} dag ${d}: allt som spelades hör till provet (${[...new Set(played)].join(', ')})`);
         // FLOW (extrapass) – samma regel
-        open(); const f = T.$('[data-v2="flow"]'); if (f) { const fp = PA().EXP.peekFlow(kid()); T.click(f); ok(PA().S.v2.plan.every(s => U.has(s.cid)) && fp.every(s => U.has(s.cid)), `seed ${seed} dag ${d}: FLOW bara provets områden`); D.run(() => r() < 0.3, 40); }
+        // FLOW (extrapass, flera block, många fel → Rescue, lätta uppgifter, Bossens omval) – samma regel för ALLT som spelas
+        for (let b = 0; b < 3; b++) { open(); const f = T.$('[data-v2="flow"]'); if (!f) break; const fp = PA().EXP.peekFlow(kid()); T.click(f); flows++;
+          ok(PA().S.v2.plan.every(s => U.has(s.cid)) && fp.every(s => U.has(s.cid)) && Object.keys(PA().S.v2.R.cat).every(c => U.has(c)), `seed ${seed} dag ${d} FLOW ${b + 1}: planen och löparens katalog är bara provets områden`);
+          const fpl = []; let m = 0; while (PA().S && PA().S.v2 && T.$('#qcard') && m++ < 60) { const q = PA().S.queue[PA().S.i]; if (q.spec && q.cat !== 'learn') fpl.push(q.cat === 'word' ? 'ORD' : q.spec.cid); D.answer(() => r() < 0.6); w.__advance(4000); }
+          ok(fpl.every(c => U.has(c)), `seed ${seed} dag ${d} FLOW ${b + 1}: allt som spelades hör till provet (${[...new Set(fpl)].join(', ')})`); }
         w.__advance(DAY);
       }
     }
+
+    ok(flows >= 6, `FLOW prövades ${flows} gånger med valet på`);
 
     // ---------- 3. Två prov: båda provens områden, inget annat ----------
     { const { w, T, PA, D, r } = await boot(23); const kid = () => PA().KIDS.find(k => k.id === 'k8'); const p = () => PA().DB.profiles.k8; const iso = (d) => new Date(w.Date.now() + d * DAY).toISOString().slice(0, 10);
@@ -67,11 +74,31 @@ async function boot(seed) { const w = mkWin({ seed, fixedClock: true }); await s
       ok(T.$('[data-v2="kor"]') && PA().V2.peekPlan(kid()).plan.every(s => s.cid === 's:forenkla' || s.cid === 's:ekvation'), 'ett prov läggs in: Kör! finns och tränar provet');
       p().settings.engine = 'v1'; p().settings.engineAt = w.Date.now(); PA().save(); PA().LE.invalidate('k8'); ok(PA().V2.scopeCids(kid(), p()) === null, 'v1: inställningen gäller inte (reservmotorn som förut)'); }
 
+    // ---------- 4b. KLAR efter ett annat pass (Revansch) när dagens plan är tom: ingen Kör!-knapp som inte startar något ----------
+    for (const exp of ['achieve', 'classic']) { const { w, T, PA, D, r } = await boot(43 + exp.length); const kid = () => PA().KIDS.find(k => k.id === 'k8'); const p = () => PA().DB.profiles.k8;
+      const open = () => { toStart(T); T.click(T.$('[data-kid="k8"]')); if (T.$('[data-pet]')) T.click(T.$('[data-pet]')); };
+      PA().EXP.set(kid(), exp); for (let d = 0; d < 3; d++) { open(); const g = T.$('[data-v2="kor"]'); if (g) { T.click(g); D.run(() => r() < 0.7, 60); } w.__advance(DAY); }
+      p().exams = []; p().removedDefaults = [...(p().removedDefaults || []), ...((kid().workExams || []).map(x => x.id))]; p().settings.scope = 'exams'; PA().save(); PA().LE.invalidate('k8'); open();
+      PA().V2.start(kid(), 'revansch'); if (PA().S && PA().S.v2) { D.run(() => r() < 0.3, 60);
+        const klar = norm(T.$('#app').textContent); ok(!T.$('[data-v2="kor"]') && !/Ett pass till|Till dagens plan/.test(klar), `${exp}: KLAR efter Revansch erbjuder ingen Kör! när dagens plan är tom (${klar.slice(0, 120)})`); }
+      else ok(false, `${exp}: Revansch-passet startade inte (testet förutsätter saker i Felboken)`); }
+
+    // ---------- 4c. "Inget att öva idag" med ett prov med områden och en läxa utan: rätt prov, ärlig rad om läxan, Testa mig för provet ----------
+    { const { w, T, PA } = await boot(47); const kid = () => PA().KIDS.find(k => k.id === 'k8'); const p = () => PA().DB.profiles.k8; const iso = (d) => new Date(w.Date.now() + d * DAY).toISOString().slice(0, 10);
+      p().exams = [{ id: 'eA', title: 'Algebraprov', date: iso(10), skillIds: ['forenkla'], deckIds: [] }, { id: 'eB', title: 'Engelskaläxa', date: iso(2), skillIds: [], deckIds: [] }]; p().removedDefaults = [...(p().removedDefaults || []), ...((kid().workExams || []).map(x => x.id))];
+      p().settings.scope = 'exams'; PA().save(); PA().LE.invalidate('k8');
+      const real = PA().V2.peekPlan; PA().V2.peekPlan = (k) => { const o = real(k); const e = []; e.scopeEmpty = 'idle'; return { ...o, plan: e }; };   // dagen då inget av provet går att öva (svår att nå genom spel)
+      toStart(T); T.click(T.$('[data-kid="k8"]')); if (T.$('[data-pet]')) T.click(T.$('[data-pet]')); const h = norm(T.$('#app').textContent);
+      ok(/INGET ATT ÖVA IDAG/.test(h) && /Allt inför Algebraprov är övat för idag/.test(h) && /Engelskaläxa: områdena är inte inlagda/.test(h) && T.$('[data-v2="testa"][data-exam="eA"]') && !T.$('[data-v2="kor"]'), `inget att öva idag: rätt prov, ärlig rad om läxan, Testa mig för provet (${h.slice(0, 200)})`);
+      PA().V2.peekPlan = real; }
+
     // ---------- 5. Synk: senaste ändringen gäller, åt båda hållen ----------
     { const { PA } = await boot(31); const M = PA().mergeProfiles; const base = JSON.parse(JSON.stringify(PA().DB.profiles.k8));
       const a = { ...base, settings: { ...base.settings, scope: 'exams', scopeAt: 2000 } }, b = { ...base, settings: { ...base.settings, scope: 'all', scopeAt: 1000 } };
       ok(M(a, b).settings.scope === 'exams' && M(b, a).settings.scope === 'exams', 'synk: det senaste valet (Bara prov) gäller oavsett enhet');
-      const c = { ...base, settings: { ...base.settings, scope: 'all', scopeAt: 3000 } }; ok(M(a, c).settings.scope === 'all' && M(c, a).settings.scope === 'all', 'synk: ett senare "Allt" gäller'); }
+      const c = { ...base, settings: { ...base.settings, scope: 'all', scopeAt: 3000 } }; ok(M(a, c).settings.scope === 'all' && M(c, a).settings.scope === 'all', 'synk: ett senare "Allt" gäller');
+      const d0 = { ...base, settings: { ...base.settings } }; delete d0.settings.scope; d0.settings.scopeAt = 4000; ok(M(a, d0).settings.scope === undefined, 'synk: ett senare borttaget val från en annan enhet gäller (föräldraläget tar aldrig bort valet – det sparar "all")');
+      const e0 = { ...base, settings: { ...base.settings } }; delete e0.settings.scope; delete e0.settings.scopeAt; ok(M(a, e0).settings.scope === 'exams' && M(e0, a).settings.scope === 'exams', 'synk: en enhet utan valet (äldre version) tar inte bort det'); }
 
     // ---------- 6. Föräldraläget: valet finns och sparas ----------
     { const { w, T, PA } = await boot(37); unlockParent(w, T); T.click(T.$('[data-tab="k8"]')); T.click(T.$('[data-sub="v2"]'));

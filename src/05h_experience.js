@@ -46,7 +46,7 @@ const EXP = {
     let plan = LE.plan(kid, n, now, id, { newCap }).plan;
     // Motorns pass har en minsta längd per policy; FLOW visar bara början av planen (samma ordning, Bossen sist) så att extrablocket
     // alltid är kortare än CORE. Inget läggs till – bara färre uppgifter.
-    if (plan.length > n) { const boss = plan.find(x => x.role === 'boss'); const keep = plan.filter(x => x !== boss).slice(0, boss ? n - 1 : n); const meta = { ...plan }; plan = boss ? [...keep, boss] : keep; Object.assign(plan, { light: meta.light, restart: meta.restart, maxItems: Math.min(meta.maxItems || n + 2, n + 2), maxNew: meta.maxNew, examDays: meta.examDays }); }
+    if (plan.length > n) { const boss = plan.find(x => x.role === 'boss'); const keep = plan.filter(x => x !== boss).slice(0, boss ? n - 1 : n); const meta = plan; plan = boss ? [...keep, boss] : keep; for (const k of Object.keys(meta)) if (!/^\d+$/.test(k)) plan[k] = meta[k]; plan.maxItems = Math.min(meta.maxItems || n + 2, n + 2); }   // alla planens egenskaper följer med – även only (3.1 Bara prov och läxor; granskning: FLOW tappade begränsningen)
     plan.flow = true; plan.newCap = newCap; return plan;
   },
   peekFlow(kid) { return EXP.safe(() => { const C = LE.state(kid); return EXP.flowPlan(kid, C, LE.sessClock(C)); }, 'peekFlow', []); },   // 3.1: samma klocka som när FLOW startar
@@ -322,7 +322,7 @@ const EXP = {
     const g = e === 'achieve' ? EXP.goalOf(kid).now : null;
     const mission = V.mode === 'mission';   // provets egen träning (2.1.1) är inte dagens plan
     // Granskning: efter provträning, Revansch o.d. FÖRE dagens plan erbjuds dagens plan – inte FLOW (FLOW kommer bara efter CORE)
-    const corePending = V.mode !== 'kor' && !flow && !EXP.coreDone(p);
+    const corePending = V.mode !== 'kor' && !flow && !EXP.coreDone(p) && V2.safe(() => V2.peekPlan(kid).plan.length > 0, 'corePending', false);   // 3.1: ingen Kör!-knapp som inte startar något
     const title = e === 'explore' ? 'ÄVENTYRET KLART!' : mission ? 'PROVTRÄNINGEN KLAR' : e === 'grow' ? (flow ? 'EXTRARUNDAN KLAR!' : 'RUNDAN KLAR!') : flow ? 'EXTRAPASSET KLART' : V.mode === 'kor' ? 'DAGENS PLAN KLAR' : 'PASSET KLART';
     const flowLabel = e === 'explore' ? 'ETT ÄVENTYR TILL' : e === 'grow' ? 'EN RUNDA TILL' : g && EXP.isExam(g.e) && EXP.mostly(EXP.examShare(kid, g, EXP.peekFlow(kid))) ? 'FORTSÄTT MOT PROVET' : 'FORTSÄTT';
     const kinds = []; for (const r of V.rewards) if (EXP.DELIGHT[r.k] && !kinds.includes(r.k)) kinds.push(r.k);
