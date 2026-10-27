@@ -436,7 +436,7 @@ const V2 = {
     const young = C.pol.name === 'younger'; const gems = V.rewards.reduce((a, r) => a + r.gems, 0);
     if (V.exp && V.mode !== 'readclose') {   // Experience v3: KLAR → frivillig FLOW
       beep(won.length ? 'badge' : 'win');
-      const cards = `${newFb ? `<div class="card row" style="gap:10px"><span style="font-size:1.3rem" aria-hidden="true">📕</span><div class="grow muted" style="font-size:.9rem">${newFb > cap ? 'Några saker' : newFb === 1 ? 'En sak' : `${newFb} saker`} sparades i Felboken – revansch ett annat pass.</div></div>` : ''}
+      const cards = `${newFb ? `<div class="card row" style="gap:10px"><span style="font-size:1.3rem" aria-hidden="true">${V.exp === 'achieve' ? '📕' : '💪'}</span><div class="grow muted" style="font-size:.9rem">${newFb > cap ? 'Några saker' : newFb === 1 ? 'En sak' : `${newFb} saker`} ${V.exp === 'achieve' ? 'sparades i Felboken – revansch ett annat pass.' : 'att ta revansch på en annan dag.'}</div></div>` : ''}
       ${EXP.autoClaim(kid, claimable)}
       ${won.length ? `<div class="card row" style="gap:10px"><span class="badge"><span class="e">${won[0].e}</span>${won.map(b => b.name).join(', ')}</span><span class="muted" style="font-size:.9rem">Nytt märke</span></div>` : ''}`;   // v3: inga lösa trådar på KLAR – uppdragen hämtas automatiskt
       return EXP.finish(kid, V, sum, won, cards);

@@ -40,21 +40,40 @@ const DISHONEST = /Du är redo|kommer (att )?klara provet|Du kan detta|\b\d{1,3}
         ok([...main.children].every(c => !SIDE.includes(c.id)), `${id}: uppgiftsrutan har inga svarselement`);
         ok(!!qc.querySelector('#fb') && !!qc.querySelector('#actions'), `${id}: #fb och #actions finns kvar i kortet`); }
       else ok(![...qc.children].some(c => c.classList.contains('q-pane')), `${id}: inga tomma rutor för ${m.mode}`); };
+    /* feedbacken granskas i samma ögonblick som drivaren trycker Nästa (då är svaret rättat och kortet kvar) */
+    let cur = null; const fbSeen = { boss: 0, bossPraise: 0, wrongExplore: 0, aligned: 0, match: 0 };
+    const snap = () => { if (!cur || !T.$('#qcard') || (T.$('#submit') && !T.$('#next') && !T.$('#fb .feedback'))) return;   /* drivarens andra försök (samma i 3.2.2) */
+      const { id, it } = cur; cur = null; const fbEl = T.$('#qcard #fb'); if (it.cat === 'learn' || !fbEl) return;
+      const fb = norm(fbEl.textContent); const ok1 = !!T.$('#fb .feedback.ok'); const no1 = !!T.$('#fb .feedback.no');
+      ok(fb.length > 0, `${id}: feedback hamnar i kortet (${it.cat}/${it.kind || it.type})`); if (id === 'k8') ok(!/\bi rad\b/.test(fb), 'Achieve: inget "N i rad" i berömmet');
+      if (it.spec && it.spec.role === 'boss' && ok1 && it.cat !== 'word' && !it.paper && !['sort', 'match', 'order', 'open'].includes(it.type)) { fbSeen.boss++; if (/👑|Bossuppgiften klar/.test(fb)) fbSeen.bossPraise++; }
+      if (id === 'k2' && no1) { fbSeen.wrongExplore++; ok(!/Du svarade/.test(fb), 'Explore: fel svar upprepar inte barnets svar'); }
+      if (it.type === 'match' && T.$('.match-grid.v3')) { fbSeen.match++; const cols = [...w.document.querySelectorAll('.match-grid.v3 .match-col')]; const L = [...cols[0].children].map(x => x.dataset.mi), Rr = [...cols[1].children].map(x => x.dataset.mi);
+        if (cols[0].parentElement.classList.contains('paired')) { fbSeen.aligned++; ok(L.join() === Rr.join(), `${id}: klara par står på samma rad`); } }
+      ok(w.document.getElementById('confetti') ? w.document.getElementById('confetti').classList.contains('hidden') || ok1 : true, `${id}: inga konfetti över ett fel svar`); };
+    const T2 = { ...T, $: (sel) => { if (sel === '#next') snap(); return T.$(sel); } }; const DS = v2tools(w, T2);
     for (const id of ['k2', 'k4', 'k8']) {
       for (let d = 0; d < 5; d++) { openKid(T, id); const go = T.$('.go-btn[data-v2="kor"]'); if (!go) { w.__advance(DAY); continue; } T.click(go);
-        let g = 0; while (PA().S && PA().S.v2 && T.$('#qcard') && g++ < 60) { checkCard(id); const S = PA().S; const it = S.queue[S.i]; const i0 = S.i; D.answer(() => r() < 0.25);
-          // efter svaret: samma kort, rättningen gjord, feedback i kortet
-          if (PA().S && PA().S.i === i0 && T.$('#qcard') && it.cat !== 'learn') { ok(!!T.$('#qcard #fb'), `${id}: feedback hamnar i kortet`);
-            if (id === 'k8') ok(!/\bi rad\b/.test(norm(T.$('#fb').textContent)), 'Achieve: inget "N i rad" i berömmet'); }
-          w.__advance(3000); D.next && D.next(); }
+        let g = 0; while (PA().S && PA().S.v2 && T.$('#qcard') && g++ < 60) { checkCard(id); cur = { id, it: PA().S.queue[PA().S.i] }; DS.answer(() => r() < 0.25); w.__advance(3000); }
         /* KLAR: tiden står kvar i knappens text (skärmläsare + löftestestet), på egen rad visuellt */
         const flow = T.$('[data-v2="flow"]'); if (flow) { ok(/ · cirka \d+ min$/.test(norm(flow.textContent).replace(/\s·\s/, ' · ')), `${id}: FLOW-knappen säger "· cirka N min" (${norm(flow.textContent)})`);
           ok(!!flow.querySelector('.btn-sub'), `${id}: tiden på egen rad`); }
         const klar = T.$('.klar'); if (klar) ok(!DISHONEST.test(norm(klar.textContent)), `${id}: KLAR utan löften/procent`);
         w.__advance(DAY); } }
+    console.log(`  feedback: Boss ${fbSeen.bossPraise}/${fbSeen.boss} med Boss-beröm, Explore fel ${fbSeen.wrongExplore}, par ${fbSeen.aligned}/${fbSeen.match} i rad`);
+    ok(fbSeen.boss === 0 || fbSeen.bossPraise === fbSeen.boss, 'en klarad Boss märks i berömmet'); ok(fbSeen.match === 0 || fbSeen.aligned >= 1, 'para ihop: paren ställs i rad när alla är klara');
     console.log(`  ${items} uppgifter, formspråk: ${Object.entries(modes).map(([k, v]) => k + ' ' + v).join(', ')}; två rutor i ${splitSeen}`);
     ok(items > 40 && splitSeen > 5 && Object.keys(modes).length >= 5, 'många uppgifter och flera formspråk prövade');
 
+    /* 2b. Ordna och Para ihop börjar aldrig färdiglösta (även när blandningen råkar ge ursprungsordningen) */
+    { const Rm = PA().R; const sh0 = Rm.shuffle; Rm.shuffle = (a) => a.slice();
+      try { openKid(T, 'k8'); if (!T.$('.go-btn[data-v2="kor"]')) { w.__advance(DAY); openKid(T, 'k8'); } T.click(T.$('.go-btn[data-v2="kor"]')); const qo = { type: 'order', items: ['a', 'b', 'c', 'd'], text: 'Ordna', answer: [], skill: kidOf('k8').skills[0], steps: [] }; PA().mathBody(qo, kidOf('k8'), false);
+        ok(!PA().S.order.shuffled.every((x, k) => x.i === k), 'ordna: aldrig redan i rätt ordning');
+        const html = PA().EXP.body({ type: 'match', pairs: [['a', '1'], ['b', '2'], ['c', '3']] }); const dv = w.document.createElement('div'); dv.innerHTML = html; const cols = dv.querySelectorAll('.match-col');
+        ok([...cols[0].children].map(x => x.dataset.mi).join() !== [...cols[1].children].map(x => x.dataset.mi).join(), 'para ihop: paren står aldrig redan på samma rad'); }
+      finally { Rm.shuffle = sh0; } }
+    /* 2c. +0 XP visas aldrig */
+    { const n0 = w.document.querySelectorAll('.xp-pop').length; PA().xpPop(0); ok(w.document.querySelectorAll('.xp-pop').length === n0, 'ingen "+0 XP"'); }
     /* 3. Hitta felet: lösningskort med bokstav, samma val och samma rättning */
     const inject = (kind) => { openKid(T, 'k8'); if (!T.$('.go-btn[data-v2="kor"]')) { w.__advance(DAY); openKid(T, 'k8'); } T.click(T.$('.go-btn[data-v2="kor"]')); const S = PA().S; const it = S.queue[S.i]; const kid = kidOf('k8'); const sk = kid.skills.find(s => s.id === 'forenkla') || kid.skills[0];
       const q = PA().EXP.rhythmItem(kind, sk, 2); if (!q) return null; S.queue[S.i] = { ...q, skill: sk, cat: 'math', level: q.level || 2, rhythm: kind, fcode: kind === 'spot' ? 'm' : 'v', spec: { ...(it.spec || {}), role: 'focus', rhythm: kind }, _slotEnd: true };   /* som planeraren (05g_v2app.js) */ PA().rerender(); return S.queue[S.i]; };

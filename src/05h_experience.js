@@ -251,7 +251,8 @@ const EXP = {
     for (const k of kind === 'spot' ? [5 * Math.floor(Math.random() * 6)] : /ekv/.test(skill.id) ? [3, 2] : [2]) { const q = CHG.make(skill, lvl, k); if (q && want.includes(q.challenge)) return q; }
     return null;
   },
-  paperNote(q) { return `<div class="paper-note" role="note"><span aria-hidden="true">✏️</span><div><b>Räkna på papper.</b> Skriv uträkningen på ditt papper${S.v2 && S.v2.exam ? '' : ' – i lugn och ro'}. Skriv bara svaret här.</div></div>`; },
+  paperNote(q) { if (S.v2) { if (S.v2.paperFirst == null) S.v2.paperFirst = S.i; if (S.v2.paperFirst !== S.i) return `<div class="paper-note short" role="note"><span aria-hidden="true">✏️</span><div><b>Räkna på papper</b> – skriv bara svaret här.</div></div>`; }   // 3.3: hela förklaringen bara första gången i passet
+    return `<div class="paper-note" role="note"><span aria-hidden="true">✏️</span><div><b>Räkna på papper.</b> Skriv uträkningen på ditt papper${S.v2 && S.v2.exam ? '' : ' – i lugn och ro'}. Skriv bara svaret här.</div></div>`; },
   paperFeedback(q, correct, raw) {
     // UX: alternativ ("Eller …"), kontroll och svar får inget eget stegnummer – numren stämmer med knapparna "Steg N"
     const ALT = /^\s*(<[^>]+>\s*)*(Eller|Kontroll|Svar)/i; const steps = (q.steps || []).map((s, i) => ALT.test(String(s)) ? `<li style="list-style:none;margin-left:-1em" class="muted">${safeHtml(s)}</li>` : `<li value="${i + 1}">${safeHtml(s)}</li>`).join('');
@@ -269,9 +270,11 @@ const EXP = {
   /* ---------- Aktiviteter: sortera, para ihop, tryck i meningen, bygg ordet ---------- */
   body(q) {
     if (q.type === 'sort') { S.sort = { sel: null, placed: {} }; return `<div class="sortbox"><div class="sort-pool" id="sortPool">${q.items.map((t, i) => `<button class="stile" data-sitem="${i}" aria-pressed="false">${esc(t)}</button>`).join('')}</div><div class="sort-bins">${q.bins.map((b, i) => `<div class="sbin" data-sbin="${i}"><button class="sbin-h" data-sbin="${i}" aria-label="Lägg i ${esc(b)}">${esc(b)}</button><div class="sbin-items" id="sbin${i}" role="list" aria-label="${esc(b)}"></div></div>`).join('')}</div><p class="muted tip">Tryck på ett kort och sedan på rätt grupp. Fel grupp? Tryck på kortet igen.</p></div>`; }
-    if (q.type === 'match') { const L = R.shuffle(q.pairs.map((x, i) => ({ i, t: x[0] }))); const Rr = R.shuffle(q.pairs.map((x, i) => ({ i, t: x[1] }))); S.match2 = { sel: null, done: new Set(), mistakes: 0 }; return `<div class="match-grid v3">${[['l', L], ['r', Rr]].map(([side, arr]) => `<div class="match-col">${arr.map(x => `<button class="mtile" data-m2="${side}" data-mi="${x.i}">${esc(x.t)}</button>`).join('')}</div>`).join('')}</div><p class="muted tip">Tryck på ett kort till vänster och sedan på det som hör ihop.</p>`; }
+    if (q.type === 'match') { const L = R.shuffle(q.pairs.map((x, i) => ({ i, t: x[0] }))); let Rr = R.shuffle(q.pairs.map((x, i) => ({ i, t: x[1] }))); if (Rr.length > 1 && Rr.every((x, k) => x.i === L[k].i)) Rr = [...Rr.slice(1), Rr[0]];   /* 3.3: aldrig färdigparat på samma rad (det vore gratis) – ingen extra slump */ S.match2 = { sel: null, done: new Set(), mistakes: 0 }; return `<div class="match-grid v3">${[['l', L], ['r', Rr]].map(([side, arr]) => `<div class="match-col">${arr.map(x => `<button class="mtile" data-m2="${side}" data-mi="${x.i}">${esc(x.t)}</button>`).join('')}</div>`).join('')}</div><p class="muted tip">Tryck på ett kort till vänster och sedan på det som hör ihop.</p>`; }
     return '';
   },
+  // 3.3: när alla par är klara står varje par på samma rad (bara visning – rättningen är redan gjord per par)
+  alignPairs() { const cols = document.querySelectorAll('.match-grid.v3 .match-col'); if (cols.length !== 2) return; [...cols[0].children].forEach(l => { const r = cols[1].querySelector(`[data-mi="${l.dataset.mi}"]`); if (r) cols[1].appendChild(r); }); cols[0].parentElement.classList.add('paired'); },
   tapBody(q) { return `<div class="tapline" role="group" aria-label="Meningen">${q.choices.map((c, i) => `<button class="tapword" data-choice="${i}">${esc(c)}</button>`).join(' ')}</div>`; },
   buildBody(q) {
     const w = String(q.display || q.answer[0]).trim(); const letters = w.split(''); const extra = 'aeiorstnlkm'.split('').filter(c => !w.toLowerCase().includes(c)); const pool = R.shuffle([...letters, ...R.shuffle(extra).slice(0, 2)]);
@@ -293,7 +296,7 @@ const EXP = {
     if (q.type === 'match' && S.match2) {
       const mt = t.closest('[data-m2]'); if (!mt) return false; const M = S.match2; const side = mt.dataset.m2; const i = Number(mt.dataset.mi);
       EXP.hear(q, mt.textContent); if (!M.sel || M.sel.side === side) { document.querySelectorAll('.mtile.sel').forEach(x => x.classList.remove('sel')); M.sel = { side, i, el: mt }; mt.classList.add('sel'); return true; }
-      if (M.sel.i === i) { mt.classList.add('done'); M.sel.el.classList.add('done'); M.sel.el.classList.remove('sel'); M.done.add(i); M.sel = null; beep('tick'); if (M.done.size === q.pairs.length) submitMath(); return true; }
+      if (M.sel.i === i) { mt.classList.add('done'); M.sel.el.classList.add('done'); M.sel.el.classList.remove('sel'); M.done.add(i); M.sel = null; beep('tick'); if (M.done.size === q.pairs.length) { EXP.alignPairs(); submitMath(); } return true; }
       M.mistakes++; beep('no'); mt.classList.add('no'); const a = M.sel.el; a.classList.add('no'); a.classList.remove('sel'); M.sel = null; setTimeout(() => { mt.classList.remove('no'); a.classList.remove('no'); }, 450); return true;
     }
     if (q.build && S.build) {
@@ -355,16 +358,17 @@ const EXP = {
         ${e === 'achieve' ? '' : `<div class="klar-icon" aria-hidden="true">${e === 'explore' ? '🗺️' : '🏁'}</div>`}
         <div class="klar-title">${esc(title)}</div>
         ${e === 'achieve' && V.mode === 'kor' ? '<div class="klar-lead">Appen håller koll på resten.</div>' : ''}
+        ${(() => { if (e !== 'achieve' || !g || !EXP.isExam(g.e)) return ''; const sh = EXP.safe(() => EXP.examShare(kid, g, V.plan), 'klarShare', { n: 0 }); return sh.n > 0 ? `<div class="klar-goal">${esc(g.e.title)}: ${sh.n === 1 ? 'en uppgift' : `${sh.n} uppgifter`} idag.</div>` : ''; })()}
         ${trail}${bossLater}${savedLater}
         ${(() => { const up = [...V.stageUps].filter(cid => ((V.C.L.c[cid] || {}).st || 0) >= 2).length; return up && e !== 'explore' ? `<div>${up === 1 ? 'Ett område' : `${up} områden`} sitter bättre nu</div>` : ''; })()}
         ${delights}${gems && e === 'grow' ? `<div class="klar-gems">+${gems} 💎</div>` : ''}
         ${e !== 'explore' ? `<div class="klar-score">${sum.ok} av ${sum.n} rätt</div>` : ''}
       </section>
-      ${back.length ? `<div class="card stack" style="gap:4px"><div class="eyebrow">Det här behöver komma tillbaka</div>${back.map(b => `<div>${esc(b.name)} – kommer tillbaka ${esc(b.when)}.</div>`).join('')}</div>` : ''}
-      ${extraCards}
       ${corePending ? `<button class="btn big wide" data-v2="kor">Till dagens plan · cirka ${EXP.mins(V2.peekPlan(kid).plan, kid)} min</button>` : canMore ? `<button class="btn big wide btn-2l" data-v2="flow">${esc(flowLabel)}<span class="btn-sub"><span class="sep"> · </span>cirka ${EXP.flowMins(kid)} min</span></button>` : `<div class="card muted" style="text-align:center">${rested ? 'Bra jobbat idag! Det du har övat sätter sig bäst om du vilar nu.' : 'Allt för idag är gjort.'}</div>`}
       ${e === 'grow' && todo && canMore ? `<button class="btn ghost wide" data-v2="revansch">Revansch i stället · ${todo} ${todo === 1 ? 'sak' : 'saker'}</button>` : ''}
       <button class="btn big wide ${canMore || corePending ? 'ghost' : ''}" data-go="home">${corePending ? 'Till startsidan' : 'Klar för idag'}</button>
+      ${back.length ? `<div class="card stack klar-back" style="gap:4px"><div class="eyebrow">Appen tar fram det här igen</div>${back.map(b => `<div>${esc(b.name)} – ${b.when === 'idag' ? 'i ett senare pass' : esc(b.when)}.</div>`).join('')}</div>` : ''}
+      ${extraCards}
     </div>`);
   },
   // Avklarade dagsuppdrag hämtas automatiskt på KLAR (samma belöning som knappen "Hämta" – utan att barnet måste göra något mer)

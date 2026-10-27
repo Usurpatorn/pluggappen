@@ -284,8 +284,9 @@ function beep(kind, n = 0) {
   } catch (e) { /* no audio */ }
   try { if (navigator.vibrate) navigator.vibrate(kind === 'no' ? [60, 40, 60] : kind === 'tick' ? 10 : 20); } catch (e) { /* no haptics */ }
 }
+function confettiStop() { confetti.gen = (confetti.gen || 0) + 1; const c = document.getElementById('confetti'); if (c) { const x = c.getContext && c.getContext('2d'); if (x) x.clearRect(0, 0, c.width, c.height); c.classList.add('hidden'); } }   // 3.3: ny fråga eller fel svar → inga konfetti kvar
 function confetti(n = 120) {
-  const c = document.getElementById('confetti'); if (!c) return;
+  const c = document.getElementById('confetti'); if (!c) return; const gen = confetti.gen = (confetti.gen || 0) + 1;
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   const ctx = c.getContext('2d'); if (!ctx) return; c.width = innerWidth * devicePixelRatio; c.height = innerHeight * devicePixelRatio; ctx.scale(devicePixelRatio, devicePixelRatio);
   c.classList.remove('hidden');
@@ -293,13 +294,13 @@ function confetti(n = 120) {
   const parts = Array.from({ length: n }, () => ({ x: innerWidth / 2 + (Math.random() - .5) * 200, y: innerHeight * .35, vx: (Math.random() - .5) * 14, vy: -Math.random() * 14 - 4, r: 4 + Math.random() * 5, c: colors[Math.floor(Math.random() * colors.length)], a: Math.random() * 6, va: (Math.random() - .5) * .3 }));
   let frames = 0;
   (function tick() {
-    ctx.clearRect(0, 0, innerWidth, innerHeight);
+    if (gen !== confetti.gen) return; ctx.clearRect(0, 0, innerWidth, innerHeight);
     for (const p of parts) { p.x += p.vx; p.y += p.vy; p.vy += .45; p.vx *= .99; p.a += p.va; ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.a); ctx.fillStyle = p.c; ctx.fillRect(-p.r / 2, -p.r / 2, p.r, p.r * .6); ctx.restore(); }
     if (++frames < 110) requestAnimationFrame(tick); else { ctx.clearRect(0, 0, innerWidth, innerHeight); c.classList.add('hidden'); }
   })();
 }
 function toast(msg) { const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 2500); }
-function xpPop(n) { if (typeof S !== 'undefined' && S && S.v2 && (S.v2.exp === 'achieve' || S.v2.exp === 'explore')) return;   /* Explore: inga poäng (UX: flygarna täckte texten) */   /* v3 Achieve: inga XP-flygare – kompetensen är belöningen */ const d = document.createElement('div'); d.className = 'xp-pop'; d.textContent = `+${n} XP`; document.body.appendChild(d); setTimeout(() => d.remove(), 1100); }
+function xpPop(n) { if (!(n > 0)) return; if (typeof S !== 'undefined' && S && S.v2 && (S.v2.exp === 'achieve' || S.v2.exp === 'explore')) return;   /* Explore: inga poäng (UX: flygarna täckte texten) */   /* v3 Achieve: inga XP-flygare – kompetensen är belöningen */ const d = document.createElement('div'); d.className = 'xp-pop'; d.textContent = `+${n} XP`; document.body.appendChild(d); setTimeout(() => d.remove(), 1100); }
 
 /* ========= Sync code (move progress between phone and tablet) ========= */
 function encodeProfile(kidId) {
@@ -353,6 +354,7 @@ function safeHtml(html) {
 const app = document.getElementById('app');
 let state = { screen: 'start', kid: null };
 function applyLook(kid) {
+  if (!document.documentElement.lang) document.documentElement.lang = 'sv';   // 3.3: svensk avstavning (även i den fristående varianten)
   const root = document.documentElement;
   root.setAttribute('data-hue', kid ? kid.hue : 'slate');
   const p = kid ? prof(kid.id) : null;
@@ -745,7 +747,7 @@ function startSession(kid, opts) {
 }
 
 VIEWS.practice = () => {
-  document.querySelectorAll('.xp-pop').forEach(x => x.remove());   // 3.3: en flygare får aldrig ligga kvar över nästa uppgift
+  document.querySelectorAll('.xp-pop').forEach(x => x.remove()); confettiStop();   // 3.3: en flygare får aldrig ligga kvar över nästa uppgift
   const item = S.queue[S.i]; const kid = S.kid; const p = prof(kid.id);
   const isTest = S.mode === 'test' || !!(S.v2 && S.v2.exam); const focus = p.settings.focus;
   const title = S.v2 ? V2.title(item) : isTest ? 'Provläge' : S.mode === 'felbok' ? 'Felboken' : item.cat === 'word' ? esc(item.deck.name) : esc(item.skill.short || item.skill.name);
@@ -762,6 +764,7 @@ VIEWS.practice = () => {
     <div class="card pad-lg stack" id="qcard" style="gap:16px">${body}</div>
   </div>`);
   { const qc = document.getElementById('qcard'); if (qc && S.v2 && S.v2.exp) { const m = EXP.modeOf(item); qc.dataset.mode = m.mode; if (m.role) qc.dataset.role = m.role; if (S.v2.exam) qc.dataset.exam = '1';
+    qc.querySelectorAll('.wchoices:not(.spot-sols)').forEach(w => { if ([...w.children].some(b => (b.textContent || '').split(/\s+/).some(x => x.length > 12))) w.classList.add('one-col'); });   // 3.3: långa ord får en hel rad i stället för att brytas mitt i
     if (['num', 'expr', 'choice', 'paper', 'reverse', 'text', 'tap'].includes(m.mode)) {   // 3.3: två rutor på liggande iPad (display:contents annars)
       const main = document.createElement('div'), side = document.createElement('div'); main.className = 'q-pane q-main'; side.className = 'q-pane q-side';
       [...qc.children].forEach(c => (['inputArea', 'fb', 'actions', 'explainBtn', 'sketch'].includes(c.id) ? side : main).appendChild(c));
@@ -776,7 +779,7 @@ VIEWS.practice = () => {
 };
 function mathBody(q, kid, isTest) {
   const vars = q.variables || [q.variable];
-  if (q.type === 'order') S.order = { picked: [], shuffled: R.shuffle(q.items.map((t, i) => ({ t, i }))) };
+  if (q.type === 'order') { let sh = R.shuffle(q.items.map((t, i) => ({ t, i }))); if (sh.length > 1 && sh.every((x, k) => x.i === k)) sh = [...sh.slice(1), sh[0]]; S.order = { picked: [], shuffled: sh }; }   // 3.3: aldrig redan i rätt ordning (det vore gratis) – ingen extra slump
   const v3 = !!(S.v2 && S.v2.exp);   // Experience v3: aktiviteter i stället för bara textkort (samma fråga, samma rättning)
   // 3.3 Hitta felet: de tre lösningarna blir själva korten man väljer bland (samma val, samma index, samma rättning)
   const spot = v3 && q.challenge === 'spot' && q.type === 'choicetext' && typeof q.text === 'string' ? (() => { const parts = q.text.split('<div style="margin:6px 0">'); if (parts.length !== (q.choices || []).length + 1) return null; return { head: parts[0], rows: parts.slice(1).map(r => r.replace(/<\/div>\s*$/, '').replace(/^<b>[A-C]\.<\/b>\s*/, '')) }; })() : null;
@@ -808,9 +811,9 @@ function mathBody(q, kid, isTest) {
         : `<input class="answer-input" id="ans" autocomplete="off" autocapitalize="off" placeholder="Skriv svaret" aria-label="Ditt svar">`;
   const p = prof(kid.id); const calm = !!(S.v2 && S.v2.calm && !isTest);   // v3 lugn presentation: färre siffror och mindre brus
   const head = calm || v3 ? '' : `<span class="eyebrow">${S.v2 && S.v2.exp && typeof V2.num() === 'string' ? V2.num() : `Uppgift ${S.v2 ? V2.num() : S.i + 1} av ${S.v2 ? V2.total() : S.queue.length}`}${isTest && q.part ? ` · ${q.part}-nivå` : ''}${!isTest && !p.settings.focus ? ` · ${esc(q.skill.short || '')}` : ''}</span>`;
-  return `<div class="row" style="justify-content:space-between">${head || '<span></span>'}<span class="row" style="gap:8px">${S.v2 ? V2.speakBtn(q, p) : TTS.ok && p.settings.tts ? `<button class="icon-btn" data-speak="${esc(q.text.replace(/<[^>]+>/g, ''))}" data-lang="sv" data-highlight="1" style="width:36px;height:36px" aria-label="Läs upp">${ICON.speaker}</button>` : ''}${calm || v3 ? '' : `<span class="lvl-dots"${S.v2 ? ' role="img"' : ''} aria-label="Svårighet ${q.level}">${[1, 2, 3].map(i => `<i class="${i <= q.level ? 'on' : ''}"></i>`).join('')}</span>`}</span></div>
+  return `<div class="row q-top${head ? '' : ' solo'}" style="justify-content:space-between">${head || '<span></span>'}<span class="row" style="gap:8px">${S.v2 ? V2.speakBtn(q, p) : TTS.ok && p.settings.tts ? `<button class="icon-btn" data-speak="${esc(q.text.replace(/<[^>]+>/g, ''))}" data-lang="sv" data-highlight="1" style="width:36px;height:36px" aria-label="Läs upp">${ICON.speaker}</button>` : ''}${calm || v3 ? '' : `<span class="lvl-dots"${S.v2 ? ' role="img"' : ''} aria-label="Svårighet ${q.level}">${[1, 2, 3].map(i => `<i class="${i <= q.level ? 'on' : ''}"></i>`).join('')}</span>`}</span></div>
       ${q.fig ? `<div class="figwrap">${safeHtml(q.fig)}</div>` : ''}
-      <div class="question" id="qtext">${safeHtml(spot ? spot.head : q.text)}</div>${rev ? `<div class="rev-target" aria-hidden="true"><span class="rev-k">Det här ska det bli</span><span class="rev-v">${esc(rev)}</span><span class="rev-q">↑ Skriv en uppgift som ger det</span></div>` : ''}${q.paper ? EXP.paperNote(q) : ''}
+      <div class="question" id="qtext">${safeHtml(spot ? spot.head : q.text)}</div>${rev ? `<div class="rev-target" aria-hidden="true"><span class="rev-k">Det här ska det bli</span><span class="rev-v">${esc(rev)}</span><span class="rev-q">↓ Skriv en uppgift som ger det</span></div>` : ''}${q.paper ? EXP.paperNote(q) : ''}
       <div id="inputArea">${inputHtml}</div>
       <div id="fb"></div>
       <div class="row" id="actions">
@@ -948,6 +951,7 @@ function showSteps(q, reveal) {
   const el = document.getElementById('fb');
   const why = !reveal && S.v2 && S.v2.exp === 'explore';   // 3.3 Explore: en rad återkoppling – förklaringen finns ett tryck bort
   const stepsHtml = why ? `<details class="steps why"><summary>Visa varför</summary><ol>${q.steps.map(s => `<li>${safeHtml(s)}</li>`).join('')}</ol></details>`
+    : !reveal && S.v2 && S.v2.exp === 'grow' && q.kp && q.steps.length > 1 ? `<div class="steps"><div class="eyebrow">Så här är det</div><p style="margin:4px 0">${safeHtml(q.steps[0])}</p><details class="more-steps"><summary>Visa mer</summary><ol>${q.steps.slice(1).map(s => `<li>${safeHtml(s)}</li>`).join('')}</ol></details></div>`   /* 3.3 Grow: en mening först, resten ett tryck bort */
     : `<div class="steps"><div class="eyebrow">${S.v2 && S.v2.exp && q.kp ? 'Så här är det' : 'Så här löser du den'}</div><ol>${q.steps.map(s => `<li>${safeHtml(s)}</li>`).join('')}</ol>${reveal && !S.answered ? `<p style="margin-top:10px" class="muted">Svaret är <b>${esc(answerDisplay(q))}</b>. Skriv in det så går vi vidare – nästa gång klarar du det själv!</p>` : ''}</div>`;
   const existing = el.querySelector('.steps'); if (existing) existing.remove();
   el.insertAdjacentHTML('beforeend', stepsHtml);
@@ -967,7 +971,7 @@ function checkAnswer(q, raw) {
 }
 const answerDisplay = (q) => q.type === 'sort' ? q.bins.map(b => `${b}: ${q.items.filter(t => q.answer[t] === b).join(', ')}`).join(' · ') : q.type === 'match' ? q.pairs.map(x => `${x[0]} – ${x[1]}`).join(' · ') : q.type === 'expr' ? Poly.format(q.answer) : q.type === 'num' ? T.n(q.answer) : q.type === 'choicetext' ? q.choices[q.answer] : q.type === 'open' ? q.model : q.type === 'order' ? 'se ordningen nedan' : (q.display || q.answer[0]);
 function submitMath() {
-  const q = S.queue[S.i]; const input = document.getElementById('ans');
+  confettiStop(); const q = S.queue[S.i]; const input = document.getElementById('ans');
   const xr = EXP.raw(q); const raw = xr != null ? xr : q.type === 'order' ? 'order' : q.choices || q.type === 'choicetext' ? (S.selected === undefined ? '' : String(S.selected)) : input.value;
   const res = (q.v2check ? V2.check : checkAnswer)(q, raw); const fb = document.getElementById('fb');
   if (res.status === 'empty') { toast(q.type === 'order' ? 'Placera alla steg först' : q.type === 'sort' ? 'Sortera alla kort först' : q.build ? 'Bygg ordet först' : 'Skriv ett svar först'); return; }
@@ -987,7 +991,8 @@ function submitMath() {
   if (S.v2) { v2evs = V2.observe(q, correct); if (S.v2.exam) return V2.examAnswered(q, correct, raw); }
   if (q.choices || q.type === 'choicetext') document.querySelectorAll('.choice, .wchoice, .tapword').forEach(c => { const v = Number(c.dataset.choice); if (v === q.answer) c.classList.add('ok'); else if (v === S.selected) c.classList.add('no'); c.disabled = true; });
   if (input) input.disabled = true;
-  const praise = R.pick(['Snyggt!', 'Rätt!', 'Perfekt!', 'Så ska det se ut!', 'Boom!', 'Exakt!']);
+  const xpE = S.v2 && S.v2.exp; const boss = xpE && q.spec && q.spec.role === 'boss';   // 3.3: Bossen märks när den är klarad (samma rättning)
+  const praise = boss ? (xpE === 'explore' ? '👑 Du besegrade bossen!' : xpE === 'grow' ? '👑 Bossen klarad!' : 'Bossuppgiften klar.') : R.pick(['Snyggt!', 'Rätt!', 'Perfekt!', 'Så ska det se ut!', 'Boom!', 'Exakt!']);
   if (S.revealed && (q.paper || q.type === 'sort' || q.type === 'match' || q.build)) fb.innerHTML = `<div class="feedback warn"><span style="font-size:1.4rem">👀</span><div><div class="big">Nu vet du hur man gör</div><div class="sub">Du får en liknande uppgift igen om en stund.</div></div></div>`;   // granskning: efter "Visa hur man gör" aldrig "Svaret stämmer inte"
   else if (q.paper) { if (correct) { beep('ok', S.streak); xpPop(xp); } else beep('no'); fb.innerHTML = EXP.paperFeedback(q, correct, raw); }   // v3: bara svaret är sett – aldrig "lösningen är korrekt"
   else if (q.type === 'sort' || q.type === 'match' || q.build) {
@@ -1008,9 +1013,9 @@ function submitMath() {
     else { beep('no'); fb.innerHTML = `<div class="feedback no"><span style="font-size:1.4rem">✍️</span><div><div class="big">Svaret behöver mer</div><div class="sub">${hitTxt}${missTxt}</div></div></div>`; }
     if (!isTest || !correct) showSteps(q, false);
   }
-  else if (correct) { beep('ok', S.streak); xpPop(xp); fb.innerHTML = `<div class="feedback ok"><span style="font-size:1.4rem">✅</span><div><div class="big">${praise}${S.streak >= 3 && !(S.v2 && S.v2.exp === 'achieve') ? ` ${S.streak} i rad 🔥` : ''}</div><div class="sub">${esc(answerDisplay(q))}${res.note ? `<br>${res.note}` : ''}</div></div></div>`; }
+  else if (correct) { beep('ok', S.streak); xpPop(xp); fb.innerHTML = `<div class="feedback ok"><span style="font-size:1.4rem">✅</span><div><div class="big">${praise}${S.streak >= 3 && !(S.v2 && S.v2.exp === 'achieve') ? ` ${S.streak} i rad 🔥` : ''}</div><div class="sub">${xpE && q.challenge === 'spot' && (q.steps || [])[0] ? safeHtml(q.steps[0]) : esc(answerDisplay(q))}${res.note ? `<br>${res.note}` : ''}</div></div></div>`; }
   else if (S.revealed) { fb.innerHTML = `<div class="feedback warn"><span style="font-size:1.4rem">👀</span><div><div class="big">Nu vet du hur man gör</div><div class="sub">Du får en liknande uppgift igen om en stund.</div></div></div>`; }
-  else { beep('no'); fb.innerHTML = `<div class="feedback no"><span style="font-size:1.4rem">❌</span><div><div class="big">Inte riktigt</div><div class="sub">Rätt svar: <b>${esc(answerDisplay(q))}</b>${q.choices || q.type === 'choicetext' || !raw ? '' : ` · Du svarade: ${esc(raw)}`}</div></div></div>`; if (!isTest) showSteps(q, false); }
+  else { beep('no'); fb.innerHTML = `<div class="feedback no"><span style="font-size:1.4rem">❌</span><div><div class="big">Inte riktigt</div><div class="sub">Rätt svar: <b>${esc(answerDisplay(q))}</b>${q.choices || q.type === 'choicetext' || !raw || (S.v2 && S.v2.exp === 'explore') ? '' : ` · Du svarade: ${esc(raw)}`}</div></div></div>`; if (!isTest) showSteps(q, false); }
   document.getElementById('hintBtn')?.remove(); document.getElementById('explainBtn')?.remove();
   if (S.v2) V2.feedbackExtra(v2evs, v2rw, q);
   document.getElementById('actions').innerHTML = `<button class="btn grow" id="next">${(S.v2 ? V2.hasNext() : S.i + 1 < S.queue.length) ? 'Nästa →' : 'Visa resultat'}</button>${!correct && !isTest && !q.paper && !(S.v2 && S.v2.exp && document.querySelector('#fb .steps')) ? `<button class="btn ghost" id="stepsBtn2">Visa lösning</button>` : ''}`;
@@ -1437,4 +1442,4 @@ function boot(snap) {
   else go('start');
 }
 if (!window.PLUGG_STOP) window.claude?.hot?.ready ? window.claude.hot.ready(boot) : boot(window.claude?.hot?.data ?? null);   // PLUGG_STOP: testversionen på fel adress (se scripts/build.sh)
-window.PA = { TM: typeof TM !== 'undefined' ? TM : null, LE, LE2, LECAT, LER, V2, EXP, RECALL, CHG, PACKS, checkAnswer, answerDisplay, makeQuestion, mergeProfiles, get S() { return S; }, get DB() { return DB; }, get B() { return B; }, Poly, KIDS, TEMPLATES, FAMILY, AUTH, deleteKidData, deleteFamilyData, buildKids, load, flushSave, rerender: () => VIEWS[state.screen] && VIEWS[state.screen](), BUILTIN_DECKS, SYNC, save, setKid: (id) => { state.kid = id; }, go: (sc) => go(sc), version: '3.0' };
+window.PA = { TM: typeof TM !== 'undefined' ? TM : null, LE, LE2, LECAT, LER, V2, EXP, RECALL, CHG, PACKS, checkAnswer, answerDisplay, makeQuestion, mergeProfiles, get S() { return S; }, get DB() { return DB; }, get B() { return B; }, Poly, R, mathBody, xpPop, KIDS, TEMPLATES, FAMILY, AUTH, deleteKidData, deleteFamilyData, buildKids, load, flushSave, rerender: () => VIEWS[state.screen] && VIEWS[state.screen](), BUILTIN_DECKS, SYNC, save, setKid: (id) => { state.kid = id; }, go: (sc) => go(sc), version: '3.0' };
