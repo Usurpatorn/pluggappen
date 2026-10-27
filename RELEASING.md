@@ -238,7 +238,8 @@ med `PREVIEW=1` till `<sajten>/preview/`. Produktionen publiceras som vanligt. M
     - i appen: Prov → Storlek när provet läggs in, och Översikt → mål och täckning → Ändra. Valet sparas på provet och synkas
       som en ändring av det.
     - skoluppgifter: fältet `weight` via det privata innehållsflödet.
-  - **Aldrig fler nya koncept per pass än policyn** (yngre 1, mellan 2, äldre 3) eller dygnets rest (`newCap`).
+  - **Aldrig fler räknade nya koncept per pass än policyn** (yngre 1, mellan 2, äldre 3) eller dygnets rest (`newCap`). Prövat på
+    6 000 slumpade planer i den oberoende granskningen, med 0 avvikelser (3.3 hade 193).
   - **Ett ensamt prov** (inget annat mål) har exakt 3.3:s provveckoregel: högst ett nytt per pass 4–7 dygn före, prövat för alla tre
     policyer.
   - **Veckan före ett större prov när flera mål pågår:** annat nytt bromsas, men provets egna osedda koncept får introduceras inom
@@ -251,7 +252,11 @@ med `PREVIEW=1` till `<sajten>/preview/`. Produktionen publiceras som vanligt. M
     också hör till ett senare prov.
   - **Rättelse (M8, utökad efter granskningen):** ett osett koncept vars förkunskap saknas kom förut in via provets vikt utan att
     räknas som nytt. Ett större provs sista tre dygn räknas det nu som nytt, så regeln "inget nytt, utom vid svält" gäller allt osett.
-    4–7 dygn före ett ensamt prov är det oförändrat från 3.3 (känd begränsning, lämnad för att inte ändra ett ensamt provs plan).
+    4–7 dygn före ett prov är det oförändrat från 3.3. Det är en känd begränsning, som gäller också med flera mål: ett osett koncept
+    utan förkunskap kan då komma utöver gränsen, i samma takt som i 3.3. Ett ensamt provs plan är byte-identisk med 3.3, vilket
+    granskningen prövade på 1 685 planer.
+  - `others` räknar varje kommande mål, också ett avlägset eller ett utan områden. Ett ensamt prov plus ett sådant mål får alltså
+    flermålsreglerna, fortfarande inom gränsen.
   - **Rättelse:** 3.3 kunde krascha (`subject` på ett odefinierat koncept) när planen för Yngre blev tom 2–3 dygn före ett prov.
     Felet fångades av appens skydd.
   - **Rättelse:** en tom plan fick en Boss utan koncept. Nu blir ingen Boss skapad, och hemmet säger ärligt att det inte finns något
