@@ -1,86 +1,99 @@
-/* 3.1.2 – Bossens variation (ägarens beslut 27 oktober, efter test som Explore-barnet: sortera → Bossen sorterade samma kort igen).
-   Princip: Bossen får träna samma kunskapspunkt, men tar helst en ANNAN aktivitet och ett annat faktum än uppgiften omedelbart före –
-   bara bland giltiga varianter av samma punkt, inom samma nivågräns och samma format som motorn bad om. Finns inget sådant: annat
-   faktum i samma aktivitet; finns inte heller det: som förut. Motorn (planen, vilken punkt Bossen tränar, bevisreglerna) är orörd.
-   Prövas:
-   1. annan aktivitet (och annat faktum) efter föregående när ett giltigt alternativ finns – och att felet fanns förut
-   2. ingen nivåhöjning (aldrig över gränsen som gällde innan)
-   3. inget formatbyte som försvagar det motorn bad om (fritt minne / djup)
-   4. rätt reserv när alternativ saknas (samma som förut, aldrig null)
-   5. samma kunskapspunkt och samma plan (motorn orörd) – i riktiga Explore-pass, flera dygn, inga upprepningar kvar */
+/* 3.1.2 – Bossens variation (ägarens beslut 27 oktober, efter test som Explore-barnet: sortera → Bossen sorterade nästan samma kort igen).
+   Princip: Bossen får träna samma kunskapspunkt, men tar helst ett ANNAT faktum och en ANNAN aktivitet än uppgiften omedelbart före.
+   Genomförande: bara ORDNINGEN bland kandidaterna ändras (samma kandidater, samma nivå- och formatgränser, samma reserver), i tur:
+   annat faktum + annan aktivitet → annat faktum, samma aktivitet → samma faktum, annan aktivitet → samma faktum och aktivitet.
+   "Faktum" = grunden: sorteringsomgångar (.sort0/.sort1) och par (.par) av samma grupp delar kort och räknas som samma faktum.
+   Prövas (oberoende granskning: jämför mot beteendet utan ändringen, med samma slump och samma "nyss sett"):
+   1. annat faktum och annan aktivitet när ett sådant alternativ finns – och att felet fanns förut
+   2. ingen nivåhöjning: håller det gamla valet nivågränsen gör det nya det också
+   3. inget formatbyte: uppfyller det gamla valet formatet motorn bad om (fritt minne/djup) gör det nya det också
+   4. reserv: inget alternativ → exakt samma fråga som förut; allt "nyss sett" → samma reservkedja som förut
+   5. samma kunskapspunkt; motorns plan orörd; i riktiga pass (Explore och Achieve) delar Bossen inga kort med uppgiften före
+      när ett annat faktum fanns */
 'use strict';
 const { mkWin, tools, FIX, rng } = require('./le/childflow.js'); const { v2tools, toStart } = require('./le/v2driver.js');
 let fails = 0, checks = 0; const ok = (c, m) => { checks++; if (!c) { fails++; console.log('FAIL', m); } };
 const sleep = (ms) => new Promise(r => setTimeout(r, ms)); const DAY = 86400000;
+const rootOf = (k) => { const [a, b = ''] = String(k || '').split('|'); return a + '|' + b.split('.')[0]; };
+const keyFk = (v) => v.key.split('|').slice(0, 2).join('|');
+const cardsOf = (q) => q.type === 'sort' ? q.items : q.type === 'match' ? (q.pairs || []).map(p => p.l || p[0]) : [q.text];
 (async () => {
   try {
     const w = mkWin({ seed: 3, fixedClock: true }); await sleep(40); const T = tools(w); const PA = T.PA; PA().FAMILY.apply(FIX); PA().load();
-    const P = PA().PACKS; const DEPTH = P.DEPTH;
-    const fkOf = (v) => v.key.split('|').slice(0, 2).join('|');
-    // alla kunskapspunkter för Yngre/Mellan med minst två aktiviteter (ui) bland Bossens varianter
-    const kps = Object.keys(P.REG.kp);
-    let tested = 0, hadRepeat = 0, fallbackTested = 0, formatTested = 0;
-    for (const pol of ['younger', 'middle']) for (const cid of kps) {
+    const P = PA().PACKS; const DEPTH = P.DEPTH; const kps = Object.keys(P.REG.kp);
+    const fmtOk = (q, format) => format === 'recall' ? q.form === 'recall' : format === 'depth' ? DEPTH.has(q.form) : true;
+    let reserveCases = 0, n = 0, oldRepeat = 0, newRepeat = 0, altCases = 0, fallbackSame = 0, levelCases = 0, formatCases = 0;
+    for (const pol of ['younger', 'middle', 'older']) for (const cid of kps) {
       const all = P.variants(cid, pol); if (all.length < 2) continue;
-      for (const L of [1, 2]) {
-        const stretch = { choiceRun: 0, actAfter: 1, boost: 4, stretch: true };
-        // föregående uppgift: en aktivitet (inte textval) på samma punkt
-        const prev = P.question(cid, { lvl: L, pol, rnd: rng(7), vary: { choiceRun: 1, actAfter: 1, boost: 4 } }); if (!prev || prev.ui === 'choice') continue;
-        const prevVary = { ...stretch, last: prev.ui, boss: true, prevKp: cid, prevFk: prev.fk, prevUi: prev.ui };
-        const okPool = all.filter(v => v.ui !== 'choice' && v.ui !== 'type' && v.lvl <= L + 1);   // Explore-Bossens urval (oförändrat)
-        const altExists = okPool.some(v => v.ui !== prev.ui && fkOf(v) !== prev.fk);
-        const maxBefore = Math.max(...(okPool.length ? okPool : all).map(v => v.lvl), L + 1);
-        for (let s = 1; s <= 12; s++) {
-          const before = P.question(cid, { lvl: L, pol, rnd: rng(100 + s), vary: { ...stretch, last: prev.ui } });   // som förut (utan föregående-info)
-          const boss = P.question(cid, { lvl: L, pol, rnd: rng(100 + s), vary: prevVary });
-          if (!boss) { ok(false, `${cid} L${L}: Bossen fick ingen fråga`); continue; }
-          tested++; if (before && before.ui === prev.ui && before.fk === prev.fk) hadRepeat++;
-          ok(boss.kp === cid, `${cid}: samma kunskapspunkt`);
-          ok(boss.level <= maxBefore, `${cid} L${L}: ingen nivåhöjning (${boss.level} ≤ ${maxBefore})`);
-          if (altExists) ok(boss.ui !== prev.ui && boss.fk !== prev.fk, `${cid} L${L} s${s}: annan aktivitet och annat faktum när det finns (${prev.ui}/${prev.fk} → ${boss.ui}/${boss.fk})`);
-          else { fallbackTested++; ok(!(okPool.some(v => fkOf(v) !== prev.fk)) || boss.fk !== prev.fk, `${cid} L${L}: utan annan aktivitet – annat faktum om det finns`); }
-        }
-        // 3. formatet motorn bad om gäller fortfarande (fritt minne / djup)
-        for (const format of ['recall', 'depth']) { const has = all.some(v => (format === 'recall' ? v.form === 'recall' : DEPTH.has(v.form)) && v.lvl <= L + 1 && v.ui !== 'choice' && v.ui !== 'type'); if (!has) continue;
-          for (let s = 1; s <= 4; s++) { const b = P.question(cid, { lvl: L, pol, format, rnd: rng(300 + s), vary: { ...prevVary } }); if (!b) continue; formatTested++;
-            ok(format === 'recall' ? b.form === 'recall' : DEPTH.has(b.form), `${cid} L${L}: formatet ${format} behålls (${b.form})`); } }
-      }
-    }
-    ok(tested > 50, `prövade ${tested} Boss-frågor`);
-    ok(hadRepeat > 0, `felet fanns förut: ${hadRepeat} av ${tested} Boss-frågor upprepade aktivitet och faktum utan ändringen`);
-    ok(formatTested > 0, `formatskyddet prövat ${formatTested} gånger`);
-    // 4. reserv: en punkt där bara en variant finns – samma fråga som förut, aldrig null
-    { let one = null; for (const cid of kps) { const v = P.variants(cid, 'younger'); if (v.length === 1 && v[0].ui !== 'choice') { one = cid; break; } }
-      if (!one) for (const cid of kps) { const v = P.variants(cid, 'younger'); if (v.length === 1) { one = cid; break; } }
-      if (one) { const prev = P.question(one, { lvl: 1, pol: 'younger', rnd: rng(9) }); const vary = { choiceRun: 0, actAfter: 1, boost: 4, stretch: true, last: prev.ui, boss: true, prevKp: one, prevFk: prev.fk, prevUi: prev.ui };
-        const a = P.question(one, { lvl: 1, pol: 'younger', rnd: rng(11), vary }); const b = P.question(one, { lvl: 1, pol: 'younger', rnd: rng(11), vary: { choiceRun: 0, actAfter: 1, boost: 4, stretch: true, last: prev.ui } });
-        ok(a && b && a.text === b.text && a.ui === b.ui, `reserv utan alternativ: samma fråga som förut (${one})`); fallbackTested++; }
-      ok(fallbackTested > 0, `reserven prövad ${fallbackTested} gånger`); }
-
-    // 5. riktiga Explore-pass (Yngre, 14 dygn): Bossen tränar motorns punkt (planen orörd), och tar aldrig samma aktivitet + samma faktum
-    //    som uppgiften precis före när ett alternativ fanns
-    { const w2 = mkWin({ seed: 21, fixedClock: true }); await sleep(40); const T2 = tools(w2); const PA2 = T2.PA; PA2().FAMILY.apply(FIX); PA2().load(); PA2().rerender(); const D = v2tools(w2, T2); const r = rng(21);
-      let bosses = 0, sameKp = 0, repeats = 0, planOk = 0;
-      for (let d = 0; d < 14; d++) {
-        for (let blk = 0; blk < 3; blk++) {
-          toStart(T2); T2.click(T2.$('[data-kid="k2"]')); if (T2.$('[data-pet]')) T2.click(T2.$('[data-pet]'));
-          const go = blk === 0 ? (T2.$('.go-btn[data-v2="kor"]') || T2.$('[data-v2="kor"]')) : T2.$('[data-v2="flow"]'); if (!go) break; T2.click(go);
-          const V = PA2().S.v2; const bossSpec = V.plan.find(s => s.role === 'boss');
-          let n = 0; while (PA2().S && PA2().S.v2 && T2.$('#qcard') && n++ < 60) {
-            const S = PA2().S; const it = S.queue[S.i];
-            if (it.spec && it.spec.role === 'boss' && it.cat !== 'learn' && it.kp) { bosses++; const prevs = S.queue.slice(0, S.i).filter(x => x.cat !== 'learn'); const pv = prevs[prevs.length - 1];
-              if (bossSpec && it.spec.cid === bossSpec.cid) planOk++;
-              if (pv && pv.kp === it.kp) { sameKp++; const alt = PA2().PACKS.variants(it.kp, 'younger').some(v => v.ui !== 'choice' && v.ui !== 'type' && v.ui !== pv.ui && v.key.split('|').slice(0, 2).join('|') !== pv.fk && v.lvl <= (it.spec.lvl || 1) + 1);
-                if (alt && it.ui === pv.ui && it.fk === pv.fk) repeats++; } }
-            D.answer(() => r() < 0.3); w2.__advance(4000);
+      for (const L of [1, 2]) for (const stretch of [true, false]) {
+        const baseVary = stretch ? { choiceRun: 0, actAfter: 1, boost: 4, stretch: true } : { choiceRun: 0, boost: 1, depthBoss: true };
+        const prev = P.question(cid, { lvl: L, pol, rnd: rng(7), vary: { choiceRun: 1, actAfter: 1, boost: 4 } }); if (!prev) continue;
+        const bossVary = { ...baseVary, last: prev.ui, boss: true, prevKp: cid, prevFk: prev.fk, prevUi: prev.ui };
+        for (const format of ['any', 'recall', 'depth']) for (const avoidMode of ['none', 'others']) {
+          // "nyss sett": inget, eller alla varianter med annat faktum (tvingar reservkedjan; standard-id = frågans text)
+          const avoid = avoidMode === 'others' ? new Set(all.filter(v => rootOf(keyFk(v)) !== rootOf(prev.fk)).map(v => { const q = P.buildVariant(cid, v, rng(1), pol); return q ? q.text : null; }).filter(Boolean)) : undefined;
+          for (let s = 1; s <= 3; s++) {
+            const args = { lvl: L, pol, format, avoid };
+            const old = P.question(cid, { ...args, rnd: rng(1000 + s), vary: { ...baseVary, last: prev.ui } });
+            const neu = P.question(cid, { ...args, rnd: rng(1000 + s), vary: bossVary });
+            if (!old || !neu) { ok(!!old === !!neu, `${cid}: samma tillgång till fråga som förut`); continue; }
+            n++; ok(neu.kp === cid, `${cid}: samma kunskapspunkt`);
+            const lim = stretch ? L + 1 : L; if (old.level <= lim) { levelCases++; ok(neu.level <= lim, `${cid} L${L} ${format}: ingen nivåhöjning (${old.level} → ${neu.level}, gräns ${lim})`); }
+            if (fmtOk(old, format) && format !== 'any') { formatCases++; ok(fmtOk(neu, format), `${cid} L${L}: formatet ${format} behålls (${old.form} → ${neu.form})`); }
+            const sameRoot = (q) => rootOf(q.fk) === rootOf(prev.fk);
+            if (sameRoot(old) && old.ui === prev.ui) oldRepeat++; if (sameRoot(neu) && neu.ui === prev.ui) newRepeat++;
+            // fanns ett annat faktum bland de kandidater det gamla valet drogs ur? (utan "nyss sett": varje val kommer ur kandidaterna –
+            // samla dem genom att dra med 25 olika slumpfrön som förut)
+            if (avoidMode === 'none' && s === 1) { const O = []; for (let t = 0; t < 25; t++) { const trace = {}; const q = P.question(cid, { ...args, trace, rnd: rng(5000 + t), vary: { ...baseVary, last: prev.ui } }); if (q && trace.tier === 'pool') O.push(q); }   // bara val ur de ordinarie kandidaterna
+              if (O.some(q => !sameRoot(q))) { altCases++; for (let t = 0; t < 6; t++) { const tr2 = {}; const q = P.question(cid, { ...args, trace: tr2, rnd: rng(7000 + t), vary: bossVary }); ok(q && tr2.tier === 'pool' && !sameRoot(q), `${cid} L${L} ${format}: annat faktum när ett sådant finns bland kandidaterna (${prev.fk} → ${q && q.fk})`); }
+                if (O.some(q => !sameRoot(q) && q.ui !== prev.ui)) for (let t = 0; t < 6; t++) { const q = P.question(cid, { ...args, rnd: rng(7000 + t), vary: bossVary }); ok(q && q.ui !== prev.ui, `${cid} L${L} ${format}: och annan aktivitet när en sådan finns (${prev.ui} → ${q && q.ui})`); } } }
+            if (avoidMode === 'others') { const to = {}; const o2 = P.question(cid, { ...args, trace: to, rnd: rng(1000 + s), vary: { ...baseVary, last: prev.ui } }); if (o2 && to.tier !== 'pool') { reserveCases++; const tn = {}; const n2 = P.question(cid, { ...args, trace: tn, rnd: rng(1000 + s), vary: bossVary }); ok(n2 && tn.tier === to.tier, `${cid}: allt annat nyss sett – samma reservled som förut (${to.tier} → ${tn.tier})`); } }   // samma led = samma nivå- och formatregler (slumpdragningen kan skilja)
+            if (!all.some(v => rootOf(keyFk(v)) !== rootOf(prev.fk) || v.ui !== prev.ui)) { fallbackSame++; ok(old.text === neu.text, `${cid}: inget alternativ – samma fråga som förut`); }
           }
         }
-        w2.__advance(DAY);
       }
-      console.log(`  · Explore 14 dygn: ${bosses} Boss-frågor ur paket, ${sameKp} på samma punkt som uppgiften före, ${repeats} upprepningar när alternativ fanns`);
-      ok(bosses > 5, `Bossar prövade i riktiga pass (${bosses})`);
-      ok(planOk > 0, 'Bossen tränar motorns valda punkt (planens Boss-plats)');
-      ok(repeats === 0, `ingen Boss upprepar aktivitet och faktum direkt efter samma punkt när ett alternativ finns (${repeats})`); }
+    }
+    console.log(`  · ${n} Boss-frågor jämförda: samma faktum + samma aktivitet som uppgiften före – förut ${oldRepeat}, nu ${newRepeat}; ${altCases} fall med alternativ, ${levelCases} nivå-, ${formatCases} formatfall, ${fallbackSame} utan alternativ`);
+    ok(n > 300 && altCases > 100 && levelCases > 100 && formatCases > 20, 'tillräckligt många fall prövade');
+    ok(oldRepeat > 0, `felet fanns förut (${oldRepeat})`);
+    ok(reserveCases > 50, `reservkedjan prövad ${reserveCases} gånger`);
+    ok(newRepeat < oldRepeat, `färre upprepningar (${oldRepeat} → ${newRepeat}; kvar bara där inget annat faktum finns bland kandidaterna eller allt annat är nyss sett)`);
+    // 4. reserv: punkt med en enda variant – exakt samma fråga som förut
+    { let one = null; for (const cid of kps) { if (P.variants(cid, 'younger').length === 1) { one = cid; break; } }
+      if (one) { const prev = P.question(one, { lvl: 1, pol: 'younger', rnd: rng(9) }); const a = P.question(one, { lvl: 1, pol: 'younger', rnd: rng(11), vary: { choiceRun: 0, actAfter: 1, boost: 4, stretch: true, last: prev.ui, boss: true, prevKp: one, prevFk: prev.fk, prevUi: prev.ui } }); const b = P.question(one, { lvl: 1, pol: 'younger', rnd: rng(11), vary: { choiceRun: 0, actAfter: 1, boost: 4, stretch: true, last: prev.ui } });
+        ok(a && b && a.text === b.text, `reserv: en enda variant – samma fråga som förut (${one})`); } }
+
+    // 5. riktiga pass: Explore (Yngre) och Achieve (Äldre), 12 dygn, CORE + 2 FLOW per dygn, flera frön
+    for (const [kid, exp] of [['k2', 'explore'], ['k8', 'achieve'], ['k4', 'grow']]) {
+      let bosses = 0, sameKp = 0, overlap = 0, overlapAvoidable = 0, planOk = 0, planN = 0;
+      for (const seed of [21, 33, 47]) {
+        const w2 = mkWin({ seed, fixedClock: true }); await sleep(30); const T2 = tools(w2); const PA2 = T2.PA; PA2().FAMILY.apply(FIX); PA2().load(); PA2().rerender(); const D = v2tools(w2, T2); const r = rng(seed);
+        // fånga Bossens frågeanrop (samma argument som appen använde, inklusive "nyss sett") för att kunna pröva om ett annat faktum fanns
+        const PK = PA2().PACKS; const q0 = PK.question; let lastBossCall = null; PK.question = function (cid, opts) { const res = q0.call(this, cid, opts); if (opts && opts.vary && opts.vary.boss) lastBossCall = { cid, opts, res }; return res; };
+        for (let d = 0; d < 12; d++) {
+          for (let blk = 0; blk < 3; blk++) {
+            toStart(T2); T2.click(T2.$(`[data-kid="${kid}"]`)); if (T2.$('[data-pet]')) T2.click(T2.$('[data-pet]'));
+            const go = blk === 0 ? T2.$('[data-v2="kor"]') : T2.$('[data-v2="flow"]'); if (!go) break;
+            const peek = blk === 0 ? PA2().V2.peekPlan(PA2().KIDS.find(k => k.id === kid)).plan.map(s => s.cid + s.role) : null; T2.click(go);
+            if (peek) { planN++; if (JSON.stringify(PA2().S.v2.plan.map(s => s.cid + s.role)) === JSON.stringify(peek)) planOk++; }
+            let m = 0; while (PA2().S && PA2().S.v2 && T2.$('#qcard') && m++ < 60) {
+              const S = PA2().S; const it = S.queue[S.i];
+              if (it.spec && it.spec.role === 'boss' && it.cat !== 'learn' && it.kp) { bosses++; const prevs = S.queue.slice(0, S.i).filter(x => x.cat !== 'learn'); const pv = prevs[prevs.length - 1];
+                if (pv && pv.kp === it.kp) { sameKp++; const a = cardsOf(pv), b = cardsOf(it); const shared = b.filter(x => a.includes(x)).length;
+                  if (rootOf(pv.fk) === rootOf(it.fk) || (a.length > 1 && shared * 2 >= b.length)) { overlap++;
+                    // fanns ett annat faktum bland de ordinarie kandidaterna (med samma "nyss sett")? då skulle det ha valts
+                    if (lastBossCall && lastBossCall.cid === it.kp) { for (let t = 0; t < 12; t++) { const trace = {}; const q = q0.call(PK, it.kp, { ...lastBossCall.opts, trace, rnd: rng(900 + t) }); if (q && trace.tier === 'pool' && rootOf(q.fk) !== rootOf(pv.fk)) { overlapAvoidable++; break; } } } } } }
+              D.answer(() => r() < 0.3); w2.__advance(4000);
+            }
+          }
+          w2.__advance(DAY);
+        }
+      }
+      console.log(`  · ${exp}: ${bosses} Bossar ur paket, ${sameKp} på samma punkt som uppgiften före, ${overlap} med samma faktum/kort (${overlapAvoidable} där ett annat faktum fanns bland kandidaterna)`);
+      ok(planOk === planN, `${exp}: motorns plan orörd – KÖR startar den visade planen (${planOk}/${planN})`);
+      ok(bosses > 3, `${exp}: Bossar prövade (${bosses})`);
+      ok(overlapAvoidable === 0, `${exp}: Bossen delar aldrig kort med uppgiften före när ett annat faktum fanns bland kandidaterna (${overlapAvoidable}; ${overlap} av ${sameKp} där inget annat fanns eller allt annat var nyss sett)`);
+    }
   } catch (e) { fails++; console.log('EXC', e.stack); }
   console.log(`\n${checks} kontroller, ${fails} fel`); console.log(fails ? 'BOSS VARIETY TEST FAILED' : 'BOSS VARIETY TEST OK'); process.exit(fails ? 1 : 0);
 })();
