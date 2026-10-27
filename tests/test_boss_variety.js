@@ -111,7 +111,7 @@ const cardsOf = (q) => q.type === 'sort' ? q.items : q.type === 'match' ? (q.pai
             if (peek) { planN++; if (JSON.stringify(PA2().S.v2.plan.map(s => s.cid + s.role)) === JSON.stringify(peek)) planOk++; }
             let m = 0; while (PA2().S && PA2().S.v2 && T2.$('#qcard') && m++ < 60) {
               const S = PA2().S; const it = S.queue[S.i];
-              if (it.spec && it.spec.role === 'boss' && it.cat !== 'learn' && it.kp) { bosses++; if (it.kp === it.spec.cid && (!lastBossCall || lastBossCall.cid === it.spec.cid)) kpSame++; const prevs = S.queue.slice(0, S.i).filter(x => x.cat !== 'learn'); const pv = prevs[prevs.length - 1];
+              if (it.spec && it.spec.role === 'boss' && it.cat !== 'learn' && it.kp) { bosses++; if (it.kp === it.spec.cid && (!lastBossCall || lastBossCall.cid === it.spec.cid) && (!it.fk || String(it.fk).split('|')[0] === String(it.spec.cid).split('/').pop())) kpSame++; const prevs = S.queue.slice(0, S.i).filter(x => x.cat !== 'learn'); const pv = prevs[prevs.length - 1];
                 if (pv && pv.kp === it.kp) { sameKp++; const a = cardsOf(pv), b = cardsOf(it); const shared = b.filter(x => a.includes(x)).length;
                   if (rootOf(pv.fk) === rootOf(it.fk) || (a.length > 1 && shared * 2 >= b.length)) { overlap++;
                     // fanns ett annat faktum bland de ordinarie kandidaterna (med samma "nyss sett")? då skulle det ha valts
@@ -125,7 +125,7 @@ const cardsOf = (q) => q.type === 'sort' ? q.items : q.type === 'match' ? (q.pai
       console.log(`  · ${exp}: ${bosses} Bossar ur paket, ${sameKp} på samma punkt som uppgiften före, ${overlap} med samma faktum/kort (${overlapAvoidable} där ett annat faktum fanns bland kandidaterna)`);
       ok(planOk === planN, `${exp}: motorns plan orörd – KÖR startar den visade planen (${planOk}/${planN})`);
       ok(bosses > 3, `${exp}: Bossar prövade (${bosses})`);
-      ok(kpSame === bosses, `${exp}: Bossen tränar exakt den kunskapspunkt motorn valde (${kpSame}/${bosses})`);   // granskning: kontrollen i appen, inte bara i question()
+      ok(kpSame === bosses, `${exp}: Bossen tränar exakt den kunskapspunkt motorn valde – etikett och innehåll (faktumets nyckel) (${kpSame}/${bosses})`);   // granskning: kontrollen i appen, inte bara i question()
       ok(overlapAvoidable === 0, `${exp}: Bossen delar aldrig kort med uppgiften före när ett annat faktum fanns bland kandidaterna (${overlapAvoidable}; ${overlap} av ${sameKp} där inget annat fanns eller allt annat var nyss sett)`);
     }
   } catch (e) { fails++; console.log('EXC', e.stack); }
