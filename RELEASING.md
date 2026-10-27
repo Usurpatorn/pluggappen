@@ -204,13 +204,14 @@ med `PREVIEW=1` till `<sajten>/preview/`. Produktionen publiceras som vanligt. M
   - **Små etiketter** minst 12 px (nivå), lägen i Testa mig/provkort 13 px. **Styrknappar** (Ledtråd, Jag fattar inte, Läs upp,
     Kladdyta, Läs mer) med linjeikoner i v3; karaktär och glädje (stationer, roller, KLAR) är kvar som emoji.
 - **Fas A (ägarbeslut 2026-10-27, stänger 3.3):**
-  - "Vilket påstående är fel?" och Hitta felet: det man valde i stället är SANT – märks "Stämmer" (aldrig rött) och texten säger
+  - "Vilket påstående är fel?" (paketens false/err-varianter och Utmaningen "Vilket påstående är FEL?") och Hitta felet: det man valde i stället är SANT – märks "Stämmer" (aldrig rött) och texten säger
     "Det du valde stämmer – det var inte felet. Felet var: … (stämmer inte)". Gäller alla v2-upplevelser inklusive Klassisk och
     Testa mig-resultatet. Inget nytt sparat fält: svaren i Testa mig finns bara i minnet under passet; bevisen är orörda.
-  - Testa mig: ett tryck väljer (går att ändra), Svara lämnar in – för tal, ord och påståenden. Ingen återkoppling under testet.
+  - Testa mig: ett tryck väljer (går att ändra), Svara lämnar in – för tal och påståenden (ord prövas i Testa mig som skrivna svar;
+    ordflervalets välj + Svara finns som skydd men nås inte i dag). Ingen återkoppling under testet.
   - Läs upp på återkoppling och förklaringskort (enhetens röst; Yngre alltid, övriga med Uppläsning på) – aldrig när läsningen
     själv prövas (samma regel som frågan: `V2.canSpeak`).
-  - Startsidan: barnkorten visar namn, klass och figur – inte syskonens nivå, streak eller dagens antal. Det är INTE
+  - Startsidan: barnkorten visar namn, klass och figur (följeslagaren i sin fullvuxna form, inte dess stadium) – inte syskonens nivå, streak eller dagens antal. Det är INTE
     serverisolering: alla enheter i familjen kan fortfarande läsa hela familjens data tills Family Platform (barnbunden enhet) är
     driftsatt. v1-referensen är omgjord från samma 1.2.0-bygge med samma normalisering av startsidan; allt annat är oförändrat.
   - Nästa täcker aldrig återkopplingen (rullningen lämnar plats för den fasta knappraden, även för ord); när ett byggt svar

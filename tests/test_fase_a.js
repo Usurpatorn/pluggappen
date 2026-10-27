@@ -36,6 +36,20 @@ const norm = (s) => String(s || '').replace(/\s+/g, ' ').trim();
       ok(answer.classList.contains('ok') && (exp === 'classic' || T.$('#qcard').dataset.iserr === '1'), `${exp}: felet är märkt som svaret`);
       if (T.$('#next')) T.click(T.$('#next')); w.__advance(4000); toStart(T); }
     PA().EXP.set(kidOf('k8'), 'achieve');
+    /* 1b. Utmaningen "Vilket påstående är FEL?" (CHG) – samma regel: det sanna man valde är aldrig rött, felet "stämmer inte" */
+    { const sk = kidOf('k8').skills.find(x => x.id === 'kemi_syror'); let fq = null; for (let k = 0; k < 9 && !fq; k++) { const q = PA().CHG.make(sk, 2, k, {}); if (q && q.challenge === 'false') fq = q; }
+      ok(!!fq, 'en "Vilket påstående är FEL?"-utmaning finns'); if (fq) for (const [kidId, exp] of [['k8', 'achieve'], ['k4', 'grow'], ['k2', 'explore'], ['k8', 'classic']]) for (const wrong of [true, false]) {
+        PA().EXP.set(kidOf(kidId), exp); let S = null;
+        for (let tries = 0; tries < 4 && !S; tries++) { openKid(T, kidId); const b = T.$('.go-btn[data-v2="kor"]') || T.$('[data-v2="kor"]') || T.$('[data-v2="flow"]'); if (!b) { w.__advance(DAY); continue; } T.click(b);
+          let g = 0; while (PA().S && PA().S.v2 && T.$('#qcard') && PA().S.queue[PA().S.i] && PA().S.queue[PA().S.i].cat !== 'math' && g++ < 10) { D.answer(() => false); w.__advance(4000); }
+          if (PA().S && PA().S.v2 && T.$('#qcard') && PA().S.queue[PA().S.i]) S = PA().S; else w.__advance(DAY); }
+        if (!S) { ok(false, `${exp}: kunde starta ett pass`); continue; } const it = S.queue[S.i]; S.queue[S.i] = { ...fq, skill: sk, cat: 'math', level: 2, spec: { ...(it.spec || {}), role: 'challenge', mode: 'challenge', help: 'none' }, _slotEnd: true }; PA().rerender();
+        const right = fq.answer; const pick = wrong ? (right + 1) % fq.choices.length : right; T.click(T.$(`[data-choice="${pick}"]`)); if (T.$('#submit') && !T.$('#next')) T.click(T.$('#submit'));
+        const picked = T.$(`[data-choice="${pick}"]`); const fbt = norm((T.$('#fb .feedback') || {}).textContent);
+        if (wrong) ok(picked.classList.contains('true-pick') && !doc.querySelector('#qcard :is(.choice, .wchoice, .tapword).no') && /stämmer – det var inte felet/.test(fbt) && !/Rätt svar:/.test(fbt), `${exp} Utmaning: det sanna påståendet man valde är aldrig rött eller "fel" (${fbt.slice(0, 80)})`);
+        else ok(/Du hittade felet/.test(fbt) && /stämmer inte/.test(fbt), `${exp} Utmaning: rätt val säger att felet inte stämmer (${fbt.slice(0, 80)})`);
+        if (T.$('#next')) T.click(T.$('#next')); w.__advance(4000); toStart(T); }
+      PA().EXP.set(kidOf('k8'), 'achieve'); PA().EXP.set(kidOf('k4'), 'grow'); PA().EXP.set(kidOf('k2'), 'explore'); }
 
     /* 2. Testa mig: välj, ändra, lämna in – ingen återkoppling, inget feltryck räknas; resultatet säger samma sak som övningen */
     { const p = PA().DB.profiles.k8; const C = PA().LE.state(kidOf('k8')); const seen = Object.keys(C.L.c).filter(c => c.startsWith('s:') && C.L.c[c].n).map(c => c.slice(2));
@@ -75,7 +89,7 @@ const norm = (s) => String(s || '').replace(/\s+/g, ' ').trim();
 
     /* 4. Startsidan: inga syskonjämförelser */
     toStart(T); const cards = [...doc.querySelectorAll('.kid-card')]; ok(cards.length === 3, 'tre barnkort');
-    for (const c of cards) { const t = norm(c.textContent); ok(!/Nivå|🔥|idag|XP|💎/.test(t) && !c.querySelector('.pill'), `barnkortet visar bara namn och klass (${t})`); }
+    for (const c of cards) { const t = norm(c.textContent); const id = c.dataset.kid; const p = PA().DB.profiles[id]; if (p && p.pet && p.pet !== 'none') { const av = norm((c.querySelector('.avatar') || {}).textContent); ok(!!av, `${id}: figuren visas`); } ok(!/Nivå|🔥|idag|XP|💎/.test(t) && !c.querySelector('.pill'), `barnkortet visar bara namn och klass (${t})`); }
   } catch (e) { fails++; console.log('FAIL undantag', e && e.stack || e); }
   console.log(`\n${checks} kontroller, ${fails} fel`); console.log(fails ? 'FAS A TEST FAILED' : 'FAS A TEST OK'); process.exit(fails ? 1 : 0);
 })();

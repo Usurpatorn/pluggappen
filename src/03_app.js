@@ -422,7 +422,7 @@ VIEWS.start = () => {
   <div class="stack" style="margin-top:14px">
     ${KIDS.map(k => { const p = prof(k.id); return `
     <button class="card tap kid-card" data-kid="${k.id}" data-hue="${k.hue}">
-      <div class="avatar">${isTeen(k) ? k.name[0] : isSport(k) ? '🏒' : (p.pet ? petEmoji(p) : k.emoji)}</div>
+      <div class="avatar">${isTeen(k) ? k.name[0] : isSport(k) ? '🏒' : (p.pet ? petOf(p).stages[petOf(p).stages.length - 1] : k.emoji)}</div>
       <div class="grow">
         <div class="name">${esc(k.name)}</div>
         <div class="meta">${k.grade}</div>
@@ -767,7 +767,7 @@ VIEWS.practice = () => {
     ${S.v2 ? V2.progressBar() + V2.chip(item) : `<div class="progress">${S.queue.map((_, i) => `<i class="${i < S.i ? (S.results[i] ? 'ok' : 'no') : i === S.i ? 'cur' : ''}"></i>`).join('')}</div>`}
     <div class="card pad-lg stack" id="qcard" style="gap:16px">${body}</div>
   </div>`);
-  { const qc0 = document.getElementById('qcard'); if (qc0 && S.v2 && item.isError === true) qc0.dataset.iserr = '1'; S.wsel = null; }   // svaret är felet – i alla v2-lägen
+  { const qc0 = document.getElementById('qcard'); if (qc0 && S.v2 && (item.isError === true || item.challenge === 'false')) qc0.dataset.iserr = '1'; S.wsel = null; }   // svaret är felet – i alla v2-lägen
   { const qc = document.getElementById('qcard'); if (qc && S.v2 && S.v2.exp) { const m = EXP.modeOf(item); qc.dataset.mode = m.mode; if (m.role) qc.dataset.role = m.role; if (S.v2.exam) qc.dataset.exam = '1'; if (item.isError === true) qc.dataset.iserr = '1';
     qc.querySelectorAll('.sort-pool').forEach(pl => { if ([...pl.children].some(b => (b.textContent || '').trim().length > 16)) pl.classList.add('long'); });   // 3.3: långa sorteringskort får en hel rad
     qc.querySelectorAll('.wchoices:not(.spot-sols)').forEach(w => { if ([...w.children].some(b => { const t = (b.textContent || '').trim(); return t.length > 16 || t.split(/\s+/).some(x => x.length > 11); })) w.classList.add('one-col'); });   // 3.3: långa ord får en hel rad i stället för att brytas mitt i
@@ -1002,7 +1002,7 @@ function submitMath() {
   S.xp += xp; S.results.push(correct);
   let v2evs = null; const v2rw = S.v2 ? S.v2.rewards.length : 0;
   if (S.v2) { v2evs = V2.observe(q, correct); if (S.v2.exam) return V2.examAnswered(q, correct, raw); }
-  const errItem = q.isError === true || q.challenge === 'spot';   // svaret ÄR felet: det man valde i stället är sant – det får aldrig se falskt ut
+  const errItem = q.isError === true || q.challenge === 'spot' || q.challenge === 'false';   // Utmaningen "Vilket påstående är FEL?" likaså   // svaret ÄR felet: det man valde i stället är sant – det får aldrig se falskt ut
   if (q.choices || q.type === 'choicetext') document.querySelectorAll('.choice, .wchoice, .tapword').forEach(c => { const v = Number(c.dataset.choice); if (v === q.answer) c.classList.add('ok'); else if (v === S.selected) c.classList.add(errItem ? 'true-pick' : 'no'); c.disabled = true; });
   if (input) input.disabled = true;
   const xpE = S.v2 && S.v2.exp; const boss = xpE && q.spec && q.spec.role === 'boss'; const errQ = !!S.v2 && q.isError === true;   // 3.3: i "hitta felet"-frågor är svaret felet – aldrig "Rätt svar: <det felaktiga>"   // 3.3: Bossen märks när den är klarad (samma rättning)
@@ -1028,9 +1028,9 @@ function submitMath() {
     else { beep('no'); fb.innerHTML = `<div class="feedback no"><span style="font-size:1.4rem">✍️</span><div><div class="big">Svaret behöver mer</div><div class="sub">${hitTxt}${missTxt}</div></div></div>`; }
     if (!isTest || !correct) showSteps(q, false);
   }
-  else if (correct) { beep('ok', S.streak); xpPop(xp); fb.innerHTML = `<div class="feedback ok"><span style="font-size:1.4rem">✅</span><div><div class="big">${praise}${S.streak >= 3 && !boss && !(S.v2 && S.v2.exp === 'achieve') ? ` <span class="nw">${S.streak} i rad 🔥</span>` : ''}</div><div class="sub">${xpE && q.challenge === 'spot' && (q.steps || [])[0] ? safeHtml(q.steps[0]) : errQ ? `Du hittade felet: <s>${esc(answerDisplay(q))}</s> stämmer inte.${(q.steps || [])[0] ? `<br>${safeHtml(q.steps[0])}` : ''}` : esc(answerDisplay(q))}${res.note ? `<br>${res.note}` : ''}</div></div></div>`; }
+  else if (correct) { beep('ok', S.streak); xpPop(xp); fb.innerHTML = `<div class="feedback ok"><span style="font-size:1.4rem">✅</span><div><div class="big">${praise}${S.streak >= 3 && !boss && !(S.v2 && S.v2.exp === 'achieve') ? ` <span class="nw">${S.streak} i rad 🔥</span>` : ''}</div><div class="sub">${xpE && q.challenge === 'spot' && (q.steps || [])[0] ? safeHtml(q.steps[0]) : q.challenge === 'false' && S.v2 ? `Du hittade felet: ${esc(answerDisplay(q))} stämmer inte.${(q.steps || [])[0] ? `<br>${safeHtml(q.steps[0])}` : ''}` : errQ ? `Du hittade felet: <s>${esc(answerDisplay(q))}</s> stämmer inte.${(q.steps || [])[0] ? `<br>${safeHtml(q.steps[0])}` : ''}` : esc(answerDisplay(q))}${res.note ? `<br>${res.note}` : ''}</div></div></div>`; }
   else if (S.revealed) { fb.innerHTML = `<div class="feedback warn"><span style="font-size:1.4rem">👀</span><div><div class="big">Nu vet du hur man gör</div><div class="sub">Du får en liknande uppgift igen om en stund.</div></div></div>`; }
-  else { beep('no'); fb.innerHTML = `<div class="feedback no"><span style="font-size:1.4rem">❌</span><div><div class="big">Inte riktigt</div><div class="sub">${errQ ? `Det du valde stämmer – det var inte felet. Felet var: <s>${esc(answerDisplay(q))}</s> (stämmer inte)` : xpE && q.challenge === 'spot' ? `Lösningen du valde stämmer – felet fanns i en annan. Rätt svar: <b>${esc(answerDisplay(q))}</b>` : `Rätt svar: <b>${esc(answerDisplay(q))}</b>`}${q.choices || q.type === 'choicetext' || !raw || (S.v2 && S.v2.exp === 'explore') ? '' : ` · Du svarade: ${esc(raw)}`}</div></div></div>`; if (!isTest) showSteps(q, false); }
+  else { beep('no'); fb.innerHTML = `<div class="feedback no"><span style="font-size:1.4rem">❌</span><div><div class="big">Inte riktigt</div><div class="sub">${errQ ? `Det du valde stämmer – det var inte felet. Felet var: <s>${esc(answerDisplay(q))}</s> (stämmer inte)` : S.v2 && q.challenge === 'spot' ? `Lösningen du valde stämmer – felet fanns i en annan: <b>${esc(answerDisplay(q))}</b>` : S.v2 && q.challenge === 'false' ? `${esc((q.choices || [])[S.selected] || 'Påståendet du valde')} stämmer – det var inte felet. Felet var: <b>${esc(answerDisplay(q))}</b> (stämmer inte)` : `Rätt svar: <b>${esc(answerDisplay(q))}</b>`}${q.choices || q.type === 'choicetext' || !raw || (S.v2 && S.v2.exp === 'explore') ? '' : ` · Du svarade: ${esc(raw)}`}</div></div></div>`; if (!isTest) showSteps(q, false); }
   document.getElementById('hintBtn')?.remove(); document.getElementById('explainBtn')?.remove();
   if (boss && correct && !(S.v2 && S.v2.exam)) document.getElementById('qcard')?.classList.add('boss-won');   // 3.3: ett litet ögonblick när Bossen är klarad (bara visning)
   if (S.v2) V2.feedbackExtra(v2evs, v2rw, q);

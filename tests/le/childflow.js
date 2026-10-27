@@ -18,9 +18,9 @@ function mkWin({ seed = 0, fixedClock = false, storage = null, file, url = 'http
 const tools = (w) => {
   const $ = (s) => w.document.querySelector(s); const click = (el) => { if (!el) throw new Error('click on null'); el.dispatchEvent(new w.MouseEvent('click', { bubbles: true })); };
   const PA = () => w.PA; const snaps = []; let mathAnswers = 0; let k = 0;
-  // Startsidan: syskonjämförelsen (nivå, streak, dagens antal) togs bort med avsikt (ägarbeslut 2026-10-27, 3.3). Referensen från 1.2.0
+  // Startsidan: syskonjämförelsen (nivå, streak, dagens antal, följeslagarens stadium i figuren) togs bort med avsikt (ägarbeslut 2026-10-27, 3.3). Referensen från 1.2.0
   // gjordes om med samma normalisering: kortet jämförs utan de raderna; allt annat på startsidan jämförs som förut.
-  const startNorm = (html) => html.replace(/(<div class="meta">[^<]*?) · Nivå [^<]*(<\/div>)/g, '$1$2').replace(/<div class="row" style="margin-top:6px;gap:6px">(?:(?!<\/div>)[\s\S])*<\/div>/g, '').replace(/\s+/g, ' ');
+  const startNorm = (html) => html.replace(/<div class="avatar">[^<]*<\/div>/g, '<div class="avatar">·</div>').replace(/(<div class="meta">[^<]*?) · Nivå [^<]*(<\/div>)/g, '$1$2').replace(/<div class="row" style="margin-top:6px;gap:6px">(?:(?!<\/div>)[\s\S])*<\/div>/g, '').replace(/\s+/g, ' ');
   const snap = (label) => snaps.push([label, /^start/.test(label) ? startNorm($('#app').innerHTML) : $('#app').innerHTML]);
   const answer = () => {
     const S = PA().S; const item = S.queue[S.i]; k++; const wrong = k % 3 === 0;
