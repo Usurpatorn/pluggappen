@@ -62,7 +62,7 @@ const EMOJI = /\p{Extended_Pictographic}/u;
         // 5. KLAR
         const klar = T.$('.klar'); if (!klar) continue; const e = [...klar.classList].find(c => /^klar-(explore|grow|achieve)$/.test(c)); if (!e) continue; const ex = e.slice(5); C.klar[ex]++;
         const chipT = [...klar.querySelectorAll('.klar-chips > div')].map(c => norm(c.textContent)); ok(chipT.length <= 3 && chipT.every(t => !EMOJI.test(t.replace('💎', ''))), `${id}: KLAR-chips är text (${chipT.join(' | ')})`);
-        if (ex === 'explore') { const dots = [...klar.querySelectorAll('.klar-path .dot')]; ok(dots.length > 0 && dots.every(x => x.classList.contains('ok') && /⭐|👑/.test(x.textContent)), `${id}: hel stjärnstig (${dots.length})`);
+        if (ex === 'explore') { const dots = [...klar.querySelectorAll('.klar-path .dot')]; const slots = +((klar.querySelector('.klar-path').getAttribute('aria-label') || '').match(/(\d+) saker/) || [])[1]; ok(dots.length > 0 && dots.length === slots && dots.every(x => x.classList.contains('ok') && /⭐|👑/.test(x.textContent)), `${id}: hel stjärnstig, en stjärna per klar uppgift (${dots.length} / ${slots})`);
           const pet = PA().DB.profiles[id].pet; if (pet && pet !== 'none') { C.pet++; const km = norm((klar.querySelector('.klar-mark.has-pet .km-e') || {}).textContent); ok(!!km && !/🗺️/.test(km), `${id}: följeslagaren är med på KLAR (${km})`); }
           else ok(!klar.querySelector('.has-pet'), `${id}: ingen följeslagare – kartan`); }
         if (ex === 'grow') ok(norm((klar.querySelector('.klar-eyebrow') || {}).textContent) === 'Slutsignal' && !!klar.querySelector('.klar-level'), `${id}: Grow-KLAR med slutsignal och nivå`);

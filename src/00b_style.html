@@ -608,10 +608,10 @@ html { overflow-x: clip; }
 .klar-mark.has-pet .km-e { font-size: 3rem; animation: petHop .9s .4s var(--ease) both; }
 .klar-mark .km-spark { position: absolute; top: -4px; right: -8px; font-size: 1.3rem; animation: klarIn .4s .9s var(--ease) both; }
 @keyframes petHop { 0% { transform: scale(.6); opacity: 0; } 35% { transform: translateY(-14px) scale(1.05); opacity: 1; } 60% { transform: translateY(0) scale(.96, 1.04); } 80% { transform: translateY(-5px); } 100% { transform: none; opacity: 1; } }
-.klar .klar-path { position: relative; gap: 6px; padding: 6px 4px; }
-.klar .klar-path::before { content: ''; position: absolute; left: 18px; right: 18px; top: 50%; border-top: 3px dotted color-mix(in srgb, #e7b416 55%, var(--card)); z-index: 0; }
+.klar .trail.done.klar-path { position: relative; gap: 6px; padding: 6px 4px; flex-wrap: wrap; justify-content: center; max-width: 100%; }   /* en stjärna per klar uppgift – radbryts hellre än klipps */
 .klar .trail.done.klar-path .dot { position: relative; z-index: 1; background: var(--card); border: 0; box-shadow: none; font-size: clamp(1.1rem, 6.2vw, 1.6rem); width: auto; height: auto; padding: 0 1px; filter: drop-shadow(0 2px 3px rgba(150,110,0,.25)); }
 .klar .trail.done.klar-path .dot.crown { font-size: clamp(1.3rem, 7.4vw, 1.9rem); }
+.klar .trail.done.klar-path:has(> .dot:nth-child(8)) { gap: 3px; } .klar .trail.done.klar-path:has(> .dot:nth-child(8)) .dot { font-size: clamp(1rem, 4.6vw, 1.4rem); }   /* många uppgifter: mindre stjärnor på en rad */
 .klar-plan { width: min(100%, 320px); display: grid; gap: 6px; }
 .klar-plan .progress i { height: 8px; } .klar-plan .progress i.done { background: var(--ink); opacity: .8; animation: dotIn .25s calc(.2s + var(--i, 0) * .05s) var(--ease) both; }
 .klar-plan .kp-s { font-size: .9rem; font-weight: 700; color: var(--ink-2); }
@@ -624,10 +624,9 @@ html { overflow-x: clip; }
 /* Små etiketter: minst 12 px för barnen */
 /* iPad stående: uppgiften i en storlek man läser på armlängds avstånd */
 @media (min-width: 768px) and (orientation: portrait) {
-  /* uppgiften i övre tredjedelen av den lediga ytan – samma luft runt varje kort i stället för en tom nedre halva */
+  /* fast avstånd överst och samma plats för varje kort (granskningen: ett centrerat kort hoppade mellan uppgifter) */
   :root:not([data-exp="classic"]) .stack:has(> #qcard), :root:not([data-exp="classic"]) .stack:has(> .klar) { display: flex; flex-direction: column; gap: 16px; min-height: calc(100svh - 96px); padding-top: 0; padding-bottom: 24px; }
-  :root:not([data-exp="classic"]) .stack:has(> #qcard)::before, :root:not([data-exp="classic"]) .stack:has(> .klar)::before { content: ''; flex: 1 1 0; min-height: 16px; }
-  :root:not([data-exp="classic"]) .stack:has(> #qcard)::after, :root:not([data-exp="classic"]) .stack:has(> .klar)::after { content: ''; flex: 2 1 0; }
+  :root:not([data-exp="classic"]) .stack:has(> #qcard)::before, :root:not([data-exp="classic"]) .stack:has(> .klar)::before { content: ''; flex: 0 0 5vh; }   /* fast plats: kortet hoppar inte mellan uppgifter */
   :root:not([data-exp="classic"]) .stack:has(> #qcard) > *, :root:not([data-exp="classic"]) .stack:has(> .klar) > * { flex: 0 0 auto; }
   :root:not([data-exp="classic"]) .stack:has(> #qcard) > :is(.progress, .progress-row, .trail) { order: -1; margin-top: 10px; }   /* förloppet står still överst – kortet med sin etikett får luften */
   :root:not([data-exp="classic"]) #qcard .question .m { font-size: 1.5em; }
