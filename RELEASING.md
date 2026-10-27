@@ -104,4 +104,6 @@ med `PREVIEW=1` till `<sajten>/preview/`. Produktionen publiceras som vanligt. M
   "Inget att öva idag"); Öva på egen hand och Testa mig finns kvar. Gäller v2/v3 (alla upplevelser och Klassisk), inte reservmotorn v1.
 - Hemmets plan och FLOW-förhandsvisningen räknas med samma klocka som när passet startar (`LE.sessClock`).
 - Rollback: 3.0.1 (`release-3.0.1-85e4353`) och 2.1.1 ignorerar `scope` och behåller fältet. Test: `test_scope_exams.js`.
+- 3.1.1: Felboken och Revansch för barnet följer valet (bara provens/läxornas saker; föräldrans vyer visar allt), och ett barn med
+  valet får inget allmänt v1-pass som reserv (före första synken eller vid fel i v2) – ett meddelande i stället.
 
