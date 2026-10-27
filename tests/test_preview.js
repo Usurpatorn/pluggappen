@@ -47,6 +47,10 @@ try {
     ok(w.localStorage.getItem('pluggappen.v1') === '{"marker":"prod"}', 'testversionen: produktionens data orörd'); }
   const w2 = boot('https://example.org/pluggappen/');
   ok(w2.PLUGG_STOP === true && !(w2.document.querySelector('#app') && w2.document.querySelector('#app').children.length), 'på fel adress startar testversionen inte');
+  // 3.1.1: den RIKTIGA appen startar aldrig på testadressen (t.ex. ur produktionens offline-kopia) – där skulle föräldern tro att det var ett test
+  { const prod = fs.readFileSync(path.join(DIST, 'index.html'), 'utf8'); const dom = new JSDOM(prod, { runScripts: 'dangerously', pretendToBeVisual: true, url: 'https://example.org/pluggappen/preview/', beforeParse(w) { w.scrollTo = () => {}; w.matchMedia = () => ({ matches: false, addEventListener() {} }); w.HTMLCanvasElement.prototype.getContext = () => null; } });
+    const w4 = dom.window; ok(w4.PLUGG_STOP === true && !w4.document.querySelector('[data-kid]') && Object.keys(w4.localStorage).length === 0 && /behöver nät/.test(w4.document.body.textContent), 'den riktiga appen startar inte på testadressen (inga barnkort, inget sparas)');
+    const sw = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8'); ok(/pathname\.includes\('\/preview\/'\)\) return;/.test(sw) && /includes\('\/preview\/'\)\) continue;/.test(sw), 'service workern serverar aldrig testadressen ur cachen och byter aldrig en testflik mot appen'); }
 } catch (e) { fails++; console.log('EXC', e.stack); }
 finally { try { fs.rmSync(path.join(DIST, 'preview'), { recursive: true, force: true }); } catch (e) { /* ignore */ } }
 console.log(`\n${checks} kontroller, ${fails} fel`); console.log(fails ? 'PREVIEW TEST FAILED' : 'PREVIEW TEST OK'); process.exit(fails ? 1 : 0);

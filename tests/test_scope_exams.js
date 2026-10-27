@@ -92,6 +92,25 @@ async function boot(seed) { const w = mkWin({ seed, fixedClock: true }); await s
       ok(/INGET ATT ÖVA IDAG/.test(h) && /Allt inför Algebraprov är övat för idag/.test(h) && /Engelskaläxa: områdena är inte inlagda/.test(h) && T.$('[data-v2="testa"][data-exam="eA"]') && !T.$('[data-v2="kor"]'), `inget att öva idag: rätt prov, ärlig rad om läxan, Testa mig för provet (${h.slice(0, 200)})`);
       PA().V2.peekPlan = real; }
 
+    // ---------- 4d. Felboken, Revansch, Testa mig, provträning och reservvägar med valet på ----------
+    { const { w, T, PA, D, r } = await boot(53); const kid = () => PA().KIDS.find(k => k.id === 'k8'); const p = () => PA().DB.profiles.k8; const iso = (d) => new Date(w.Date.now() + d * DAY).toISOString().slice(0, 10);
+      const open = () => { toStart(T); T.click(T.$('[data-kid="k8"]')); if (T.$('[data-pet]')) T.click(T.$('[data-pet]')); };
+      // allmän övning med många fel (valet av) → Felboken får saker från flera ämnen
+      for (let d = 0; d < 4; d++) { open(); const g = T.$('[data-v2="kor"]'); if (g) { T.click(g); D.run(() => r() < 0.75, 60); } w.__advance(DAY); }
+      const C0 = PA().LE.state(kid()); const all = PA().LE2.felbokChild(C0.L, C0.pol, PA().LE.now()).items.map(x => x.cid);
+      const fbc = all.filter(c => c.startsWith('s:')).map(c => c.slice(2)); p().exams = [{ id: 'e1', title: 'Algebraprov', date: iso(10), skillIds: fbc.length ? [fbc[0]] : ['ekvation'], deckIds: [] }]; p().removedDefaults = [...(p().removedDefaults || []), ...((kid().workExams || []).map(x => x.id))];
+      p().settings.scope = 'exams'; PA().save(); PA().LE.invalidate('k8'); const U = new Set(PA().V2.examCidsActive(kid(), p().exams[0]));
+      const C = PA().LE.state(kid()); const fb = PA().V2.felbok(kid(), C, PA().LE.now());
+      ok(all.some(c => !U.has(c)), `förutsättning: Felboken har saker utanför provet (${all.length})`);
+      ok(fb.items.every(x => U.has(x.cid)), `Felboken för barnet: bara provets saker med valet på (${fb.items.length} av ${all.length})`);
+      const rp = PA().V2.plan(kid(), 'revansch', C, PA().LE.now(), null); ok(rp.every(x => U.has(x.cid)), 'Revansch: bara provets saker');
+      if (rp.length) { PA().V2.start(kid(), 'revansch'); const pl = []; let n = 0; while (PA().S && PA().S.v2 && T.$('#qcard') && n++ < 60) { const q = PA().S.queue[PA().S.i]; if (q.spec && q.cat !== 'learn') pl.push(q.cat === 'word' ? 'ORD' : q.spec.cid); D.answer(() => r() < 0.5); w.__advance(4000); } ok(pl.every(c => U.has(c)), `Revansch: allt som spelades hör till provet (${[...new Set(pl)].join(', ')})`); }
+      else ok(!T.$('[data-v2="revansch"]'), 'Revansch: ingen knapp när inget av provet finns i Felboken');
+      // Testa mig och provträningen: bara provet (som förut)
+      open(); const tm = T.$('[data-v2="testa"]'); if (tm) { T.click(tm); const pl = []; let n = 0; while (PA().S && PA().S.v2 && T.$('#qcard') && n++ < 60) { const q = PA().S.queue[PA().S.i]; if (q.spec && q.cat !== 'learn') pl.push(q.spec.cid); D.answer(() => r() < 0.3); w.__advance(4000); } ok(pl.length > 0 && pl.every(c => U.has(c)), 'Testa mig: bara provets områden'); } else ok(false, 'Testa mig finns för provet');
+      // reservvägar: före första synken / fel i v2 → inget allmänt v1-pass för ett barn med valet på
+      open(); const cs = PA().LE.canStart; PA().LE.canStart = () => false; const go = T.$('[data-v2="kor"]'); if (go) T.click(go); ok(!(PA().S && PA().S.queue && PA().S.queue.length && PA().S.mode !== 'v2'), 'före första synken: inget allmänt v1-pass i stället'); PA().LE.canStart = cs; }
+
     // ---------- 5. Synk: senaste ändringen gäller, åt båda hållen ----------
     { const { PA } = await boot(31); const M = PA().mergeProfiles; const base = JSON.parse(JSON.stringify(PA().DB.profiles.k8));
       const a = { ...base, settings: { ...base.settings, scope: 'exams', scopeAt: 2000 } }, b = { ...base, settings: { ...base.settings, scope: 'all', scopeAt: 1000 } };

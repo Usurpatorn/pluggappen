@@ -11,6 +11,8 @@ self.addEventListener('activate', (e) => {
 self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
   if (e.request.method !== 'GET') return;
+  // Testadressen (<sajten>/preview/) är förälderns testmiljö: aldrig ur den här cachen – offline ska den inte kunna bli den riktiga appen
+  if (url.pathname.includes('/preview/')) return;
   // Firestore and other APIs: always network
   if (url.hostname.endsWith('googleapis.com') && !url.hostname.startsWith('fonts')) return;
   // App shell: network first, fall back to cache (so updates arrive, offline still works)
@@ -34,7 +36,7 @@ self.addEventListener('notificationclick', (e) => {
   e.notification.close();
   const target = new URL(e.notification.data?.url || './', self.location.href).href;
   e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
-    for (const c of list) { if ('focus' in c) { c.navigate?.(target); return c.focus(); } }
+    for (const c of list) { if (String(c.url || '').includes('/preview/')) continue; if ('focus' in c) { c.navigate?.(target); return c.focus(); } }   // en flik med testadressen byts aldrig mot den riktiga appen
     return self.clients.openWindow(target);
   }));
 });
