@@ -33,7 +33,10 @@ function mkCloud() {
     if (!p) return { ok: false, status: 403, json: async () => ({}) };            // inloggning m.m. finns inte här
     if (!/^families\/[^/]+\/profiles\//.test(p)) return { ok: false, status: 403, json: async () => ({}) };   // medlemmar m.m.: nekas
     if (method === 'GET') { if (!docs[p]) return { ok: false, status: 404, json: async () => ({}) }; return { ok: true, status: 200, json: async () => JSON.parse(docs[p]) }; }
-    if (method === 'PATCH') { clock = Math.max(clock + 1000, nowFn ? nowFn() : 0); const body = JSON.parse(opts.body); const d = { name: p, fields: body.fields, updateTime: new Date(clock).toISOString() }; docs[p] = JSON.stringify(d); return { ok: true, status: 200, json: async () => JSON.parse(docs[p]) }; }
+    if (method === 'PATCH') {   // villkor som i Firestore: currentDocument.updateTime / currentDocument.exists
+      const q = new URL(url).searchParams; const ut = q.get('currentDocument.updateTime'); const ex = q.get('currentDocument.exists');
+      if ((ut !== null && (!docs[p] || JSON.parse(docs[p]).updateTime !== ut)) || (ex === 'false' && docs[p]) || (ex === 'true' && !docs[p])) { log.push({ dev, method: 'PATCH-NEKAD', path: p, at: log.length }); return { ok: false, status: 400, json: async () => ({ error: { status: 'FAILED_PRECONDITION' } }) }; }
+      clock = Math.max(clock + 1000, nowFn ? nowFn() : 0); const body = JSON.parse(opts.body); const d = { name: p, fields: body.fields, updateTime: new Date(clock).toISOString() }; docs[p] = JSON.stringify(d); return { ok: true, status: 200, json: async () => JSON.parse(docs[p]) }; }
     if (method === 'DELETE') { delete docs[p]; return { ok: true, status: 200, json: async () => ({}) }; }
     return { ok: false, status: 400, json: async () => ({}) };
   };
@@ -263,6 +266,23 @@ const fsRequests = (cloud, from, dev) => cloud.log.slice(from).filter(x => x.dev
       ok(!P.PA.TM.on && /håller på att synkas/.test(P.document.body.textContent), 'E3: väntande uppladdning när testet ska börja → testet startar inte (ärligt besked)');
       ok(P.PA.SYNC.pending.has('k4'), 'E3: den väntande uppladdningen finns kvar i kön');
       P.PA.TM.freshProd = orig;
+    }
+    // E4 (granskning 2, SHOULD-FIX): barnets enhet laddar upp B precis mellan förälderns hämtning och uppladdning. Uppladdningen är
+    //     villkorad på den hämtade versionen → servern nekar, hämtning + sammanslagning görs om, och B finns kvar.
+    {
+      const cloud = mkCloud(); const C = await childDevice(cloud, 38); await childPlays(C, 'k4', 0.2, 86); C.__advance(DAY);
+      const P = await parentDevice(cloud, 55, C.__now()); const A = cloud.prof('k4');
+      const cfg = P.PA.SYNC.cfg; P.PA.SYNC.cfg = { ...cfg, projectId: 'offline-test' };
+      P.PA.setKid('k4'); P.PA.DB.profiles.k4.settings.goal = 9; P.PA.save(); await sleep(1800); P.PA.SYNC.cfg = cfg;
+      const orig = cloud.fetchFor('parent', () => P.__now()); let raced = false, B = null;
+      P.fetch = async (u, o) => { if (!raced && o && String(o.method).toUpperCase() === 'PATCH' && /profiles\/k4/.test(String(u))) { raced = true; C.__advance(3600000); await childPlays(C, 'k4', 0.2, 87); B = cloud.prof('k4'); } return orig(u, o); };
+      ok(await enterTest(P, 'k2'), 'E4: testet startar efter att uppladdningen gjorts om');
+      const S = cloud.prof('k4'); const sLog = new Set((S.le.log || []).map(e => JSON.stringify(e)));
+      ok(raced && B && learnOf(B) !== learnOf(A), 'E4: barnet laddade upp B mitt emellan');
+      ok(cloud.log.some(x => x.dev === 'parent' && x.method === 'PATCH-NEKAD'), 'E4: förälderns första uppladdning nekades (versionen hade ändrats)');
+      ok((B.le.log || []).every(e => sLog.has(JSON.stringify(e))) && S.xp >= B.xp, 'E4: barnets B finns kvar i familjens data');
+      ok(S.settings.goal === 9, 'E4: förälderns ändring finns också med');
+      await exitProd(P, cloud, 56);
     }
   } catch (e) { fails++; console.log('EXC', e.stack); }
   finally { try { fs.rmSync(path.join(DIST, 'preview'), { recursive: true, force: true }); } catch (e) { /* ignore */ } }

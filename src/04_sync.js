@@ -10,28 +10,30 @@ const SYNC = {
   // Testadressen (<sajten>/preview/, scripts/build.sh): förälderns testmiljö. Barnprofilerna där är en spegel av familjens data –
   // den hämtar men laddar aldrig upp (nätverksskyddet i testsidan nekar dessutom varje skrivning till profiles/).
   pv() { return typeof window !== 'undefined' && window.PLUGG_PREVIEW === true && window.__PV_LS === true; },
-  status: 'off', lastError: null, pushTimer: null, pending: new Set(), lastPull: {},
+  status: 'off', lastError: null, pushTimer: null, pending: new Set(), lastPull: {}, docTime: {},
   url(kidId) { return `https://firestore.googleapis.com/v1/projects/${SYNC.cfg.projectId}/databases/(default)/documents/families/${encodeURIComponent(SYNC.family)}/profiles/${kidId}?key=${SYNC.cfg.apiKey}`; },
   async pull(kidId) {
     if (!SYNC.active) return null;
     try {
       const r = await SYNC.fetch(SYNC.url(kidId), { cache: 'no-store' });
-      if (r.status === 404) { SYNC.status = 'ok'; return null; }
+      if (r.status === 404) { SYNC.status = 'ok'; SYNC.docTime[kidId] = false; return null; }   // docTime: dokumentets version vid senaste hämtningen (false = finns inte)
       if (!r.ok) throw new Error('HTTP ' + r.status);
-      const doc = await r.json(); const json = doc.fields?.json?.stringValue; const updatedAt = Number(doc.fields?.updatedAt?.integerValue || 0);
+      const doc = await r.json(); SYNC.docTime[kidId] = doc.updateTime || null; const json = doc.fields?.json?.stringValue; const updatedAt = Number(doc.fields?.updatedAt?.integerValue || 0);
       if (!json) return null;
       SYNC.status = 'ok'; SYNC.lastError = null;
       return { profile: JSON.parse(json), updatedAt, serverTime: doc.updateTime ? Date.parse(doc.updateTime) : 0 };
     } catch (e) { SYNC.status = 'error'; SYNC.lastError = e.message; return null; }
   },
-  async push(kidId) {
+  // pre (bara Testa som barnet före start): ladda bara upp om dokumentet är exakt den version som hämtades (annars nekar servern).
+  async push(kidId, pre) {
     if (SYNC.pv()) return false;   // testadressen laddar aldrig upp barnens data
     if (typeof V2 !== 'undefined' && V2.sandbox && V2.sandbox.kidId === kidId) return; // granskning H2: förhandsvisningen laddas aldrig upp
     if (!SYNC.active) return false;
     const p = prof(kidId); const updatedAt = p.updatedAt || Date.now();
     try {
       const body = { fields: { json: { stringValue: JSON.stringify(p) }, updatedAt: { integerValue: String(updatedAt) }, kid: { stringValue: kidId } } };
-      const r = await SYNC.fetch(SYNC.url(kidId) + '&mask.fieldPaths=updatedAt', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      const cond = pre === false ? '&currentDocument.exists=false' : pre ? '&currentDocument.updateTime=' + encodeURIComponent(pre) : '';
+      const r = await SYNC.fetch(SYNC.url(kidId) + '&mask.fieldPaths=updatedAt' + cond, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       if (!r.ok) throw new Error('HTTP ' + r.status);
       SYNC.status = 'ok'; SYNC.lastError = null; p.syncedAt = updatedAt; p.since = { xp: 0, gems: 0, days: {} }; p._lx = p.xp; p._lg = p.gems;
       try { const doc = await r.json(); if (doc && doc.updateTime && typeof LE !== 'undefined') LE.anchor(kidId, Date.parse(doc.updateTime), true); } catch (e) { /* ingen serverklocka – ok */ }

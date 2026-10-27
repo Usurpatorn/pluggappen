@@ -50,10 +50,17 @@ const TM = {
     const fail = (why) => { for (const id of dirtyIds()) SYNC.schedulePush(id); return { ok: false, why }; };   // allt som väntar laddas upp som vanligt senare
     // Ett barn med ändringar som inte sparats i familjens data: först slås de ihop med det som finns där (samma väg som vanlig synk –
     // aldrig en blind uppladdning över en annan enhets nyare data eller en radering), sedan laddas resultatet upp. Fel → false.
+    // Uppladdningen är villkorad: bara om familjens dokument fortfarande är exakt den version som just hämtades. Hann en annan enhet
+    // ladda upp emellan nekar servern, och hämtning + sammanslagning görs om (högst tre gånger) – aldrig en uppladdning över nyare data.
     const settle = async (id) => {
-      const r = await TM.timed(SYNC.refresh(id)); if (r === undefined || SYNC.status !== 'ok') return false;
-      if (!dirty(id)) return true;
-      SYNC.pending.delete(id); return (await TM.timed(SYNC.push(id))) === true;
+      for (let tries = 0; tries < 3; tries++) {
+        delete SYNC.docTime[id];
+        const r = await TM.timed(SYNC.refresh(id)); if (r === undefined || SYNC.status !== 'ok') return false;
+        if (!dirty(id)) return true;
+        const pre = SYNC.docTime[id]; if (pre === undefined || pre === null) return false;   // okänd version → ingen uppladdning
+        SYNC.pending.delete(id); if ((await TM.timed(SYNC.push(id, pre))) === true) return true;
+      }
+      return false;
     };
     // 1. Allt som väntar på att laddas upp (alla barn): sammanslaget och uppladdat – annars inget test.
     for (const id of dirtyIds()) if (!(await settle(id))) return fail(NET);
@@ -85,7 +92,8 @@ const TM = {
     clearTimeout(saveTimer); flushSave();
     if (!TM.preview && SYNC.active && SYNC.pending.size) return TM.msg('Familjens data håller på att synkas. Försök igen om en stund.');   // den vanliga appen: inget får tyst falla ur kön
     SYNC.pending.clear(); clearTimeout(SYNC.pushTimer);   // (testadressen laddar aldrig upp – kön är tom eller betydelselös där)
-    const before = localStorage.__realDump(); const realProfile = JSON.stringify(prof(kidId)); TM.before = before;
+    let before; try { before = localStorage.__realDump(); } catch (e) { return TM.msg('Testläget kunde inte starta: enhetens lagrade data gick inte att läsa. Inget har ändrats.'); }
+    const realProfile = JSON.stringify(prof(kidId)); TM.before = before;
     // Från här: lagringen är en kopia i minnet (för resten av sidans liv) och nätverksskyddet nekar alla skrivningar.
     try { localStorage.__tmBegin(); Object.defineProperty(window, '__PV_TM', { value: true, writable: false, configurable: false }); } catch (e) { /* kontrolleras nedan */ }
     const probe = 'pluggappen.tm.probe'; let isolated = false;
@@ -112,7 +120,7 @@ const TM = {
     if (typeof S !== 'undefined' && S && S.timer) clearInterval(S.timer); try { location.replace(location.pathname + location.search + '#foralder-' + code); } catch (e) { /* ignore */ } TM.reload(); },
   reload() { try { location.reload(); } catch (e) { /* sidan kan inte laddas om: kopian ligger kvar i minnet och sparas ändå aldrig */ } },
   // Efter omladdningen: en rad till föräldern (ingen data bärs över – bara resultatet i adressens #).
-  note(code) { TM.lastNote = code === 'tm1' ? 'Testläget är avslutat. Inget från testet sparades eller skickades: enhetens lagrade data är byte för byte som före testet, och testläget skickar aldrig något till familjens data.' : code === 'tm2' ? 'Testläget startade inte (isoleringen gick inte att garantera). Inget sparades.' : code === 'tm0' ? 'Testläget är avslutat. Testet sparade inget, men den lagrade datan ändrades under testet – troligen av testversionen i en annan flik. Kontrollera barnets läge i den vanliga appen.' : null; },
+  note(code) { TM.lastNote = code === 'tm1' ? 'Testläget är avslutat. Inget från testet sparades eller skickades: enhetens lagrade data är byte för byte som före testet, och testläget skickar aldrig något till familjens data.' : code === 'tm2' ? 'Testläget startade inte (isoleringen gick inte att garantera). Inget sparades.' : code === 'tm0' ? (TM.preview ? 'Testläget är avslutat. Testet sparade inget, men den lagrade datan ändrades under testet – troligen av testversionen i en annan flik. Kontrollera barnets läge i den vanliga appen.' : 'Testläget är avslutat. Testet sparade inget, men den lagrade datan ändrades under testet – troligen av appen i en annan flik. Kontrollera barnets läge.') : null; },
 };
 // Sidan visas igen ur webbläsarens bakåt-cache (t.ex. Safari) mitt i ett test: avsluta i stället för att fortsätta med kopian.
 if (typeof window !== 'undefined' && window.addEventListener) window.addEventListener('pageshow', (e) => { if (e && e.persisted && TM.on) TM.exit(); });
