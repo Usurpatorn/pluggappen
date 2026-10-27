@@ -365,7 +365,9 @@ function kidById(id) { return KIDS.find(k => k.id === id); }
 // Appens namn kommer från familjekonfigurationen (t.ex. "Familjen Xs Pluggapp"); utan konfiguration heter den bara Pluggapp.
 function appName() { return (FAMILY.cfg && FAMILY.cfg.appName) || 'Pluggapp'; }
 function logoHtml() { const n = appName(); const i = n.lastIndexOf(' '); return i > 0 ? `${esc(n.slice(0, i))} <span>${esc(n.slice(i + 1))}</span>` : `<span>${esc(n)}</span>`; }
-function go(screen, extra = {}) { if (S && S.timer) clearInterval(S.timer); if (typeof V2 !== 'undefined' && V2.sandbox && (screen === 'start' || screen === 'parent')) V2.restoreSandbox(); state = { ...state, screen, ...extra }; if (screen === 'start' || screen === 'parent') { state.kid = null; applyLook(null); } else applyLook(kidById(state.kid)); VIEWS[screen](); }
+function go(screen, extra = {}) { if (typeof TM !== 'undefined' && TM.on && (screen === 'start' || screen === 'parent')) return TM.exit();   // byta barn / lämna = avsluta testet (sidan laddas om)
+  if (typeof TM !== 'undefined' && TM.preview && !TM.on && !(typeof V2 !== 'undefined' && V2.sandbox) && !['start', 'parent', 'sync'].includes(screen)) screen = 'start';   // testadressen: barnens vyer bara i testläget
+  if (S && S.timer) clearInterval(S.timer); if (typeof V2 !== 'undefined' && V2.sandbox && (screen === 'start' || screen === 'parent')) V2.restoreSandbox(); state = { ...state, screen, ...extra }; if (screen === 'start' || screen === 'parent') { state.kid = null; applyLook(null); } else applyLook(kidById(state.kid)); VIEWS[screen](); }
 function topbar(title, back, right = '') { return `<div class="topbar"><button class="icon-btn" data-go="${back}" aria-label="Tillbaka">${ICON.back}</button><div class="title grow">${title}</div>${right}</div>`; }
 function daysUntil(dateStr) { const d = new Date(dateStr + 'T00:00:00'); const now = new Date(); now.setHours(0, 0, 0, 0); return Math.round((d - now) / DAYMS); }
 const fmtDate = (s) => new Date(s + 'T00:00:00').toLocaleDateString('sv-SE', { day: 'numeric', month: 'long' });
@@ -394,6 +396,10 @@ VIEWS.start = () => {
     <button class="link" data-go="parent" style="align-self:center;margin-top:8px">Förälder</button>
   </div>`);
   }
+  if (typeof TM !== 'undefined' && TM.preview) return render(`
+  <div class="start-hero stack" style="gap:6px"><div class="logo">${logoHtml()}</div><p class="muted">Testversion – för föräldern</p></div>
+  <div class="stack" style="margin-top:14px"><div class="card stack" style="gap:10px"><p style="font-size:.95rem">Barnen använder den vanliga appen. Här kan du testa som ett av barnen utan att något sparas: <b>Föräldraläge → barnet → Testa som …</b></p>
+    <button class="btn big wide" data-go="parent">Föräldraläge</button><div id="syncState">${SYNC.badge()}</div></div></div>`);
   render(`
   <div class="start-hero stack" style="gap:6px">
     <div class="logo">${logoHtml()}</div>
@@ -1106,7 +1112,7 @@ function endBlitz() {
 let parentUnlocked = false;
 VIEWS.parent = () => {
   if (!parentUnlocked) {
-    render(`${topbar('Föräldraläge', 'start')}
+    render(`${topbar('Föräldraläge', 'start')}${typeof TM !== 'undefined' && TM.lastNote ? `<div class="feedback good" role="status" style="margin-top:12px"><span>✓</span><div>${esc(TM.lastNote)}</div></div>` : ''}
     <div class="stack" style="margin-top:20px"><div class="card pad-lg stack" style="text-align:center;gap:14px"><h2>Ange kod</h2><p class="muted">Fyra siffror. Standardkoden är 1234 – byt den under ⚙.</p>
       <div class="pin">${[0, 1, 2, 3].map(i => `<input inputmode="numeric" maxlength="1" data-pin="${i}" aria-label="Siffra ${i + 1}">`).join('')}</div><p class="muted" id="pinMsg" style="min-height:1.4em"></p></div></div>`);
     const inputs = [...document.querySelectorAll('[data-pin]')]; inputs[0].focus();
@@ -1122,7 +1128,7 @@ VIEWS.parent = () => {
     const p = prof(kid.id);
     const subTabs = [['overview', 'Översikt'], ['exams', 'Prov'], ['decks', 'Glosor'], ['settings', 'Inställningar'], ['v2', 'Motor v2']];
     body = `<div class="seg" style="width:100%;display:flex">${subTabs.map(([id, l]) => `<button class="${sub === id ? 'on' : ''}" style="flex:1" data-sub="${id}">${l}</button>`).join('')}</div>`;
-    if (sub === 'overview') body += parentOverview(kid, p);
+    if (sub === 'overview') body += (typeof TM !== 'undefined' ? TM.card(kid) : '') + parentOverview(kid, p);
     else if (sub === 'exams') body += parentExams(kid, p);
     else if (sub === 'decks') body += parentDecks(kid, p);
     else if (sub === 'v2') body += V2.engineCard(kid) + (V2.engineOf(p) === 'v2' ? V2.insightsCard(kid) + V2.explainCard(kid) + V2.healthCard(kid) : '') + LE.view(kid);
@@ -1144,8 +1150,10 @@ VIEWS.parent = () => {
       <p style="font-size:.95rem"><b>Motivation:</b> följeslagare som växer med XP, tre dagliga uppdrag, ädelstenar och butik, streak med frys, veckoutmaning, märken och blixtläge.</p>
       <p style="font-size:.95rem" class="muted">Framsteg sparas på barnets enhet. Flytta med kod under Översikt.</p></div>`;
   }
+  const tmNote = typeof TM !== 'undefined' && TM.lastNote ? `<div class="feedback good" role="status"><span>✓</span><div>${esc(TM.lastNote)}</div></div>` : ''; if (typeof TM !== 'undefined') TM.lastNote = null;
+  const pvNote = typeof TM !== 'undefined' && TM.preview ? `<div class="muted" style="font-size:.85rem">Testversion: ändringar här sparas inte i familjens data. Gör dem i den vanliga appen.</div>` : '';
   render(`${topbar('Föräldraläge', 'start')}
-  <div class="stack" style="margin-top:6px">
+  <div class="stack" style="margin-top:6px">${tmNote}${pvNote}
     <div class="tabs">${KIDS.map(k => `<button class="${tab === k.id ? 'on' : ''}" data-tab="${k.id}">${esc(k.name)}</button>`).join('')}<button class="${tab === 'settings' ? 'on' : ''}" data-tab="settings">⚙</button></div>
     ${body}
   </div>`);
@@ -1305,6 +1313,8 @@ async function deleteFamilyData() {
 app.addEventListener('click', (e) => {
   const t = e.target;
   const sp = t.closest('[data-speak]'); if (sp) { if (sp.dataset.highlight) speakHighlight(document.getElementById('qtext'), sp.dataset.lang); else TTS.speak(sp.dataset.speak, sp.dataset.lang, sp.dataset.rate ? Number(sp.dataset.rate) : 0.9); return; }
+  const tmBtn = t.closest('[data-tm]'); if (tmBtn && typeof TM !== 'undefined') { if (tmBtn.dataset.tm === 'start') TM.start(tmBtn.dataset.kidId, tmBtn.dataset.exp || null); return; }
+  if (t.closest('[data-tm-exit]') && typeof TM !== 'undefined') return TM.exit();
   const goBtn = t.closest('[data-go]'); if (goBtn) { const dest = goBtn.dataset.go; if (B && B.timer) clearInterval(B.timer); if (dest === 'home' && !state.kid) return go('start'); return go(dest); }
   const kidBtn = t.closest('[data-kid]'); if (kidBtn) { state.kid = kidBtn.dataset.kid; state.subj = null; go('home'); if (SYNC.active && Date.now() - (SYNC.lastPull[state.kid] || 0) > 20000) SYNC.refresh(state.kid).then(ch => { if (ch && state.screen === 'home') VIEWS.home(); }); return; }
   const petBtn = t.closest('[data-pet]'); if (petBtn) { const p = prof(state.kid); p.pet = petBtn.dataset.pet; save(); confetti(); return go('home'); }
@@ -1392,6 +1402,7 @@ function boot(snap) {
   if (SYNC.cfg && SYNC.family) { try { history.replaceState(null, '', location.pathname + '#fam-' + SYNC.family); } catch (e) { /* ignore */ } } // bara familje-id i adressfältet – aldrig parkopplingskoden
   AUTH.load();
   if (SYNC.active) { ensureMembership().then(() => FAMILY.pull()).then((cfgChanged) => FAMILY.pullContent().then(cc => cfgChanged || cc, () => cfgChanged)).then((cfgChanged) => { if (cfgChanged) { load(); if (state.screen === 'start') VIEWS.start(); } return SYNC.refreshAll(); }).then((changed) => { if (state.screen === 'start' || (changed && state.screen === 'home')) VIEWS[state.screen](); }); document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && SYNC.active && state.screen !== 'practice' && state.screen !== 'blitzplay') SYNC.refreshAll().then((changed) => { if (changed && VIEWS[state.screen]) VIEWS[state.screen](); }); }); }
+  if (typeof TM !== 'undefined' && TM.preview) { if (/^foralder-tm[01]$/.test(h)) { TM.note(h.slice(9)); try { history.replaceState(null, '', location.pathname + (SYNC.family ? '#fam-' + SYNC.family : '')); } catch (e) { /* ignore */ } h = 'foralder'; } else if (h !== 'foralder') h = ''; }   // testadressen: inga djuplänkar till barnen
   const [hk, hact] = h.split('-');
   if (snap && snap.kid && kidById(snap.kid)) { state.kid = snap.kid; go('home'); }
   else if (kidById(hk) && hact === 'kor') { state.kid = hk; applyLook(kidById(hk)); const kid = kidById(hk); const p = prof(hk); if (!p.pet) { p.pet = isTeen(kid) || isSport(kid) ? 'none' : PETS[0].id; save(); } if (V2.on(kid)) { go('home'); V2.click({ dataset: { v2: 'kor' } }, kid); } else { LE.nextSrc = 'kor'; startSession(kid, recommendSprint(kid).opts); } }
@@ -1401,4 +1412,4 @@ function boot(snap) {
   else go('start');
 }
 if (!window.PLUGG_STOP) window.claude?.hot?.ready ? window.claude.hot.ready(boot) : boot(window.claude?.hot?.data ?? null);   // PLUGG_STOP: testversionen på fel adress (se scripts/build.sh)
-window.PA = { LE, LE2, LECAT, LER, V2, EXP, RECALL, CHG, PACKS, checkAnswer, answerDisplay, makeQuestion, mergeProfiles, get S() { return S; }, get DB() { return DB; }, get B() { return B; }, Poly, KIDS, TEMPLATES, FAMILY, AUTH, deleteKidData, deleteFamilyData, buildKids, load, flushSave, rerender: () => VIEWS[state.screen] && VIEWS[state.screen](), BUILTIN_DECKS, SYNC, save, setKid: (id) => { state.kid = id; }, version: '3.0' };
+window.PA = { TM: typeof TM !== 'undefined' ? TM : null, LE, LE2, LECAT, LER, V2, EXP, RECALL, CHG, PACKS, checkAnswer, answerDisplay, makeQuestion, mergeProfiles, get S() { return S; }, get DB() { return DB; }, get B() { return B; }, Poly, KIDS, TEMPLATES, FAMILY, AUTH, deleteKidData, deleteFamilyData, buildKids, load, flushSave, rerender: () => VIEWS[state.screen] && VIEWS[state.screen](), BUILTIN_DECKS, SYNC, save, setKid: (id) => { state.kid = id; }, go: (sc) => go(sc), version: '3.0' };

@@ -38,9 +38,15 @@ Repo-variabeln `PREVIEW_REF` = en gren → workflowen "CI – test, bygg, public
 med `PREVIEW=1` till `<sajten>/preview/`. Produktionen publiceras som vanligt. Misslyckas förhandsbygget publiceras produktionen ändå.
 - Inget familjeinnehåll byggs in; enheten kopplas till familjen som en ny enhet och hämtar familjens data via den vanliga synken.
 - Egen lagring (prefix) – produktionens data på samma enhet rörs inte. Ingen service worker, inga push-påminnelser.
-- **Från 3.0.0 är testadressen förälderns testmiljö.** Peka den bara på en gren med "Testa som barnet" (allt i testet kastas och
-  ingenting skrivs till barnens profiler). En gren utan det skriver riktiga bevis i barnens profiler (samma synk) – använd den inte för
-  att testa som ett barn.
+- **Från 3.0.0 är testadressen förälderns testmiljö.** Peka den bara på en gren med "Testa som barnet" (`src/05i_testmode.js`).
+  En gren utan det skriver riktiga bevis i barnens profiler (samma synk) – använd den inte för att testa som ett barn.
+- **Testa som barnet:** Föräldraläge → barnet → *Testa som …* (valfritt: en annan upplevelse, bara i testet). Testet börjar från
+  barnets riktiga läge (hämtas direkt), och sedan är lagringen en kopia i minnet för resten av sidans liv; under testet skickas inga
+  skrivningar alls. *Avsluta testläge*, byta barn, ladda om, stänga eller gå bakåt = sidan laddas om och kopian finns inte längre;
+  vid Avsluta jämförs den lagrade datan byte för byte med läget före testet. Går isoleringen inte att garantera startar testet inte.
+- **Utanför testet** är testadressens barnprofiler en spegel: synken hämtar men laddar aldrig upp, en lokalt ändrad kopia ersätts av
+  familjens data, startsidan visar inga barn och djuplänkar till barn öppnar inget. Nätverksskyddet i testsidan nekar alltid skrivningar
+  till `families/…/profiles/…` (parkopplingen av själva enheten fungerar som vanligt). Prövas i `test_parent_test_mode.js`.
 - Uppdatera testadressen efter nya commits på grenen: kör workflowen igen. Ta bort: radera variabeln och kör workflowen igen.
 
 ## Learning Engine v2 – skuggläge (från 1.2.0, Fas 3B)

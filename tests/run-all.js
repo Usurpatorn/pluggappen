@@ -44,6 +44,7 @@ const suites = [
   ['Experience v3: den sista UX-granskningens fynd (Boss-kopior, provets moment, knappsats, Explore-rubrik, skuldfritt hem, papper)', 'test_ux_v3.js'],
   ['Uttrycksknappsatsen: siffrorna 1–0 i ordning på egen rad även i v1 och Klassisk', 'test_keypad.js'],
   ['Testadressen (förhandsversion): egen lagring, ingen service worker eller push, inget familjeinnehåll', 'test_preview.js'],
+  ['Testa som barnet (testadressen): kopia i minnet, inga skrivningar, byte för byte före = efter, barnet spelar samtidigt', 'test_parent_test_mode.js'],
   ['Experience v3: löfte → utförande för varje primär knapp (Explore/Grow/Achieve/Klassisk × tio tillstånd)', 'test_promise_exec.js'],
 ];
 let failed = 0; const rows = [];

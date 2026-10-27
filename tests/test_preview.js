@@ -32,14 +32,14 @@ try {
     ok(broken !== html, 'testet hittar lagringsskuggningen');
     const dom = new JSDOM(broken, { runScripts: 'dangerously', pretendToBeVisual: true, url: 'https://example.org/pluggappen/preview/', beforeParse(w) { w.scrollTo = () => {}; w.matchMedia = () => ({ matches: false, addEventListener() {} }); w.HTMLCanvasElement.prototype.getContext = () => null; w.localStorage.setItem('pluggappen.v1', '{"marker":"prod"}'); w.addEventListener('error', (e) => e.preventDefault()); } });
     const w3 = dom.window; ok(w3.PLUGG_STOP === true && Object.keys(w3.localStorage).every(k => k === 'pluggappen.v1') && w3.localStorage.getItem('pluggappen.v1') === '{"marker":"prod"}', 'utan egen lagring startar testversionen inte och rör inte produktionens data'); }
-  // löfte → utförande i testversionen: barnet startar KÖR och svarar – allt sparas med prefixet, produktionens data rörs inte
-  { const FIX = require('./test_fixture_family.json'); const PA = w.PA; PA.FAMILY.apply(FIX); PA.load(); PA.rerender(); const $ = (q) => w.document.querySelector(q); const click = (el) => el.dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
-    for (let i = 0; i < 4 && !$('[data-go="parent"]'); i++) { const b = $('[data-go="start"]') || $('[data-go="home"]'); if (!b) break; click(b); }
-    click($('[data-kid="k2"]')); if ($('[data-pet]')) click($('[data-pet]')); const go = $('.go-btn[data-v2="kor"]'); ok(!!go, 'testversionen: barnet ser KÖR');
-    const peek = PA.V2.peekPlan(PA.KIDS.find(k => k.id === 'k2')).plan.map(x => x.cid); click(go); ok(PA.S && PA.S.v2 && JSON.stringify(PA.S.v2.plan.map(x => x.cid)) === JSON.stringify(peek), 'testversionen: KÖR startar den visade planen');
-    const it = PA.S.queue[PA.S.i]; if (it.cat === 'learn') click($('[data-v2="teachok"]')); else if ($('[data-choice]')) click($('[data-choice]')); PA.flushSave();
-    const keys = Object.keys(w.localStorage); ok(keys.filter(k => !k.startsWith('pluggappen-preview:')).every(k => k === 'pluggappen.v1') && keys.includes('pluggappen-preview:pluggappen.dev'), `testversionen: eget enhets-id och bara prefixade nycklar (${keys.length})`);
-    ok(w.localStorage.getItem('pluggappen.v1') === '{"marker":"prod"}', 'testversionen: produktionens data orörd efter ett pass'); }
+  // 3.0.0: testadressen är förälderns testmiljö. Barnen syns inte på startsidan – att spela som ett barn sker bara i "Testa som barnet"
+  // (allt i minnet, inget sparas eller synkas): prövas genom hela flödet i test_parent_test_mode.js (KÖR, FLOW, Testa mig, flera enheter).
+  { const FIX = require('./test_fixture_family.json'); const PA = w.PA; PA.FAMILY.apply(FIX); PA.load(); PA.go('start'); const $ = (q) => w.document.querySelector(q);
+    ok(!$('[data-kid]') && $('[data-go="parent"]') && /för föräldern/.test(w.document.body.textContent), 'testversionen: inga barnkort på startsidan, bara föräldraläget');
+    PA.setKid('k2'); PA.go('home'); ok(!$('[data-v2="kor"]') && !PA.S, 'testversionen: barnets vy öppnas inte utanför testläget');
+    ok(!!PA.TM && PA.TM.available() === true, 'testversionen: "Testa som barnet" finns (lagringen kan kopplas om, nätverksskyddet är på)');
+    PA.flushSave(); const keys = Object.keys(w.localStorage); ok(keys.filter(k => !k.startsWith('pluggappen-preview:')).every(k => k === 'pluggappen.v1'), `testversionen: bara prefixade nycklar (${keys.length})`);
+    ok(w.localStorage.getItem('pluggappen.v1') === '{"marker":"prod"}', 'testversionen: produktionens data orörd'); }
   const w2 = boot('https://example.org/pluggappen/');
   ok(w2.PLUGG_STOP === true && !(w2.document.querySelector('#app') && w2.document.querySelector('#app').children.length), 'på fel adress startar testversionen inte');
 } catch (e) { fails++; console.log('EXC', e.stack); }
