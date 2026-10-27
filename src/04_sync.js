@@ -67,7 +67,8 @@ const SYNC = {
   // lazy: hoppa över när kopian redan är exakt den versionen och inte ändrats lokalt.
   mirror(kidId, remote, lazy) {
     const local = prof(kidId);
-    if (lazy && local && (local.syncedAt || 0) === remote.updatedAt && (local.updatedAt || 0) <= (local.syncedAt || 0)) return false;
+    const clean = local && (local.updatedAt || 0) <= (local.syncedAt || 0);
+    if (lazy && clean && (local.syncedAt || 0) >= remote.updatedAt) return false;   // redan den versionen (eller nyare: ett sent svar rullar aldrig tillbaka)
     const m = { ...defaultProfile(kidId), ...remote.profile, since: { xp: 0, gems: 0, days: {} } }; m.syncedAt = remote.updatedAt; m.updatedAt = remote.updatedAt; m._lx = m.xp; m._lg = m.gems;
     DB.profiles[kidId] = m; rollover(m); try { localStorage.setItem(STORE_KEY, dbJSON()); } catch (e) { /* ignore */ }
     if (typeof LE !== 'undefined') { LE.invalidate(kidId); if (remote.serverTime) LE.anchor(kidId, remote.serverTime); }

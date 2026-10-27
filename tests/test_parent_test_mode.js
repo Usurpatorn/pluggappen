@@ -52,14 +52,19 @@ function mk({ html, url, dev, cloud, storage = null, seed = 1, now = T_FIXED, tw
   } });
   const w = dom.window; w.__dev = dev; return w;
 }
-const realDump = (w) => { const o = {}; for (let i = 0; i < w.localStorage.length; i++) { const k = w.localStorage.key(i); o[k] = w.localStorage.getItem(k); } return o; };
+const realDump = (w) => { const o = {}; for (let i = 0; i < w.localStorage.length; i++) { const k = w.localStorage.key(i); if (k.startsWith('pluggappen-preview:')) o[k] = w.localStorage.getItem(k); } return o; };   // testversionens lagrade data (produktionens nyckel kontrolleras för sig)
+const allStored = (w) => { const o = {}; for (let i = 0; i < w.localStorage.length; i++) { const k = w.localStorage.key(i); o[k] = w.localStorage.getItem(k); } return o; };
 const same = (a, b) => JSON.stringify(Object.keys(a).sort().map(k => [k, a[k]])) === JSON.stringify(Object.keys(b).sort().map(k => [k, b[k]]));
 const until = async (fn, ms = 3000) => { const t0 = Date.now(); while (!fn() && Date.now() - t0 < ms) await sleep(10); return fn(); };
 const unlock = (w) => { const T = tools(w); const { $, click } = T; if (!$('[data-pin]')) click($('[data-go="parent"]')); const pins = [...w.document.querySelectorAll('[data-pin]')]; if (pins.length) ['1', '2', '3', '4'].forEach((d, i) => { pins[i].value = d; pins[i].dispatchEvent(new w.Event('input', { bubbles: true })); }); };
 const learnFields = ['le', 'xp', 'gems', 'skills', 'mistakes', 'mistakesCleared', 'tests', 'badges', 'exams', 'v3', 'words', 'settings', 'sessions', 'perfect', 'blitz', 'unlocked', 'pet'];   // allt barnet lärt och fått (dygnsomslaget räknas om på varje enhet)
 const canon = (v) => Array.isArray(v) ? v.map(canon) : v && typeof v === 'object' ? Object.fromEntries(Object.keys(v).sort().map(k => [k, canon(v[k])])) : v;
 const learnOf = (p) => JSON.stringify(canon(Object.fromEntries(learnFields.map(k => [k, p && k === 'le' && p.le ? { ...p.le, srv: undefined } : p ? p[k] : undefined]))));   // le.srv = enhetens senaste serverklocka (räknas om vid varje hämtning)   // innehållet, oberoende av nycklarnas ordning
-const hasTestDev = (s) => /~t[":,]/.test(s);
+// Testbevisens enhetsmärkning (~t) – sökt i AVKODADE värden (dokumentens json och lagringens JSON), så att både löpnummer (dev:seq),
+// enhetsfält och seqs-nycklar hittas (granskning: sökning i flerfaldigt kodad text missade allt utom dev:seq)
+const decodeAll = (v) => { if (typeof v === 'string') { try { const j = JSON.parse(v); if (j && typeof j === 'object') return decodeAll(j); } catch (e) { /* vanlig text */ } return v; } if (Array.isArray(v)) return v.map(decodeAll); if (v && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, decodeAll(x)])); return v; };
+const hasTestDev = (x) => /~t(["':]|$)/m.test(JSON.stringify(decodeAll(typeof x === 'string' ? x : x)));
+const PROD_KEY = '{"marker":"produktionens data på samma enhet"}';
 
 // Barnets riktiga enhet (produktionen): kopplad till familjen, spelar riktiga pass och laddar upp.
 async function childDevice(cloud, seed) {
@@ -75,7 +80,7 @@ async function childPlays(C, kidId, wrongP, seed) {
 }
 // Testenheten (testadressen): kopplad till familjen, speglar familjens data.
 async function previewDevice(cloud, seed, storage, now) {
-  const P = mk({ html: PV_HTML, url: PV_URL, dev: 'preview', cloud, seed, storage, now }); await sleep(30);
+  const P = mk({ html: PV_HTML, url: PV_URL, dev: 'preview', cloud, seed, storage: storage || { 'pluggappen.v1': PROD_KEY }, now }); await sleep(30);
   if (!storage) { P.PA.DB.settings.family = FAM; P.PA.flushSave(); await P.PA.FAMILY.pull(); P.PA.load(); }
   await P.PA.SYNC.refreshAll(); P.PA.rerender(); return P;
 }
@@ -90,7 +95,7 @@ async function exitAndReload(P, cloud, seed, how = 'exit') {
   let reloaded = false; P.PA.TM.reload = () => { reloaded = true; }; const T = tools(P);
   if (how === 'exit') T.click(P.document.querySelector('#tmBar [data-tm-exit]'));
   else if (how === 'start') { P.PA.go('home'); const b = P.document.querySelector('#app [data-go="start"]'); ok(!!b, 'byta barn: barnets vy har tillbaka-knappen till start'); if (b) T.click(b); }
-  const hash = P.location.hash; const stored = realDump(P);
+  const hash = P.location.hash; const stored = allStored(P);
   const P2 = mk({ html: PV_HTML, url: PV_URL + (how === 'drop' ? '' : hash), dev: 'preview-omladdad', cloud, seed, storage: stored, now: P.__now() }); await sleep(60); await until(() => P2.PA && P2.PA.SYNC.status !== 'off', 1500); await sleep(60);
   return { P2, reloaded, hash };
 }
@@ -108,11 +113,14 @@ async function exitAndReload(P, cloud, seed, how = 'exit') {
       const A = cloud.prof('k8');
       ok(A && learnOf(P.PA.DB.profiles.k8) === learnOf(A), 'Åttan: testadressen har barnets riktiga läge (spegel av familjens data)');
       const cloud0 = cloud.snap(); const logStart = cloud.log.length;
+      const inflight = P.PA.SYNC.refresh('k8');   // en hämtning som redan pågår när testet startar
       ok(await enterTest(P, 'k8'), 'Åttan: testläget startar från föräldraläget');
+      ok(await inflight === false, 'Åttan: en hämtning som pågick när testet startade ändrar ingenting');
       const TM = P.PA.TM; const before = TM.before; ok(before && same(realDump(P), before), 'Åttan: ögonblicksbilden = lagrad data när testet startar');
       const logTm = cloud.log.length; const T = tools(P); const { $, click } = T; const D = v2tools(P, T); const r = rng(31);
       ok(/TESTLÄGE – inget sparas/.test($('#tmBar').textContent) && $('#tmBar [data-tm-exit]') && /Avsluta testläge/.test($('#tmBar').textContent), 'Åttan: förälderns markering "TESTLÄGE – inget sparas" och "Avsluta testläge"');
       ok(!/TESTLÄGE|testläge|inget sparas/i.test($('#app').textContent), 'Åttan: ingen testtext i barnets egen vy');
+      ok(!$('#app [data-go="sync"]'), 'Åttan: ingen synkkod under testet (kopian kan inte lämna sidan)'); { const sc = P.PA.S; P.PA.go('sync'); ok(!$('#syncArea') && !$('[data-act="syncCopy"]') && P.PA.S === sc, 'Åttan: synkvyn öppnas inte under testet'); }
       ok(/Matteprov/.test($('#app').textContent) && P.PA.EXP.of(P.PA.KIDS.find(k => k.id === 'k8')) === 'achieve', 'Åttan: samma upplevelse (Achieve) och samma prov som barnet ser');
       const xp0 = P.PA.DB.profiles.k8.xp, log0 = ((P.PA.DB.profiles.k8.le || {}).log || []).length;
       // CORE med rätt och fel
@@ -122,7 +130,8 @@ async function exitAndReload(P, cloud, seed, how = 'exit') {
       let flows = 0; for (let i = 0; i < 3; i++) { P.PA.go('home'); const f = $('[data-v2="flow"]'); if (!f) break; click(f); D.run(() => r() < 0.3, 60); flows++; }
       ok(flows >= 2, `Åttan: flera FLOW-block i testet (${flows})`);
       // Testa mig (provet)
-      P.PA.go('home'); const tm = $('[data-v2="testa"]'); let examOn = false; if (tm) { click(tm); examOn = !!(P.PA.S && P.PA.S.v2 && P.PA.S.v2.exam); D.run(() => r() < 0.3, 60); } ok(!!tm && examOn, 'Åttan: Testa mig startar och spelas i testet');
+      P.PA.go('home'); const tm = $('[data-v2="testa"]'); let examOn = false; const exLog0 = ((P.PA.DB.profiles.k8.le || {}).log || []).length; if (tm) { click(tm); examOn = !!(P.PA.S && P.PA.S.v2 && P.PA.S.v2.exam); D.run(() => r() < 0.3, 60); }
+      ok(!!tm && examOn && ((P.PA.DB.profiles.k8.le || {}).log || []).length > exLog0, 'Åttan: Testa mig spelas i testet och ger resultat i kopian');
       // barnet använder produktionen SAMTIDIGT på sin egen enhet → riktigt läge B
       C.__advance(3600000); await childPlays(C, 'k8', 0.2, 41); const B = cloud.prof('k8');
       ok(B && learnOf(B) !== learnOf(A), 'Åttan: barnets samtidiga riktiga pass finns i familjens data (läge B)');
@@ -147,7 +156,7 @@ async function exitAndReload(P, cloud, seed, how = 'exit') {
       const { P2, reloaded, hash } = await exitAndReload(P, cloud, 22);
       ok(reloaded && hash === '#foralder-tm1', `Avsluta: kontrollen före omladdning = oförändrat (${hash}), sidan laddas om`);
       ok(same(realDump(P), before), 'Avsluta: lagrad data byte för byte som före testet');
-      ok(!P2.PA.TM.on && /Testläget är avslutat\. Inget sparades/.test(P2.document.body.textContent) && P2.document.querySelector('[data-pin]'), 'Avsluta: tillbaka i föräldraläget (koden) med beskedet');
+      ok(!P2.PA.TM.on && /Testläget är avslutat\. Inget från testet sparades/.test(P2.document.body.textContent) && P2.document.querySelector('[data-pin]'), 'Avsluta: tillbaka i föräldraläget (koden) med beskedet');
       ok(learnOf(cloud.prof('k8')) === learnOf(B), 'Samtidigt: barnets läge B gäller i familjens data');
       ok(learnOf(P2.PA.DB.profiles.k8) === learnOf(B), 'Samtidigt: testenheten speglar barnets läge B efter testet (nästa synk konvergerar)');
       ok(cloud.writes('preview').length === 0, `Ingen skrivning från testenheten någonsin (${cloud.writes('preview').map(x => x.method + ' ' + x.path).join(', ')})`);
@@ -157,6 +166,7 @@ async function exitAndReload(P, cloud, seed, how = 'exit') {
       ok(C.PA.DB.profiles.k8.xp === cloud.prof('k8').xp && P2.PA.DB.profiles.k8.xp === B.xp, `Belöningar: inga dubbletter (barnet ${C.PA.DB.profiles.k8.xp}, familjen ${cloud.prof('k8').xp}, testenheten ${P2.PA.DB.profiles.k8.xp})`);
       const Cbefore = learnOf(C.PA.DB.profiles.k8); const ch = await C.PA.SYNC.refresh('k8'); ok(ch === false && learnOf(C.PA.DB.profiles.k8) === Cbefore, 'Barnets enhet: nästa synk ändrar inget (inget från testet att hämta)');
       ok(((B.le || {}).log || []).length >= ((A.le || {}).log || []).length, 'Inga riktiga bevis försvann');
+      ok(P.localStorage.getItem('pluggappen.v1') === PROD_KEY && P2.localStorage.getItem('pluggappen.v1') === PROD_KEY, 'Produktionens data på samma enhet orörd genom hela testet');
       void logStart;
     }
 
@@ -232,7 +242,9 @@ async function exitAndReload(P, cloud, seed, how = 'exit') {
         const d1 = realDump(W); const T = tools(W);
         ok(W.PA.TM.on && W.PA.TM.on.broken && /kunde inte starta/i.test(W.document.body.textContent) && !T.$('[data-v2="kor"]'), 'Trasig isolering: testläget startar inte (barnets vy visas inte)');
         const V1 = 'pluggappen-preview:pluggappen.v1'; ok(Object.keys(d1).length === Object.keys(d0).length && Object.keys(d1).every(k => k === V1 || d1[k] === d0[k]) && learnOf(JSON.parse(d1[V1]).profiles.k8) === learnOf(JSON.parse(d0[V1]).profiles.k8), 'Trasig isolering: barnets lagrade bevis orörda, provnyckeln borttagen');
-        ok(!W.PA.SYNC.active && cloud.writes('preview').length === 0, 'Trasig isolering: ingen synk, inga skrivningar'); }
+        ok(!W.PA.SYNC.active && cloud.writes('preview').length === 0, 'Trasig isolering: ingen synk, inga skrivningar');
+        const sc0 = W.PA.S; W.PA.setKid('k8'); W.PA.go('home'); ok(W.PA.S === sc0 && !T.$('[data-v2="kor"]'), 'Trasig isolering: barnets vyer går inte att öppna');
+        W.PA.TM.reload = () => {}; T.click(W.document.querySelector('[data-tm-exit]')); ok(W.location.hash === '#foralder-tm2', `Trasig isolering: Tillbaka ger ett eget besked, inget falsklarm (${W.location.hash})`); }
       // utan nät och med en lokalt ändrad kopia: vägras (det riktiga läget går inte att garantera)
       { const P = await previewDevice(cloud, 28); P.PA.DB.profiles.k8.xp += 7; P.PA.DB.profiles.k8.updatedAt = (P.PA.DB.profiles.k8.syncedAt || 0) + 5; P.PA.flushSave();
         const cf = cloud.fetchFor; void cf; const d0 = realDump(P); P.PA.SYNC.cfg = { ...P.PA.SYNC.cfg, projectId: 'offline-test' };   // pull mot fel projekt → 403 = "fel"
@@ -259,6 +271,11 @@ async function exitAndReload(P, cloud, seed, how = 'exit') {
       try { await P.fetch(`https://firestore.googleapis.com/v1/projects/pluggappen/databases/(default)/documents/families/${FAM}/profiles?key=x`, { method: 'POST', body: '{}' }); } catch (e) { rej++; }
       const m0 = cloud.log.length; await P.fetch(`https://firestore.googleapis.com/v1/projects/pluggappen/databases/(default)/documents/families/${FAM}/members/u1?key=x`, { method: 'PATCH', body: '{}' });
       ok(rej === 2 && cloud.log.length === m0 + 1 && cloud.writes('preview').filter(x => /profiles/.test(x.path)).length === 0, 'Nätverksskyddet: skrivning till profiles nekas, medlemskap släpps igenom');
+      let rej2 = 0; for (const [m, u] of [['DELETE', `families/${FAM}/members/u1`], ['PATCH', `families/${FAM}/meta/info?key=x&updateMask.fieldPaths=joinCode&updateMask.fieldPaths=rotatedAt`], ['PATCH', `families/${FAM}/members/u2?key=x&updateMask.fieldPaths=role`]]) { try { await P.fetch(`https://firestore.googleapis.com/v1/projects/pluggappen/databases/(default)/documents/${u}`, { method: m, body: '{}' }); } catch (e) { rej2++; } }
+      ok(rej2 === 3, 'Nätverksskyddet: radering, byte av parkopplingskod och byte av roll nekas i testversionen');
+      unlock(P); T.click(P.document.querySelector('[data-tab="settings"]'));
+      ok(!P.document.querySelector('[data-act="deleteFamilyData"], [data-act="copyFamLink"], #memberList') && /hanteras i den vanliga appen/.test(P.document.body.textContent), 'Testversionen: familj, enheter och radering hanteras inte här');
+      { P.PA.FAMILY.update(c => { c.kids[0].name = 'Ändrad i testversionen'; }); await P.PA.FAMILY.pull(); ok(P.PA.FAMILY.cfg.kids[0].name !== 'Ändrad i testversionen' && JSON.stringify(P.PA.FAMILY.cfg) === JSON.stringify(JSON.parse(JSON.parse(cloud.docs[`families/${FAM}/profiles/_config`]).fields.json.stringValue)), 'Testversionen: familjens inställningar är en spegel (lokal ändring ersätts)'); }
       let reassigned = false; try { P.fetch = () => Promise.resolve({ ok: true }); reassigned = P.fetch.toString().includes('ok: true'); } catch (e) { reassigned = false; }
       ok(!reassigned, 'Nätverksskyddet går inte att byta ut');
       ok(Object.isFrozen(P.eval('localStorage')) && P.eval('localStorage') !== P.localStorage, 'Testadressens lagring är fryst och skild från webbläsarens');
