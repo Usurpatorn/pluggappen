@@ -13,6 +13,7 @@
      G  fel och nya försök: ingenting tas bort ur uppladdningskön förrän skrivningen bekräftats; nya försök sker av sig själva
    Varje fall kontrollerar bevisloggen, XP/diamanter, ord, Felboken, inställningar, upplevelsen och andra fält. */
 'use strict';
+const { withCommit } = require('./le/fscommit.js');
 const fs = require('fs'); const path = require('path');
 const { JSDOM } = require('jsdom');
 const { rng, T_FIXED, tools } = require('./le/childflow.js');
@@ -49,7 +50,7 @@ function mk(cloud, dev, seed, now = T_FIXED) {
   const dom = new JSDOM(PROD_HTML, { runScripts: 'dangerously', pretendToBeVisual: true, url: URL0, beforeParse(w) {
     w.scrollTo = () => {}; w.matchMedia = () => ({ matches: false, addEventListener() {} }); w.HTMLCanvasElement.prototype.getContext = () => null;
     w.Math.random = rng(seed); const RD = w.Date; let t = now; class FD extends RD { constructor(...a) { if (a.length) super(...a); else super(t); } static now() { return t; } } w.Date = FD; w.__advance = (ms) => { t += ms; }; w.__now = () => t;
-    w.fetch = cloud.fetchFor(dev, () => w.__now()); w.addEventListener('error', (e) => { e.preventDefault(); if (process.env.DBG) console.log('PAGEERR', dev, e.error && e.error.stack); });
+    w.fetch = withCommit(cloud.fetchFor(dev, () => w.__now())); w.addEventListener('error', (e) => { e.preventDefault(); if (process.env.DBG) console.log('PAGEERR', dev, e.error && e.error.stack); });
     w.speechSynthesis = { getVoices: () => [], speak() {}, cancel() {}, onvoiceschanged: null }; w.SpeechSynthesisUtterance = function () {};
   } });
   const w = dom.window; w.__dev = dev; return w;
@@ -232,7 +233,8 @@ const core = (p) => JSON.stringify(canon(Object.fromEntries(Object.entries(p || 
       C.__advance(DAY); const P = await device(cloud, 'förälder', 112, C.__now()); const pSynced = P.PA.DB.profiles.k4.syncedAt;
       C.__advance(3600000); await play(C, 'k4', 0.3, 63); C.PA.flushSave(); offline(C); C.PA.SYNC.pending.clear(); clearTimeout(C.PA.SYNC.pushTimer); clearTimeout(C.PA.SYNC.retryTimer);
       cloud.put('k4', JSON.parse(JSON.stringify(C.PA.DB.profiles.k4)), pSynced); const B = cloud.prof('k4');   // blind skrivning, tidsstämpel = förälderns senaste synk
-      delete P.PA.DB.syncBase; P.__advance(2 * 3600000); edit(P, 'k4', (p) => { p.settings.goal = 9; }); await settle(P, 8000);
+      delete P.PA.DB.syncBase; P.PA.flushSave(); P.PA.load();   // som en omstart med den nya versionen (ingen bas ännu)
+      P.__advance(2 * 3600000); edit(P, 'k4', (p) => { p.settings.goal = 9; }); await settle(P, 8000);
       const S = cloud.prof('k4'); keptAll(S, B, 'J'); ok(S.settings.goal === 9, 'J: förälderns ändring finns med');
     }
     // K (S1): skrivningen kom fram men svaret gick förlorat – XP, diamanter och dagens räknare räknas inte två gånger
@@ -247,7 +249,7 @@ const core = (p) => JSON.stringify(canon(Object.fromEntries(Object.entries(p || 
     // L (S2): ett sent svar med en äldre version rullar aldrig tillbaka enheten
     {
       const cloud = mkCloud(); const C = await firstDevice(cloud, 'barn', 131); await play(C, 'k2', 0.3, 66); await settle(C);
-      const orig = cloud.fetchFor('barn', () => C.__now()); let gate = null, release;
+      const orig = withCommit(cloud.fetchFor('barn', () => C.__now())); let gate = null, release;
       C.fetch = async (url, opts = {}) => { const r = await orig(url, opts); if (gate && String(opts.method || 'GET') === 'GET') { const body = r.ok ? await r.json() : null; const g = gate; gate = null; await g; return { ok: r.ok, status: r.status, json: async () => body }; } return r; };
       C.__advance(3600000); await play(C, 'k2', 0.3, 67); const xpLocal = C.PA.DB.profiles.k2.xp;
       gate = new Promise(res => { release = res; }); const late = C.PA.SYNC.refresh('k2');
@@ -258,8 +260,21 @@ const core = (p) => JSON.stringify(canon(Object.fromEntries(Object.entries(p || 
     {
       const cloud = mkCloud(); const P = await firstDevice(cloud, 'förälder', 141); let boom = 1; const orig = P.PA.SYNC.refresh;
       P.PA.SYNC.refresh = async (...a) => { if (boom > 0) { boom--; throw new Error('trasig profil'); } return orig.apply(P.PA.SYNC, a); };
-      delete P.PA.DB.syncBase; edit(P, 'k8', (p) => { p.settings.goal = 17; }); await settle(P, 12000); P.PA.SYNC.refresh = orig;
+      P.PA.DB.syncBase.k8.t = null; edit(P, 'k8', (p) => { p.settings.goal = 17; });   // okänd version → omgången börjar med en hämtning (som kastar) await settle(P, 12000); P.PA.SYNC.refresh = orig;
       await settle(P, 12000); ok(cloud.prof('k8').settings.goal === 17 && !P.PA.SYNC.pending.size, 'M: ett undantag i en omgång – nytt försök senare, ändringen kommer fram');
+    }
+
+    // N (granskning G1): första starten efter uppdateringen – ingen bas. Föräldern ändrar direkt (ingen navigering emellan som sparar
+    //    först): ett mål, raderar ett prov och lägger till ett nytt. Alla tre ändringarna ska komma fram och stå sig.
+    {
+      const cloud = mkCloud(); const P = await firstDevice(cloud, 'förälder', 151); P.PA.setKid('k8'); P.PA.go('home'); await settle(P);
+      const ex0 = P.PA.DB.profiles.k8.exams[0].id;
+      delete P.PA.DB.syncBase; P.PA.flushSave(); P.PA.load(); P.PA.setKid('k8');   // omstart med den nya versionen, utan bas
+      const p = P.PA.DB.profiles.k8; p.settings.goal = 9; p.exams = p.exams.filter(x => x.id !== ex0); p.removedDefaults = [...(p.removedDefaults || []), ex0];
+      p.exams.push({ id: 'nytt1', title: 'Nytt prov', date: '2026-12-20', skillIds: [], deckIds: [] }); P.PA.save(); await settle(P, 8000);
+      const S = cloud.prof('k8');
+      ok(S.settings.goal === 9 && S.exams.some(e => e.id === 'nytt1') && !S.exams.some(e => e.id === ex0), `N: alla tre ändringarna står sig utan bas (mål ${S.settings.goal}, nytt prov ${S.exams.some(e => e.id === 'nytt1')}, raderat ${!S.exams.some(e => e.id === ex0)})`);
+      ok(P.PA.DB.profiles.k8.settings.goal === 9 && !P.PA.DB.profiles.k8.exams.some(e => e.id === ex0), 'N: och på enheten');
     }
 
     /* ================= Återgång (rollback): profilernas format är oförändrat ================= */

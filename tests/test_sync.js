@@ -1,4 +1,4 @@
-const { JSDOM } = require('jsdom'); const fs = require('fs');
+const { JSDOM } = require('jsdom'); const fs = require('fs'); const { withCommit } = require('./le/fscommit.js');
 const html = fs.readFileSync(__dirname + '/../dist/index.html', 'utf8').replace(/<script src=[^>]+><\/script>/, '').replace('"__FIREBASE_PROJECT_ID__"', '"demo"').replace('"__FIREBASE_API_KEY__"', '"key"');
 const cloud = {}; // path -> doc
 let writeClock = 0;
@@ -14,7 +14,7 @@ const mkFetch = (log) => async (url, opts = {}) => {
 function device(name, storage) {
   const dom = new JSDOM('<!doctype html>' + html, { runScripts: 'outside-only', pretendToBeVisual: true, url: 'https://plugg.example/' });
   const w = dom.window; w.scrollTo = () => {}; w.matchMedia = () => ({ matches: false }); w.HTMLCanvasElement.prototype.getContext = () => null;
-  const log = []; w.fetch = mkFetch(log); w.__log = log;
+  const log = []; w.fetch = withCommit(mkFetch(log)); w.__log = log;
   if (storage) for (const [k, v] of Object.entries(storage)) w.localStorage.setItem(k, v);
   // run scripts manually (outside-only) in order
   for (const sc of [...dom.window.document.querySelectorAll('script')]) if (sc.textContent.trim()) w.eval(sc.textContent);

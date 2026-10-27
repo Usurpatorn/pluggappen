@@ -1,4 +1,4 @@
-// 3.2.2 Synkens integritet: appens villkorade skrivning (PATCH …?currentDocument.updateTime=… / currentDocument.exists=false) mot
+// 3.2.2 Synkens integritet: appens villkorade skrivning (documents:commit med currentDocument.updateTime / exists=false i kroppen) mot
 // Googles Firestore-emulator. Körs i CI inuti `firebase emulators:exec` (FIRESTORE_EMULATOR_HOST). SYNTETISKA data.
 // Visar att Firestore förstår villkoren i samma form som appen skickar dem (src/04_sync.js SYNC.push), att en inaktuell version
 // nekas, och att appens klassning av svaret ("konflikt – hämta, slå ihop, försök igen" i stället för fel) stämmer med Firestores svar.
@@ -14,23 +14,30 @@ if (!line) { console.error('SYNC_IS_CONFLICT saknas i src/04_sync.js'); process.
 const isConflict = new Function(line.replace('const SYNC_IS_CONFLICT = ', 'return ').replace(/;\s*$/, ''))();
 let fails = 0; const seen = []; const check = (name, cond, extra = '') => { console.log(`${cond ? 'ok  ' : 'FAIL'} ${name}${extra ? ' – ' + extra : ''}`); seen.push(`${cond ? 'ok' : 'FEL'}: ${name}${extra ? ' (' + extra + ')' : ''}`); if (!cond) { fails++; if (process.env.GITHUB_ACTIONS) console.log(`::error::Synkens villkor: ${name}${extra ? ' – ' + extra : ''}`); } };
 const body = (n) => JSON.stringify({ fields: { json: { stringValue: JSON.stringify({ xp: n }) }, updatedAt: { integerValue: String(1000 + n) }, kid: { stringValue: 'k1' } } });
-const patch = async (cond, n) => { const r = await fetch(URL0 + '&mask.fieldPaths=updatedAt' + cond, { method: 'PATCH', headers: H, body: body(n) }); let j = null; try { j = await r.json(); } catch (e) { /* inget */ } return { r, j, st: (j && j.error && j.error.status) || '' }; };
+// samma skrivning som SYNC.push: documents:commit, förvillkoret i JSON-kroppen
+const COMMIT = `http://${process.env.FIRESTORE_EMULATOR_HOST}/v1/projects/demo-pluggappen/databases/(default)/documents:commit?key=x`;
+const NAME = (kid) => `projects/demo-pluggappen/databases/(default)/documents/families/${FAM}/profiles/${kid}`;
+const commit = async (kid, pre, n) => { const w = { update: { name: NAME(kid), fields: JSON.parse(body(n)).fields }, updateMask: { fieldPaths: ['json', 'updatedAt', 'kid'] }, currentDocument: pre === false ? { exists: false } : { updateTime: pre } };
+  const r = await fetch(COMMIT, { method: 'POST', headers: H, body: JSON.stringify({ writes: [w] }) }); let j = null; try { j = await r.json(); } catch (e) { /* inget */ }
+  return { r, j, st: (j && j.error && j.error.status) || '', ut: (j && j.writeResults && j.writeResults[0] && j.writeResults[0].updateTime) || (j && j.commitTime) || null, msg: (j && j.error && String(j.error.message || '').split(FAM).join('<familj>').slice(0, 160)) || '' }; };
+const patch = async (cond, n) => { const pre = /exists=false/.test(cond) ? false : decodeURIComponent((cond.match(/updateTime=([^&]+)/) || [])[1] || ''); const x = await commit('k1', pre, n); x.j = x.j && x.ut ? { ...x.j, updateTime: x.ut } : x.j; return x; };
 const get = async () => { const r = await fetch(URL0, { headers: H }); return r.status === 404 ? null : r.json(); };
 
 let x = await patch('&currentDocument.exists=false', 1);
 check('skapa: exists=false när dokumentet inte finns', x.r.ok && !!(x.j && x.j.updateTime), `HTTP ${x.r.status} ${x.st} ${JSON.stringify(x.j).slice(0, 200)}`); const t1 = x.j && x.j.updateTime;
-check('svaret (mask updatedAt) har updateTime', !!t1);
+check('svaret har den nya versionen (writeResults[0].updateTime)', !!t1);
 x = await patch('&currentDocument.exists=false', 2);
 check('exists=false när dokumentet finns: nekas som konflikt', !x.r.ok && isConflict(x.r.status, x.st), `HTTP ${x.r.status} ${x.st}`);
 let d = await get(); check('…och ingenting skrevs', d && JSON.parse(d.fields.json.stringValue).xp === 1 && d.updateTime === t1);
 x = await patch('&currentDocument.updateTime=' + encodeURIComponent(t1), 3);
-check('villkorad skrivning med rätt version', x.r.ok && x.j.updateTime && x.j.updateTime !== t1, `HTTP ${x.r.status}`); const t2 = x.j && x.j.updateTime;
+check('villkorad skrivning med rätt version', x.r.ok && x.j && x.j.updateTime && x.j.updateTime !== t1, `HTTP ${x.r.status} ${x.st} ${x.msg}`); const t2 = x.j && x.j.updateTime;
 x = await patch('&currentDocument.updateTime=' + encodeURIComponent(t1), 4);
-check('inaktuell version: nekas som konflikt', !x.r.ok && isConflict(x.r.status, x.st), `HTTP ${x.r.status} ${x.st}`);
+check('inaktuell version: nekas som konflikt', !x.r.ok && isConflict(x.r.status, x.st), `HTTP ${x.r.status} ${x.st} ${x.msg}`);
 d = await get(); check('…och den nyare versionen ligger kvar', d && JSON.parse(d.fields.json.stringValue).xp === 3 && d.updateTime === t2);
 check('hämtningens updateTime = senaste skrivningens', d && d.updateTime === t2);
+const x6 = await commit('k1', d && d.updateTime, 6); check('villkor = hämtningens updateTime (så som appen gör efter en hämtning): skrivs', x6.r.ok && !!x6.ut, `HTTP ${x6.r.status} ${x6.st} ${x6.msg}`);
 const URL_MISSING = URL0.replace('/profiles/k1?', '/profiles/k2?');
-const r5 = await fetch(URL_MISSING + '&mask.fieldPaths=updatedAt&currentDocument.updateTime=' + encodeURIComponent(t2), { method: 'PATCH', headers: H, body: body(5) }); let j5 = null; try { j5 = await r5.json(); } catch (e) { /* inget */ }
-check('villkor på en version när dokumentet inte finns: nekas som konflikt', !r5.ok && isConflict(r5.status, (j5 && j5.error && j5.error.status) || ''), `HTTP ${r5.status}`);
+void URL_MISSING; const x5 = await commit('k2', t2, 5);
+check('villkor på en version när dokumentet inte finns: nekas som konflikt', !x5.r.ok && isConflict(x5.r.status, x5.st), `HTTP ${x5.r.status} ${x5.st} ${x5.msg}`);
 if (process.env.GITHUB_ACTIONS) console.log(`::notice::Synkens villkor i emulatorn: ${seen.length - fails} av ${seen.length} – ${seen.join(' | ')}`.slice(0, 3000));
 console.log(fails ? `SYNC PRECONDITION TEST FAILED (${fails})` : 'SYNC PRECONDITION TEST OK'); process.exit(fails ? 1 : 0);

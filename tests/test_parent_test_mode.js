@@ -9,6 +9,7 @@
    produktionen samtidigt (Åttan och Tvåan) · avsluta · stänger säkert (vanliga appen, gammal lagring, trasig isolering, utan nät,
    utan föräldraläge) · testadressen utanför testet (spegel, nätverksskydd, inga barnvyer). */
 'use strict';
+const { withCommit } = require('./le/fscommit.js');
 const { execFileSync } = require('child_process'); const fs = require('fs'); const path = require('path');
 const { JSDOM } = require('jsdom');
 const { rng, T_FIXED, tools } = require('./le/childflow.js');
@@ -47,7 +48,7 @@ function mk({ html, url, dev, cloud, storage = null, seed = 1, now = T_FIXED, tw
   const dom = new JSDOM(tweak ? tweak(html) : html, { runScripts: 'dangerously', pretendToBeVisual: true, url, beforeParse(w) {
     w.scrollTo = () => {}; w.matchMedia = () => ({ matches: false, addEventListener() {} }); w.HTMLCanvasElement.prototype.getContext = () => null;
     w.Math.random = rng(seed); const RD = w.Date; let t = now; class FD extends RD { constructor(...a) { if (a.length) super(...a); else super(t); } static now() { return t; } } w.Date = FD; w.__advance = (ms) => { t += ms; }; w.__now = () => t;
-    w.fetch = cloud.fetchFor(dev); w.addEventListener('error', (e) => e.preventDefault());
+    w.fetch = withCommit(cloud.fetchFor(dev)); w.addEventListener('error', (e) => e.preventDefault());
     if (storage) for (const [k, v] of Object.entries(storage)) w.localStorage.setItem(k, v);
   } });
   const w = dom.window; w.__dev = dev; return w;
@@ -278,6 +279,8 @@ async function exitAndReload(P, cloud, seed, how = 'exit') {
       ok(rej2 === 3, 'Nätverksskyddet: radering, byte av parkopplingskod och byte av roll nekas i testversionen');
       { const m0 = cloud.log.length; const rr = await P.fetch(`https://firestore.googleapis.com/v1/projects/pluggappen/databases/(default)/documents/families/${FAM}/meta/info?key=x`, { method: 'PATCH', body: '{}' });
         ok(rr && rr.status === 403 && cloud.log.length === m0, 'Nätverksskyddet: familjens meta/info skrivs aldrig (svarar "finns redan", parkopplingen fortsätter)'); }
+      { const m0 = cloud.log.length; let rej = false; try { await P.fetch('https://firestore.googleapis.com/v1/projects/pluggappen/databases/(default)/documents:commit?key=x', { method: 'POST', body: JSON.stringify({ writes: [{ update: { name: `projects/pluggappen/databases/(default)/documents/families/${FAM}/profiles/k8`, fields: {} } }] }) }); } catch (e) { rej = true; }
+        ok(rej && cloud.log.length === m0, 'Nätverksskyddet: en villkorad skrivning via documents:commit (3.2.2) nekas också på testadressen'); }
       unlock(P); T.click(P.document.querySelector('[data-tab="settings"]'));
       ok(!P.document.querySelector('[data-act="deleteFamilyData"], [data-act="copyFamLink"], #memberList') && /hanteras i den vanliga appen/.test(P.document.body.textContent), 'Testversionen: familj, enheter och radering hanteras inte här');
       { P.PA.FAMILY.update(c => { c.kids[0].name = 'Ändrad i testversionen'; }); await P.PA.FAMILY.pull(); ok(P.PA.FAMILY.cfg.kids[0].name !== 'Ändrad i testversionen' && JSON.stringify(P.PA.FAMILY.cfg) === JSON.stringify(JSON.parse(JSON.parse(cloud.docs[`families/${FAM}/profiles/_config`]).fields.json.stringValue)), 'Testversionen: familjens inställningar är en spegel (lokal ändring ersätts)'); }

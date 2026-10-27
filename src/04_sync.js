@@ -20,6 +20,10 @@ const SYNC = {
   // den hämtar men laddar aldrig upp (nätverksskyddet i testsidan nekar dessutom varje skrivning till profiles/).
   pv() { return typeof window !== 'undefined' && window.PLUGG_PREVIEW === true && window.__PV_LS === true; },
   status: 'off', lastError: null, pushTimer: null, pending: new Set(), lastPull: {}, pullRes: {}, missingFam: {}, busy: false, again: false, retryN: 0, retryTimer: null,
+  // Villkorad skrivning går via documents:commit med förvillkoret i JSON-kroppen (samma väg som scripts/content.mjs, prövad mot både
+  // Firestore och emulatorn; ett förvillkor som frågeparameter till PATCH visade sig inte hålla i emulatorn).
+  commitUrl() { return `https://firestore.googleapis.com/v1/projects/${SYNC.cfg.projectId}/databases/(default)/documents:commit?key=${SYNC.cfg.apiKey}`; },
+  docName(kidId) { return `projects/${SYNC.cfg.projectId}/databases/(default)/documents/families/${SYNC.family}/profiles/${kidId}`; },
   url(kidId) { return `https://firestore.googleapis.com/v1/projects/${SYNC.cfg.projectId}/databases/(default)/documents/families/${encodeURIComponent(SYNC.family)}/profiles/${kidId}?key=${SYNC.cfg.apiKey}`; },
   // pullRes[kid]: 'ok' | 'missing' (finns inte) | 'empty' | 'error' – resultatet av just den senaste hämtningen av barnet
   async pull(kidId) {
@@ -61,9 +65,9 @@ const SYNC = {
     // kom ihåg skrivningen (på enheten) innan den skickas: kommer den fram men svaret går förlorat känns den igen vid nästa hämtning
     if (!DB.syncSent || typeof DB.syncSent !== 'object') DB.syncSent = {}; DB.syncSent[kidId] = { fam: SYNC.family, h: SYNC.hash(sentJson), u: updatedAt, since: sent.since || null }; SYNC.save();
     try {
-      const body = { fields: { json: { stringValue: sentJson }, updatedAt: { integerValue: String(updatedAt) }, kid: { stringValue: kidId } } };
-      const cond = pre === false ? '&currentDocument.exists=false' : '&currentDocument.updateTime=' + encodeURIComponent(pre);
-      const r = await SYNC.fetch(SYNC.url(kidId) + '&mask.fieldPaths=updatedAt' + cond, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      const write = { update: { name: SYNC.docName(kidId), fields: { json: { stringValue: sentJson }, updatedAt: { integerValue: String(updatedAt) }, kid: { stringValue: kidId } } },
+        updateMask: { fieldPaths: ['json', 'updatedAt', 'kid'] }, currentDocument: pre === false ? { exists: false } : { updateTime: pre } };
+      const r = await SYNC.fetch(SYNC.commitUrl(), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ writes: [write] }) });
       if (!r.ok) {
         let st = ''; try { const j = await r.json(); st = (j && j.error && j.error.status) || ''; } catch (e) { /* inget svar */ }
         if (SYNC_IS_CONFLICT(r.status, st)) { SYNC.status = 'ok'; return 'conflict'; }
@@ -72,9 +76,9 @@ const SYNC = {
       SYNC.status = 'ok'; SYNC.lastError = null; delete DB.syncSent[kidId];
       const q = prof(kidId);   // profilen kan ha ersatts (hämtning) eller ändrats under skrivningen
       if (q) SYNC.markSent(q, updatedAt, sent.since);
-      let doc = null; try { doc = await r.json(); } catch (e) { /* inget svar */ }
-      SYNC.setBase(kidId, sent, doc && doc.updateTime, updatedAt); SYNC.save();
-      if (doc && doc.updateTime && typeof LE !== 'undefined') { try { LE.anchor(kidId, Date.parse(doc.updateTime), true); } catch (e) { /* ingen serverklocka – ok */ } }
+      let ut = null; try { const d = await r.json(); ut = (d && d.writeResults && d.writeResults[0] && d.writeResults[0].updateTime) || (d && d.commitTime) || null; } catch (e) { /* inget svar */ }
+      SYNC.setBase(kidId, sent, ut, updatedAt); SYNC.save();
+      if (ut && typeof LE !== 'undefined') { try { LE.anchor(kidId, Date.parse(ut), true); } catch (e) { /* ingen serverklocka – ok */ } }
       return true;
     } catch (e) { SYNC.status = 'error'; SYNC.lastError = e.message; return false; }
   },
@@ -118,8 +122,8 @@ const SYNC = {
   // t = serverns updateTime, u = profilens updatedAt i den versionen. Basen gäller bara för samma familj och bara så länge
   // profilens syncedAt är just den versionen (efter en återgång till en äldre app och tillbaka: ingen bas – säker väg).
   setBase(kidId, p, t, u) { if (!DB.syncBase || typeof DB.syncBase !== 'object') DB.syncBase = {}; const b = SYNC.snap(p); if (b) { b.t = t || null; b.u = u || 0; b.fam = SYNC.family; } DB.syncBase[kidId] = b; },
-  // Saknas basen (första gången efter uppdateringen) men profilen är helt synkad: den ÄR den senast synkade versionen – använd den som bas
-  // innan den ändras (anropas av save() innan en ändring markeras), så att även den första ändringen slås ihop trevägs.
+  // Saknas basen (första gången efter uppdateringen) men profilen är helt synkad: den ÄR den senast synkade versionen – använd den som bas.
+  // Anropas av load() medan profilen fortfarande är ren (aldrig från save(): då är ändringen redan gjord – granskning G1).
   ensureBase(kidId) { const q = prof(kidId); if (!q || !SYNC.cfg || !SYNC.family || SYNC.baseOf(kidId) || (q.updatedAt || 0) > (q.syncedAt || 0) || !q.syncedAt) return; SYNC.setBase(kidId, q, null, q.syncedAt); },
   baseOf(kidId) { const b = DB.syncBase && DB.syncBase[kidId]; const q = prof(kidId); return b && b.v === 1 && b.fam === SYNC.family && q && (q.syncedAt || 0) === b.u ? b : null; },
   // serverns tider (RFC 3339, upp till nanosekunder) jämförs exakt: sekunder, sedan bråkdelen

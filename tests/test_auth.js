@@ -1,5 +1,5 @@
 // Membership / access-control test: simulates Identity Toolkit + a Firestore that enforces firestore.rules semantics.
-const { JSDOM } = require('jsdom'); const fs = require('fs');
+const { JSDOM } = require('jsdom'); const fs = require('fs'); const { withCommit } = require('./le/fscommit.js');
 const html = fs.readFileSync(__dirname + '/../dist/index.html', 'utf8').replace(/<script src=[^>]+><\/script>/, '');
 const FIX = require('./test_fixture_family.json');
 
@@ -55,7 +55,7 @@ const mkFetch = (log) => async (url, opts = {}) => {
 function device(name, storage) {
   const dom = new JSDOM('<!doctype html>' + html, { runScripts: 'outside-only', pretendToBeVisual: true, url: 'https://plugg.example/' });
   const w = dom.window; w.scrollTo = () => {}; w.matchMedia = () => ({ matches: false }); w.HTMLCanvasElement.prototype.getContext = () => null; w.confirm = () => true; w.prompt = () => null;
-  const log = []; w.fetch = mkFetch(log); w.__log = log; w.crypto = w.crypto || {}; if (!w.crypto.getRandomValues) w.crypto.getRandomValues = (a) => { for (let i = 0; i < a.length; i++) a[i] = Math.floor(Math.random() * 2 ** 32); return a; };
+  const log = []; w.fetch = withCommit(mkFetch(log)); w.__log = log; w.crypto = w.crypto || {}; if (!w.crypto.getRandomValues) w.crypto.getRandomValues = (a) => { for (let i = 0; i < a.length; i++) a[i] = Math.floor(Math.random() * 2 ** 32); return a; };
   if (storage) for (const [k, v] of Object.entries(storage)) w.localStorage.setItem(k, v);
   for (const sc of [...dom.window.document.querySelectorAll('script')]) if (sc.textContent.trim()) w.eval(sc.textContent);
   w.__name = name; return w;
