@@ -27,7 +27,7 @@ const S = [
 const f1 = (x) => (Math.round(x * 10) / 10).toFixed(1).replace('.', ',');
 (async () => {
   const out = []; out.push(`# Valideringsmatris 3.3 → 3.4 (frön ${seeds.join(', ')} × rätt-andel ${'0,7/0,85 där inget annat anges'})`, '');
-  for (const sc of S) {
+  for (const sc of S.filter(x => !process.env.MATRIX_ONLY || process.env.MATRIX_ONLY.split(',').includes(x.id))) {   // MATRIX_ONLY=id1,id2: bara vissa scenarier
     const pcs = sc.o.pCorrect ? [sc.o.pCorrect] : [0.7, 0.85]; const row = {};
     for (const [lbl, f] of [['3.3', oldF], ['3.4', newF]]) {
       const a = { n: 0, goals: {}, same: 0, maxNew: 0, xp: 0, items: 0, flow: 0, practice: 0, starve: 0, sameList: [] };

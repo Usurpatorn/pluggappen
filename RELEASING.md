@@ -309,10 +309,12 @@ med `PREVIEW=1` till `<sajten>/preview/`. Produktionen publiceras som vanligt. M
   - **Öva mer inför <mål>**: provträning som alltid håller sig inom målet, också Boss, Rescue och omförsök.
 
   Båda märks "utan poäng" och erbjuds **bara när planen gör nytta**: något nytt inom dygnets gräns, något som inte blivit rätt idag,
-  en Utmaning, eller något som fortfarande lärs in (stadium ≤ 1) och har färre än tre rätt idag. Annars visar appen ärligt "Det finns
+  en Utmaning, eller något som fortfarande lärs in (stadium ≤ 1) och har färre än tre rätt idag. "Rätt idag" räknas ur bevisen, inte
+  ur `lastOk`, som bara sätts vid kvalificerande svar. Utan det kunde samma block erbjudas gång på gång (andra granskningen). Annars visar appen ärligt "Det finns
   inget mer som gör nytta att öva i appen idag …" och en befintlig resurs om målet har en. Ingen utfyllnad.
 - **Utan poäng, vid källan:** under ett övningsblock (`S.v2.po`) ger svaren inga XP, och dagens uppdrag, svitbonusen, Utmaningens
-  XP, motorns belöningar, märken och felfritt pass räknas inte. Spärren slutar gälla när blocket är slut (`V.ended`).
+  XP, motorns belöningar, märken och felfritt pass räknas inte. Spärren gäller bara i övningsskärmen och slutar när blocket är slut
+  (`V.ended`). Ett avbrutet block spärrar alltså inte senare.
   - Ingenting återställs i efterhand. Första versionen återställde allt till blockets start vid varje sparning, vilket enligt den
     oberoende granskningen kunde ge gratis köp, sudda ut belöningar från en annan enhet och ångra en nollställning.
   - Motorns belöningsliggare förbrukas inte.
@@ -326,8 +328,9 @@ med `PREVIEW=1` till `<sajten>/preview/`. Produktionen publiceras som vanligt. M
 - **Simulering** (`tests/le/matrix.js`, långa pass med KÖR, 3 FLOW och 2 Öva mer varje dygn): se programrapporten. Samma-dygnssteg
   0, och dygnets gräns för nytt håller.
 - **Tester och mutationer:** `tests/test_ova_mer.js` (92 kontroller) täcker k8, k4 och k2, två enheter, köp, synk och uppdrag efter
-  ett block, gemensam gräns för extrablock, Testa mig och ärligt slut. 13 av 14 mutationer fångas; den som inte fångas är räknaren
-  för felfritt pass (ett märke som delas ut en gång).
+  ett block, gemensam gräns för extrablock, Testa mig och ärligt slut. Granskarens och egna mutationer fångas, utom räknaren för felfritt pass, ett märke som delas ut en gång.
+- **Känt:** märkesräknarna (rätt totalt, säker på ett område) räknar också övning. Ett sådant märke kan alltså nås något tidigare.
+  Varje märke ges en gång.
 - **Kvar utanför v3:** Klassiskt läge och v1 har sina gamla regler för extra pass.
 - **Rollback:** del 1 eller 3.3.
   - 3.3 räknar bara `m:'flow'` och visar "vila nu" efter tre FLOW.

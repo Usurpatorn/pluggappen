@@ -43,6 +43,7 @@ const openKid = (T, id) => { toStart(T); T.click(T.$(`[data-kid="${id}"]`)); if 
       const rw0 = JSON.stringify((p().le && p().le.rw) || []); let blocks = 0; const r0 = rewardState(p()); const fb0 = PA().LE2.felbokVisible(PA().LE.state(kid).L, PA().LE.now()).length; const n0 = Object.values(PA().LE.state(kid).L.c).reduce((a, c) => a + c.n, 0);
       while (moreB() && blocks < 6) {
         click(moreB()); const V = PA().S && PA().S.v2; ok(V && (V.mode === 'more' || V.mode === 'mission') && V.po === true, `${id}: Öva mer startat som övning (po, ${V && V.mode})`);
+        if (blocks === 0) { const xc = p().xp; PA().V2.challengeXp(true); ok(p().xp === xc, `${id}: Utmaningens XP ges inte under Öva mer`); }
         let k = 0; D.run((it) => it.cat !== 'learn' && (++k % 3 === 0)); blocks++;
         const klar = txt(T); ok(/ÖVNINGEN KLAR/.test(klar) && /inga poäng/.test(klar), `${id}: KLAR säger att extraövning inte ger poäng`);
         ok(!/\+\d+ ?XP|\+\d+ ?💎|Nytt märke/.test(klar), `${id}: inga XP, diamanter eller märken på KLAR`);
@@ -95,6 +96,11 @@ const openKid = (T, id) => { toStart(T); T.click(T.$(`[data-kid="${id}"]`)); if 
     { const { T, D } = await boot(13); const { $, click } = T; openKid(T, 'k4'); click($('.go-btn[data-v2="kor"]')); D.run(() => false); click($('[data-go="home"]')); let f = 0; while ($('[data-v2="flow"]') && f++ < 5) { click($('[data-v2="flow"]')); D.run(() => false); click($('[data-go="home"]')); }
       const useful = T.PA().EXP.useful(T.PA().EXP.peekFlow(T.PA().KIDS.find(k => k.id === 'k4')), T.PA().KIDS.find(k => k.id === 'k4')); const t = txt(T);
       ok(useful ? !!$('[data-v2="ovamer"]') : (!$('[data-v2="ovamer"]') && /inget mer som gör nytta/.test(t)), `allt rätt idag: Öva mer bara om något återstår som inte redan blivit rätt (${useful ? 'återstår' : 'inget kvar – ärlig text'})`); }
+    // Ingen ändlös upprepning: Öva mer gång på gång (allt rätt) tar slut med ärlig text (granskning: samma plan erbjöds 25 gånger)
+    for (const [kidId, seed] of [['k4', 41], ['k2', 41], ['k8', 41]]) { const { T, D } = await boot(seed); const { $, click } = T; openKid(T, kidId); let wk = 0; click($('.go-btn[data-v2="kor"]')); D.run((it) => it.cat !== 'learn' && (++wk % 2 === 0)); click($('[data-go="home"]'));
+      let f = 0; while ($('[data-v2="flow"]') && f++ < 5) { click($('[data-v2="flow"]')); D.run((it) => it.cat !== 'learn' && (++wk % 2 === 0)); click($('[data-go="home"]')); }
+      let n = 0; while (($('[data-v2="ovamer"]') || $('[data-v2="mission"]')) && n < 25) { click($('[data-v2="ovamer"]') || $('[data-v2="mission"]')); D.run(() => false); n++; openKid(T, kidId); }
+      ok(n < 25 && /inget mer som gör nytta/.test(txt(T)), `${kidId}: Öva mer tar slut när inget gör nytta – ingen ändlös upprepning (${n} block)`); }
     // Ett mål med en befintlig extern resurs (kemi) och inget kvar att öva: länken visas, inget genereras
     { const { w, T, PA } = await (async () => { const b = await boot(5); return { ...b, PA: b.T.PA }; })(); const kid = PA().KIDS.find(k => k.id === 'k8');
       const res = PA().EXP.resources(kid, PA().LE.exams(kid, PA().DB.profiles.k8).find(e => e.id === 'w:syn-kemi'));
@@ -102,16 +108,17 @@ const openKid = (T, id) => { toStart(T); T.click(T.$(`[data-kid="${id}"]`)); if 
       const html = PA().EXP.enoughText(kid, { e: PA().LE.exams(kid, PA().DB.profiles.k8).find(e => e.id === 'w:syn-kemi') });
       ok(/rel="noopener noreferrer"/.test(html) && /target="_blank"/.test(html), 'resurslänken öppnas säkert i en ny flik'); }
     // Två enheter (offline): Öva mer på båda – inga belöningar efter sammanslagning
-    { const a = await boot(7), b = await boot(7); const base = JSON.parse(JSON.stringify(a.T.PA().DB.profiles.k4));
-      for (const dev of [a, b]) { const { T, D, w } = dev; const { $, click, PA } = T; let wk = 0; openKid(T, 'k4'); click($('.go-btn[data-v2="kor"]')); D.run((it) => it.cat !== 'learn' && (++wk % 2 === 0)); click($('[data-go="home"]')); let f = 0; while ($('[data-v2="flow"]') && f++ < 5) { click($('[data-v2="flow"]')); D.run((it) => it.cat !== 'learn' && (++wk % 2 === 0)); click($('[data-go="home"]')); } }
-      const xpA = a.T.PA().DB.profiles.k4.xp, xpB = b.T.PA().DB.profiles.k4.xp; const sx = (pp) => JSON.stringify([pp.since.xp, pp.since.gems, Object.fromEntries(Object.entries(pp.since.days || {}).map(([d, v]) => [d, v.xp]))]); const sA = sx(a.T.PA().DB.profiles.k4), sB = sx(b.T.PA().DB.profiles.k4);
-      let nMore = 0; for (const dev of [a, b]) { const { T, D } = dev; const { $, click } = T; for (let i = 0; i < 2 && $('[data-v2="ovamer"]'); i++) { click($('[data-v2="ovamer"]')); nMore++; D.run(() => false); click($('[data-go="home"]')); } }
-      ok(a.T.PA().DB.profiles.k4.xp === xpA && b.T.PA().DB.profiles.k4.xp === xpB, 'två enheter: Öva mer ändrar inte XP på någon enhet');
-      ok(sx(a.T.PA().DB.profiles.k4) === sA && sx(b.T.PA().DB.profiles.k4) === sB, 'två enheter: inga XP- eller diamantdelta att synka (aktiviteten räknas som vanligt)');
-      const m = a.w.mergeProfiles(JSON.parse(JSON.stringify(a.T.PA().DB.profiles.k4)), JSON.parse(JSON.stringify(b.T.PA().DB.profiles.k4)), base);
+    { const a = await boot(7), b = await boot(7); let base = null;
+      for (const dev of [a, b]) { const { T, D, w } = dev; const { $, click, PA } = T; let wk = 0; for (let d = 0; d < 2; d++) { openKid(T, 'k8'); click($('.go-btn[data-v2="kor"]')); D.run((it) => it.cat !== 'learn' && D.log.items % 4 === 0); w.__advance(DAY); } { const pp = PA().DB.profiles.k8; pp.since = { xp: 0, gems: 0, days: {} }; pp._lx = pp.xp; pp._lg = pp.gems; }   // som efter en synk: samma utgångsläge på båda (samma frö)
+      if (!base) base = JSON.parse(JSON.stringify(PA().DB.profiles.k8)); else if (PA().DB.profiles.k8.xp !== base.xp) ok(false, 'två enheter: olika utgångsläge'); openKid(T, 'k8'); click($('.go-btn[data-v2="kor"]')); D.run((it) => it.cat !== 'learn' && (++wk % 2 === 0)); click($('[data-go="home"]')); let f = 0; while ($('[data-v2="flow"]') && f++ < 5) { click($('[data-v2="flow"]')); D.run((it) => it.cat !== 'learn' && (++wk % 2 === 0)); click($('[data-go="home"]')); } }
+      const xpA = a.T.PA().DB.profiles.k8.xp, xpB = b.T.PA().DB.profiles.k8.xp; const sx = (pp) => JSON.stringify([pp.since.xp, pp.since.gems, Object.fromEntries(Object.entries(pp.since.days || {}).map(([d, v]) => [d, v.xp]))]); const sA = sx(a.T.PA().DB.profiles.k8), sB = sx(b.T.PA().DB.profiles.k8);
+      let nMore = 0; for (const dev of [a, b]) { const { T, D } = dev; const { $, click } = T; for (let i = 0; i < 2 && ($('[data-v2="ovamer"]') || $('[data-v2="mission"]')); i++) { click($('[data-v2="ovamer"]') || $('[data-v2="mission"]')); nMore++; D.run(() => false); click($('[data-go="home"]')); } }
+      ok(a.T.PA().DB.profiles.k8.xp === xpA && b.T.PA().DB.profiles.k8.xp === xpB, 'två enheter: Öva mer ändrar inte XP på någon enhet');
+      ok(sx(a.T.PA().DB.profiles.k8) === sA && sx(b.T.PA().DB.profiles.k8) === sB, 'två enheter: inga XP- eller diamantdelta att synka (aktiviteten räknas som vanligt)');
+      const m = a.w.mergeProfiles(JSON.parse(JSON.stringify(a.T.PA().DB.profiles.k8)), JSON.parse(JSON.stringify(b.T.PA().DB.profiles.k8)), base);
       const rewardedA = xpA - base.xp, rewardedB = xpB - base.xp;
       ok(m.xp === base.xp + rewardedA + rewardedB, `två enheter: efter synk bara de belönade blocken (${m.xp} = ${base.xp} + ${rewardedA} + ${rewardedB})`);
-      const recs = (m.le && m.le.shadow || []).filter(r => r.m === 'more'); ok(recs.length === nMore && recs.every(r => r.po === 1), `två enheter: båda enheternas övningsposter finns kvar efter synk (${recs.length} av ${nMore})`); ok(nMore >= 1, `två enheter: minst ett Öva mer-block spelades (${nMore})`);
+      const recs = (m.le && m.le.shadow || []).filter(r => r.po === 1); ok(recs.length === nMore && recs.every(r => r.po === 1), `två enheter: båda enheternas övningsposter finns kvar efter synk (${recs.length} av ${nMore})`); ok(nMore >= 1, `två enheter: minst ett Öva mer-block spelades (${nMore})`);
     }
   } catch (e) { fails++; console.log('FAIL undantag', e && e.stack || e); }
   console.log(`\n${checks} kontroller, ${fails} fel`); console.log(fails ? 'OVA MER TEST FAILED' : 'OVA MER TEST OK'); process.exit(fails ? 1 : 0);
