@@ -353,9 +353,9 @@ const EXP = {
       </section>
       ${back.length ? `<div class="card stack" style="gap:4px"><div class="eyebrow">Det här behöver komma tillbaka</div>${back.map(b => `<div>${esc(b.name)} – kommer tillbaka ${esc(b.when)}.</div>`).join('')}</div>` : ''}
       ${extraCards}
-      ${corePending ? `<button class="btn big wide" data-v2="kor">Till dagens plan · cirka ${EXP.mins(V2.peekPlan(kid).plan, kid)} min</button>` : canMore ? `<button class="btn big wide secondary" data-v2="flow">${esc(flowLabel)} · cirka ${EXP.flowMins(kid)} min</button>` : `<div class="card muted" style="text-align:center">${rested ? 'Bra jobbat idag! Det du har övat sätter sig bäst om du vilar nu.' : 'Allt för idag är gjort.'}</div>`}
+      ${corePending ? `<button class="btn big wide" data-v2="kor">Till dagens plan · cirka ${EXP.mins(V2.peekPlan(kid).plan, kid)} min</button>` : canMore ? `<button class="btn big wide" data-v2="flow">${esc(flowLabel)} · cirka ${EXP.flowMins(kid)} min</button>` : `<div class="card muted" style="text-align:center">${rested ? 'Bra jobbat idag! Det du har övat sätter sig bäst om du vilar nu.' : 'Allt för idag är gjort.'}</div>`}
       ${e === 'grow' && todo && canMore ? `<button class="btn ghost wide" data-v2="revansch">Revansch i stället · ${todo} ${todo === 1 ? 'sak' : 'saker'}</button>` : ''}
-      <button class="btn big wide ${canMore || corePending ? 'secondary' : ''}" data-go="home">${corePending ? 'Till startsidan' : 'Klar för idag'}</button>
+      <button class="btn big wide ${canMore || corePending ? 'ghost' : ''}" data-go="home">${corePending ? 'Till startsidan' : 'Klar för idag'}</button>
     </div>`);
   },
   // Avklarade dagsuppdrag hämtas automatiskt på KLAR (samma belöning som knappen "Hämta" – utan att barnet måste göra något mer)
