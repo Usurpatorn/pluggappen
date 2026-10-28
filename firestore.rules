@@ -55,7 +55,8 @@ service cloud.firestore {
       // Läses och raderas av familjens medlemmar (familjeomfattande – INTE ett föräldraskydd; se docs/LEARNING_LOOP.md). Kan inte ändras.
       // Aldrig via övergångsvägen. Dokument-id = pseudonym-enhet-nr, och pseudonymen i id:t måste vara fältet k.
       match /obs/{doc} {
-        allow read, delete: if isMember() && doc.matches('^p[0-9a-f]{12}-[a-z0-9]{8}-[0-9]{1,9}$');
+        allow get, delete: if isMember() && doc.matches('^p[0-9a-f]{12}-[a-z0-9]{8}-[0-9]{1,9}$');
+        allow list: if isMember();   // listning (rensning, radering, export): regeln kan inte bero på dokument-id:t vid en fråga
         allow create: if isMember() && doc.matches('^p[0-9a-f]{12}-[a-z0-9]{8}-[0-9]{1,9}$')
           && request.resource.data.keys().hasOnly(['json', 'n', 't', 'k', 'v'])
           && request.resource.data.json is string && request.resource.data.json.size() < 150000

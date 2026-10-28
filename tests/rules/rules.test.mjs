@@ -9,7 +9,7 @@
    - EXPECT=v21: reglerna i 2.1.0 (release-kontrollen) – skrivning stängd, men övergångsvägen kunde fortfarande LÄSA _content.
    - (inget): nuvarande regler – inga kända hål för _content. */
 import { initializeTestEnvironment, assertFails, assertSucceeds } from '@firebase/rules-unit-testing';
-import { doc, getDoc, setDoc, updateDoc, deleteDoc, writeBatch } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, deleteDoc, writeBatch, collection, getDocs } from 'firebase/firestore';
 import { readFileSync, appendFileSync } from 'node:fs';
 
 const RULES_FILE = process.env.RULES_FILE || 'firestore.rules';
@@ -132,6 +132,11 @@ if (!OLD) {
     await check(`[${label}] pseudonymen i id:t måste stämma med fältet k`, false, () => setDoc(doc(as('kidDevice'), P(ID2)), { ...batch(), k: 'p' + 'b2'.repeat(6) }));
     await check(`[${label}] för stor sats nekas`, false, () => setDoc(doc(as('kidDevice'), P(ID2)), { ...batch(), json: 'x'.repeat(150001) }));
     await check(`[${label}] för många händelser nekas`, false, () => setDoc(doc(as('kidDevice'), P(ID2)), batch(401)));
+    await check(`[${label}] en medlem listar familjens satser (rensning, radering, export)`, true, () => getDocs(collection(as('parentDevice'), `families/${fam}/obs`)));
+    await check(`[${label}] oinloggad kan inte lista satserna`, false, () => getDocs(collection(as(null), `families/${fam}/obs`)));
+    await check(`[${label}] inloggad icke-medlem kan inte lista satserna`, false, () => getDocs(collection(as('stranger'), `families/${fam}/obs`)));
+    await check(`[${label}] en annan familjs enhet kan inte lista satserna`, false, () => getDocs(collection(as('otherFamilyDevice'), `families/${fam}/obs`)));
+    await check(`[${label}] en sats som redan finns kan inte skrivas igen (omsändning läser först i appen)`, false, () => setDoc(doc(as('kidDevice'), P(ID)), batch()));
     await check(`[${label}] en medlem raderar satsen (lagringstid och radering)`, true, () => deleteDoc(doc(as('parentDevice'), P(ID))));
   }
 }

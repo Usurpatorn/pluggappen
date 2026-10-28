@@ -55,8 +55,14 @@
     }
    },
    "felPerKoncept": {
-    "s:forenkla": 2,
-    "s:multin": 1
+    "s:forenkla": {
+     "fel": 2,
+     "forsok": 3
+    },
+    "s:multin": {
+     "fel": 1,
+     "forsok": 3
+    }
    },
    "malPass": {
     "w:a1": {
@@ -68,10 +74,12 @@
    "tekniskaFel": {
     "v2:observe": 1
    },
-   "aktivTidMinuter": {
-    "pass": 2,
-    "summa": 6,
-    "notering": "Bara tid med appen i förgrunden, avrundad per pass. Pass där tiden är osäker räknas inte. Säger inget om fokus, förmåga eller motivation."
+   "aktivTid": {
+    "passPerIntervallMinuter": {
+     "5-15": 1,
+     "<5": 1
+    },
+    "notering": "Bara tid med appen i förgrunden, i grova intervall per pass. Pass där tiden är osäker räknas inte. Ingen tid per uppgift. Säger inget om fokus, förmåga eller motivation."
    },
    "versioner": {
     "app": [
@@ -84,7 +92,7 @@
   }
  },
  "forbehall": [
-  "Pseudonymt, inte anonymt: den som har enheten och appen kan koppla pseudonymen till barnet.",
+  "Pseudonymt, inte anonymt: den som har appen kan koppla pseudonymen till barnet, och pass-id:t kan kopplas till appens egna passposter.",
   "Få pass och få dagar: mönster är utforskande, inte bevis.",
   "Inget i exporten visar orsak, bättre lärande eller motivation.",
   "Pass utan slut-händelse har okänt utfall (appen stängd, sidan omladdad, enheten avstängd) – de räknas aldrig som avbrutna.",
@@ -108,9 +116,10 @@
   {
    "i": "exdevice-2",
    "y": "it",
-   "t": 1792508430,
+   "t": 1792508400,
    "k": "p0123456789ab",
    "s": "S1",
+   "q": 1,
    "c": "s:multin",
    "f": "mc",
    "ok": 0,
@@ -122,9 +131,10 @@
   {
    "i": "exdevice-3",
    "y": "it",
-   "t": 1792508470,
+   "t": 1792508400,
    "k": "p0123456789ab",
    "s": "S1",
+   "q": 2,
    "c": "s:forenkla",
    "f": "free",
    "ok": 1,
@@ -136,9 +146,10 @@
   {
    "i": "exdevice-4",
    "y": "it",
-   "t": 1792508510,
+   "t": 1792508400,
    "k": "p0123456789ab",
    "s": "S1",
+   "q": 3,
    "c": "k:ori8/skala",
    "f": "sort",
    "ok": 1,
@@ -150,9 +161,10 @@
   {
    "i": "exdevice-5",
    "y": "it",
-   "t": 1792508550,
+   "t": 1792508400,
    "k": "p0123456789ab",
    "s": "S1",
+   "q": 4,
    "c": "s:multin",
    "f": "mc",
    "ok": 1,
@@ -164,9 +176,10 @@
   {
    "i": "exdevice-6",
    "y": "it",
-   "t": 1792508590,
+   "t": 1792508400,
    "k": "p0123456789ab",
    "s": "S1",
+   "q": 5,
    "c": "s:forenkla",
    "f": "free",
    "ok": 0,
@@ -178,9 +191,10 @@
   {
    "i": "exdevice-7",
    "y": "it",
-   "t": 1792508630,
+   "t": 1792508400,
    "k": "p0123456789ab",
    "s": "S1",
+   "q": 6,
    "c": "k:ori8/skala",
    "f": "sort",
    "ok": 1,
@@ -198,7 +212,7 @@
    "o": "done",
    "a": 6,
    "p": 6,
-   "am": 5,
+   "am": "5-15",
    "tq": "fg"
   },
   {
@@ -237,9 +251,10 @@
   {
    "i": "exdevice-12",
    "y": "it",
-   "t": 1792508760,
+   "t": 1792508730,
    "k": "p0123456789ab",
    "s": "S2",
+   "q": 1,
    "c": "s:multin",
    "f": "mc",
    "ok": 1,
@@ -265,9 +280,10 @@
   {
    "i": "exdevice-14",
    "y": "it",
-   "t": 1792681260,
+   "t": 1792681200,
    "k": "p0123456789ab",
    "s": "S3",
+   "q": 1,
    "c": "s:forenkla",
    "f": "free",
    "ok": 0,
@@ -285,7 +301,7 @@
    "o": "exit",
    "a": 1,
    "p": 2,
-   "am": 1,
+   "am": "<5",
    "tq": "fg"
   },
   {

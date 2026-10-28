@@ -52,6 +52,13 @@ const SYNC = {
     q.syncedAt = u; q._lx = q.xp; q._lg = q.gems;
   },
   save() { try { localStorage.setItem(STORE_KEY, dbJSON()); } catch (e) { /* ignore */ } },
+  mergeObs(x, y) {
+    const ok = (o) => o && typeof o === 'object' && !Array.isArray(o); if (!ok(x)) return ok(y) ? { ...y } : null; if (!ok(y)) return { ...x };
+    const ts = (o, k) => Number(o[k + 'At'] || o.at || 0); const pick = (k) => (ts(x, k) >= ts(y, k) ? x : y);
+    const on = pick('on'), dy = pick('days'); const sx = Number(x.saltAt || x.at || 0), sy = Number(y.saltAt || y.at || 0);
+    const salt = x.salt && y.salt ? (sx !== sy ? (sx < sy ? x : y) : (x.salt < y.salt ? x : y)) : (x.salt ? x : y);
+    return { on: on.on === true, onAt: ts(on, 'on'), days: dy.days, daysAt: ts(dy, 'days'), salt: salt.salt, saltAt: Number(salt.saltAt || salt.at || 0), purge: Math.max(Number(x.purge) || 0, Number(y.purge) || 0), at: Math.max(Number(x.at) || 0, Number(y.at) || 0) };
+  },
   // Villkorad skrivning. pre = den version skrivningen gäller (standard: basens); okänd version → ingen skrivning.
   // Svar: true (skrivet), 'conflict' (dokumentet har ändrats/versionen okänd – hämta, slå ihop, försök igen) eller false (fel/utan nät).
   async push(kidId, pre) {
@@ -223,7 +230,7 @@ function mergeProfiles(a, b, base, opts) {
   if (!base && opts && opts.serverWins) {   // utan bas (första synken efter uppdateringen, granskning B2): familjens värde för inställningar och övriga fält
     out.settings = { ...(a.settings || {}), ...(b.settings || {}) }; out.pet = b.pet || a.pet;
     for (const k of Object.keys(b)) if (!MERGED_KEYS.has(k) && !SYNC_META.has(k)) out[k] = b[k];
-    for (const k of ['engine', 'lePolicy', 'exp', 'scope', 'obs']) { const sa = a.settings || {}, sb = b.settings || {}; if ((sa[k + 'At'] || 0) > (sb[k + 'At'] || 0)) { if (sa[k] === undefined) delete out.settings[k]; else out.settings[k] = sa[k]; out.settings[k + 'At'] = sa[k + 'At']; } }   // val med egen tidsstämpel: senaste gäller
+    for (const k of ['engine', 'lePolicy', 'exp', 'scope']) { const sa = a.settings || {}, sb = b.settings || {}; if ((sa[k + 'At'] || 0) > (sb[k + 'At'] || 0)) { if (sa[k] === undefined) delete out.settings[k]; else out.settings[k] = sa[k]; out.settings[k + 'At'] = sa[k + 'At']; } }   // val med egen tidsstämpel: senaste gäller
   }
   if (base) {   // trevägs per inställning och per övrigt fält: oförändrat här sedan basen → familjens värde (även borttaget)
     const sa = a.settings || {}, sb = b.settings || {}, none = SYNC.hash(undefined);
@@ -233,7 +240,10 @@ function mergeProfiles(a, b, base, opts) {
   // Granskning H1: förälderns motorval och policy följer SENASTE ändringen (egen tidsstämpel), inte "lokal enhet vinner" –
   // annars kunde en barnenhet med osynkade ändringar slå på v2 igen efter att föräldern stängt av den.
   // v3: upplevelsen (Explore/Grow/Achieve/Klassisk, settings.exp/expAt) följer samma regel.
-  for (const k of ['engine', 'lePolicy', 'exp', 'scope', 'obs']) { const sa = a.settings || {}, sb = b.settings || {}; if ((sb[k + 'At'] || 0) > (sa[k + 'At'] || 0)) { if (sb[k] === undefined) delete out.settings[k]; else out.settings[k] = sb[k]; out.settings[k + 'At'] = sb[k + 'At']; } }
+  for (const k of ['engine', 'lePolicy', 'exp', 'scope']) { const sa = a.settings || {}, sb = b.settings || {}; if ((sb[k + 'At'] || 0) > (sa[k + 'At'] || 0)) { if (sb[k] === undefined) delete out.settings[k]; else out.settings[k] = sb[k]; out.settings[k + 'At'] = sb[k + 'At']; } }
+  // 3.7 Observationer (settings.obs): fält för fält – på/av och lagringstid följer sin senaste ändring (onAt/daysAt), raderingen är
+  // den senaste (max) och saltet det först skapade. En enhet som inte synkat kan aldrig slå på igen eller ångra en radering.
+  { const m = SYNC.mergeObs((a.settings || {}).obs, (b.settings || {}).obs); if (m) out.settings.obs = m; }
   // Två motorval inom tio minuter som säger olika (t.ex. en förälderenhet vars klocka går fel): välj det säkra läget v1.
   { const sa = a.settings || {}, sb = b.settings || {}; if (sa.engineAt && sb.engineAt && sa.engine !== sb.engine && Math.abs(sa.engineAt - sb.engineAt) < 600000) { out.settings.engine = 'v1'; out.settings.engineAt = Math.max(sa.engineAt, sb.engineAt); } }
   // Felboken (v1): union av båda enheternas poster minus det som klarats (gravstenar). Tidigare skrev den lokala listan över den andra.

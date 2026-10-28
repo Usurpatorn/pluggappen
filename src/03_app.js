@@ -1167,7 +1167,9 @@ VIEWS.parent = () => {
   }
   const tab = state.tab || (KIDS[0] ? KIDS[0].id : 'settings'); const kid = kidById(tab);
   const sub = state.sub || 'overview';
-  if (tab === 'settings' && SYNC.active && !PUSH.lastStatus) PUSH.loadStatus().then(() => { if (state.screen === 'parent' && state.tab === 'settings') VIEWS.parent(); });
+  // Påminnelsernas senaste körning: hämtas en gång per sidladdning, och sidan ritas om bara när något kom. Förut hämtades den igen vid varje
+  // omritning när dokumentet saknades eller nätet var borta – en ändlös hämta-rita-om-slinga på ⚙ (hittad av observationstestet, 3.6.1).
+  if (tab === 'settings' && SYNC.active && !PUSH.lastStatus && !PUSH.statusTried) { PUSH.statusTried = true; PUSH.loadStatus().then(() => { if (PUSH.lastStatus && state.screen === 'parent' && state.tab === 'settings') VIEWS.parent(); }); }
   let body = '', nav = '';   // 3.3 slutpasset: navigeringen (barn, flikar, Testa som barnet) för sig – två spalter på iPad, samma ordning på telefon
   if (kid) {
     const p = prof(kid.id);
@@ -1341,12 +1343,14 @@ function deleteCard() {
 }
 // Tombstone: skriver en tom profil med resetAt så att alla enheter nollställer i stället för att ladda upp sin kopia.
 async function deleteKidData(kidId) {
+  try { const k = kidById(kidId); if (k && typeof OBS !== 'undefined' && OBS) await OBS.purge([k]); } catch (e) { /* ignore */ }   // 3.7: barnets observationer raderas också (före profilen, som bär saltet)
   const now = Date.now(); const fresh = { ...defaultProfile(kidId), resetAt: now, updatedAt: now, syncedAt: now }; fresh._lx = 0; fresh._lg = 0;
   DB.profiles[kidId] = fresh; try { localStorage.setItem(STORE_KEY, dbJSON()); } catch (e) { /* ignore */ }
   if (!SYNC.active) return false;
   try { const body = { fields: { json: { stringValue: JSON.stringify(fresh) }, updatedAt: { integerValue: String(now) }, kid: { stringValue: kidId } } }; const r = await SYNC.fetch(SYNC.url(kidId), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); if (r.ok) { let doc = null; try { doc = await r.json(); } catch (e) { /* inget svar */ } SYNC.setBase(kidId, fresh, doc && doc.updateTime, now); SYNC.save(); } return r.ok; } catch (e) { return false; }   // radering = avsiktligt ovillkorad (gravsten); enhetens bas följer med
 }
 async function deleteFamilyData() {
+  try { if (typeof OBS !== 'undefined' && OBS) await OBS.purgeFamilyCloud(); } catch (e) { /* ignore */ }   // 3.7: observationerna först – efter att medlemskapen tagits bort kan ingen app nå dem
   let n = 0; const del = async (url) => { try { const r = await SYNC.fetch(url, { method: 'DELETE' }); if (r.ok) n++; } catch (e) { /* ignore */ } };
   try { const r = await SYNC.fetch(`${AUTH.base()}/profiles?key=${SYNC.cfg.apiKey}&pageSize=100`); if (r.ok) { const j = await r.json(); for (const d of j.documents || []) await del(`https://firestore.googleapis.com/v1/${d.name}?key=${SYNC.cfg.apiKey}`); } } catch (e) { /* ignore */ }
   const members = await AUTH.listMembers() || []; for (const m of members) if (m.uid !== AUTH.uid) await del(AUTH.doc('members/' + m.uid));
