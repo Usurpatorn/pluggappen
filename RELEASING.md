@@ -416,13 +416,33 @@ med `PREVIEW=1` till `<sajten>/preview/`. Produktionen publiceras som vanligt. M
   - **Efter dygnets belönade extrapass gäller Öva mer-reglerna** (som `EXP.moreBtns`): "Kör · utan poäng" bara när målets träning
     gör nytta (`EXP.useful`), annars "Inget mer som gör nytta idag". Ingen utfyllnad och ingen ändlös upprepning.
     `test_ova_mer.js` letar nu efter "Öva mer inför" i dagens kort (`.mission`), eftersom radens egna knappar prövas i
-    `test_kommande.js`. Antalet kontroller är oförändrat.
+    `test_kommande.js`. Grenen körs nu (se rättelsen ovan).
   - Före första synken och för mål utan innehåll finns inga knappar.
-- **Foten säger vad dagens Kör! faktiskt övar.** Den räknar på samma plan som startkortets rubrik (`EXP.examShare`): "övar inför
-  alla de här", "övar idag inför N av dem" eller "övar annat idag". Utan plan finns ingen fot. Det ersätter granskningens
-  horisontregel, som kunde säga emot startkortet för ett mål på exakt 21 dygn.
+- **Foten säger vad nästa pass på startsidan faktiskt övar.** Den räknar på samma plan som startkortets rubrik (`EXP.examShare`).
+  - Före dagens pass: "Dagens pass övar inför …".
+  - Efter dagens pass: "Nästa extrapass övar inför …", men bara medan ett extrapass erbjuds. Annars finns ingen fot.
+  - Utan plan finns ingen fot.
+  - Det ersätter granskningens horisontregel, som kunde säga emot startkortet för ett mål på exakt 21 dygn.
+- **Läget per mål i samma rad** (ägarens tredje önskemål): varje rad med innehåll har ett hopfällt "Läget".
+  - Sammanfattningen säger till exempel "2 bra koll · 1 öva lite mer" eller "för lite underlag ännu".
+  - Utfällt visar det motorns läge per område, aldrig procent. Det är samma källa som det tidigare kortet "Läget inför"
+    (`V2.examStatus`/`EXP.goalAreas`).
+  - Kortet säger en gång att lägena inte är en prognos.
+  - Det separata kortet "Läget inför" visas inte längre för ett mål som redan har sitt läge i Kommande (`EXP.goalDetailUnless`).
+    Det finns kvar när kortet inte visar målet.
+  - `test_exp_v3.js` letar efter det hopfällda läget där det nu ligger: `details.goal-detail` eller kortets `details.up-state`.
+- **En regel för målets egen träning** (`EXP.goalPractice`): "Kör" på raderna och startkortets "Öva mer inför" använder samma regel.
+  Startkortet erbjuder det första mål där träningen gör nytta. Därför säger skärmen aldrig "inget mer som gör nytta" samtidigt som
+  en rad erbjuder Kör.
+- **Rättelse, dygnets gräns för nytt i provträningen:** motorn kunde planera ett aldrig sett provkoncept som "fokus" ("provet närmar
+  sig") trots att dygnets gräns för nytt var nådd. `V2.plan('mission')` tar nu in högst så många nya koncept som gränsen tillåter.
+  - Felet fanns redan i 3.4/3.5 men nåddes inte av testerna.
+  - Grenen i `test_ova_mer.js` som prövar "Öva mer inför" efter dygnets extrapass körs nu (106 kontroller, tidigare 101) och
+    fångar det.
+  - Motorns kärna är orörd; spärren ligger i appens planlager.
+- **Kontrast:** minuttexten i Kör-knappen har ingen opacitet längre (den orangea färgen låg under 4,5:1).
 - **Motorn är orörd.** Planen, belöningarna och synken är oförändrade. Kortet läser; knapparna startar befintliga lägen.
-- **Test:** `tests/test_kommande.js` (43 kontroller). Webbläsartestet (axe, ingen sidledsscroll) går över startsidan i alla storlekar.
+- **Test:** `tests/test_kommande.js` (66 kontroller). Webbläsartestet (axe, ingen sidledsscroll) går över startsidan i alla storlekar.
 - **Dokumentation:** `docs/CONTENT_PUBLISHING.md` säger nu att en framtida Storage-lösning ska läsa genom reglerna och aldrig dela ut
   nedladdningslänkar (anmärkning från granskningen av 3.5).
 - **Rollback:** 3.5.0-bygget.

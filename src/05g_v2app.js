@@ -167,7 +167,11 @@ const V2 = {
     if (mode === 'mission') { const e = LE.exams(kid, p).find(x => x.id === extra.examId); if (!e) return []; const cids = V2.examCidsActive(kid, e); if (!cids.length) return []; const plan0 = LE.plan(kid, V2.n(kid, C), now, id, { only: cids, newCap: V2.newCapToday(C, now, EXP.on(kid) ? p : null) }).plan; const set = new Set(cids);
       // Granskning: bara provets koncept (även Bossen), och inget pass alls när inget av provet går att öva just nu (t.ex. kvällen före provet
       // med opåbörjade områden) – då visas en ärlig text i stället för en knapp som startar något annat
-      const plan = plan0.filter(s => set.has(s.cid)); if (!plan.some(s => s.role !== 'boss')) return [];
+      // 3.6 rättelse (dygnets gräns för nytt): motorn kan planera ett aldrig sett provkoncept som "fokus" (provet närmar sig) trots att
+      // dygnets gräns för nytt är nådd. Provträningen tar därför in högst så många nya koncept som gränsen tillåter – resten väntar till imorgon.
+      const capN = V2.newCapToday(C, now, EXP.on(kid) ? p : null); const fresh = new Set();
+      const plan = plan0.filter(s => set.has(s.cid)).filter(s => { const c = C.L.c[s.cid]; if (c && c.fs) return true; if (fresh.has(s.cid)) return true; if (fresh.size < capN) { fresh.add(s.cid); return true; } return false; });
+      if (!plan.some(s => s.role !== 'boss')) return [];
       Object.assign(plan, { light: plan0.light, restart: plan0.restart, maxItems: plan0.maxItems, maxNew: plan0.maxNew, examDays: plan0.examDays, only: set, examId: e.id }); return plan; }
     if (mode === 'readclose') { const cids = LE.cidsOfSkill(C, extra.skillId); if (!cids.length) return []; const start = Math.floor(Math.random() * cids.length); const plan = [0, 1, 2].map(i => ({ cid: cids[(start + i) % cids.length], role: 'readclose', why: 'läst, stängt – minns du?' })); plan.maxItems = 3; return plan; }
     // v3 (granskning M2) och 2.1.1: ett nytt Kör! efter dagens CORE eller efter provträning samma dag får bara det som är kvar av dygnets gräns för nytt

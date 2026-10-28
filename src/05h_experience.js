@@ -79,7 +79,10 @@ const EXP = {
   moreBtns(kid, m) {
     const btns = [];
     if (EXP.canMore(kid)) btns.push(`<button class="btn wide secondary btn-2l" data-v2="ovamer">Öva mer<span class="btn-sub"><span class="sep"> · </span>utan poäng, cirka ${EXP.flowMins(kid)} min</span></button>`);
-    if (m && EXP.isExam(m.e) && V2.examCidsActive(kid, m.e).length) { const mp = EXP.safe(() => V2.plan(kid, 'mission', LE.state(kid), LE.now(), null, { examId: m.e.id }), 'morePeek', []); if (mp.length && EXP.useful(mp, kid)) btns.push(`<button class="btn wide ghost btn-2l" data-v2="mission" data-exam="${esc(m.e.id)}">Öva mer inför ${esc(m.e.title)}<span class="btn-sub"><span class="sep"> · </span>${EXP.practiceOnly(kid, 'mission') ? 'utan poäng, ' : ''}cirka ${EXP.mins(mp, kid)} min</span></button>`); }
+    // 3.6: samma regel som Kör på raderna i Kommande (EXP.goalPractice) – först målet m, annars nästa kommande mål där träningen gör nytta
+    { const cand = [m, ...EXP.upcoming(kid)].filter((x, i, a) => x && V2.examCidsActive(kid, x.e).length && a.findIndex(y => y && y.e.id === x.e.id) === i); let hit = null, mp = [];
+      for (const x of cand) { const g = EXP.goalPractice(kid, x.e); if (g.mp.length && EXP.useful(g.mp, kid)) { hit = x; mp = g.mp; break; } }
+      if (hit) { m = hit; btns.push(`<button class="btn wide ghost btn-2l" data-v2="mission" data-exam="${esc(m.e.id)}">Öva mer inför ${esc(m.e.title)}<span class="btn-sub"><span class="sep"> · </span>${EXP.practiceOnly(kid, 'mission') ? 'utan poäng, ' : ''}cirka ${EXP.mins(mp, kid)} min</span></button>`); } }
     return btns.join('');
   },
   /* ---------- Planens presentation ---------- */
@@ -190,8 +193,8 @@ const EXP = {
   achieveHome(kid, p) {
     const plan0 = V2.peekPlan(kid).plan; const g = EXP.coreDone(p) ? EXP.goalOf(kid, EXP.peekFlow(kid)) : EXP.goalOf(kid, plan0); const m = g.now;
     const sedan = g.next ? `<div class="then">${m && g.next.d < m.d ? 'Före det' : 'Sedan'}: <b>${esc(g.next.e.title.toUpperCase())}</b> · <span class="nw">${esc(fmtDate(g.next.e.date).toUpperCase())}</span></div>` : '';
-    if (EXP.coreDone(p)) { const fsh = EXP.examShare(kid, m, EXP.peekFlow(kid)); return EXP.doneCard(kid, p, 'DAGENS PLAN KLAR', 'Appen håller koll på resten.', m && EXP.isExam(m.e) && EXP.mostly(fsh) ? 'FORTSÄTT MOT PROVET' : 'FORTSÄTT') + EXP.upcomingSafe(kid) + EXP.goalDetail(kid, m); }
-    const s = EXP.summary(kid, plan0); if (!s.n) return EXP.emptyCard(kid, 'DAGENS PLAN', sedan) + EXP.upcomingSafe(kid) + EXP.goalDetail(kid, m);
+    if (EXP.coreDone(p)) { const fsh = EXP.examShare(kid, m, EXP.peekFlow(kid)); return EXP.doneCard(kid, p, 'DAGENS PLAN KLAR', 'Appen håller koll på resten.', m && EXP.isExam(m.e) && EXP.mostly(fsh) ? 'FORTSÄTT MOT PROVET' : 'FORTSÄTT') + (() => { const u = EXP.upcomingSafe(kid); return u + EXP.goalDetailUnless(kid, m, u); })(); }
+    const s = EXP.summary(kid, plan0); if (!s.n) return EXP.emptyCard(kid, 'DAGENS PLAN', sedan) + (() => { const u = EXP.upcomingSafe(kid); return u + EXP.goalDetailUnless(kid, m, u); })();
     const sh = EXP.examShare(kid, m, s.plan); const ex = m && sh.n > 0;   // provrubrik bara när dagens pass innehåller provet
     const when = m ? `${esc(fmtDate(m.e.date).toUpperCase())} · ${m.d === 0 ? 'idag' : m.d === 1 ? 'imorgon' : `om ${m.d} dagar`}` : '';
     const head = ex ? `<div class="eyebrow">NÄSTA MÅL</div><div class="goal-title">${esc(m.e.title.toUpperCase())}</div><div class="goal-date">${when}</div>`
@@ -202,8 +205,11 @@ const EXP = {
       ${main.length ? `<div class="train"><div class="eyebrow">${ex ? 'DET HÄR TRÄNAR VI IDAG' : 'OCKSÅ IDAG'}</div><ul>${main.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
       ${also.length ? `<div class="muted" style="font-size:.95rem">${main.length ? 'Också idag' : 'Idag'}: ${also.map(esc).join(' · ')}</div>` : ''}
       <div class="plan-meta"><span class="mins">cirka ${s.mins} min</span>${ex ? `<span class="share">${esc(EXP.shareText(sh))}</span>` : ''}</div>
-      ${EXP.go(kid, LBL(kid).go.toUpperCase())}${nextGoal}${sedan}</section>` + EXP.upcomingSafe(kid) + EXP.goalDetail(kid, m);
+      ${EXP.go(kid, LBL(kid).go.toUpperCase())}${nextGoal}${sedan}</section>` + (() => { const u = EXP.upcomingSafe(kid); return u + EXP.goalDetailUnless(kid, m, u); })();
   },
+  /* 3.6: målets egen träning ("Kör" på en rad i Kommande, "Öva mer inför" efter dygnets extrapass) – EN regel för båda, så att skärmen
+     aldrig säger emot sig själv (granskning P2-A): planen för målet, och efter dygnets belönade extrapass bara när den gör nytta. */
+  goalPractice(kid, e, C, now) { const mp = EXP.safe(() => V2.plan(kid, 'mission', C || LE.state(kid), now || LE.now(), null, { examId: e.id }), 'goalPeek', []); const po = EXP.on(kid) && EXP.practiceOnly(kid, 'mission'); return { mp, po, ok: mp.length > 0 && (!po || EXP.useful(mp, kid)) }; },
   /* 3.6 Kommande: barnet ser alla sina kommande prov och läxor på en gång (ägarens önskemål) – i datumordning, med "om X dagar".
      Bara barnets egna mål (samma LE.exams som planen), inget om resultat, inga betyg, ingen jämförelse. Visas bara när det finns något. */
   UPCOMING_DAYS: 60, UPCOMING_MAX: 6,
@@ -217,27 +223,37 @@ const EXP = {
     // Granskning P2-1: före första synken får kortet inte röra motorns tillstånd (LE.state skulle migrera en kanske inaktuell profil) – då bara listan
     const can = LE.canStart(kid, prof(kid.id));
     const has = can ? (e) => V2.examCidsActive(kid, e).length > 0 : () => true;
-    // Ärligt (granskning P2-2/P3-3; 3.7): foten säger vad dagens Kör! faktiskt övar – samma plan och samma räkning som startkortets rubrik
-    // (EXP.examShare). Mål utan innehåll räknas aldrig; utan plan (t.ex. "Bara prov och läxor" utan mål inom fyra veckor) ingen fot.
-    const plan = can ? EXP.safe(() => (EXP.coreDone(prof(kid.id)) ? EXP.peekFlow(kid) : V2.peekPlan(kid).plan), 'upPlan', []) : [];
+    // Ärligt: foten säger vad nästa pass på startsidan faktiskt övar – samma plan och samma räkning som startkortets rubrik (EXP.examShare).
+    // Före dagens pass: "Dagens pass". Efter det: "Nästa extrapass", bara medan ett sådant erbjuds (EXP.canFlow) – annars ingen fot (granskning P2-B).
+    // Mål utan innehåll räknas aldrig; utan plan (t.ex. "Bara prov och läxor" utan mål inom fyra veckor) ingen fot.
+    const done = can && EXP.coreDone(prof(kid.id)); const pre = done ? 'Nästa extrapass' : 'Dagens pass';
+    const plan = !can ? [] : done ? (EXP.canFlow(kid) ? EXP.peekFlow(kid) : []) : EXP.safe(() => V2.peekPlan(kid).plan, 'upPlan', []);
     const inPlan = can ? all.filter(x => has(x.e) && EXP.examShare(kid, x, plan).n > 0).length : 0; const withC = all.filter(x => has(x.e)).length;
-    const foot = !can || !withC || !plan.length ? '' : !inPlan ? 'Dagens Kör! övar annat idag. Kör på en rad övar bara det målet.'
-      : inPlan === all.length ? (inPlan > 1 ? 'Dagens Kör! övar inför alla de här.' : 'Dagens Kör! övar inför det här.')
-      : `Dagens Kör! övar idag inför ${inPlan > 1 ? `${inPlan} av dem` : 'ett av dem'}. Kör på en rad övar bara det målet.`;
+    const foot = !can || !withC || !plan.length ? '' : !inPlan ? `${pre} övar annat. Kör på en rad övar bara det målet.`
+      : inPlan === all.length ? `${pre} övar inför ${inPlan > 1 ? 'alla de här' : 'det här'}.`
+      : `${pre} övar inför ${inPlan > 1 ? `${inPlan} av dem` : 'ett av dem'}. Kör på en rad övar bara det målet.`;
     /* 3.7 Kör och Testa mig per mål (ägarens önskemål): "Kör" övar bara det målet – samma läge som "Öva inför provet" (V2.plan 'mission':
        bara målets koncept, dygnets gräns för nytt, räknas som ett av dygnets extrapass, utan poäng efter dygnets tak). "Testa mig" prövar
        om det sitter – samma prov som i "Läget inför" (en belönad omgång per dygn). Inga knappar före första synken eller för mål utan
        innehåll i appen; när inget av målet går att öva just nu säger raden det i stället för en knapp som inte gör något. */
     const C = can ? LE.state(kid) : null; const now = LE.now();
-    // Efter dygnets belönade extrapass gäller Öva mer-reglerna (som EXP.moreBtns): bara när det gör nytta (EXP.useful), och det sägs att det är utan poäng – ingen utfyllnad
-    const po = EXP.on(kid) && EXP.practiceOnly(kid, 'mission');
-    const acts = (e) => { if (!can || !has(e)) return ''; const mp = EXP.safe(() => V2.plan(kid, 'mission', C, now, null, { examId: e.id }), 'upPeek', []); const ok = mp.length > 0 && (!po || EXP.useful(mp, kid)); const n = ok ? EXP.mins(mp, kid) : 0;
+    // Efter dygnets belönade extrapass gäller Öva mer-reglerna – samma regel som "Öva mer inför" (EXP.goalPractice): bara när det gör nytta, och det sägs att det är utan poäng
+    const acts = (e) => { if (!can || !has(e)) return ''; const { mp, po, ok } = EXP.goalPractice(kid, e, C, now); const n = ok ? EXP.mins(mp, kid) : 0;
       return `<div class="up-acts">${ok ? `<button class="btn secondary up-go" data-v2="mission" data-exam="${esc(e.id)}" aria-label="Kör bara ${esc(e.title)}, ${po ? 'utan poäng, ' : ''}cirka ${n} minuter">Kör<span class="up-min" aria-hidden="true"> · ${po ? 'utan poäng · ' : ''}${n} min</span></button>` : `<span class="up-none">${mp.length ? 'Inget mer som gör nytta idag' : 'Inget att öva just nu'}</span>`}<button class="btn ghost up-test" data-v2="testa" data-exam="${esc(e.id)}" aria-label="Testa mig på ${esc(e.title)}">Testa mig</button></div>`; };
-    const rows = all.slice(0, EXP.UPCOMING_MAX).map(({ e, d }) => { const k = kindOf(e); return `<li class="up-row${d <= 3 ? ' soon' : ''}"><span class="up-kind k-${k === 'Prov' ? 'ex' : 'hw'}">${k}</span><span class="up-title">${esc(e.title)}</span><span class="up-when"><span class="nw">${esc(fmtDate(e.date))}</span> · <b class="nw">${rel(d)}</b>${has(e) ? '' : ' · inte inlagt i appen ännu'}</span>${acts(e)}</li>`; }).join('');
+    /* 3.6 Läget per mål (ägarens tredje önskemål): "Läget inför" för VARJE mål i samma rad – hopfällt, med motorns lägen per område (aldrig
+       procent), samma källa som det tidigare kortet "Läget inför" (V2.examStatus / EXP.goalAreas). Sammanfattningen räknar bara lägena. */
+    const state = (e) => { if (!can || !has(e)) return ''; const st = V2.examStatus(kid, e, C, now); const per = EXP.goalAreas(kid, e, C) || st.per; if (!per.length) return '';
+      const thin = per.every(x => x.ready === 'För lite underlag'); const cnt = (r) => per.filter(x => x.ready === r).length;
+      const sum = thin ? 'för lite underlag ännu' : [['Bra koll', 'bra koll'], ['Öva lite mer', 'öva lite mer'], ['För lite underlag', 'för lite underlag']].filter(([r]) => cnt(r)).map(([r, t]) => `${cnt(r)} ${t}`).join(' · ');
+      return `<details class="up-state" data-goal="${esc(e.id)}"><summary><b>Läget</b> <span class="up-sum">· ${sum}</span></summary>${thin ? '<p class="muted" style="margin:6px 0 0;font-size:.9rem">Kör några pass så syns det här vad som sitter.</p>' : `<div class="stack" style="gap:6px;margin-top:6px">${per.slice(0, 8).map(x => `<div class="row" style="justify-content:space-between;gap:8px"><span>${esc(x.name)}</span><span class="pill ${V2.READY_CLS[x.ready]}" style="font-size:.75rem">${V2.READY_TXT[x.ready]}</span></div>`).join('')}</div>`}</details>`; };
+    let anyState = false;
+    const rows = all.slice(0, EXP.UPCOMING_MAX).map(({ e, d }) => { const k = kindOf(e); const sh = state(e); if (sh) anyState = true; return `<li class="up-row${d <= 3 ? ' soon' : ''}"><span class="up-kind k-${k === 'Prov' ? 'ex' : 'hw'}">${k}</span><span class="up-title">${esc(e.title)}</span><span class="up-when"><span class="nw">${esc(fmtDate(e.date))}</span> · <b class="nw">${rel(d)}</b>${has(e) ? '' : ' · inte inlagt i appen ännu'}</span>${acts(e)}${sh}</li>`; }).join('');
     const more = all.length > EXP.UPCOMING_MAX ? `<div class="muted" style="font-size:.9rem">och ${all.length - EXP.UPCOMING_MAX} till längre fram</div>` : '';
-    return `<section class="card upcoming stack" aria-label="Kommande prov och läxor"><div class="eyebrow">KOMMANDE PROV OCH LÄXOR</div><ul class="up-list" role="list">${rows}</ul>${more}${foot ? `<div class="muted" style="font-size:.9rem">${foot}</div>` : ''}</section>`;
+    return `<section class="card upcoming stack" aria-label="Kommande prov och läxor"><div class="eyebrow">KOMMANDE PROV OCH LÄXOR</div><ul class="up-list" role="list">${rows}</ul>${more}${foot ? `<div class="muted" style="font-size:.9rem">${foot}</div>` : ''}${anyState ? '<div class="muted" style="font-size:.85rem">Lägena bygger på hur det gått hittills – de säger inget om provresultatet.</div>' : ''}</section>`;
   },
   // Läget per område – hopfällt, med motorns tre lägen (aldrig procent). Testa mig är en sekundär knapp här.
+  // 3.6: kortet Kommande visar läget för varje mål – då behövs inte det separata kortet för samma mål
+  goalDetailUnless(kid, m, html) { return m && html && html.includes(`data-goal="${esc(m.e.id)}"`) ? '' : EXP.goalDetail(kid, m); },
   goalDetail(kid, m) {
     if (!m) return '';
     const C = LE.state(kid); const st = V2.examStatus(kid, m.e, C, LE.now()); const per = EXP.goalAreas(kid, m.e, C) || st.per;
