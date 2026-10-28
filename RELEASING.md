@@ -149,3 +149,76 @@ med `PREVIEW=1` till `<sajten>/preview/`. Produktionen publiceras som vanligt. M
 - Test: `test_sync_integrity.js` (fall A–M och återgång), `tests/rules/sync_precondition.test.mjs` (Firestore-emulatorn i CI).
 - Rollback: föregående release-tagg. Profilernas format är oförändrat; en äldre version ignorerar `DB.syncBase` (men skriver då åter
   utan villkor).
+## 3.3.0 – World-Class Experience (2026-10-27)
+- **Bara presentation.** Inga ändringar i Learning Engine, planering, bevis, rättning, synk, Testa som barnet, lagring eller
+  profilformat. Nya krokar för CSS: `html[data-exp=explore|grow|achieve|classic]` och `#qcard[data-mode][data-role][data-exam]`
+  (från `EXP.modeOf`). På liggande iPad flyttas uppgiftskortets befintliga element till två rutor (`.q-main`/`.q-side`,
+  `display: contents` på mindre skärmar) – inga nya element, samma id:n och händelser.
+- Explore: äventyrskort med husdjur och stationer med ikoner; sekundära saker samlade i ett hopfällt block. Grow: framstegsstapel
+  (säkra/på väg/tränar), mörk startknapp när lagfärgen är röd (rött betyder bara fel). Achieve: mål → datum → idag → tid → KÖR,
+  sedan "Sedan: …"; tid och andel på egen rad.
+- Aktiviteterna har eget formspråk (sortera, para ihop, ordna, tryck, upptäck, papper, Hitta felet som lösningskort med bokstav,
+  Baklänges med målpanel, Boss, Revansch). Feedback: lugn fel-ruta med röd kant, "Visa varför" i Explore, XP-chip i Grow som inte
+  täcker nästa fråga, ingen "N i rad" i Achieve. KLAR: eget slut per upplevelse, tiden på egen rad i knappen.
+- Testa mig: neutral framstegsstapel (avslöjar inte rätt/fel), resultat per mål ("Öva mer: …", "N av M svar stämde"), inga ✅/🔁.
+- iPad (≥768 px) bredare kort och större text; liggande (≥1100 px) hem i två spalter och uppgifter i två rutor. Långa ord bryts.
+  `prefers-reduced-motion` stänger av rörelser.
+- Granskningarnas åtgärder: rött betyder bara fel (lagets röda färg blir marinblå accent i v3, ett köpt accentfärgsval vinner
+  fortfarande), Ordna/Para ihop börjar aldrig färdiglösta (rättning oförändrad; tidigare kunde en blandning råka ge facit),
+  klara par ställs på samma rad, inga konfetti över ett fel svar, klarad Boss märks, Hitta felet läses upp i sin helhet och
+  skärmläsaren hör varje lösning, KLAR visar knapparna först.
+- **Gäller alla lägen (även Klassisk/v1), med avsikt:** kontrast för ej tagna märken (WCAG AA), `html{overflow-x:clip}` med
+  `.stack{grid-template-columns:minmax(0,1fr)}` (breda flikar vidgade tidigare hela kolumnen och gav sidledsscroll),
+  scrollbara flikrader, `lang="sv"` och svensk avstavning i den fristående varianten, `--ink-2` i mörkt läge. Övriga 3.3-regler är
+  avgränsade till `:root:not([data-exp="classic"])`. I Klassiskt syns dessutom några nya klassnamn utan egen stil (`act-chip`,
+  `learn-title`, `exam-list`), en kvarliggande +XP-flygare tas bort när nästa fråga visas, och flikknapparna krymper inte. Klassiskt läge behåller sin text om tom provträning.
+- Sista passet (ägarens beslut (a)): Grows hem med barnets ord för lägena ("sitter / på väg / övar"), skoluppgiften på
+  en rad och utan hockeyposition; ett gemensamt KLAR (märke, rubrik, en mening, högst tre chips från verkligt läge,
+  fortsätt, Klar för idag – utan statistik); ett kort Boss-ögonblick (gyllene ring) och ett lugnt KLAR-avslut (ringen sluts),
+  båda av med `prefers-reduced-motion`; iPad stående med lugn vertikal placering och större mattetext; Sortera med
+  instruktionen först, jämna kort och lådor som växer; Ordna visar rätt ordning efter ett fel; föräldraläget säger
+  "20 rätt av 25", visar inte provtid och skriver "Enkla andragradsekvationer" i stället för "x²" (v1:s föräldravy oförändrad).
+- Granskningarnas sista åtgärder: rubrikraden har en egen yta; Nästa ligger kvar längst ned efter svaret (aldrig före svaret –
+  då täckte den alternativ och lådor); iPad stående toppjusterad med fast avstånd; Hitta felet i en spalt på stående iPad;
+  tre korta talalternativ på en rad; "Visa hur" pekar ut rätt alternativ ("Välj det"); ett ensamt förklaringssteg utan "1.";
+  Achieve: lugnare beröm och "Steg för steg" i stället för "Vi tar det tillsammans"; Para ihop "Nästan" med gul kant; KLAR säger
+  "dagens runda/äventyr" bara efter dagens plan; Grow-KLAR visar nivån och XP kvar; Testa mig-resultatet leder med vad som
+  ska övas (inget "N av M"); grammatik "1 färgad" (02k).
+- Slutpasset (ägarens beslut (a), presentation och text):
+  - **Ett svarssätt för flerval i v3:** ett tryck på ett alternativ svarar – också för tal (förut tryck + Svara utom för Yngre).
+    Undantag med en knapp, eftersom svaret byggs av flera tryck: sortera, para ihop, ordna, bygg ordet, skrivna svar, knappsats
+    och papper. Rättning och bevis är desamma; Klassiskt är oförändrat. Ett tryck mindre gör att ett snabbt fel oftare räknas
+    som snabbt (motorns befintliga `fast`-regel, oförändrad).
+  - **Knappsatsen under knappraden** (`#keypad`, samma knappar flyttade): Svara direkt under svaret; efter svaret döljs knapparna.
+    Svara/Nästa hamnar aldrig under kanten på 375×667, inte heller med telefonens tangentbord uppe (mätt i Chromium).
+  - **En etikett per läge:** rollen står på kortet (NY CHANS, VI TAR DET TILLSAMMANS, STEG FÖR STEG, EXTRA), räknaren säger bara
+    "N kvar" ("Snart klart" under en extra uppgift när planen är slut); förklaringskorten upprepar inte etiketten; Rescue efter
+    förklaringen visar bara ledtråden (utan ledtråd: första steget som förut); Revansch förklaras en gång per pass; rubriken i ett
+    Revansch-pass är ämnet. Samma ord och ikoner som på startsidan (VÄRM UPP, 🧗 UTMANING).
+  - **Grow:** mållinje 🏁 i förloppet, "UTMANING · NÄSTA NIVÅ", "Returmatch: den här var klurig förut.", "Slutsignal" på KLAR,
+    "Dina N områden".
+  - **KLAR:** Explore – följeslagaren hoppar till i märket och stigen är hela stjärnor; Achieve – planen som en rad
+    ("Alla N uppgifter gjorda" / "N av M"), inte i extrapass; chips är text; märke, uppdrag och Felboken som samma slags rad.
+  - **iPad stående:** större uppgift, svar och knappar; kortet i övre tredjedelen, förloppet överst. **Föräldraläget** i två
+    spalter på iPad (barn, flikar och Testa som barnet till vänster) för barn med v2 – v1:s föräldravy är oförändrad.
+  - **Små etiketter** minst 12 px (nivå), lägen i Testa mig/provkort 13 px. **Styrknappar** (Ledtråd, Jag fattar inte, Läs upp,
+    Kladdyta, Läs mer) med linjeikoner i v3; karaktär och glädje (stationer, roller, KLAR) är kvar som emoji.
+- **Fas A (ägarbeslut 2026-10-27, stänger 3.3):**
+  - "Vilket påstående är fel?" (paketens false/err-varianter och Utmaningen "Vilket påstående är FEL?") och Hitta felet: det man valde i stället är SANT – märks "Stämmer" (aldrig rött) och texten säger
+    "Det du valde stämmer – det var inte felet. Felet var: … (stämmer inte)". Gäller alla v2-upplevelser inklusive Klassisk och
+    Testa mig-resultatet. Inget nytt sparat fält: svaren i Testa mig finns bara i minnet under passet; bevisen är orörda.
+  - Testa mig: ett tryck väljer (går att ändra), Svara lämnar in – för tal och påståenden (ord prövas i Testa mig som skrivna svar;
+    ordflervalets välj + Svara finns som skydd men nås inte i dag). Ingen återkoppling under testet.
+  - Läs upp på återkoppling och förklaringskort (enhetens röst; Yngre alltid, övriga med Uppläsning på) – aldrig när läsningen
+    själv prövas (samma regel som frågan: `V2.canSpeak`).
+  - Startsidan: barnkorten visar namn, klass och figur (följeslagaren i sin fullvuxna form, inte dess stadium) – inte syskonens nivå, streak eller dagens antal. Det är INTE
+    serverisolering: alla enheter i familjen kan fortfarande läsa hela familjens data tills Family Platform (barnbunden enhet) är
+    driftsatt. v1-referensen är omgjord från samma 1.2.0-bygge med samma normalisering av startsidan; allt annat är oförändrat.
+  - Nästa täcker aldrig återkopplingen (rullningen lämnar plats för den fasta knappraden, även för ord); när ett byggt svar
+    (sortera, ordna, bygg) är klart rullas Svara fram; låg telefon: mindre figur och uppläsning som ikon. Förälderns flikar på
+    telefon i två rader (v2-barn). Lägespiller med läsbar kontrast (alla lägen).
+  - Nytt CI-jobb **Layout och tillgänglighet i Chromium** (`tests/browser/layout.js`, Playwright + axe-core, fyra storlekar) –
+    krävs före publicering och release-tagg.
+- Tillgänglighet: axe-core (WCAG 2.1 A/AA) 0 fynd på 24 skärmar i 375, 390, 820 och 1180 px.
+- Test: `test_ux33.js` och `test_ux33_final.js` (krokar = uppgiften, två rutor utan förlust/dubbletter, Hitta felet/Baklänges rättas som förut, löftena
+  ordagrant, lugnt Testa mig). Rollback: `release-3.2.2-1544484` (profilformatet är oförändrat, så rollback kräver ingen migrering; enda innehållsskillnaden i lagrad data är grammatikrättelsen "1 färgad" i stegtext som v1-Felboken kopierar).

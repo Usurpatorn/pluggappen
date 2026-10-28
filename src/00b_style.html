@@ -269,4 +269,433 @@ body:has(.progress.v3, .trail, section.mission, .klar) .icon-btn { width: 44px; 
 .btn { text-wrap: balance; }
 @media (min-width: 768px) { .goal-title { font-size: 2.1rem; } .mission-title { font-size: 1.9rem; } .v3go { min-height: 84px; } }
 @media (max-height: 700px) { .paper-note { padding: 8px 12px; font-size: .95rem; } }
+/* ===================== 3.3 World-Class Experience – bara utseende =====================
+   Krokar: html[data-exp=explore|grow|achieve|classic] och #qcard[data-mode][data-role][data-exam]. Ingen logik. */
+:root { --cta: var(--acc); --cta-glow: var(--acc-glow); --ease: cubic-bezier(.2, .8, .2, 1); --ink-2: #3c4558; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --ink-2: #c5cbd8; } } :root[data-theme="dark"] { --ink-2: #c5cbd8; }
+.btn { background: var(--cta); }
+.go-btn { background: var(--cta); box-shadow: 0 10px 26px -12px var(--cta-glow), 0 1px 2px rgba(0,0,0,.1); }
+html { overflow-x: clip; }
+.choice, .wchoice, .mtile, .stile, .tapword, .otile, .station .sl, .ltile { overflow-wrap: anywhere; hyphens: auto; min-width: 0; }
+.tabs { overflow-x: auto; scrollbar-width: none; } .tabs::-webkit-scrollbar { display: none; } .tabs button { flex: 1 0 auto; padding: 0 12px; }
+
+/* Startsidan: en sak i fokus – resten i en lugn lista */
+.more-group { padding: 2px 16px; gap: 0; display: block; }
+.more-group > * { border-top: 1px solid var(--line); }
+.more-group > *:first-child { border-top: 0; }
+.more-group > .card, .more-group > button.card { box-shadow: none; border-radius: 0; background: transparent; padding: 12px 0; width: 100%; border-left: 0; border-right: 0; border-bottom: 0; }
+.more-group > *:first-child.card { border-top: 0; }
+.more-group details > summary { min-height: 52px; }
+.more-group .teacher-fold ul { padding-left: 18px; }
+
+/* EXPLORE – ett äventyr man vill gå in i */
+:root[data-exp="explore"] .mission.explore { position: relative; padding: 22px 20px 20px; gap: 14px; border: 0; background: linear-gradient(165deg, color-mix(in srgb, var(--acc-soft) 85%, var(--card)) 0%, var(--card) 70%); box-shadow: 0 18px 40px -26px var(--acc-glow), var(--shadow); }
+.hero-pet { position: absolute; right: 14px; top: 8px; font-size: 3.4rem; line-height: 1; filter: drop-shadow(0 6px 10px rgba(20,30,60,.18)); animation: bob 3.2s ease-in-out infinite; }
+@keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+:root[data-exp="explore"] .mission.explore .mission-title { font-size: 1.85rem; letter-spacing: -.02em; max-width: calc(100% - 76px); }
+:root[data-exp="explore"] .mission.explore > .muted { font-size: 1rem; }
+:root[data-exp="explore"] .mission.explore .stations { gap: 12px 10px; justify-content: flex-start; }
+:root[data-exp="explore"] .mission.explore .station { flex-direction: column; gap: 4px; min-height: 44px; padding: 0; background: transparent; color: var(--ink-2); font-size: .78rem; font-weight: 700; border-radius: 0; }
+:root[data-exp="explore"] .mission.explore .station .si { width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; font-size: 1.4rem; background: var(--card); border: 2px solid color-mix(in srgb, var(--acc) 30%, var(--card)); box-shadow: 0 4px 12px -6px var(--acc-glow); }
+:root[data-exp="explore"] .mission.explore .station.st-boss .si { border-color: var(--acc); background: color-mix(in srgb, var(--acc-soft) 60%, var(--card)); }
+:root[data-exp="explore"] .mission.explore .v3go { min-height: 84px; }
+:root[data-exp="explore"] .mission.explore .v3go .t { font-size: 1.6rem; }
+
+/* GROW – framsteg man ser */
+.grow-prog { display: grid; gap: 6px; }
+.pbar3 { display: flex; gap: 2px; height: 8px; border-radius: 999px; overflow: hidden; background: var(--soft); }
+.pbar3 i { display: block; min-width: 6px; }
+:is(.pbar3, .progress-states) .p-skra { --pc: var(--good); } :is(.pbar3, .progress-states) .p-pvg { --pc: color-mix(in srgb, var(--good) 45%, var(--card)); } :is(.pbar3, .progress-states) .p-trnar { --pc: color-mix(in srgb, var(--ink) 22%, var(--card)); }
+.pbar3 i { background: var(--pc); }
+.progress-states .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--pc); margin-right: 6px; vertical-align: 1px; }
+.progress-states .p-skra b { color: var(--good-ink, var(--good)); }
+.grow-prog { display: grid; gap: 6px; } .grow-prog .gp-head { font-size: .78rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.goal-row { font-size: .95rem; color: var(--ink-2); line-height: 1.4; }
+
+/* ACHIEVE – målet, idag, börja */
+:root[data-exp="achieve"] .mission.achieve { padding: 22px 20px; gap: 10px; }
+:root[data-exp="achieve"] .mission.achieve > .eyebrow { color: var(--muted); }
+:root[data-exp="achieve"] .goal-title { font-size: 1.75rem; letter-spacing: .015em; }
+:root[data-exp="achieve"] .goal-date { font-size: .95rem; color: var(--muted); font-weight: 700; letter-spacing: .03em; }
+:root[data-exp="achieve"] .train { margin-top: 4px; }
+:root[data-exp="achieve"] .train .eyebrow { color: var(--muted); }
+:root[data-exp="achieve"] .train ul { list-style: none; padding: 0; margin-top: 6px; }
+:root[data-exp="achieve"] .train li { padding: 7px 0; border-top: 1px solid var(--line); font-size: 1.08rem; font-weight: 650; margin: 0; }
+:root[data-exp="achieve"] .train li:first-child { border-top: 0; padding-top: 2px; }
+:root[data-exp="achieve"] .mission.achieve .then { font-size: .92rem; }
+:root[data-exp="achieve"] .act-chip, :root[data-exp="achieve"] #qcard .eyebrow { letter-spacing: .06em; }
+
+/* Aktiviteten styr formen */
+:root:not([data-exp="classic"]) #qcard { gap: 16px; }
+:root:not([data-exp="classic"]) .answer-input { border-color: var(--line); }
+:root:not([data-exp="classic"]) .answer-input:focus { border-color: var(--ink); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ink) 10%, transparent); outline: none; }
+:root:not([data-exp="classic"]) .act-chip.role-revansch { background: var(--warn-soft); color: #7a4f0e; }
+:root:not([data-exp="classic"]) .act-chip.role-boss { background: color-mix(in srgb, var(--acc-soft) 70%, var(--card)); box-shadow: 0 0 0 1.5px var(--acc) inset; }
+#qcard[data-role="boss"] { border: 2px solid color-mix(in srgb, var(--acc) 55%, var(--card)); box-shadow: 0 16px 36px -22px var(--acc-glow), var(--shadow); }
+:root[data-exp="explore"] #qcard[data-role="boss"] { background: linear-gradient(180deg, color-mix(in srgb, var(--acc-soft) 45%, var(--card)) 0, var(--card) 140px); }
+:root[data-exp="achieve"] #qcard[data-role="boss"] { border-color: var(--ink); border-width: 1.5px; }
+#qcard[data-exam] { box-shadow: none; border: 1.5px solid var(--line); }
+#qcard[data-role="revansch"] .sbin { border-color: var(--warn); background: color-mix(in srgb, var(--warn-soft) 55%, var(--card)); }
+#qcard[data-role="revansch"] .sbin-h { color: #7a4f0e; }
+/* Sortera: riktiga lådor; korten landar */
+#qcard[data-mode="sort"] .sbin { border-style: solid; min-height: 116px; background: color-mix(in srgb, var(--acc-soft) 40%, var(--card)); }
+#qcard[data-mode="sort"] .sort-pool .stile { box-shadow: 0 3px 0 color-mix(in srgb, var(--ink) 12%, transparent), var(--shadow); }
+.stile.placed { animation: settle .26s var(--ease) both; }
+@keyframes settle { from { transform: translateY(-10px) scale(1.08); opacity: .5; } to { transform: none; opacity: 1; } }
+/* Para ihop: lika stora kort, klara par syns */
+:root:not([data-exp="classic"]) .match-col { grid-auto-rows: 1fr; }
+:root:not([data-exp="classic"]) .mtile.done { opacity: 1; background: var(--good-soft); border-color: var(--good); color: var(--ink); position: relative; }
+:root:not([data-exp="classic"]) .mtile.done::after { content: '✓'; position: absolute; top: 4px; right: 8px; font-size: .85rem; color: var(--good); font-weight: 800; }
+/* Ordna: en plats för varje steg */
+#qcard[data-mode="order"] #orderSlots { min-height: 60px; padding: 10px; border: 2px dashed color-mix(in srgb, var(--ink) 18%, var(--line)); border-radius: 14px; background: var(--soft); }
+#qcard[data-mode="order"] .order-pool .otile { font-family: var(--display); font-weight: 700; font-size: 1.05rem; }
+#qcard[data-mode="order"] .order-pool .otile::first-letter { text-transform: uppercase; }
+/* Tryck: ordet i fokus */
+#qcard[data-mode="tap"] .tapword { font-size: 1.35rem; min-height: 56px; }
+/* Upptäck: något nytt, inte ännu en fråga */
+.learn-ic { width: 64px; height: 64px; border-radius: 20px; display: grid; place-items: center; font-size: 2rem; background: color-mix(in srgb, var(--acc-soft) 80%, var(--card)); }
+#qcard[data-mode="learn"] .learn-title { font-size: 1.55rem; }
+#qcard[data-mode="learn"] p { font-size: 1.12rem; line-height: 1.5; }
+/* Hitta felet: granska lösningarna */
+.spot-sols { grid-template-columns: 1fr; gap: 10px; }
+.wchoice.spot-sol { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 2px 12px; align-items: start; text-align: left; place-items: start stretch; padding: 14px 14px 14px 12px; min-height: 0; font-family: var(--body); font-weight: 400; font-size: 1.05rem; line-height: 1.45; }
+.spot-sol .sol-l { width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center; background: var(--soft); font-family: var(--display); font-weight: 800; font-size: 1rem; color: var(--ink-2); }
+.spot-sol .sol-b b { font-family: var(--display); font-weight: 800; }
+.spot-sol .sol-b .m { font-size: 1.1rem; }
+.wchoice.spot-sol.sel { box-shadow: 0 0 0 3px var(--acc-glow); border-color: var(--acc); }
+.wchoice.spot-sol.no .sol-l { background: var(--bad); color: #fff; } .wchoice.spot-sol.ok .sol-l { background: var(--good); color: #fff; }
+/* Baklänges: svaret vet vi – vad var uppgiften? */
+.rev-target { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 14px 16px; border-radius: 16px; background: var(--soft); border: 1.5px dashed color-mix(in srgb, var(--ink) 22%, var(--line)); text-align: center; }
+.rev-k { font-size: .78rem; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); font-weight: 800; }
+.rev-v { font-family: var(--display); font-weight: 800; font-size: 1.9rem; letter-spacing: -.01em; }
+.rev-q { font-size: .95rem; color: var(--ink-2); font-weight: 700; }
+/* Papper: appen vet att det här görs bäst på papper */
+#qcard[data-mode="paper"] .paper-note { background: color-mix(in srgb, var(--acc) 6%, var(--card)); border: 0; border-left: 4px solid var(--acc); border-radius: 4px 14px 14px 4px; padding: 14px 16px; font-size: 1.02rem; line-height: 1.5; }
+#qcard[data-mode="paper"] .question { font-size: 1.3rem; }
+#qcard[data-mode="paper"] .keys .key { min-height: 40px; font-size: 1.05rem; background: color-mix(in srgb, var(--soft) 70%, var(--card)); }
+
+/* Återkoppling: en rad, rätt färg */
+:root:not([data-exp="classic"]) #fb .feedback.no { background: var(--card); border: 1.5px solid var(--line); border-left: 4px solid var(--bad); color: var(--ink); }
+:root:not([data-exp="classic"]) #fb .feedback.no .big { color: var(--ink); }
+:root:not([data-exp="classic"]) #fb .feedback.ok { border-left: 4px solid var(--good); }
+:root:not([data-exp="classic"]) #fb .hint { background: var(--warn-soft); border-radius: 12px; padding: 10px 12px; color: var(--ink); font-weight: 600; }
+#fb .steps.why { padding: 0; background: transparent; }
+#fb .steps.why > summary { cursor: pointer; min-height: 44px; display: inline-flex; align-items: center; gap: 6px; font-weight: 700; color: var(--ink-2); }
+#fb .steps.why[open] { background: var(--soft); padding: 4px 14px 12px; }
+:root[data-exp="grow"] .xp-pop { top: calc(env(safe-area-inset-top, 0px) + 84px); left: auto; right: max(16px, calc(50% - 300px)); transform: none; font-size: 1rem; padding: 4px 12px; border-radius: 999px; background: var(--good-soft); color: var(--good-ink); text-shadow: none; animation: xpchip .9s var(--ease) forwards; }
+@keyframes xpchip { 0% { opacity: 0; transform: translateY(6px); } 20% { opacity: 1; transform: none; } 80% { opacity: 1; } 100% { opacity: 0; transform: translateY(-8px); } }
+
+/* Knapparna: Svara alltid nåbar, hjälpen lugnare */
+:root:not([data-exp="classic"]) #actions:has(#next) { position: sticky; bottom: 0; z-index: 3; margin-inline: -8px; padding: 10px 8px max(10px, env(safe-area-inset-bottom, 0px)); background: var(--card); box-shadow: 0 -10px 14px -12px rgba(0,0,0,.18); }
+:root:not([data-exp="classic"]) #hintBtn { padding: 0 14px; }
+:root:not([data-exp="classic"]) #explainBtn { border: 0 !important; background: transparent; box-shadow: none; color: var(--ink-2); font-weight: 650; min-height: 44px; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: color-mix(in srgb, var(--ink) 30%, transparent); }
+
+/* KLAR – ett riktigt slut */
+.klar { text-align: center; align-items: center; padding: 28px 20px 24px; }
+.klar .klar-icon { font-size: 3.4rem; line-height: 1; animation: klarIn .5s var(--ease) both; }
+@keyframes klarIn { from { transform: scale(.6); opacity: 0; } to { transform: none; opacity: 1; } }
+.klar .klar-title { font-size: 1.6rem; }
+.klar .klar-score { color: var(--muted); font-size: .95rem; font-weight: 650; }
+.klar .klar-gems { font-weight: 700; }
+.klar-achieve { text-align: left; align-items: flex-start; padding: 24px 22px; }
+.klar-achieve .klar-title { font-size: 1.4rem; letter-spacing: .03em; }
+.klar-achieve .klar-lead { font-size: 1.15rem; font-weight: 700; }
+.klar-explore .trail.done .dot { width: 34px; height: 34px; font-size: 1.05rem; }
+
+/* Testa mig – lugnt, resultat per mål */
+.progress i.done { background: color-mix(in srgb, var(--ink) 55%, var(--card)); }
+.exam-hero { text-align: left; }
+.exam-hero .exam-head { font-family: var(--display); font-weight: 800; font-size: 1.35rem; line-height: 1.22; }
+.exam-hero .exam-focus { font-size: 1.05rem; }
+.exam-hero .exam-count { font-size: .9rem; }
+.sdot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0 4px; }
+.sdot.ok { background: var(--good); } .sdot.todo { background: var(--warn); }
+:root:not([data-exp="classic"]) .exam-list details > summary { list-style: none; display: flex; align-items: center; gap: 4px; min-height: 40px; }
+:root:not([data-exp="classic"]) .exam-list details > summary::-webkit-details-marker { display: none; }
+:root:not([data-exp="classic"]) .exam-list details > summary::after { content: '▾'; margin-left: auto; opacity: .55; } :root:not([data-exp="classic"]) .exam-list details[open] > summary::after { content: '▴'; }
+
+/* iPad: utformat för ytan, inte en utdragen telefon */
+@media (min-width: 768px) {
+  :root:not([data-exp="classic"]) .wrap { max-width: 760px; }
+  :root:not([data-exp="classic"]) #qcard { padding: 28px 32px; }
+  :root:not([data-exp="classic"]) .question { font-size: 1.32rem; }
+  :root:not([data-exp="classic"]) .wchoice { min-height: 74px; }
+  :root[data-exp="explore"] .mission.explore { padding: 28px; }
+  :root[data-exp="explore"] .mission.explore .mission-title { font-size: 2.3rem; }
+  .hero-pet { font-size: 4.6rem; right: 22px; top: 14px; }
+  :root[data-exp="achieve"] .goal-title { font-size: 2.1rem; }
+  .klar { padding: 36px 32px; }
+}
+@media (min-width: 1100px) and (orientation: landscape) {
+  :root:not([data-exp="classic"]) .wrap { max-width: 1060px; }
+  :root:not([data-exp="classic"]) .home-v3 { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+  :root:not([data-exp="classic"]) .home-v3 > :first-child { grid-row: 1 / span 8; }
+  #qcard.split { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); column-gap: 36px; align-items: start; }
+  #qcard.split > .q-pane { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+  #qcard.split #actions { position: static; background: none; }
+}
+.plan-meta { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 12px; row-gap: 2px; }
+.plan-meta .mins { font-weight: 800; font-size: 1.05rem; }
+.plan-meta .share { color: var(--muted); font-size: .92rem; }
+@media (max-width: 420px) { .more-fold > summary .muted { display: none; } }
+.btn.btn-2l { display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 2px; line-height: 1.15; padding-top: 10px; padding-bottom: 10px; }
+.btn-2l .btn-sub { font-size: .8em; font-weight: 650; text-transform: none; letter-spacing: 0; opacity: .85; }
+.btn-2l .btn-sub .sep { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.nw { white-space: nowrap; }
+.badge.off { opacity: 1; filter: none; color: var(--muted); border-style: dashed; background: transparent; }
+.badge.off .e { filter: grayscale(1); opacity: .5; }
+:root { --good-ink: color-mix(in srgb, var(--good) 82%, #000); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --good-ink: var(--good); } } :root[data-theme="dark"] { --good-ink: var(--good); }
+.delight { color: var(--good-ink); }
+.btn-2l .btn-sub { opacity: 1; }
+:root[data-exp="achieve"] .xp-pop { display: none; }
+/* Ett brett barn (flikar, långa ord) får aldrig vidga hela kolumnen – annars klipps texten av html{overflow-x:clip} */
+.stack { grid-template-columns: minmax(0, 1fr); }
+.seg { max-width: 100%; overflow-x: auto; scrollbar-width: none; } .seg::-webkit-scrollbar { display: none; } .seg button { flex: 0 0 auto; }
+/* 3.3 granskning A/B ------------------------------------------------------------------------------------------- */
+/* Lagets röda färg: identitet, aldrig ytor och ramar (rött betyder fel). Accenten blir marinblå i v3; laget syns i märket. */
+:root:not([data-exp="classic"]):is([data-hue="rod"], [data-hue="blaugrana"]) { --acc: #2b3a67; --acc-soft: #e7eaf3; --acc-ink: #1f2a4d; --acc-glow: rgba(43,58,103,.22); --cta: #232b3d; --cta-glow: rgba(35,43,61,.28); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]):not([data-exp="classic"]):is([data-hue="rod"], [data-hue="blaugrana"]) { --acc: #9fb0e0; --acc-soft: #222b44; --acc-ink: #dfe6ff; --acc-glow: rgba(159,176,224,.25); --cta: #3b4c80; } }
+:root[data-theme="dark"]:not([data-exp="classic"]):is([data-hue="rod"], [data-hue="blaugrana"]) { --acc: #9fb0e0; --acc-soft: #222b44; --acc-ink: #dfe6ff; --acc-glow: rgba(159,176,224,.25); --cta: #3b4c80; }
+:root:not([data-exp="classic"])[data-paper="lulea"] body { background-image: repeating-linear-gradient(0deg, transparent 0 46px, rgba(216,35,42,.06) 46px 48px), repeating-linear-gradient(90deg, transparent 0 46px, rgba(20,30,60,.04) 46px 47px); }
+/* Fokusringen bara för tangentbord */
+:root:not([data-exp="classic"]) button:focus:not(:focus-visible) { outline: none; box-shadow: none; }
+/* Talknappen bredvid frågan i stället för en egen tom rad (inte i två rutor på liggande iPad) */
+#qcard { position: relative; }
+@media not all and (min-width: 1100px) and (orientation: landscape) {
+  :root:not([data-exp="classic"]):not([data-exp="explore"]) #qcard .q-top.solo { position: absolute; top: 14px; right: 14px; z-index: 1; }
+  :root:not([data-exp="classic"]):not([data-exp="explore"]) #qcard .q-top.solo + * { padding-right: 52px; }
+}
+:root:not([data-exp="classic"]) #qcard .q-top.solo:not(:has(button)) { display: none; }
+/* Långa ord: en kolumn; avstavning */
+.wchoices.one-col { grid-template-columns: minmax(0, 1fr); }
+.choice, .wchoice, .mtile, .stile, .tapword, .otile, .ltile { -webkit-hyphens: auto; hyphens: auto; }
+/* Para ihop: klara par på samma rad */
+.match-grid.v3.paired .mtile.done { transition: none; }
+/* Hitta felet: den valda felaktiga lösningen markeras som fyndet, det felaktiga svaret stryks */
+#qcard[data-mode="spot"] .spot-sol.ok { border-color: var(--warn); background: var(--warn-soft); }
+#qcard[data-mode="spot"] .spot-sol.ok .sol-b > b:last-of-type, #qcard[data-mode="spot"] .spot-sol.ok .sol-b b:last-child { text-decoration: line-through; text-decoration-thickness: 2px; }
+#qcard[data-mode="spot"] .spot-sol.ok::after { content: "Felet fanns här"; position: absolute; right: 10px; top: 8px; font-size: .75rem; font-weight: 800; color: var(--ink); background: var(--card); border-radius: 999px; padding: 1px 8px; }
+.spot-sol { position: relative; }
+/* KLAR: beröm i textfärg (grönt = svarsfeedback), provraden */
+.klar .delight { color: var(--ink); font-weight: 650; }
+.klar-goal { font-weight: 700; }
+.paper-note.short { padding: 8px 12px; font-size: .95rem; }
+/* Inaktiv knapp ser inaktiv ut, inte trasig */
+:root:not([data-exp="classic"]) .btn:disabled { background: var(--soft); color: var(--muted); box-shadow: none; opacity: 1; }
+/* 3.3 omprövning ------------------------------------------------------------------------------------------------- */
+.xp-chip { display: inline-block; vertical-align: middle; margin-left: 6px; padding: 1px 10px; border-radius: 999px; background: var(--card); color: var(--good-ink); font-size: .85rem; font-weight: 800; }
+:root:not([data-exp="classic"]) #fb details.why > summary, :root:not([data-exp="classic"]) #fb details.more-steps > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 6px; min-height: 40px; font-weight: 700; color: var(--ink); }
+:root:not([data-exp="classic"]) #fb details.why > summary::-webkit-details-marker, :root:not([data-exp="classic"]) #fb details.more-steps > summary::-webkit-details-marker { display: none; }
+:root:not([data-exp="classic"]) #fb details.why > summary::before, :root:not([data-exp="classic"]) #fb details.more-steps > summary::before { content: '▸'; font-size: .9em; transition: transform .15s var(--ease); }
+:root:not([data-exp="classic"]) #fb details[open].why > summary::before, :root:not([data-exp="classic"]) #fb details[open].more-steps > summary::before { transform: rotate(90deg); }
+#fb .feedback s { text-decoration-thickness: 2px; }
+/* KLAR: en rubrik, en rad, små chips */
+.klar-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+.klar-achieve .klar-chips { justify-content: flex-start; }
+.klar-chips > div { padding: 4px 12px; border-radius: 999px; background: var(--soft); font-size: .92rem; font-weight: 650; color: var(--ink); }
+.klar .trail.done { flex-wrap: nowrap; gap: 4px; }
+.klar .trail.done .dot { width: clamp(18px, 7.2vw, 34px); height: clamp(18px, 7.2vw, 34px); font-size: clamp(.6rem, 2.6vw, 1.05rem); flex: 0 1 auto; }
+/* Barn: ingen automatisk avstavning – långa svar får en egen rad i stället */
+:root:not([data-exp="classic"]) :is(.choice, .wchoice, .mtile, .stile, .tapword, .otile, .ltile) { -webkit-hyphens: manual; hyphens: manual; overflow-wrap: break-word; }
+/* Explore på smal telefon: alla stationer på en rad */
+@media (max-width: 400px) { :root[data-exp="explore"] .mission.explore .station .si { width: 40px; height: 40px; font-size: 1.2rem; } :root[data-exp="explore"] .mission.explore .stations, :root[data-exp="explore"] .mission.explore .chips { gap: 6px; } }
+/* iPad: större uppgiftstext */
+@media (min-width: 768px) { :root:not([data-exp="classic"]) #qcard .question { font-size: 1.5rem; line-height: 1.35; } }
+@media (min-width: 1100px) and (orientation: landscape) { :root:not([data-exp="classic"]) #qcard .question { font-size: 1.65rem; } }
+/* 3.3 sista omgången */
+:root:not([data-exp="classic"]) .topbar .title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+:root:not([data-exp="classic"]) .topbar > :not(.title):not(.icon-btn) { flex-shrink: 0; white-space: nowrap; }
+/* Svaret är felet: det funna felet markeras som fynd (gult, struket), aldrig grönt som ett faktum */
+#qcard[data-iserr] :is(.wchoice, .choice, .tapword).ok { background: var(--warn-soft) !important; border-color: var(--warn) !important; color: var(--ink) !important; text-decoration: line-through; text-decoration-thickness: 2px; }
+#qcard[data-mode="spot"] .spot-sol.ok { padding-top: 30px; }
+#qcard[data-mode="spot"] .spot-sol.ok::after { left: 10px; right: auto; }
+.xp-chip { white-space: nowrap; }
+:root[data-exp="achieve"] :is(.choice, .wchoice, .mtile, .stile, .tapword, .otile, .ltile) { -webkit-hyphens: auto; hyphens: auto; }
+@media (min-width: 768px) {
+  :root:not([data-exp="classic"]) #qcard .question .m { font-size: 1.2em; }
+  :root:not([data-exp="classic"]) .stack:has(> .klar) { max-width: 640px; margin-inline: auto; }
+}
+/* 3.3 KLAR – gemensam komposition och ett lugnt avslut */
+.klar { text-align: center; align-items: center; justify-items: center; }
+.klar.klar-achieve { text-align: center; align-items: center; padding: 28px 22px 24px; }
+.klar-mark { position: relative; width: 64px; height: 64px; display: grid; place-items: center; }
+.klar-mark svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+.klar-mark .ring { fill: none; stroke: var(--acc); stroke-width: 3; stroke-linecap: round; stroke-dasharray: 132; stroke-dashoffset: 0; animation: klarRing .5s var(--ease) both; }
+.klar-mark .tick { fill: none; stroke: var(--acc); stroke-width: 3.5; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 30; transform: rotate(90deg); transform-origin: 24px 24px; animation: klarTick .3s .3s var(--ease) both; }
+.klar-mark .km-e { font-size: 1.9rem; line-height: 1; animation: klarIn .45s .35s var(--ease) both; }
+@keyframes klarRing { from { stroke-dashoffset: 132; } to { stroke-dashoffset: 0; } }
+@keyframes klarTick { from { stroke-dashoffset: 30; } to { stroke-dashoffset: 0; } }
+.klar .klar-title { font-size: 1.55rem; letter-spacing: .02em; }
+.klar-achieve .klar-title { font-size: 1.3rem; letter-spacing: .04em; }
+.klar .klar-lead { font-size: 1.05rem; font-weight: 600; color: var(--ink-2); max-width: 34ch; }
+.klar .klar-note { font-size: .9rem; color: var(--muted); }
+.klar .klar-note > div { display: inline; } .klar .klar-note > div + div::before { content: ' '; }
+.klar .trail.done .dot { animation: dotIn .3s calc(.25s + var(--i, 0) * .06s) var(--ease) both; }
+@keyframes dotIn { from { transform: scale(.4); opacity: 0; } to { transform: none; opacity: 1; } }
+/* Bossen klarad: en kort gyllene ring, ingen konfetti */
+#qcard.boss-won { box-shadow: 0 0 0 3px #e7b416, var(--shadow, 0 1px 2px rgba(0,0,0,.08)); animation: bossWon .6s var(--ease) 1; }
+#qcard.boss-won .feedback.ok .big { animation: klarIn .4s var(--ease) both; }
+@keyframes bossWon { 0% { transform: scale(1); } 40% { transform: scale(1.012); } 100% { transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) { .klar-mark .ring, .klar-mark .tick, .klar-mark .km-e, .klar .trail.done .dot, #qcard.boss-won, #qcard.boss-won .feedback.ok .big { animation: none !important; } }
+/* 3.3 Sortera: instruktionen först, jämna kort, lådor som växer */
+#qcard[data-mode="sort"] .sortbox .sort-tip { order: -1; margin: 0; font-size: .92rem; color: var(--ink-2); text-align: center; }
+#qcard[data-mode="sort"] .sort-pool { display: grid; grid-template-columns: repeat(auto-fit, minmax(132px, 1fr)); gap: 8px; }
+#qcard[data-mode="sort"] .sort-pool.long { grid-template-columns: minmax(0, 1fr); }
+#qcard[data-mode="sort"] .sort-pool .stile { width: 100%; }
+#qcard[data-mode="sort"] .sbin { min-height: 72px; transition: min-height .2s var(--ease); }
+#qcard[data-mode="sort"] .sbin:has(.stile) { min-height: 0; }
+#qcard[data-mode="sort"] .sort-bins { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
+#qcard[data-mode="sort"] .sbin-items .stile { width: 100%; }
+/* Ordna: rätt ordning syns direkt efter ett fel */
+.order-correct { margin-top: 10px; padding: 10px 14px; border-radius: 12px; background: var(--good-soft); }
+.order-correct ol { margin: 4px 0 0 1.2em; padding: 0; } .order-correct li { padding: 2px 0; font-weight: 600; }
+/* 3.3 iPad: avsiktlig komposition */
+@media (min-width: 768px) {
+  :root:not([data-exp="classic"]) .wrap { max-width: 680px; }
+  :root:not([data-exp="classic"]) .mission { padding: 32px 34px; }
+  :root:not([data-exp="classic"]) .mission .mission-title { font-size: 2.2rem; }
+  :root:not([data-exp="classic"]) .go-btn { min-height: 88px; } :root:not([data-exp="classic"]) .go-btn .t { font-size: 1.6rem; }
+  :root:not([data-exp="classic"]) .home-v3 { padding-top: 3vh; }
+}
+@media (min-width: 768px) and (orientation: portrait) {
+  :root:not([data-exp="classic"]) .stack:has(> #qcard), :root:not([data-exp="classic"]) .stack:has(> .klar) { padding-top: 6vh; }
+  :root:not([data-exp="classic"]) #qcard .question .m { font-size: 1.35em; }
+}
+@media (min-width: 1100px) and (orientation: landscape) { :root:not([data-exp="classic"]) .wrap { max-width: 1060px; } }
+/* 3.3 föräldraläget: diagnostiken sekundär */
+.seg button[data-sub="v2"] { font-weight: 600; }
+/* 3.3 sista granskningarna */
+:root:not([data-exp="classic"]) .topbar { background: color-mix(in srgb, var(--paper) 92%, transparent); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); box-shadow: 0 1px 0 color-mix(in srgb, var(--ink) 8%, transparent); }
+@media (min-width: 1100px) and (orientation: landscape) {
+  .spot-sols { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  #qcard.split > .q-main { position: relative; align-self: center; }
+  #qcard.split .q-top.solo { position: absolute; top: 0; right: 0; }
+  #qcard.split .q-top.solo + * { padding-right: 56px; }
+}
+/* tre korta alternativ på en rad – ingen ensam ruta */
+:root:not([data-exp="classic"]) .choices:has(> :nth-child(3):last-child) { grid-template-columns: repeat(3, minmax(0, 1fr)); }   /* bara tal – ord får aldrig pressas in i tre spalter */
+/* "Nästan" i Para ihop: alla par blev klara – gul kant, inte röd */
+:root:not([data-exp="classic"]) #fb .feedback.no.almost { border-left-color: var(--warn); }
+/* "Visa hur": rätt alternativ pekas ut */
+#qcard .reveal-correct { border-color: var(--good) !important; box-shadow: 0 0 0 3px color-mix(in srgb, var(--good) 30%, transparent); }
+/* KLAR: större märke, nivån för Grow, stjärnorna fälls in snabbare */
+.klar-mark { width: 76px; height: 76px; } .klar-mark .km-e { font-size: 2.2rem; }
+.klar .trail.done .dot { animation-duration: .22s; animation-delay: calc(.1s + var(--i, 0) * .035s); }
+.klar-level { width: min(100%, 280px); display: grid; gap: 4px; } .klar-level .kl-t { font-weight: 800; } .klar-level .kl-s { font-size: .85rem; color: var(--muted); }
+/* 3.3 slutpasset ================================================================================================= */
+/* Styrknappar: en linjeikon i textfärg (karaktär och glädje får vara emoji) */
+.ic { display: inline-grid; place-items: center; width: 1.15em; height: 1.15em; vertical-align: -.2em; }
+.ic svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.sketch > summary .ic, .sketch summary .ic { margin-right: 2px; }
+/* Svara direkt under svaret – knappsatsen under knappraden */
+#keypad { display: grid; gap: 6px; }
+#keypad .keys { margin-top: 0 !important; }
+@media (max-width: 400px) {
+  :root:not([data-exp="classic"]) #keypad .key { min-height: 44px; font-size: 1.1rem; }
+  :root:not([data-exp="classic"]) #keypad, :root:not([data-exp="classic"]) #keypad .keys { gap: 5px; }
+  :root:not([data-exp="classic"]) #qcard:has(#keypad) { gap: 12px; }
+}
+#qcard[data-mode="paper"] .keys .key { min-height: 44px; }
+/* En etikett per läge; Revansch förklaras en gång */
+.role-why { text-align: center; font-size: .95rem; font-weight: 650; color: var(--ink-2); margin-top: -6px; }
+/* Grow: rundan har en mållinje */
+.progress-row { display: flex; align-items: center; gap: 8px; } .progress-row .progress { flex: 1; }
+.pg-end { font-size: 1rem; line-height: 1; }
+/* KLAR – ett riktigt ögonblick */
+.klar-eyebrow { font-size: .8rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin-bottom: -6px; }
+.klar-mark.has-pet { width: 96px; height: 96px; }
+.klar-mark.has-pet .km-e { font-size: 3rem; animation: petHop .9s .4s var(--ease) both; }
+.klar-mark .km-spark { position: absolute; top: -4px; right: -8px; font-size: 1.3rem; animation: klarIn .4s .9s var(--ease) both; }
+@keyframes petHop { 0% { transform: scale(.6); opacity: 0; } 35% { transform: translateY(-14px) scale(1.05); opacity: 1; } 60% { transform: translateY(0) scale(.96, 1.04); } 80% { transform: translateY(-5px); } 100% { transform: none; opacity: 1; } }
+.klar .trail.done.klar-path { position: relative; gap: 6px; padding: 6px 4px; flex-wrap: wrap; justify-content: center; max-width: 100%; }   /* en stjärna per klar uppgift – radbryts hellre än klipps */
+.klar .trail.done.klar-path .dot { position: relative; z-index: 1; background: var(--card); border: 0; box-shadow: none; font-size: clamp(1.1rem, 6.2vw, 1.6rem); width: auto; height: auto; padding: 0 1px; filter: drop-shadow(0 2px 3px rgba(150,110,0,.25)); }
+.klar .trail.done.klar-path .dot.crown { font-size: clamp(1.3rem, 7.4vw, 1.9rem); }
+.klar .trail.done.klar-path:has(> .dot:nth-child(8)) { gap: 3px; } .klar .trail.done.klar-path:has(> .dot:nth-child(8)) .dot { font-size: clamp(1rem, 4.6vw, 1.4rem); }   /* många uppgifter: mindre stjärnor på en rad */
+.klar-plan { width: min(100%, 320px); display: grid; gap: 6px; }
+.klar-plan .progress i { height: 8px; } .klar-plan .progress i.done { background: var(--ink); opacity: .8; animation: dotIn .25s calc(.2s + var(--i, 0) * .05s) var(--ease) both; }
+.klar-plan .kp-s { font-size: .9rem; font-weight: 700; color: var(--ink-2); }
+.klar-achieve .klar-title { font-size: 1.5rem; letter-spacing: .05em; }
+.klar-achieve .klar-mark .ring, .klar-achieve .klar-mark .tick { stroke: var(--ink); }
+.klar-row { display: flex; align-items: center; gap: 12px; padding: 12px 16px; }
+.klar-row .kr-i { flex: 0 0 auto; width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; font-size: 1.3rem; background: var(--soft); }
+.klar-row .kr-t { min-width: 0; display: grid; gap: 1px; } .klar-row .kr-t b { font-size: 1rem; } .klar-row .kr-s { font-size: .9rem; color: var(--ink-2); }
+@media (prefers-reduced-motion: reduce) { .klar-mark.has-pet .km-e, .klar-mark .km-spark, .klar-plan .progress i.done { animation: none !important; } }
+/* Små etiketter: minst 12 px för barnen */
+/* iPad stående: uppgiften i en storlek man läser på armlängds avstånd */
+@media (min-width: 768px) and (orientation: portrait) {
+  /* fast avstånd överst och samma plats för varje kort (granskningen: ett centrerat kort hoppade mellan uppgifter) */
+  :root:not([data-exp="classic"]) .stack:has(> #qcard), :root:not([data-exp="classic"]) .stack:has(> .klar) { display: flex; flex-direction: column; gap: 16px; min-height: calc(100svh - 96px); padding-top: 0; padding-bottom: 24px; }
+  :root:not([data-exp="classic"]) .stack:has(> #qcard)::before, :root:not([data-exp="classic"]) .stack:has(> .klar)::before { content: ''; flex: 0 0 5vh; }   /* fast plats: kortet hoppar inte mellan uppgifter */
+  :root:not([data-exp="classic"]) .stack:has(> #qcard) > *, :root:not([data-exp="classic"]) .stack:has(> .klar) > * { flex: 0 0 auto; }
+  :root:not([data-exp="classic"]) .stack:has(> #qcard) > :is(.progress, .progress-row, .trail) { order: -1; margin-top: 10px; }   /* förloppet står still överst – kortet med sin etikett får luften */
+  :root:not([data-exp="classic"]) #qcard .question .m { font-size: 1.5em; }
+  :root:not([data-exp="classic"]) #qcard { padding: 36px 40px; gap: 20px; }
+  :root:not([data-exp="classic"]) #qcard .question { font-size: 1.75rem; line-height: 1.32; }
+  :root[data-exp="achieve"] #qcard .question { font-size: 1.6rem; }
+  :root:not([data-exp="classic"]) #qcard .answer-input { min-height: 72px; font-size: 1.7rem; }
+  :root:not([data-exp="classic"]) #qcard :is(.choice, .wchoice:not(.spot-sol), .tapword) { min-height: 84px; font-size: 1.35rem; }
+  :root:not([data-exp="classic"]) #qcard :is(.mtile, .stile, .otile) { font-size: 1.15rem; min-height: 64px; }
+  :root:not([data-exp="classic"]) #qcard .wchoice.spot-sol { font-size: 1.15rem; }
+  :root:not([data-exp="classic"]) #qcard .key { min-height: 60px; font-size: 1.4rem; }
+  :root:not([data-exp="classic"]) #qcard #actions .btn { min-height: 60px; font-size: 1.15rem; }
+  :root:not([data-exp="classic"]) .act-chip { font-size: .9rem; padding: 5px 14px; }
+  :root:not([data-exp="classic"]) .progress.v3 i { height: 8px; }
+  :root:not([data-exp="classic"]) #qcard[data-mode="learn"] p { font-size: 1.25rem; }
+  :root:not([data-exp="classic"]) #qcard .figwrap svg { width: min(100%, 300px); }
+  :root:not([data-exp="classic"]) .klar { padding: 44px 40px 36px; gap: 14px !important; }
+  :root:not([data-exp="classic"]) .klar .klar-title { font-size: 2rem; }
+  :root:not([data-exp="classic"]) .klar .klar-lead { font-size: 1.2rem; }
+  :root:not([data-exp="classic"]) .klar-mark { width: 92px; height: 92px; } :root:not([data-exp="classic"]) .klar-mark.has-pet { width: 116px; height: 116px; }
+  :root:not([data-exp="classic"]) .klar-mark.has-pet .km-e { font-size: 3.6rem; }
+  :root:not([data-exp="classic"]) .stack:has(> .klar) > .btn { min-height: 64px; font-size: 1.15rem; }
+  :root:not([data-exp="classic"]) .mission .muted, :root:not([data-exp="classic"]) .goal-row { font-size: 1.05rem; }
+}
+/* Föräldraläget: två spalter på iPad – barn och flikar till vänster, det valda till höger. En spalt på telefon. */
+.p-layout, .p-nav, .p-main { display: grid; gap: 14px; grid-template-columns: minmax(0, 1fr); align-content: start; }
+@media (min-width: 768px) {
+  .wrap:has(.p-layout) { max-width: 1000px !important; }
+  .p-layout { grid-template-columns: 260px minmax(0, 1fr); gap: 20px; align-items: start; }
+  .p-nav { position: sticky; top: 76px; }
+  .p-nav .tabs { flex-direction: column; border-radius: 18px; overflow: visible; }
+  .p-nav .tabs button { flex: 0 0 auto; min-height: 44px; text-align: left; justify-content: flex-start; border-radius: 12px; padding: 0 14px; }
+  .p-nav .seg.p-sub { flex-direction: column; border-radius: 18px; overflow: visible; }
+  .p-nav .seg.p-sub button { flex: 0 0 auto !important; min-height: 44px; text-align: left; border-radius: 12px; padding: 0 14px; }
+  .p-nav .tm-card .btn.big { font-size: 1rem; min-height: 52px; }
+}
+/* Små etiketter: inget under 12 px för barnen; lägen som betyder något lite större */
+:root:not([data-exp="classic"]) .rank small { font-size: 12px; }
+:root:not([data-exp="classic"]) :is(.exam-list, .mission, .klar, .exam-hero, .card) .pill:is(.good, .warn, .bad, :not([class*=" "])) { font-size: max(.82rem, 13px) !important; }
+.btn.klar-up { text-transform: uppercase; letter-spacing: .02em; }
+/* Svaret är felet: det man valde i stället är SANT – neutral ram och "Stämmer", aldrig rött. Felet märks "Stämmer inte". */
+:is(.choice, .wchoice, .tapword).true-pick { position: relative; background: var(--card) !important; border-color: color-mix(in srgb, var(--ink) 35%, var(--line)) !important; color: var(--ink) !important; opacity: 1; }
+:is(.choice, .wchoice, .tapword).true-pick::after { content: 'Stämmer'; position: absolute; top: -9px; right: 8px; padding: 0 8px; border-radius: 999px; background: var(--soft); color: var(--ink); font: 800 .75rem/1.6 var(--body, system-ui); letter-spacing: .02em; text-decoration: none; }
+#qcard[data-iserr] :is(.wchoice, .choice, .tapword).ok { position: relative; }
+#qcard[data-iserr] :is(.wchoice, .choice, .tapword).ok::after { content: 'Stämmer inte'; position: absolute; top: -9px; right: 8px; padding: 0 8px; border-radius: 999px; background: var(--warn); color: #3b2a00; font: 800 .75rem/1.6 var(--body, system-ui); letter-spacing: .02em; display: inline-block; text-decoration: none; }
+.wchoice.spot-sol.true-pick::after { content: 'Den här stämmer'; }
+.wchoice.spot-sol.true-pick .sol-l { background: var(--soft); color: var(--ink-2); }
+.btn.fb-say { min-height: 44px; padding: 0 14px; margin-top: 8px; align-self: flex-start; }
+#fb .btn.fb-say { display: inline-flex; align-items: center; gap: 6px; }
+/* Nästa täcker aldrig återkopplingen: rullningen efter svaret lämnar plats för den fasta knappraden */
+:root:not([data-exp="classic"]) #fb { scroll-margin-bottom: 104px; scroll-margin-top: 72px; }
+/* Förälderns flikar på smal telefon: alla syns (två rader) i stället för att rulla bort */
+@media (max-width: 600px) { .seg.p-sub { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)); border-radius: 16px; overflow: visible; } .seg.p-sub button { min-height: 40px; padding: 0 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } }
+/* Låg telefon (iPhone SE): uppgiften, svaret och Svara ryms utan att rulla – mindre figur, uppläsningen som ikon i hörnet */
+@media (max-width: 430px) and (max-height: 720px) {
+  :root[data-exp="explore"] #qcard .q-top.solo { position: absolute; top: 10px; right: 10px; z-index: 1; }
+  :root[data-exp="explore"] #qcard .q-top.solo + * { padding-right: 50px; }
+  :root[data-exp="explore"] #qcard .q-top.solo button[data-speak] { font-size: 0; width: 44px; min-height: 44px; padding: 0; justify-content: center; }
+  :root[data-exp="explore"] #qcard .q-top.solo button[data-speak] .ic { font-size: 20px; }
+  :root:not([data-exp="classic"]) #qcard .figwrap svg { max-height: 132px; width: auto; }
+  :root:not([data-exp="classic"]) #qcard { gap: 12px; padding-top: 18px; padding-bottom: 18px; }
+  :root:not([data-exp="classic"]) .stack:has(> #qcard) { gap: 10px; }
+  #qcard[data-mode="sort"] .sbin { min-height: 56px; }
+  #qcard[data-mode="sort"] .sort-pool, #qcard[data-mode="sort"] .sort-bins { gap: 6px; }
+  #qcard[data-mode="sort"] .stile, #qcard[data-mode="order"] .otile { min-height: 44px; padding-top: 8px; padding-bottom: 8px; }
+}
+/* Lägespiller med läsbar kontrast (WCAG AA) i ljust och mörkt läge – alla lägen, med avsikt */
+.pill.warn { color: color-mix(in srgb, var(--warn) 45%, var(--ink)); } .pill.bad { color: color-mix(in srgb, var(--bad) 60%, var(--ink)); } .pill.good { color: color-mix(in srgb, var(--good) 55%, var(--ink)); }
+#qcard #submit { scroll-margin-bottom: 16px; }
+.q-pane { display: contents; }
+@media (prefers-reduced-motion: reduce) { .hero-pet, .stile.placed, .klar-icon, .xp-pop { animation: none !important; } }
 </style>

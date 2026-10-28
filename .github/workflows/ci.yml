@@ -108,9 +108,28 @@ jobs:
           RULES_FILE: /tmp/rules.v21
           EXPECT: v21
 
+  browser:
+    # Det jsdom inte kan mäta: layout och tillgänglighet i riktig Chromium (Svara/Nästa nåbara, ingen sidledsscroll, återkopplingen
+    # täcks inte, föräldraflikarna syns, axe-core WCAG 2.1 A/AA, Testa mig lämnar inte in på ett tryck). Syntetisk familj. Publicerar inget.
+    name: Layout och tillgänglighet i Chromium
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - name: Verktyg (bara i detta jobb)
+        run: |
+          npm install --no-save --no-audit --no-fund playwright@1.63.0 axe-core@4.10.2
+          npx playwright install --with-deps chromium
+      - name: Layout och tillgänglighet (375×667, 390×844, 820×1180, 1180×820)
+        run: node tests/browser/layout.js
   deploy:
     name: Publicera (GitHub Pages)
-    needs: test
+    needs: [test, browser]
     if: ${{ vars.PAGES_ACTIONS == 'true' && (github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')) }}
     runs-on: ubuntu-latest
     environment:
@@ -166,7 +185,7 @@ jobs:
 
   release:
     name: Release-tagg
-    needs: [test]
+    needs: [test, browser]
     if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
     steps:

@@ -102,7 +102,7 @@ setTimeout(async () => {
     ok(/STYRKOR/.test(ov) && /BEHÖVER ÖVAS/.test(ov) && /REKOMMENDERAT NÄSTA STEG/.test(ov), 'föräldraöversikt: STYRKOR / BEHÖVER ÖVAS / REKOMMENDERAT');
     const recs = w.document.querySelectorAll('.card ol li'); ok(recs.length >= 1, 'minst en rekommendation');
     ok(/övningsindikation/.test(ov) && /ingen betygsprognos/.test(ov), 'E/C/A märkt som övningsindikation, inte betygsprognos');
-    const card = [...w.document.querySelectorAll('.card')].find(c => /insikter från Learning Engine v2/.test(c.textContent)); const others = FIX.kids.filter(k => k.id !== 'k8').map(k => k.name);
+    const card = [...w.document.querySelectorAll('.card')].find(c => c.querySelector('.eyebrow') && /· insikter$/.test(c.querySelector('.eyebrow').textContent.trim()));   /* 3.3: rubriken utan motorns namn */ const others = FIX.kids.filter(k => k.id !== 'k8').map(k => k.name);
     ok(card && !others.some(n => card.textContent.includes(n)) && !/bättre än|sämre än|jämfört med|syskon|placering|topplista/i.test(card.textContent), 'insiktskortet nämner inga andra barn och jämför inte');
     click($('[data-sub="v2"]')); ok(/Motor för Åttan/.test(txt(T)), 'motorkort i fliken Motor v2');
     const ex = txt(T); ok(/varför just detta/.test(ex) && /Varför nu:/.test(ex) && /Svaret ändrar:/.test(ex) && /Tillbaka:/.test(ex) && /nivå \d/.test(ex), 'förälder: varje vald uppgift förklaras (vad, varför, varför nu, vad svaret ändrar, när den kommer tillbaka, nivå)');

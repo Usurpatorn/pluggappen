@@ -9,7 +9,7 @@
 const FAMILY = {
   KEY: 'pluggappen.family.v1',
   cfg: null,
-  THEMES: { teen: 'Tonåring (rank, inga figurer)', sport: 'Sport (Luleå Hockey-kort)', pet: 'Följeslagare' },
+  THEMES: { teen: 'Tonåring (utan figurer)', sport: 'Sport (Luleå Hockey-kort)', pet: 'Följeslagare' },
   loadLocal() { try { const raw = localStorage.getItem(FAMILY.KEY); if (raw) { const c = JSON.parse(raw); if (FAMILY.valid(c)) FAMILY.cfg = c; } } catch (e) { /* ignore */ } },
   saveLocal() { try { if (FAMILY.cfg) localStorage.setItem(FAMILY.KEY, JSON.stringify(FAMILY.cfg)); else localStorage.removeItem(FAMILY.KEY); } catch (e) { /* ignore */ } },
   valid(c) {

@@ -29,7 +29,10 @@ const V2 = {
   skillOf(kid, cid) { if (cid && cid.startsWith('k:')) { const e = PACKS.info(cid); return e ? PACKS.skillFor(kid, e.kp.skill) : null; } return [...kid.skills, ...(kid.v2skills || [])].find(s => LECAT.skillCid(s.id) === cid); },
   skillName(kid, skillId) { const s = PACKS.skillFor(kid, skillId); return s ? (s.short || s.name) : skillId; },
   deckOf(p, cid) { return allDecks(p).find(d => LECAT.deckCid(d.id) === cid); },
-  cname(kid, C, cid) { return (C.cat[cid] || {}).name || cid; },
+  // 3.3: kortnamn som bara är en symbol (t.ex. "x²") visas med ord i v2-vyerna; v1 och lagringen är orörda
+  READABLE: { 'x²': 'Enkla andragradsekvationer' },
+  readable(s) { return V2.READABLE[s] || s; },
+  cname(kid, C, cid) { return V2.readable((C.cat[cid] || {}).name || cid); },
   /* ---------- Startsidan ---------- */
   // 3.0.1: samma klocka som KÖR (V2.start: LE.sessClock) – annars kunde något som blev aktuellt inom samma minut synas på hemmet men inte i passet
   peekPlan(kid) { const C = LE.state(kid); const now = LE.sessClock(C); const { plan } = LE.plan(kid, V2.n(kid, C), now); return { plan, C, now }; },
@@ -302,8 +305,8 @@ const V2 = {
     if (q.type === 'match') return `${t} … ${q.pairs.map(x => x[0]).join(', ')}. Och: ${q.pairs.map(x => x[1]).join(', ')}.`; const ch = q.type === 'choicetext' && Array.isArray(q.choices) ? q.choices.map(c => RECALL.strip(c).trim()) : null; return ch ? `${t} … ${ch.slice(0, -1).join(', ')} eller ${ch[ch.length - 1]}?` : t; },
   speakBtn(q, p) {
     if (!V2.canSpeak(q)) return '';
-    if (S.v2.C.pol.name === 'younger') return `<button class="btn ghost" data-speak="${esc(V2.sayText(q))}" data-lang="sv" style="min-height:${S.v2.exp ? 48 : 36}px;padding:0 12px" aria-label="Läs upp frågan">🔊 Läs upp</button>`;
-    return p.settings.tts ? `<button class="icon-btn" data-speak="${esc(q.text.replace(/<[^>]+>/g, ''))}" data-lang="sv" data-highlight="1" style="width:${S.v2.exp ? 44 : 36}px;height:${S.v2.exp ? 44 : 36}px" aria-label="Läs upp">${ICON.speaker}</button>` : '';
+    if (S.v2.C.pol.name === 'younger') return `<button class="btn ghost" data-speak="${esc(V2.sayText(q))}" data-lang="sv" style="min-height:${S.v2.exp ? 48 : 36}px;padding:0 12px" aria-label="Läs upp frågan">${S.v2.exp ? `<span class="ic" aria-hidden="true">${ICON.speaker}</span>` : '🔊'} Läs upp</button>`;
+    return p.settings.tts ? `<button class="icon-btn" data-speak="${esc(q.text.replace(/<[^>]+>/g, ''))}" data-lang="sv"${S.v2.exp && q.challenge === 'spot' ? '' : ' data-highlight="1"'} style="width:${S.v2.exp ? 44 : 36}px;height:${S.v2.exp ? 44 : 36}px" aria-label="Läs upp">${ICON.speaker}</button>` : '';
   },
   /* ---------- Visning under passet ---------- */
   // v3 (slutverifieringen): planerade uppgifter som faktiskt återstår i passkörarens kö (utan Ny chans/Rescue/extra lätta), högst så många
@@ -318,37 +321,55 @@ const V2 = {
   hasNext() { const pr = LER.progress(S.v2.R); return S.i + 1 < S.queue.length || pr.left > 0; },
   // 3.0.1: glosor i ett v3-pass heter efter ämnet ("Engelska glosor"), inte efter glosbokens namn – det såg ut som en annan övning än Kör!
   wordTitle(deck) { const L = (typeof LANGS !== 'undefined' && LANGS[deck && deck.lang]) || null; return !L ? 'Glosor' : deck.lang === 'sv' ? 'Svenska ord' : L.name + ' glosor'; },
-  title(item) { return S.v2.exam ? 'Testa mig' : S.v2.mode === 'mission' ? 'Inför ' + esc((LE.exams(S.kid, prof(S.kid.id)).find(e => e.id === S.v2.extra.examId) || {}).title || 'provet') : S.v2.mode === 'revansch' ? 'Revansch' : S.v2.mode === 'readclose' ? 'Minns du?' : item.cat === 'word' ? esc(S.v2.exp && S.v2.exp !== 'classic' ? V2.wordTitle(item.deck) : item.deck.name) : item.skill && S.v2.exp === 'explore' ? ({ math: 'Matte', sv: 'Svenska', en: 'Engelska', no: 'NO', so: 'SO' })[item.skill.group || 'math'] || 'Äventyret' : item.skill ? esc(item.skill.short || item.skill.name) : 'Kör!'; },   // Explore: ämnet, inte momentets interna namn (UX)
+  title(item) { return S.v2.exam ? 'Testa mig' : S.v2.mode === 'mission' ? 'Inför ' + esc((LE.exams(S.kid, prof(S.kid.id)).find(e => e.id === S.v2.extra.examId) || {}).title || 'provet') : S.v2.mode === 'revansch' && !S.v2.exp ? 'Revansch' :S.v2.mode === 'readclose' ? 'Minns du?' : item.cat === 'word' ? esc(S.v2.exp && S.v2.exp !== 'classic' ? V2.wordTitle(item.deck) : item.deck.name) : item.skill && S.v2.exp === 'explore' ? ({ math: 'Matte', sv: 'Svenska', en: 'Engelska', no: 'NO', so: 'SO' })[item.skill.group || 'math'] || 'Äventyret' : item.skill ? esc(item.skill.short || item.skill.name) : 'Kör!'; },   // Explore: ämnet, inte momentets interna namn (UX)
   // v3: N kvar = planerade uppgifter; en Ny chans/Rescue syns som extra och tar inga planerade platser
-  topRight() { const pr = LER.progress(S.v2.R); if (S.v2.exp && !S.v2.exam) { const it = S.queue[S.i]; const extra = EXP.isExtra(it); const left = extra ? Math.min(V2.plannedLeft(), Math.max(0, S.v2.R.maxItems - S.v2.R.answered - 1)) : V2.plannedLeft(); const lbl = extra && it.spec.role === 'easy' ? 'Extra' : 'Ny chans'; return extra ? `<span class="left-count">${left ? `${lbl} · sedan ${left} kvar` : lbl}</span>` : `<span class="left-count">${left} kvar</span>`; } return S.v2.exam ? `<span class="pill">Inga ledtrådar · svar efteråt</span>` : `<span class="left-count">${Math.max(0, pr.left)} kvar</span>`; },
+  topRight() { const pr = LER.progress(S.v2.R); if (S.v2.exp && !S.v2.exam) { const it = S.queue[S.i]; const extra = EXP.isExtra(it); const left = extra ? Math.min(V2.plannedLeft(), Math.max(0, S.v2.R.maxItems - S.v2.R.answered - 1)) : V2.plannedLeft(); return `<span class="left-count">${left ? `${left} kvar` : 'Snart klart'}</span>`; }   /* 3.3 slutpasset: Ny chans/Rescue/Extra syns i kortets etikett – räknaren säger bara vad som är kvar av planen */ return S.v2.exam ? `<span class="pill">Inga ledtrådar · svar efteråt</span>` : `<span class="left-count">${Math.max(0, pr.left)} kvar</span>`; },
   progressBar() { const tot = V2.total();
     if (S.v2.exp && !S.v2.exam) { const d = EXP.done();   // v3: planerade platser; ingen röd historik för fel svar
       if (S.v2.exp === 'explore') return `<div class="trail" role="progressbar" aria-valuemin="0" aria-valuemax="${tot}" aria-valuenow="${d}" aria-label="Äventyret">${Array.from({ length: tot }, (_, i) => `<span class="dot ${i < d ? 'ok' : i === d ? 'cur' : ''}" aria-hidden="true">${i === tot - 1 ? '👑' : ''}</span>`).join('')}</div>`;
-      return `<div class="progress v3" role="progressbar" aria-valuemin="0" aria-valuemax="${tot}" aria-valuenow="${d}" aria-label="Passet: ${d} av ${tot} klara">${Array.from({ length: tot }, (_, i) => `<i class="${i < d ? 'done' : i === d ? 'cur' : ''}"></i>`).join('')}</div>`; } return `<div class="progress">${Array.from({ length: tot }, (_, i) => `<i class="${i < S.i ? (S.v2.exam ? 'ok' : S.results[i] === false ? 'no' : 'ok') : i === S.i ? 'cur' : ''}"></i>`).join('')}</div>`; },
+      const bar = `<div class="progress v3" role="progressbar" aria-valuemin="0" aria-valuemax="${tot}" aria-valuenow="${d}" aria-label="Passet: ${d} av ${tot} klara">${Array.from({ length: tot }, (_, i) => `<i class="${i < d ? 'done' : i === d ? 'cur' : ''}"></i>`).join('')}</div>`;
+      return S.v2.exp === 'grow' ? `<div class="progress-row">${bar}<span class="pg-end" aria-hidden="true">🏁</span></div>` : bar; }   /* 3.3 slutpasset: Grow – rundan har en mållinje */ return `<div class="progress">${Array.from({ length: tot }, (_, i) => `<i class="${i < S.i ? (S.v2.exam ? (S.v2.exp ? 'done' : 'ok') : S.results[i] === false ? 'no' : 'ok') : i === S.i ? 'cur' : ''}"></i>`).join('')}</div>`; },
   chip(item) {
     if (item && item.teacher && S.v2.exam) return `<div class="row" style="justify-content:center"><span class="pill acc" style="font-weight:800;letter-spacing:.04em"><span aria-hidden="true">📝</span> LÄRARENS FRÅGA${item.teacher.n ? ' ' + esc(item.teacher.n) : ''}</span></div>`;
-    const xc = S.v2.exp ? EXP.chipFor(item) : null; if (xc) return `<div class="row" style="justify-content:center"><span class="pill acc" style="font-weight:800;letter-spacing:.04em"><span aria-hidden="true">${xc[1]}</span> ${xc[0]}</span></div>`;
+    const xc = S.v2.exp ? EXP.chipFor(item) : null; if (xc) return `<div class="row" style="justify-content:center"><span class="pill acc act-chip" style="font-weight:800;letter-spacing:.04em"><span aria-hidden="true">${xc[1]}</span> ${xc[0]}</span></div>`;
     if (!item || !item.spec || S.v2.exam) return '';
     const s = item.spec; const key = item.cat === 'learn' ? (s.role === 'rescue' ? 'rescue' : s.role === 'intro' ? 'intro' : 'teach') : s.mode === 'challenge' ? 'challenge' : s.role;
     const formChip = item.cat === 'math' && item.form && ['focus', 'practice', 'remember', 'warmup', 'easy'].includes(s.role) ? V2.FORM_CHIP[item.form] : null;
-    const [txt, ic] = formChip || V2.ROLE_CHIP[key] || ['', '']; if (!txt) return '';
-    return `<div class="row" style="justify-content:center"><span class="pill acc" style="font-weight:800;letter-spacing:.04em"><span aria-hidden="true">${ic}</span> ${txt}</span></div>`;
+    let [txt, ic] = formChip || V2.ROLE_CHIP[key] || ['', ''];
+    let why = '';
+    if (S.v2.exp) {   /* 3.3 slutpasset: en etikett per läge, samma skrivsätt och ikon som på startsidan (bara text) */
+      const x = S.v2.exp; const V3 = { rescue: x === 'achieve' ? ['STEG FÖR STEG', '🧭'] : ['VI TAR DET TILLSAMMANS', '🤝'], revansch: ['REVANSCH', '💪'], warmup: ['VÄRM UPP', '☀️'], challenge: x === 'grow' ? ['UTMANING · NÄSTA NIVÅ', '🧗'] : ['UTMANING', '🧗'], teach: ['KORT FÖRKLARING', '💡'], easy: ['EXTRA', '➕'] };
+      if ((!formChip || key === 'easy' || key === 'challenge') && V3[key]) [txt, ic] = V3[key]; if (formChip && item.form === 'multistep' && key !== 'easy' && key !== 'challenge') ic = '🪜';   /* Utmaningen och Extra är lägen – de går före formen */
+      if (key === 'revansch') { if (S.v2.revFirst == null) S.v2.revFirst = S.i; if (S.v2.revFirst === S.i) why = `<div class="role-why">${x === 'grow' ? 'Returmatch: den här var klurig förut.' : x === 'achieve' ? 'Det här gick fel förut – nu en ny fråga om samma sak.' : 'Den här var klurig förut. Nu tar du revansch!'}</div>`; }   /* vad Revansch betyder – en gång per pass */
+    }
+    if (!txt) return '';
+    return `<div class="row" style="justify-content:center"><span class="pill acc act-chip role-${esc(key)}" style="font-weight:800;letter-spacing:.04em"><span aria-hidden="true">${ic}</span> ${txt}</span></div>${why}`;
   },
   teachBody(item) {
     const ex = item.ex; const rescue = item.spec.role === 'rescue'; const intro = item.spec.role === 'intro'; const s = item.skill;
-    const say = typeof TTS !== 'undefined' && TTS.ok && S.v2.C.pol.name === 'younger' && s.readAloud !== false && !V2.READ_OFF.has(s.id) && ex && ex.intro ? `<button class="btn ghost" data-speak="${esc(RECALL.strip(ex.intro.name + '. ' + ex.intro.explain))}" data-lang="sv" style="min-height:36px">🔊 Läs upp</button>` : '';
-    if (intro && ex && ex.intro) return `<div class="eyebrow">Något nytt</div><h3 style="margin:6px 0">${esc(ex.intro.name)}</h3><p style="font-size:1.05rem">${safeHtml(ex.intro.explain)}</p>${say}${s.method ? `<details class="sketch"><summary>📖 Läs mer om ${esc(s.short || s.name)}</summary><div class="method" style="margin-top:8px">${safeHtml(s.method)}</div></details>` : ''}<button class="btn big wide" data-v2="teachok">${S.v2.exp ? 'Nu provar jag →' : 'Jag är redo →'}</button>`;
-    return `<div class="eyebrow">${rescue ? 'Vi tar det tillsammans' : 'En kort förklaring först'}</div>
-      ${ex ? `<div class="steps"><div class="eyebrow">${ex.fromFail ? 'Uppgiften du nyss fick' : 'Exempel'}</div>${ex.fig ? `<div class="figwrap">${safeHtml(ex.fig)}</div>` : ''}<div style="font-weight:700;margin:6px 0">${safeHtml(ex.text)}</div><ol>${ex.steps.map(st => `<li>${safeHtml(st)}</li>`).join('')}</ol><p style="margin-top:8px">Svar: <b>${esc(ex.answer)}</b></p></div>` : ''}
-      ${s.method ? `<details class="sketch"><summary>📖 Läs mer om ${esc(s.short || s.name)}</summary><div class="method" style="margin-top:8px">${safeHtml(s.method)}</div></details>` : ''}
+    const say = typeof TTS !== 'undefined' && TTS.ok && S.v2.C.pol.name === 'younger' && s.readAloud !== false && !V2.READ_OFF.has(s.id) && ex && ex.intro ? `<button class="btn ghost" data-speak="${esc(RECALL.strip(ex.intro.name + '. ' + ex.intro.explain))}" data-lang="sv" style="min-height:36px">${S.v2.exp ? `<span class="ic" aria-hidden="true">${ICON.speaker}</span>` : '🔊'} Läs upp</button>` : '';
+    if (intro && ex && ex.intro) return `${S.v2.exp ? '<div class="learn-ic" aria-hidden="true">🔎</div>' : '<div class="eyebrow">Något nytt</div>'}<h3 class="learn-title" style="margin:6px 0">${esc(ex.intro.name)}</h3><p style="font-size:1.05rem">${safeHtml(ex.intro.explain)}</p>${say}${s.method ? `<details class="sketch"><summary>${S.v2.exp ? `<span class="ic" aria-hidden="true">${ICON.book}</span>` : '📖'} Läs mer om ${esc(s.short || s.name)}</summary><div class="method" style="margin-top:8px">${safeHtml(s.method)}</div></details>` : ''}<button class="btn big wide" data-v2="teachok">${S.v2.exp ? 'Nu provar jag →' : 'Jag är redo →'}</button>`;
+    return `${S.v2.exp ? '' : `<div class="eyebrow">${rescue ? 'Vi tar det tillsammans' : 'En kort förklaring först'}</div>`}
+      ${ex ? `<div class="steps"><div class="eyebrow">${ex.fromFail ? 'Uppgiften du nyss fick' : 'Exempel'}</div>${ex.fig ? `<div class="figwrap">${safeHtml(ex.fig)}</div>` : ''}<div style="font-weight:700;margin:6px 0">${safeHtml(ex.text)}</div>${S.v2.exp && ex.steps.length === 1 ? `<p style="margin:4px 0 0">${safeHtml(ex.steps[0])}</p>` : `<ol>${ex.steps.map(st => `<li>${safeHtml(st)}</li>`).join('')}</ol>`}${S.v2.exp && /^\s*(<[^>]+>\s*)*Svar\s*:/i.test(String(ex.steps[ex.steps.length - 1] || '')) ? '' : `<p style="margin-top:8px">Svar: <b>${esc(ex.answer)}</b></p>`}</div>` : ''}
+      ${s.method ? `<details class="sketch"><summary>${S.v2.exp ? `<span class="ic" aria-hidden="true">${ICON.book}</span>` : '📖'} Läs mer om ${esc(s.short || s.name)}</summary><div class="method" style="margin-top:8px">${safeHtml(s.method)}</div></details>` : ''}
+      ${S.v2.exp && ex && V2.sayOk(s, { skill: s, text: ex.text, fig: ex.fig, speak: ex.speak }) ? `<button class="btn ghost fb-say" data-speak="${esc(RECALL.strip([ex.text, ...(ex.steps || []), 'Svar: ' + ex.answer].join('. ')))}" data-lang="sv" aria-label="Läs upp förklaringen"><span class="ic" aria-hidden="true">${ICON.speaker}</span> Läs upp</button>` : ''}
       <button class="btn big wide" data-v2="teachok">${rescue ? 'Nu provar vi tillsammans →' : 'Jag är redo – nu provar jag →'}</button>`;
   },
+  // 3.3: uppläsning av återkoppling och förklaringar – inte när läsningen själv prövas (samma regler som frågan), bara med enhetens röst
+  sayOk(skill, q) { if (typeof TTS === 'undefined' || !TTS.ok || S.v2.exam) return false; if (q ? !V2.canSpeak(q) : (skill && (skill.readAloud === false || V2.READ_OFF.has(skill.id)))) return false; return S.v2.C.pol.name === 'younger' || !!prof(S.kid.id).settings.tts; },
   afterRender(item) {
     const fb0 = document.getElementById('fb'); if (fb0) { fb0.setAttribute('aria-live', 'polite'); fb0.setAttribute('role', 'status'); }   // granskning L13
     if (item && item.cat === 'learn') { setTimeout(() => document.querySelector('[data-v2="teachok"]')?.focus({ preventScroll: true }), 50); return; }
     if (!item || item.cat !== 'math' || !item.spec || S.v2.exam) return;
     const h = item.spec.help; const fb = document.getElementById('fb'); if (!fb) return;
-    if (h === 'rescue') { fb.innerHTML = `<div class="hint">🤝 Vi gör den tillsammans. ${item.hint ? safeHtml(item.hint) : ''}${item.steps && item.steps[0] ? `<br><b>Första steget:</b> ${safeHtml(item.steps[0])}` : ''}</div>`; document.getElementById('hintBtn')?.remove(); }
+    if (h === 'rescue') {
+      // 3.3 slutpasset: etiketten står redan ovanför kortet, och kom barnet direkt från Rescue-förklaringen har det just läst första steget –
+      // då räcker ledtråden. Utan ledtråd visas alltid första steget (hjälpen är densamma, bara utan upprepning).
+      const prev = S.queue[S.i - 1]; const justRead = !!(S.v2.exp && item.hint && prev && prev.cat === 'learn' && prev.spec && prev.spec.role === 'rescue');
+      fb.innerHTML = S.v2.exp ? `<div class="hint">${item.hint ? `<span aria-hidden="true">💡</span> ${safeHtml(item.hint)}` : ''}${item.steps && item.steps[0] && !justRead ? `${item.hint ? '<br>' : ''}<b>Första steget:</b> ${safeHtml(item.steps[0])}` : ''}</div>`
+        : `<div class="hint">🤝 Vi gör den tillsammans. ${item.hint ? safeHtml(item.hint) : ''}${item.steps && item.steps[0] ? `<br><b>Första steget:</b> ${safeHtml(item.steps[0])}` : ''}</div>`;
+      if (S.v2.exp && !fb.textContent.trim()) fb.innerHTML = '';
+      document.getElementById('hintBtn')?.remove(); }
     else if (h === 'hint' && item.hint) { fb.innerHTML = `<div class="hint">💡 ${safeHtml(item.hint)}</div>`; document.getElementById('hintBtn')?.remove(); }
   },
   teachDone() { const item = S.queue[S.i]; if (!item || item.cat !== 'learn') return; LER.answered(S.v2.R, S.v2.C.L, item.spec, true); S.results.push(null); nextQuestion(); },
@@ -399,6 +420,7 @@ const V2 = {
     if ((evs || []).some(e => e.type === 'defer')) parts.push('Vi sparar den här till ett annat pass. Bra kämpat!');
     const fb = document.getElementById('fb'); if (!fb) return;
     if (parts.length) fb.insertAdjacentHTML('beforeend', `<div class="hint" style="margin-top:8px">${parts.join('<br>')}</div>`);
+    if (S.v2.exp && q && V2.sayOk(q.skill, q)) { const f = fb.querySelector('.feedback'); if (f) f.insertAdjacentHTML('afterend', `<button class="btn ghost fb-say" data-speak-fb="1" aria-label="Läs upp återkopplingen"><span class="ic" aria-hidden="true">${ICON.speaker}</span> Läs upp</button>`); }
     if (q && q.spec && !S.v2.exam) fb.insertAdjacentHTML('beforeend', `<div style="text-align:right;margin-top:6px"><button class="link" data-v2="qr" style="font-size:.8rem;opacity:.75">Den här frågan är konstig</button></div>`);
   },
   /* 2.1 Innehållshälsa: barnet kan markera en fråga som konstig. Sparar bara dygn + uppgifts-id + kunskapspunkt (ingen fritext, ingen tid).
@@ -410,7 +432,7 @@ const V2 = {
   },
   examAnswered(q, correct, raw) {
     const V = S.v2; const your = q.cat === 'word' ? raw : q.type === 'choicetext' ? (q.choices || [])[S.selected] : q.choices ? T.n(Number(S.selected)) : q.type === 'order' ? 'din ordning' : q.type === 'sort' ? 'din sortering' : q.type === 'match' ? 'dina par' : raw;
-    V.answers.push({ text: q.cat === 'word' ? String(q.prompt || q.word.t) : q.text, html: q.cat !== 'word', your: your == null ? '' : String(your), correct: q.cat === 'word' ? q.word.w : answerDisplay(q), ok: !!correct, paper: !!q.paper, steps: q.cat === 'word' ? [`${esc(q.word.w)} = ${esc(q.word.t)}`] : (q.steps || []), lvl: q.level || 1 });
+    V.answers.push({ text: q.cat === 'word' ? String(q.prompt || q.word.t) : q.text, html: q.cat !== 'word', your: your == null ? '' : String(your), correct: q.cat === 'word' ? q.word.w : answerDisplay(q), ok: !!correct, isError: q.isError === true, spot: q.challenge === 'spot', falseChal: q.challenge === 'false', paper: !!q.paper, steps: q.cat === 'word' ? [`${esc(q.word.w)} = ${esc(q.word.t)}`] : (q.steps || []), lvl: q.level || 1 });
     nextQuestion();
   },
   /* ---------- Slut på passet ---------- */
@@ -436,9 +458,11 @@ const V2 = {
     const young = C.pol.name === 'younger'; const gems = V.rewards.reduce((a, r) => a + r.gems, 0);
     if (V.exp && V.mode !== 'readclose') {   // Experience v3: KLAR → frivillig FLOW
       beep(won.length ? 'badge' : 'win');
-      const cards = `${newFb ? `<div class="card row" style="gap:10px"><span style="font-size:1.3rem" aria-hidden="true">📕</span><div class="grow muted" style="font-size:.9rem">${newFb > cap ? 'Några saker' : newFb === 1 ? 'En sak' : `${newFb} saker`} sparades i Felboken – revansch ett annat pass.</div></div>` : ''}
-      ${EXP.autoClaim(kid, claimable)}
-      ${won.length ? `<div class="card row" style="gap:10px"><span class="badge"><span class="e">${won[0].e}</span>${won.map(b => b.name).join(', ')}</span><span class="muted" style="font-size:.9rem">Nytt märke</span></div>` : ''}`;   // v3: inga lösa trådar på KLAR – uppdragen hämtas automatiskt
+      // 3.3 slutpasset: allt som hände utöver passet som samma slags rad – ikon, vad det är, en kort förklaring
+      const row = (ic, t, sub) => `<div class="card klar-row"><span class="kr-i" aria-hidden="true">${ic}</span><div class="kr-t"><b>${t}</b>${sub ? `<div class="kr-s">${sub}</div>` : ''}</div></div>`;
+      const cards = `${won.length ? row(esc(won[0].e), 'Nytt märke', esc(won.map(b => b.name).join(', '))) : ''}
+      ${EXP.autoClaim(kid, claimable, row)}
+      ${newFb ? row(V.exp === 'achieve' ? '📕' : '💪', V.exp === 'achieve' ? 'Sparat i Felboken' : 'Revansch en annan dag', `${newFb > cap ? 'Några saker' : newFb === 1 ? 'En sak' : `${newFb} saker`} ${V.exp === 'achieve' ? 'sparades i Felboken – revansch ett annat pass.' : 'att ta revansch på en annan dag.'}`) : ''}`;   // v3: inga lösa trådar på KLAR – uppdragen hämtas automatiskt
       return EXP.finish(kid, V, sum, won, cards);
     }
     if (won.length) beep('badge'); else beep('win'); if (klar && young) confetti(60);
@@ -469,13 +493,15 @@ const V2 = {
     beep(won.length ? 'badge' : 'win');
     render(`${topbar('Testa mig', 'home')}
     <div class="stack" style="margin-top:6px">
-      <div class="card pad-lg summary-hero stack" style="gap:6px;text-align:center"><div class="eyebrow">Testa mig${S.v2.exp ? '' : ` · ${fmtTime(Date.now() - S.startedAt)}`}</div><div class="big">${ok}/${n}</div>
-        <p style="font-weight:700">${V.exp ? (ok === n ? 'Alla svar stämde den här gången.' : 'Bra att du testade – nu vet Kör! vad som ska övas.') : ok === n ? 'Allt rätt – du har koll!' : ok / Math.max(1, n) >= 0.7 ? 'Bra! Kolla igenom de du missade.' : 'Bra att du testade – nu vet vi vad Kör! ska öva på.'}</p></div>
+      ${V.exp ? (() => { const f = EXP.examFocus(S.kid, V); return `<div class="card pad-lg summary-hero stack exam-hero" style="gap:6px"><div class="eyebrow">Testa mig${f.title ? ' · ' + esc(f.title) : ''}</div>
+        <div class="exam-head">${ok === n ? 'Alla svar stämde den här gången.' : 'Bra att du testade. Nu vet appen vad du ska öva på.'}</div>${f.more.length ? `<div class="exam-focus">Öva mer: <b>${f.more.map(esc).join(', ')}</b></div>` : ''}</div>`; })()
+      : `<div class="card pad-lg summary-hero stack" style="gap:6px;text-align:center"><div class="eyebrow">Testa mig · ${fmtTime(Date.now() - S.startedAt)}</div><div class="big">${ok}/${n}</div>
+        <p style="font-weight:700">${ok === n ? 'Allt rätt – du har koll!' : ok / Math.max(1, n) >= 0.7 ? 'Bra! Kolla igenom de du missade.' : 'Bra att du testade – nu vet vi vad Kör! ska öva på.'}</p></div>`}
       ${V.exp ? EXP.examReport(S.kid, V) : ''}
-      <div class="card"><div class="eyebrow" style="margin-bottom:8px">Svar och förklaringar</div>
-        ${V.answers.map((a, i) => `<details style="padding:8px 0;border-top:1px solid var(--line)" ${a.ok ? '' : 'open'}><summary style="cursor:pointer"><b>${i + 1}.</b> ${a.ok ? '✅' : '🔁'} <span class="muted" style="font-size:.9rem">${esc(RECALL.strip(a.text).slice(0, 70))}${RECALL.strip(a.text).length > 70 ? '…' : ''}</span></summary>
+      <div class="card exam-list"><div class="eyebrow" style="margin-bottom:8px">Svar och förklaringar</div>
+        ${V.answers.map((a, i) => `<details style="padding:8px 0;border-top:1px solid var(--line)" ${a.ok ? '' : 'open'}><summary style="cursor:pointer"><b>${i + 1}.</b> ${V.exp ? `<span class="sdot ${a.ok ? 'ok' : 'todo'}" role="img" aria-label="${a.ok ? 'Stämde' : 'Öva mer'}"></span>` : a.ok ? '✅' : '🔁'} <span class="muted" style="font-size:.9rem">${esc(RECALL.strip(a.text).slice(0, 70))}${RECALL.strip(a.text).length > 70 ? '…' : ''}</span></summary>
           <div style="margin-top:6px">${a.html ? safeHtml(a.text) : esc(a.text)}</div>
-          <div style="margin-top:4px;font-size:.95rem">${a.paper ? '✏️ På papper · ' : ''}Ditt svar: <b>${esc(a.your || '–')}</b> · Rätt svar: <b>${esc(a.correct)}</b>${a.paper ? `<div class="muted" style="font-size:.85rem">${a.ok ? 'Ditt svar stämmer.' : 'Svaret stämmer inte.'} Jämför din uträkning med lösningen – appen har bara sett svaret.</div>` : ''}</div>
+          <div style="margin-top:4px;font-size:.95rem">${a.paper ? '✏️ På papper · ' : ''}${a.isError ? (a.ok ? `Du hittade felet: <s>${esc(a.correct)}</s> – det påståendet stämmer inte.` : `Ditt val: <b>${esc(a.your || '–')}</b>${a.your ? ' – det stämmer, men det var inte felet' : ''}. Felet var: <s>${esc(a.correct)}</s> (stämmer inte).`) : a.falseChal ? (a.ok ? `Du hittade felet: <b>${esc(a.correct)}</b> stämmer inte.` : `Ditt val: <b>${esc(a.your || '–')}</b>${a.your ? ' – det stämmer, men det var inte felet' : ''}. Felet var: <b>${esc(a.correct)}</b> (stämmer inte).`) : a.spot && !a.ok ? `Ditt val: <b>${esc(a.your || '–')}</b> – den lösningen stämmer. Felet fanns i: <b>${esc(a.correct)}</b>.` : `Ditt svar: <b>${esc(a.your || '–')}</b> · Rätt svar: <b>${esc(a.correct)}</b>`}${a.paper ? `<div class="muted" style="font-size:.85rem">${a.ok ? 'Ditt svar stämmer.' : 'Svaret stämmer inte.'} Jämför din uträkning med lösningen – appen har bara sett svaret.</div>` : ''}</div>
           ${a.steps.length ? `<div class="steps" style="margin-top:6px"><ol>${a.steps.map(st => `<li>${safeHtml(st)}</li>`).join('')}</ol></div>` : ''}</details>`).join('')}
       </div>
       <button class="btn big wide" data-v2="kor">Öva på det som behövs</button>
@@ -521,12 +547,12 @@ const V2 = {
       const name = (cid) => V2.cname(kid, C, cid);
       const li = (arr) => arr.length ? arr.slice(0, 3).map(cid => `<li>${esc(name(cid))}</li>`).join('') : '<li class="muted">För lite underlag än</li>';
       const tests = p.tests.filter(t => t.v2).slice(-3).reverse();
-      return `<div class="card stack" style="gap:8px;border-left:3px solid var(--acc)"><div class="eyebrow">${esc(kid.name)} · insikter från Learning Engine v2</div>
-        <div><b>STYRKOR</b><ul style="margin:4px 0 0;padding-left:20px">${li(I.strengths)}</ul></div>
-        <div><b>BEHÖVER ÖVAS</b><ul style="margin:4px 0 0;padding-left:20px">${li(I.practise)}</ul></div>
-        <div><b>REKOMMENDERAT NÄSTA STEG</b><ol style="margin:4px 0 0;padding-left:20px">${I.recs.slice(0, 3).map(r => `<li>${V2.REC_TXT(r, name)}</li>`).join('')}</ol></div>
+      return `<div class="card stack" style="gap:8px;border-left:3px solid var(--acc)"><div class="eyebrow">${esc(kid.name)} · insikter</div>
+        <div><div class="eyebrow">STYRKOR</div><ul style="margin:4px 0 0;padding-left:20px">${li(I.strengths)}</ul></div>
+        <div><div class="eyebrow">BEHÖVER ÖVAS</div><ul style="margin:4px 0 0;padding-left:20px">${li(I.practise)}</ul></div>
+        <div><div class="eyebrow">REKOMMENDERAT NÄSTA STEG</div><ol style="margin:4px 0 0;padding-left:20px">${I.recs.slice(0, 3).map(r => `<li>${V2.REC_TXT(r, name)}</li>`).join('')}</ol></div>
         ${I.temporary.length ? `<div class="muted" style="font-size:.85rem">Tillfälligt fel idag på något som brukar sitta: ${I.temporary.slice(0, 3).map(name).map(esc).join(', ')} – inget att oroa sig för.</div>` : ''}
-        ${tests.length ? `<div style="font-size:.9rem"><b>Testa mig</b> ${tests.map(t => `<div>${esc(t.date)} · ${esc(LE.exams(kid, p).find(e => e.id === t.examId)?.title || '')}: ${Number(t.score)}/${Number(t.total)} · övningsindikation ${esc(t.ind || '–')}</div>`).join('')}<div class="muted" style="font-size:.8rem">Övningsindikationen (E/C/A) är bara ett övningsresultat för dig som förälder – ingen betygsprognos. Barnet ser den inte.</div></div>` : ''}
+        ${tests.length ? `<div style="font-size:.9rem"><b>Testa mig</b> ${tests.map(t => `<div>${esc(/^\d{4}-\d\d-\d\d$/.test(String(t.date)) ? fmtDate(t.date) : t.date)} · ${esc(LE.exams(kid, p).find(e => e.id === t.examId)?.title || '')}: ${Number(t.score)} rätt av ${Number(t.total)} · övningsindikation ${esc(t.ind || '–')}</div>`).join('')}<div class="muted" style="font-size:.8rem">Övningsindikationen (E/C/A) är bara ett övningsresultat för dig som förälder – ingen betygsprognos. Barnet ser den inte.</div></div>` : ''}
       </div>`;
     }, 'insights', '');
   },
