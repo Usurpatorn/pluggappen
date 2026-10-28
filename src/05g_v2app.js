@@ -162,7 +162,7 @@ const V2 = {
       for (const id2 of (e.deckIds || [])) { const d = deckById(p, id2); if (d && !d.noSpell && cat[LECAT.deckCid(id2)]) for (let r = 0; r < Math.min(4, d.words.length); r++) plan.push({ cid: LECAT.deckCid(id2), role: 'testa', why: 'Testa mig' }); }   // granskning M3: ett glosförhör = flera ord
       const out = plan.slice(0, 12); out.maxItems = out.length; return out;
     }
-    if (mode === 'flow') return EXP.flowPlan(kid, C, now, id);   // Experience v3: frivilligt extrablock – samma motor, kortare, dygnets gräns för nytt
+    if (mode === 'flow' || mode === 'more') return EXP.flowPlan(kid, C, now, id);   // 3.4: Öva mer = samma plan som FLOW (dygnets gräns för nytt), utan poäng   // Experience v3: frivilligt extrablock – samma motor, kortare, dygnets gräns för nytt
     // Hotfix 2.1.1: "Öva inför provet" – samma motor och samma regler (förfallet, nytt inom dygnets gräns, Revansch), men bara provets koncept
     if (mode === 'mission') { const e = LE.exams(kid, p).find(x => x.id === extra.examId); if (!e) return []; const cids = V2.examCidsActive(kid, e); if (!cids.length) return []; const plan0 = LE.plan(kid, V2.n(kid, C), now, id, { only: cids, newCap: V2.newCapToday(C, now, EXP.on(kid) ? p : null) }).plan; const set = new Set(cids);
       // Granskning: bara provets koncept (även Bossen), och inget pass alls när inget av provet går att öva just nu (t.ex. kvällen före provet
@@ -178,17 +178,18 @@ const V2 = {
     const p = prof(kid.id);
     // Bara prov och läxor: inget allmänt v1-pass i stället (varken före första synken eller vid ett fel i v2)
     if (!LE.canStart(kid, p)) { if (mode === 'kor' && !V2.scopeOn(p)) { S = null; return startSession(kid, recommendSprint(kid).opts); } toast('Hämtar det senaste från molnet – försök igen om en stund'); return; }   // barnet blockeras aldrig: v1-pass tills första synken är klar
-    const C = LE.state(kid); const now = LE.sessClock(C); const { id: id0 } = LE.newSessId(p); const id = mode === 'flow' ? id0 + 'f' : mode === 'mission' ? id0 + 'm' : id0;   // FLOW och provträning märks i id:t (motorn räknar dem inte i svält-skyddet)
+    const C = LE.state(kid); const now = LE.sessClock(C); const { id: id0 } = LE.newSessId(p); const id = mode === 'flow' || mode === 'more' ? id0 + 'f' : mode === 'mission' ? id0 + 'm' : id0;   // FLOW och provträning märks i id:t (motorn räknar dem inte i svält-skyddet)
     const plan = V2.plan(kid, mode, C, now, id, extra);
     if (!plan.length) { toast(mode === 'revansch' ? 'Inget att ta revansch på just nu' : 'Inget att öva just nu'); return go('home'); }
     const exam = mode === 'exam';
     const cat0 = LE.activeCat(C, p); const cat = plan.only ? Object.fromEntries(Object.entries(cat0).filter(([cid]) => plan.only.has(cid))) : cat0;   // provträning: lätta uppgifter och Bossen bara ur provet
     const R = LER.create(C.L, cat, plan, C.pol, { sessId: id, mode: exam ? 'exam' : 'practice', maxItems: plan.maxItems });
     const rec = { id, t: Math.round(now / 1000), src: 'v2', e: 2, m: mode, mode: 'v2', v1: [], v2: plan.map(s => [s.cid, LE.ROLE[s.role] || '?', LE.whyKey(s)]), light: plan.light ? 1 : 0, rst: plan.restart ? 1 : 0, pol: C.pn, a: [], w: [0, 0], done: 0 };
+    const po = typeof EXP !== 'undefined' && EXP.practiceOnly(kid, mode); if (po) rec.po = 1;   // 3.4 fas D: övning utan belöning (äldre versioner ignorerar fältet)
     if (typeof plan.maxNew === 'number' && V2.newToday(C, now) === 0) rec.mx = plan.maxNew;   // dygnets första pass: motorns egen gräns för nytt idag (FLOW/provträning håller den)
     p.le.shadow = [...(p.le.shadow || []), rec].slice(-LE2.SHADOW_MAX);
     S = { kid, mode: 'v2', opts: { v2: mode, ...extra }, queue: [], i: 0, results: [], xp: 0, usedHelp: false, retried: false, startedAt: Date.now(), streak: 0, revealed: false, answered: false, examId: extra.examId, deadline: null, chain: null,
-      v2: { R, C, id, mode, exam, start: now, k: 0, plan, planN: plan.length, light: !!plan.light, restart: !!plan.restart, rewards: [], answers: [], seen: new Set(), stageUps: new Set(), fbBefore: LE2.felbokVisible(C.L, now).length, extra, exp: EXP.on(kid) ? EXP.of(kid) : null, calm: !!plan.restart } };
+      v2: { R, C, id, mode, exam, start: now, k: 0, plan, planN: plan.length, light: !!plan.light, restart: !!plan.restart, rewards: [], answers: [], seen: new Set(), stageUps: new Set(), fbBefore: LE2.felbokVisible(C.L, now).length, extra, exp: EXP.on(kid) ? EXP.of(kid) : null, calm: !!plan.restart, po } };
     save();
     state.screen = 'practice';
     if (!V2.advance()) return V2.finish();
@@ -321,7 +322,7 @@ const V2 = {
   hasNext() { const pr = LER.progress(S.v2.R); return S.i + 1 < S.queue.length || pr.left > 0; },
   // 3.0.1: glosor i ett v3-pass heter efter ämnet ("Engelska glosor"), inte efter glosbokens namn – det såg ut som en annan övning än Kör!
   wordTitle(deck) { const L = (typeof LANGS !== 'undefined' && LANGS[deck && deck.lang]) || null; return !L ? 'Glosor' : deck.lang === 'sv' ? 'Svenska ord' : L.name + ' glosor'; },
-  title(item) { return S.v2.exam ? 'Testa mig' : S.v2.mode === 'mission' ? 'Inför ' + esc((LE.exams(S.kid, prof(S.kid.id)).find(e => e.id === S.v2.extra.examId) || {}).title || 'provet') : S.v2.mode === 'revansch' && !S.v2.exp ? 'Revansch' :S.v2.mode === 'readclose' ? 'Minns du?' : item.cat === 'word' ? esc(S.v2.exp && S.v2.exp !== 'classic' ? V2.wordTitle(item.deck) : item.deck.name) : item.skill && S.v2.exp === 'explore' ? ({ math: 'Matte', sv: 'Svenska', en: 'Engelska', no: 'NO', so: 'SO' })[item.skill.group || 'math'] || 'Äventyret' : item.skill ? esc(item.skill.short || item.skill.name) : 'Kör!'; },   // Explore: ämnet, inte momentets interna namn (UX)
+  title(item) { return S.v2.exam ? 'Testa mig' : S.v2.mode === 'more' ? 'Öva mer' : S.v2.mode === 'mission' ? 'Inför ' + esc((LE.exams(S.kid, prof(S.kid.id)).find(e => e.id === S.v2.extra.examId) || {}).title || 'provet') : S.v2.mode === 'revansch' && !S.v2.exp ? 'Revansch' :S.v2.mode === 'readclose' ? 'Minns du?' : item.cat === 'word' ? esc(S.v2.exp && S.v2.exp !== 'classic' ? V2.wordTitle(item.deck) : item.deck.name) : item.skill && S.v2.exp === 'explore' ? ({ math: 'Matte', sv: 'Svenska', en: 'Engelska', no: 'NO', so: 'SO' })[item.skill.group || 'math'] || 'Äventyret' : item.skill ? esc(item.skill.short || item.skill.name) : 'Kör!'; },   // Explore: ämnet, inte momentets interna namn (UX)
   // v3: N kvar = planerade uppgifter; en Ny chans/Rescue syns som extra och tar inga planerade platser
   topRight() { const pr = LER.progress(S.v2.R); if (S.v2.exp && !S.v2.exam) { const it = S.queue[S.i]; const extra = EXP.isExtra(it); const left = extra ? Math.min(V2.plannedLeft(), Math.max(0, S.v2.R.maxItems - S.v2.R.answered - 1)) : V2.plannedLeft(); return `<span class="left-count">${left ? `${left} kvar` : 'Snart klart'}</span>`; }   /* 3.3 slutpasset: Ny chans/Rescue/Extra syns i kortets etikett – räknaren säger bara vad som är kvar av planen */ return S.v2.exam ? `<span class="pill">Inga ledtrådar · svar efteråt</span>` : `<span class="left-count">${Math.max(0, pr.left)} kvar</span>`; },
   progressBar() { const tot = V2.total();
@@ -374,7 +375,7 @@ const V2 = {
   },
   teachDone() { const item = S.queue[S.i]; if (!item || item.cat !== 'learn') return; LER.answered(S.v2.R, S.v2.C.L, item.spec, true); S.results.push(null); nextQuestion(); },
   // Granskning M6: Utmaningen ger XP men ändrar aldrig v1:s mastery/nivå eller v1-Felboken (som rollback bygger på)
-  challengeXp(correct) { const p = prof(S.kid.id); const xp = correct ? 14 : 2; p.xp += xp; bumpDay(p, correct, xp); if (correct) questEvent(p, 'correct', { skillId: null }); save(); return xp; },
+  challengeXp(correct) { const p = prof(S.kid.id); const xp = EXP.poActive() ? 0 : correct ? 14 : 2; p.xp += xp; bumpDay(p, correct, xp); if (correct) questEvent(p, 'correct', { skillId: null }); save(); return xp; },
   check(q, raw) { return q.v2check === 'recall' ? RECALL.check(q, raw) : q.v2check === 'create' ? CHG.check(q, raw) : q.v2check === 'pack' ? PACKS.check(q, raw) : checkAnswer(q, raw); },
   /* ---------- Svar → bevis ---------- */
   // v3 (granskning H1/H2): sortera, para ihop och bygg ordet går att lösa genom att pröva sig fram eller känna igen – de räknas som
@@ -403,7 +404,7 @@ const V2 = {
   },
   REWARD_TXT: { REMEMBERED: 'Du kom ihåg!', COMEBACK: 'Revansch klar!', CHALLENGE: 'Utmaning klarad!', MASTERY: 'Sitter säkert!', FOCUS: 'Dagens fokus klart!', CONSISTENCY: 'Tre plugg-dagar den här veckan!' },
   grant(p, list, cid) {
-    const V = S.v2; const day = LE2.dayIdx(V.start); const out = [];
+    const V = S.v2; const day = LE2.dayIdx(V.start); const out = []; if (V.po) return out;   // 3.4: övning utan poäng – inga belöningar (och inget förbrukas i belöningsliggaren)
     for (const rw of list) {
       const key = rw === 'REMEMBERED' ? `REM:${day}:${cid}` : rw === 'COMEBACK' ? `CB:${day}:${cid}` : rw === 'CHALLENGE' ? `CH:${day}` : rw === 'MASTERY' ? `MA:${cid}` : rw === 'FOCUS' ? `FO:${day}` : rw === 'CONSISTENCY' ? `CO:${7 * Math.floor((day + 3) / 7) - 3}` : null;   // måndagen i passets vecka (dygn räknat från 1970-01-01, en torsdag)
       if (!key || !LE2.rewardOnce(p.le, key, day)) continue;
@@ -439,7 +440,7 @@ const V2 = {
   finish() {
     const V = S.v2; const kid = S.kid; const p = prof(kid.id); const C = V.C; const sum = LER.summary(V.R);
     V2.safe(() => {
-      p.sessions++; p.sprintsSinceBreak = (p.sprintsSinceBreak || 0) + 1; if (sum.n >= 5 && sum.ok === sum.n) { p.perfect = (p.perfect || 0) + 1; questEvent(p, 'perfect', {}); }
+      p.sessions++; p.sprintsSinceBreak = (p.sprintsSinceBreak || 0) + 1; if (sum.n >= 5 && sum.ok === sum.n && !V.po) { p.perfect = (p.perfect || 0) + 1; questEvent(p, 'perfect', {}); }
       const focusOk = V.R.log.some(x => x[1] === 'F' && x[2] === 1); const extra = [];
       if (focusOk) extra.push('FOCUS'); if (V2.weekDays(p) >= LE2.CFG.reward.CONSISTENCY.days) extra.push('CONSISTENCY');
       if (!V.exam) V.rewards.push(...V2.grant(p, extra, null));
@@ -449,7 +450,8 @@ const V2 = {
         p.tests.push({ date: todayKey(), examId: V.extra.examId, score: V.answers.filter(a => a.ok).length, total: V.answers.length, ms: Date.now() - S.startedAt, v2: 1, ind }); if (p.tests.length > 30) p.tests.shift(); }
       LE.housekeep(kid);
     }, 'finish');
-    save(); const won = V2.safe(() => checkBadges(kid), 'badges', []) || [];
+    save(); V.ended = true;   // 3.4: övningsblockets spärr gäller bara blocket (inte senare köp, synk eller nollställning)
+    const won = V.po ? [] : (V2.safe(() => checkBadges(kid), 'badges', []) || []);
     if (V.exam) return V2.examResult(won);
     const next = V2.safe(() => V2.peekPlan(kid).plan, 'nextPlan', null);
     const klar = V.light || !!(next && (next.light || next.scopeEmpty || !next.length));   // 3.1: inget "Ett pass till" när dagens plan är tom
@@ -493,6 +495,7 @@ const V2 = {
     beep(won.length ? 'badge' : 'win');
     render(`${topbar('Testa mig', 'home')}
     <div class="stack" style="margin-top:6px">
+    ${V.po ? '<div class="muted" style="font-size:.9rem">Dagens första Testa mig gav poäng – den här omgången är bara för att se läget.</div>' : ''}
       ${V.exp ? (() => { const f = EXP.examFocus(S.kid, V); return `<div class="card pad-lg summary-hero stack exam-hero" style="gap:6px"><div class="eyebrow">Testa mig${f.title ? ' · ' + esc(f.title) : ''}</div>
         <div class="exam-head">${ok === n ? 'Alla svar stämde den här gången.' : 'Bra att du testade. Nu vet appen vad du ska öva på.'}</div>${f.more.length ? `<div class="exam-focus">Öva mer: <b>${f.more.map(esc).join(', ')}</b></div>` : ''}</div>`; })()
       : `<div class="card pad-lg summary-hero stack" style="gap:6px;text-align:center"><div class="eyebrow">Testa mig · ${fmtTime(Date.now() - S.startedAt)}</div><div class="big">${ok}/${n}</div>
@@ -523,6 +526,7 @@ const V2 = {
   act(a, el, kid) {
     if (a === 'kor' || a === 'extra') return V2.start(kid, 'kor');
     if (a === 'flow') return V2.start(kid, 'flow');
+    if (a === 'ovamer') return V2.start(kid, 'more');
     if (a === 'felbok') return V2.felbokView(kid);
     if (a === 'revansch') return V2.start(kid, 'revansch');
     if (a === 'testa') return V2.start(kid, 'exam', { examId: el.dataset.exam });
@@ -539,6 +543,34 @@ const V2 = {
     if (r.k === 'return') return 'Ett kort pass på 5 minuter är en bra omstart – appen börjar med sådant som sitter.';
     if (r.k === 'depth') return 'Det mesta sitter. Utmaningarna ger fördjupning – fortsätt gärna med korta pass.';
     return `Fortsätt som nu: ett kort pass om dagen (cirka ${r.minutes} min).`;
+  },
+  // 3.4 flera mål: storleken styr bromsen (bara ett STÖRRE mål bromsar annat nytt). Standard: prov = större, läxförhör/glosförhör = mindre,
+  // inlagt prov utan typ = större (som före 3.4). Föräldern kan ändra inlagda prov här; skoluppgifter ändras i skoluppgiften (weight).
+  sizeOf(e) { const major = LE.isMajor(e); return { major, txt: major ? 'Större (prov)' : 'Mindre (förhör eller läxa)', why: e.weight ? 'ditt val' : (e.kind === 'homework' || e.kind === 'vocab') ? 'standard för läxa och förhör' : 'standard för prov' }; },
+  // 3.4 fas C: täckningsrisken för föräldern – ärligt, utan prognos från gles historik. Regeln är densamma som planerarens täckningstryck:
+  // fler osedda områden än dagar kvar före provets sista tre dagar (då tar appen inte in nytt för provet).
+  goalsCard(kid) {
+    return V2.safe(() => {
+      const p = prof(kid.id); if (!p.le || !LE.canStart(kid, p)) return ''; const C = LE.state(kid);
+      const list = LE.exams(kid, p).map(e => ({ e, d: daysUntil(e.date) })).filter(x => x.d >= 0 && x.d <= 60).sort((a, b) => a.d - b.d || (a.e.id < b.e.id ? -1 : 1)); if (!list.length) return '';
+      const seen = (cid) => !!(C.L.c[cid] && C.L.c[cid].n > 0); const allUn = new Set();   // totalen räknar ett gemensamt område en gång
+      const rows = list.map(({ e, d }) => {
+        const cids = V2.examCidsActive(kid, e).filter(cid => !(C.cat[cid] && C.cat[cid].kind === 'deck')); const un = cids.filter(cid => !seen(cid)).length; cids.filter(cid => !seen(cid)).forEach(c => allUn.add(c));
+        const sz = V2.sizeOf(e); const room = Math.max(0, d - (sz.major ? 3 : 1)); const own = (p.exams || []).some(x => x.id === e.id);
+        const cov = !cids.length ? `<div class="muted" style="font-size:.9rem">Områdena är inte inlagda i appen – appen kan inte förbereda för det här.</div>`
+          : !un ? `<div style="font-size:.9rem">Alla ${cids.length} områden är påbörjade i appen.</div>`
+          : un > room ? `<div class="hint" style="font-size:.9rem"><b>Risk:</b> ${un} av ${cids.length} områden är inte påbörjade, och det är ${room} ${room === 1 ? 'dag' : 'dagar'} kvar innan ${sz.major ? 'provets sista tre dagar' : 'sista dagen'} (då tar appen inte in nytt för det). Allt hinner kanske inte introduceras i appen – särskilt om några dagar blir utan pass. Överväg att prioritera eller öva en del på annat sätt.</div>`
+          : `<div style="font-size:.9rem">${un} av ${cids.length} områden är inte påbörjade än · ${room} ${room === 1 ? 'dag' : 'dagar'} kvar innan ${sz.major ? 'provets sista tre dagar' : 'sista dagen'}.</div>`;
+        const btn = own ? `<button class="btn ghost" style="min-height:36px;padding:0 10px" data-ex-weight="${esc(e.id)}">Ändra till ${sz.major ? 'mindre' : 'större'}</button>` : '';
+        return `<div class="stack" style="gap:4px;padding:8px 0;border-top:1px solid var(--line)"><div class="row" style="justify-content:space-between;gap:8px"><b>${esc(e.title)}</b><span class="muted" style="font-size:.85rem">${esc(fmtDate(e.date))} · ${d === 0 ? 'idag' : d === 1 ? 'imorgon' : `om ${d} dagar`}</span></div>
+          <div class="row" style="justify-content:space-between;gap:8px;flex-wrap:wrap"><span style="font-size:.9rem">${sz.txt} · <span class="muted">${sz.why}${own ? '' : ' · ändras i skoluppgiften'}</span></span>${btn}</div>${cov}</div>`;
+      });
+      return `<div class="card stack" style="gap:6px"><div class="eyebrow">${esc(kid.name)} · mål och täckning</div>
+        <div class="muted" style="font-size:.85rem">Bara ett större mål bromsar annat nytt veckan före. Ett mindre mål får egen tid men stoppar inte förberedelsen för andra prov.</div>
+        ${rows.join('')}
+        ${list.length > 1 && allUn.size ? `<div class="muted" style="font-size:.85rem">Totalt ${allUn.size} områden som inte är påbörjade, i ${list.length} mål. Appen planerar om från dagens läge varje gång – missade dagar räknas inte som skuld.</div>` : ''}
+        <div class="muted" style="font-size:.8rem">Påbörjat betyder övat i appen, inte att det sitter. Inget här är en prognos för provresultatet.</div></div>`;
+    }, 'goalsCard', '');
   },
   insightsCard(kid) {
     return V2.safe(() => {

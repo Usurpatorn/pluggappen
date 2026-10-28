@@ -222,3 +222,117 @@ med `PREVIEW=1` till `<sajten>/preview/`. Produktionen publiceras som vanligt. M
 - Tillgänglighet: axe-core (WCAG 2.1 A/AA) 0 fynd på 24 skärmar i 375, 390, 820 och 1180 px.
 - Test: `test_ux33.js` och `test_ux33_final.js` (krokar = uppgiften, två rutor utan förlust/dubbletter, Hitta felet/Baklänges rättas som förut, löftena
   ordagrant, lugnt Testa mig). Rollback: `release-3.2.2-1544484` (profilformatet är oförändrat, så rollback kräver ingen migrering; enda innehållsskillnaden i lagrad data är grammatikrättelsen "1 färgad" i stegtext som v1-Felboken kopierar).
+
+## 3.4.0 – Flera mål och oregelbundet plugg (gren `le-multigoal`, bygger på 3.3)
+- **Problemet (återskapat och kvar som test):** det närmaste målet, oavsett storlek, satte provveckans broms på ny inlärning i hela
+  planen. Ett litet förhör kunde därför stoppa nytt i ett större prov fem dygn senare och i ett tredje prov ännu senare.
+  `tests/test_le_multigoal.js` ger 26 av 79 kontroller fel mot 3.3-bygget (`LE_HTML=<bygge>`) och är grönt på 3.4.
+- **Reglerna nu (`LE2.planSession`, `LE.isMajor`, CFG.exam):**
+  - **Bara ett större mål** (prov) bromsar ny inlärning i hela planen: inget nytt dagen före eller på provdagen, sedan stegvis
+    veckan före.
+  - **Ett mindre mål** (läxförhör eller glosförhör) väger 0,6 i prioriteten. Dess sista dygn tas inga osedda koncept in som bara hör
+    till det målet. De sista tre dygnen går minst en tredjedel av passet till det (ett större prov får hälften).
+  - **Standard utan storlek:** `exam` och prov som lagts in i appen utan typ räknas som större, alltså som före 3.4.
+    `homework`/`vocab` räknas som mindre.
+  - **Förälderns val** gäller före standarden:
+    - i appen: Prov → Storlek när provet läggs in, och Översikt → mål och täckning → Ändra. Valet sparas på provet och synkas
+      som en ändring av det.
+    - skoluppgifter: fältet `weight` via det privata innehållsflödet.
+  - **Aldrig fler räknade nya koncept per pass än policyn** (yngre 1, mellan 2, äldre 3) eller dygnets rest (`newCap`). Prövat på
+    6 000 slumpade planer i den oberoende granskningen, med 0 avvikelser (3.3 hade 193).
+  - **Ett ensamt prov** (inget annat mål) har exakt 3.3:s provveckoregel: högst ett nytt per pass 4–7 dygn före, prövat för alla tre
+    policyer.
+  - **Veckan före ett större prov när flera mål pågår:** annat nytt bromsas, men provets egna osedda koncept får introduceras inom
+    policyns gräns. Utan det tog andra mål provets enda plats.
+  - **Täckningstryck:** ett *annat* mål med fler osedda koncept än dygn kvar innan sina tre sista får +1 nytt per pass under provets
+    vecka, inom policyns gräns. Det gäller aldrig vid överlast och aldrig det närmaste provets egna koncept.
+  - **Målrättvisa:** ett större prov inom 14 dygn vars övade koncept inte setts på 3 dygn, när ett annat mål ligger närmare, får
+    ett av dem i passet. Det är alltid repetition, aldrig nytt. Ett ensamt prov påverkas inte, så säsongerna är oförändrade.
+  - **Gemensamma koncept** är ett koncept i motorn med samma bevis och belöningar. Förhörets sista dygn stoppar inte ett koncept som
+    också hör till ett senare prov.
+  - **Rättelse (M8, utökad efter granskningen):** ett osett koncept vars förkunskap saknas kom förut in via provets vikt utan att
+    räknas som nytt. Ett större provs sista tre dygn räknas det nu som nytt, så regeln "inget nytt, utom vid svält" gäller allt osett.
+    4–7 dygn före ett prov är det oförändrat från 3.3. Det är en känd begränsning, som gäller också med flera mål: ett osett koncept
+    utan förkunskap kan då komma utöver gränsen, i samma takt som i 3.3. Ett ensamt provs plan är byte-identisk med 3.3, vilket
+    granskningen prövade på 1 685 planer.
+  - `others` räknar varje kommande mål, också ett avlägset eller ett utan områden. Ett ensamt prov plus ett sådant mål får alltså
+    flermålsreglerna, fortfarande inom gränsen.
+  - **Rättelse:** 3.3 kunde krascha (`subject` på ett odefinierat koncept) när planen för Yngre blev tom 2–3 dygn före ett prov.
+    Felet fångades av appens skydd.
+  - **Rättelse:** en tom plan fick en Boss utan koncept. Nu blir ingen Boss skapad, och hemmet säger ärligt att det inte finns något
+    att köra, i stället för att visa en KÖR-knapp som inte startar något.
+- **Hemmets rubrik** är målet som dagens plan tränar mest (lika antal → det närmaste), inte bara det närmaste datumet. Om det andra
+  målet kommer tidigare står det "Före det:".
+- **Föräldern: mål och täckning** (Översikt, v2). För varje mål visas:
+  - storleken och varför den gäller (standard eller förälderns val);
+  - hur många områden som är påbörjade i appen;
+  - en **risk** när fler områden är opåbörjade än det finns dygn kvar innan målets dygn utan nytt (större prov: de sista tre;
+    mindre: det sista).
+
+  Planerarens täckningstryck använder en närliggande regel (minst lika många osedda som dygn före de sista tre). "Områden" i kortet
+  är appens kunskapspunkter och moment, och totalen räknar ett gemensamt område en gång. Kortet ger ingen prognos, inga procent och
+  ingen skuld.
+- **Jämförelse** med samma fixturer och frön (4 frön × rätt-andel 0,7/0,85, syntetiska datum: mindre förhör dag 17, större prov dag 22
+  och dag 30). Siffran är antal koncept introducerade före datum:
+
+  | Mål | 3.3 | 3.4 |
+  |---|---|---|
+  | förhör (14 koncept) | 11,3 | 10,4 |
+  | algebra (7) | 5,3 | 6,8 |
+  | kemi (19) | 7,3 | 7,4 |
+
+  (Siffrorna är oförändrade efter granskningens rättelser.)
+
+  - Kemi: tillbakahämtning ett senare dygn 6,4 → 7,4. Ett uppehåll på fem dygn eller mer före provet förekom i 2 av 8 körningar
+    och förekommer nu i 0 av 8.
+  - Inget koncept tog mer än ett stadiesteg samma dygn, och inget nytt koncept nådde stadium 2 samma dygn (0 i båda byggena).
+    Högst 4 nya koncept per dygn i båda byggena.
+  - Kontroll (bara algebra och kemi): algebra 7,0 → 7,0, kemi 13,8 → 12,3. Skillnaden kommer från M8-rättelsen: inget osett de sista
+    tre dygnen före algebraprovet (granskaren mätte −0,75 av det första −1,0 till M8 på dygnet före).
+  - Den bindande gränsen är inlärningstakten (ungefär ett nytt koncept per dag när mycket pågår). Det är därför risken visas för
+    föräldern i stället för att barnet överbelastas.
+- **Mutationsprövat:** 15 av 15 egna mutationer fångas. Granskarens egna mutationer: 9 fångades och 7 missades först. Efter
+  rättelserna finns tester för policyns gräns i alla tre policyer, ett ensamt prov, de sista tre dygnen och `weight` på skoluppgifter.
+  Andelen för ett mindre mål (0,34), repetitionsandelen och Revansch-gränsen dagen före är inställningar som inte prövas var för sig.
+- **Kända begränsningar:**
+  - en storleksändring kan gå förlorad i en synk utan gemensam bas när den andra enheten har en egen väntande ändring av samma prov
+    (provets objekt vinner som helhet, som för alla provändringar sedan tidigare);
+  - ett större prov utan inlagda områden bromsar fortfarande annat nytt veckan före (som i 3.3).
+  - ett koncept som planen tar två gånger räknas två gånger mot gränsen (som i 3.3), vilket ger något färre nya än gränsen.
+- **Rollback:** 3.3-bygget. Det tillagda fältet `weight` på prov ignoreras av äldre versioner, som då räknar alla mål som större
+  (beteendet före 3.4). Inget annat i profilen ändras.
+
+## 3.4.0 (del 2) – Öva mer: belöningar har tak, lärandet inte (gren `le-more`, bygger på `le-multigoal`)
+- **Efter dygnets belönade extrablock** visar hemmet och KLAR först "Bra jobbat idag! Det du har övat sätter sig bäst om du vilar
+  nu." Extrablocken är FLOW och provträning tillsammans, högst `FLOW_MAX` = 3. Därefter kan barnet frivilligt välja:
+  - **Öva mer**: samma plan som FLOW och dygnets gräns för nytt;
+  - **Öva mer inför <mål>**: provträning som alltid håller sig inom målet, också Boss, Rescue och omförsök.
+
+  Båda märks "utan poäng" och erbjuds **bara när planen gör nytta**: något nytt inom dygnets gräns, något som inte blivit rätt idag,
+  en Utmaning, eller något som fortfarande lärs in (stadium ≤ 1) och har färre än tre rätt idag. "Rätt idag" räknas ur bevisen, inte
+  ur `lastOk`, som bara sätts vid kvalificerande svar. Utan det kunde samma block erbjudas gång på gång (andra granskningen). Annars visar appen ärligt "Det finns
+  inget mer som gör nytta att öva i appen idag …" och en befintlig resurs om målet har en. Ingen utfyllnad.
+- **Utan poäng, vid källan:** under ett övningsblock (`S.v2.po`) ger svaren inga XP, och dagens uppdrag, svitbonusen, Utmaningens
+  XP, motorns belöningar, märken och felfritt pass räknas inte. Spärren gäller bara i övningsskärmen och slutar när blocket är slut
+  (`V.ended`). Ett avbrutet block spärrar alltså inte senare.
+  - Ingenting återställs i efterhand. Första versionen återställde allt till blockets start vid varje sparning, vilket enligt den
+    oberoende granskningen kunde ge gratis köp, sudda ut belöningar från en annan enhet och ångra en nollställning.
+  - Motorns belöningsliggare förbrukas inte.
+- **Testa mig:** dagens första omgång ger poäng. Följande omgångar samma dygn är utan poäng, och resultatet säger det.
+- **Lärandet:** svaren blir bevis som vanligt, och fel hanteras med Felboken och motorns sänkning. Motorns regler gäller: högst ett
+  stadiesteg per dygn, flerval samma dygn räknas inte två gånger, och kalibreringen tar inte med samma dygn. Passposten är
+  `po:1` (`m:'more'` eller `'mission'`).
+- **Ingen autostart och tydlig slutpunkt:** "Klar för idag" efter varje block. Prövat med riktig väntan.
+- **Två enheter offline:** Öva mer ger inga XP- eller diamantdelta. Efter sammanslagning finns bara de belönade blocken, och båda
+  enheternas övningsposter finns kvar.
+- **Simulering** (`tests/le/matrix.js`, långa pass med KÖR, 3 FLOW och 2 Öva mer varje dygn): se programrapporten. Samma-dygnssteg
+  0, och dygnets gräns för nytt håller.
+- **Tester och mutationer:** `tests/test_ova_mer.js` (101 kontroller) täcker k8, k4 och k2, två enheter, köp, synk och uppdrag efter
+  ett block, gemensam gräns för extrablock, Testa mig och ärligt slut. Granskarens och egna mutationer fångas, utom räknaren för felfritt pass (ett märke som delas ut en gång). Det gäller också ett
+  avbrutet block, granskarens fall med upprepning (k4, frö 41) och hemmet när provträningar använt dygnets extrablock.
+- **Känt:** märkesräknarna (rätt totalt, säker på ett område) räknar också övning. Ett sådant märke kan alltså nås något tidigare.
+  Varje märke ges en gång.
+- **Kvar utanför v3:** Klassiskt läge och v1 har sina gamla regler för extra pass.
+- **Rollback:** del 1 eller 3.3.
+  - 3.3 räknar bara `m:'flow'` och visar "vila nu" efter tre FLOW.
+  - Passposterna `more`/`po` påverkar inte 3.3.

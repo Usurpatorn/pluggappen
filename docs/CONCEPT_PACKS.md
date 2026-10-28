@@ -133,6 +133,11 @@ Typens signaturaktiviteter väger ×1,5. Variation har alltid ett skäl – aldr
   `"missing": [{ "label", "kind": "pdf|book|format|video|lab|questions|other", "note" }]` – luckor i underlaget; visas för
   föräldern, aldrig för barnet, och appen hittar aldrig på innehåll i stället.
   Kvalitetsgrinden kräver att målområden och betoning ligger inom skoluppgiftens egna `skills`/`kps` (ingen påhittad omfattning).
+- **3.4 flera mål (tillägg, ignoreras av äldre versioner):** `"weight": "major|minor"` – målets storlek. Bara ett **större** mål bromsar
+  annan ny inlärning veckan före; ett **mindre** får egen prioritet (lägre vikt) och sina sista dygn men stoppar inte förberedelsen för
+  andra prov. **Standard utan `weight`:** `exam` = större, `homework`/`vocab` = mindre. Ett prov som föräldern lagt in i appen utan typ
+  räknas som större (som före 3.4). Sätt `weight` när föräldern säger att en läxa är viktig ("räkna det som ett prov") eller att ett prov
+  är litet. Föräldern ser storleken och varför (standard eller val) under Översikt → mål och täckning, och kan ändra inlagda prov där.
 
 ## 9. Kvalitetsgrind (CI: `tests/test_packs.js`, lokalt `node scripts/content.mjs check [mapp]`)
 Varje variant × 10 frö: unika alternativ, inget tvetydigt rätt svar, rättningen godkänner facit och underkänner varje

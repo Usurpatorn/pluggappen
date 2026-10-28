@@ -99,6 +99,7 @@ function recordAnswer(kidId, skillId, correct, level, usedHelp) {
     if (s.wrongRun >= 3 && s.lvl > 1) { s.lvl--; s.wrongRun = 0; }
     xp = 2;
   }
+  if (typeof EXP !== 'undefined' && EXP.poActive()) xp = 0;   // 3.4 fas D: Öva mer ger inga poäng (vid källan – inget återställs i efterhand)
   p.xp += xp; bumpDay(p, correct, xp);
   if (correct) questEvent(p, 'correct', { skillId });
   save();
@@ -106,7 +107,7 @@ function recordAnswer(kidId, skillId, correct, level, usedHelp) {
 }
 function recordWordAnswer(kidId, wid, correct) {
   const p = prof(kidId); recordWord(p, wid, correct);
-  const xp = correct ? 7 : 1; p.xp += xp; bumpDay(p, correct, xp);
+  const xp = typeof EXP !== 'undefined' && EXP.poActive() ? 0 : correct ? 7 : 1; p.xp += xp; bumpDay(p, correct, xp);
   const d = p.days[todayKey()]; d.w = (d.w || 0) + 1;
   questEvent(p, 'word', { correct });
   if (correct) questEvent(p, 'correct', { skillId: null });
@@ -156,6 +157,7 @@ function dailyQuests(kid) {
 }
 function questEvent(p, type, data) {
   if (!p.quests || p.quests.date !== todayKey()) return;
+  if (typeof EXP !== 'undefined' && EXP.poActive()) return;   // 3.4 fas D: Öva mer räknas inte mot dagens uppdrag
   for (const q of p.quests.items) {
     if (q.done) continue;
     if (q.type === 'correct' && type === 'correct') q.progress++;
@@ -998,7 +1000,7 @@ function submitMath() {
   LE.observe(S, q, correct); // Fas 3B: skuggläge – loggar bevis, påverkar inte v1
   if (S.mode === 'felbok') { const p = prof(S.kid.id); if (correct) { clearMistake(p, q.mistakeId); save(); } }
   else if (!correct && !v2ch && !(q.type === 'sort' || q.type === 'match' || q.build)) { noteMistake(prof(S.kid.id), q); save(); }   // v3-aktiviteter hör till v2:s Felbok – v1:s Felbok kan inte visa dem (granskning)
-  if (correct) { S.streak++; if (S.streak >= 3) { const b = Math.min(10, S.streak * 2); xp += b; prof(S.kid.id).xp += b; save(); } } else S.streak = 0;
+  if (correct) { S.streak++; if (S.streak >= 3 && !(typeof EXP !== 'undefined' && EXP.poActive())) { const b = Math.min(10, S.streak * 2); xp += b; prof(S.kid.id).xp += b; save(); } } else S.streak = 0;
   S.xp += xp; S.results.push(correct);
   let v2evs = null; const v2rw = S.v2 ? S.v2.rewards.length : 0;
   if (S.v2) { v2evs = V2.observe(q, correct); if (S.v2.exam) return V2.examAnswered(q, correct, raw); }
@@ -1206,7 +1208,7 @@ VIEWS.parent = () => {
   </div>`);
 };
 function parentOverview(kid, p) {
-  if (V2.on(kid)) return V2.insightsCard(kid) + parentOverviewV1(kid, p);
+  if (V2.on(kid)) return V2.insightsCard(kid) + V2.goalsCard(kid) + parentOverviewV1(kid, p);
   return parentOverviewV1(kid, p);
 }
 function parentOverviewV1(kid, p) {
@@ -1255,7 +1257,7 @@ function parentExams(kid, p) {
       <div class="field"><label for="exTitle">Vad</label><input id="exTitle" placeholder="t.ex. Prov 13 Geometri, Glosförhör v.46"></div>
       <div class="field"><label for="exDate">Datum</label><input id="exDate" type="date" value="${addDays(todayKey(), 7)}"></div>
       <div class="field"><label>Områden som ingår</label><div class="checks" id="exSkills">${skillChecks}</div></div>
-      ${deckChecks ? `<div class="field"><label>Glosor som ingår</label><div class="checks" id="exDecks">${deckChecks}</div></div>` : ''}
+      ${deckChecks ? `<div class="field"><label>Glosor som ingår</label><div class="checks" id="exDecks">${deckChecks}</div></div>` : ''}${V2.on(kid) ? `<div class="field"><label>Storlek</label><div class="checks"><label class="check"><input type="radio" name="ex_weight" value="major" checked><span>Större – prov (bromsar annat nytt veckan före)</span></label><label class="check"><input type="radio" name="ex_weight" value="minor"><span>Mindre – läxförhör eller glosförhör</span></label></div></div>` : ''}
       <button class="btn secondary" data-act="addExam">Lägg till</button>
       <p class="muted" style="font-size:.9rem">Provet får nedräkning, provberedskap, provplan och provläge på ${esc(kid.name)}s startsida. Behöver provet ett nytt matteområde som inte finns i appen (t.ex. geometri eller procent)? Be Claude lägga till det.</p></div>`;
 }
@@ -1391,6 +1393,7 @@ app.addEventListener('click', (e) => {
   const setBtn = t.closest('[data-setting]'); if (setBtn) { const p = prof(state.tab); p.settings[setBtn.dataset.setting] = !p.settings[setBtn.dataset.setting]; save(); return VIEWS.parent(); }
   const sprBtn = t.closest('[data-sprint]'); if (sprBtn) { prof(state.tab).settings.sprint = Number(sprBtn.dataset.sprint); save(); return VIEWS.parent(); }
   const goalBtn = t.closest('[data-goal]'); if (goalBtn) { prof(state.tab).settings.goal = Number(goalBtn.dataset.goal); save(); return VIEWS.parent(); }
+  const exW = t.closest('[data-ex-weight]'); if (exW && state.screen === 'parent' && kidById(state.tab)) { const p = prof(state.tab); const e = (p.exams || []).find(x => x.id === exW.dataset.exWeight); if (e) { e.weight = LE.isMajor(e) ? 'minor' : 'major'; LE.invalidate(state.tab); save(); toast(e.weight === 'minor' ? 'Räknas nu som ett mindre mål' : 'Räknas nu som ett större prov'); } return VIEWS.parent(); }   // 3.4: förälderns val av storlek (synkas med provet)
   const delExam = t.closest('[data-del-exam]'); if (delExam) { const p = prof(state.tab); p.exams = p.exams.filter(x => x.id !== delExam.dataset.delExam); p.removedDefaults = [...(p.removedDefaults || []), delExam.dataset.delExam]; save(); return VIEWS.parent(); }
   const delDeck = t.closest('[data-del-deck]'); if (delDeck) { const p = prof(state.tab); const id = delDeck.dataset.delDeck; p.decks = p.decks.filter(x => x.id !== id); p.enabledDecks = p.enabledDecks.filter(x => x !== id); save(); return VIEWS.parent(); }
   const editDeck = t.closest('[data-edit-deck]'); if (editDeck) { state.editDeck = prof(state.tab).decks.find(d => d.id === editDeck.dataset.editDeck); VIEWS.parent(); document.getElementById('dkName')?.scrollIntoView?.({ behavior: 'smooth' }); return; }
@@ -1418,7 +1421,7 @@ app.addEventListener('click', (e) => {
     if (a === 'deleteKidData') { const kid = kidById(t.dataset.id); if (!kid) return; const typed = prompt(`Radera ALLA framsteg för ${kid.name} (XP, nivåer, ord, prov, Felboken) på alla enheter?\n\nSkriv barnets namn för att bekräfta:`); if (typed === null) return; if (typed.trim().toLowerCase() !== kid.name.trim().toLowerCase()) return toast('Namnet stämde inte – inget raderades'); deleteKidData(kid.id).then(ok => { toast(ok ? `${kid.name}s data raderad` : 'Raderat lokalt – molnet kunde inte nås'); VIEWS.parent(); }); return; }
     if (a === 'deleteFamilyData') { const typed = prompt('Radera HELA familjens molndata (alla barns framsteg, inställningar, enheter, påminnelser)? Detta går inte att ångra.\n\nSkriv RADERA för att bekräfta:'); if (typed === null) return; if (typed.trim() !== 'RADERA') return toast('Inget raderades'); deleteFamilyData().then(n => { toast(`Familjens molndata raderad (${n} dokument). Appen är nu frånkopplad.`); go('start'); }); return; }
     if (a === 'savePin') { const v = document.getElementById('newPin').value.replace(/\D/g, ''); if (v.length !== 4) return toast('Koden ska vara 4 siffror'); DB.settings.pin = v; save(); toast('Sparat'); return VIEWS.parent(); }
-    if (a === 'addExam') { const p = prof(state.tab); const title = document.getElementById('exTitle').value.trim(); const date = document.getElementById('exDate').value; if (!title || !date) return toast('Fyll i vad och datum'); const skillIds = [...document.querySelectorAll('input[name=ex_skill]:checked')].map(x => x.value); const deckIds = [...document.querySelectorAll('input[name=ex_deck]:checked')].map(x => x.value); p.exams.push({ id: 'ex' + Date.now(), title, date, skillIds, deckIds }); save(); toast('Provet är inlagt'); return VIEWS.parent(); }
+    if (a === 'addExam') { const p = prof(state.tab); const title = document.getElementById('exTitle').value.trim(); const date = document.getElementById('exDate').value; if (!title || !date) return toast('Fyll i vad och datum'); const skillIds = [...document.querySelectorAll('input[name=ex_skill]:checked')].map(x => x.value); const deckIds = [...document.querySelectorAll('input[name=ex_deck]:checked')].map(x => x.value); const wsel = document.querySelector('input[name=ex_weight]:checked'); const ex = { id: 'ex' + Date.now(), title, date, skillIds, deckIds }; if (wsel) ex.weight = wsel.value === 'minor' ? 'minor' : 'major'; p.exams.push(ex); save(); toast('Provet är inlagt'); return VIEWS.parent(); }
     if (a === 'saveDeck') { const p = prof(state.tab); const name = document.getElementById('dkName').value.trim(); const lang = document.getElementById('dkLang').value; const lines = document.getElementById('dkWords').value.split('\n').map(l => l.trim()).filter(Boolean); const words = []; for (const l of lines) { const parts = l.split('=').map(x => x.trim()); if (parts.length >= 2 && parts[0] && parts[1]) words.push({ id: 'w' + Date.now() + '_' + words.length, w: parts[0], t: parts[1], e: parts[2] || '' }); } if (!name || !words.length) return toast('Ge läxan ett namn och minst ett ord'); if (state.editDeck) { const d = p.decks.find(x => x.id === state.editDeck.id); const keep = new Map(d.words.map(w => [w.w.toLowerCase(), w.id])); words.forEach(w => { if (keep.has(w.w.toLowerCase())) w.id = keep.get(w.w.toLowerCase()); }); Object.assign(d, { name, lang, words, noSpell: lang === 'sv' }); state.editDeck = null; } else { const deck = { id: 'custom_' + Date.now(), lang, name, emoji: lang === 'es' ? '🇪🇸' : lang === 'en' ? '🇬🇧' : '🗂️', level: 1, builtin: false, noSpell: lang === 'sv', words }; p.decks.push(deck); p.enabledDecks.push(deck.id); } save(); toast(`${words.length} ord sparade`); return VIEWS.parent(); }
     if (a === 'cancelEdit') { state.editDeck = null; return VIEWS.parent(); }
     if ((a === 'syncCopy' || a === 'syncPaste' || a === 'export') && typeof TM !== 'undefined' && TM.on) return;
