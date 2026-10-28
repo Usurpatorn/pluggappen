@@ -9,7 +9,7 @@
    - EXPECT=v21: reglerna i 2.1.0 (release-kontrollen) – skrivning stängd, men övergångsvägen kunde fortfarande LÄSA _content.
    - (inget): nuvarande regler – inga kända hål för _content. */
 import { initializeTestEnvironment, assertFails, assertSucceeds } from '@firebase/rules-unit-testing';
-import { doc, getDoc, setDoc, updateDoc, deleteDoc, writeBatch } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, deleteDoc, writeBatch, collection, getDocs } from 'firebase/firestore';
 import { readFileSync, appendFileSync } from 'node:fs';
 
 const RULES_FILE = process.env.RULES_FILE || 'firestore.rules';
@@ -113,6 +113,32 @@ if (!OLD) {
   }
   await check('den andra familjens enhet läser sin egen bild', true, () => getDoc(doc(as('otherFamilyDevice'), `families/${FAM_OTHER}/assets/${REV}`)));
   await check('den andra familjens enhet kan inte läsa en bild i en familj där den inte är medlem', false, () => getDoc(doc(as('otherFamilyDevice'), `families/${FAM_SHORT}/assets/${REV}`)));
+}
+// 3.7 observationer: families/{fam}/obs/{pseudonym-enhet-nr} – medlemmar skapar/läser/raderar, ingen ändrar; syntetiska satser
+if (!OLD) {
+  const K = 'p' + 'a1'.repeat(6), ID = `${K}-abcd1234-1`, ID2 = `${K}-abcd1234-2`; const batch = (n = 1) => ({ json: JSON.stringify([{ i: 'abcd1234-1', y: 'ss', t: 1, k: K }]), n, t: Date.now(), k: K, v: 1 });
+  for (const fam of [FAM_SHORT, FAM_LONG]) {
+    const label = fam === FAM_LONG ? 'familj med övergångsväg öppen' : 'familj utan övergångsväg'; const P = (id) => `families/${fam}/obs/${id}`;
+    await check(`[${label}] oinloggad kan inte skapa en observationssats (inte heller via övergångsvägen)`, false, () => setDoc(doc(as(null), P(ID)), batch()));
+    await check(`[${label}] inloggad icke-medlem kan inte skapa en observationssats`, false, () => setDoc(doc(as('stranger'), P(ID)), batch()));
+    await check(`[${label}] barnets enhet (medlem) skapar en observationssats`, true, () => setDoc(doc(as('kidDevice'), P(ID)), batch()));
+    await check(`[${label}] en medlem kan inte ändra en sats (oföränderlig)`, false, () => setDoc(doc(as('kidDevice'), P(ID)), batch(2)));
+    await check(`[${label}] förälderns enhet läser satsen`, true, () => getDoc(doc(as('parentDevice'), P(ID))));
+    await check(`[${label}] oinloggad kan inte läsa satsen`, false, () => getDoc(doc(as(null), P(ID))));
+    await check(`[${label}] en annan familjs enhet kan inte läsa satsen`, false, () => getDoc(doc(as('otherFamilyDevice'), P(ID))));
+    await check(`[${label}] en annan familjs enhet kan inte radera satsen`, false, () => deleteDoc(doc(as('otherFamilyDevice'), P(ID))));
+    await check(`[${label}] fel dokument-id nekas`, false, () => setDoc(doc(as('kidDevice'), P('fel-id')), batch()));
+    await check(`[${label}] okänt fält nekas`, false, () => setDoc(doc(as('kidDevice'), P(ID2)), { ...batch(), namn: 'x' }));
+    await check(`[${label}] pseudonymen i id:t måste stämma med fältet k`, false, () => setDoc(doc(as('kidDevice'), P(ID2)), { ...batch(), k: 'p' + 'b2'.repeat(6) }));
+    await check(`[${label}] för stor sats nekas`, false, () => setDoc(doc(as('kidDevice'), P(ID2)), { ...batch(), json: 'x'.repeat(150001) }));
+    await check(`[${label}] för många händelser nekas`, false, () => setDoc(doc(as('kidDevice'), P(ID2)), batch(401)));
+    await check(`[${label}] en medlem listar familjens satser (rensning, radering, export)`, true, () => getDocs(collection(as('parentDevice'), `families/${fam}/obs`)));
+    await check(`[${label}] oinloggad kan inte lista satserna`, false, () => getDocs(collection(as(null), `families/${fam}/obs`)));
+    await check(`[${label}] inloggad icke-medlem kan inte lista satserna`, false, () => getDocs(collection(as('stranger'), `families/${fam}/obs`)));
+    await check(`[${label}] en annan familjs enhet kan inte lista satserna`, false, () => getDocs(collection(as('otherFamilyDevice'), `families/${fam}/obs`)));
+    await check(`[${label}] en sats som redan finns kan inte skrivas igen (omsändning läser först i appen)`, false, () => setDoc(doc(as('kidDevice'), P(ID)), batch()));
+    await check(`[${label}] en medlem raderar satsen (lagringstid och radering)`, true, () => deleteDoc(doc(as('parentDevice'), P(ID))));
+  }
 }
 await env.cleanup();
 const head = `Firestore-regler i emulatorn (${RULES_FILE}${OLD ? ', förväntar kända hål i ' + MODE : ''}): ${results.length - fails} av ${results.length} som förväntat`;

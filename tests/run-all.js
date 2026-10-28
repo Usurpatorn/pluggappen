@@ -60,6 +60,7 @@ const suites = [
   ['3.6 Kommande: barnets alla kommande prov och läxor på startsidan – i datumordning, bara egna, ärligt om det som saknas i appen', 'test_kommande.js'],
   ['3.6.1 Dagens plan skild från nästa deadline: passets ordning, fördelning och första aktivitet som kortet visar', 'test_kortplan.js'],
   ['3.6.1 ⚙: påminnelsernas status hämtas en gång per sidladdning – ingen hämta-rita-om-slinga utan logg eller nät', 'test_parent_status.js'],
+  ['3.7 Observationer (Product Learning Loop v1): av som standard, testläget aldrig, lärandet orört, utgång/okänt utfall, förgrundstid, moln utan dubbletter, lagringstid, radering, export', 'test_obs.js'],
 ];
 let failed = 0; const rows = [];
 for (const [name, file, opts = {}] of suites) {

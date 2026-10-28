@@ -51,6 +51,21 @@ service cloud.firestore {
         allow write: if false;
       }
 
+      // 3.7 Observationer (Product Learning Loop v1, av tills föräldern slår på dem): små oföränderliga satser per pseudonym och enhet.
+      // Läses och raderas av familjens medlemmar (familjeomfattande – INTE ett föräldraskydd; se docs/LEARNING_LOOP.md). Kan inte ändras.
+      // Aldrig via övergångsvägen. Dokument-id = pseudonym-enhet-nr, och pseudonymen i id:t måste vara fältet k.
+      match /obs/{doc} {
+        allow get, delete: if isMember() && doc.matches('^p[0-9a-f]{12}-[a-z0-9]{8}-[0-9]{1,9}$');
+        allow list: if isMember();   // listning (rensning, radering, export): regeln kan inte bero på dokument-id:t vid en fråga
+        allow create: if isMember() && doc.matches('^p[0-9a-f]{12}-[a-z0-9]{8}-[0-9]{1,9}$')
+          && request.resource.data.keys().hasOnly(['json', 'n', 't', 'k', 'v'])
+          && request.resource.data.json is string && request.resource.data.json.size() < 150000
+          && request.resource.data.n is int && request.resource.data.n >= 1 && request.resource.data.n <= 400
+          && request.resource.data.t is int && request.resource.data.v is int
+          && request.resource.data.k is string && request.resource.data.k == doc.split('-')[0];
+        allow update: if false;
+      }
+
       // Barnens profiler, familjekonfigurationen (_config), push-prenumerationer (push_*) och körlogg (push_log).
       // _content (familjens privata innehåll: paket, skoluppgifter, facit, provdatum) är SKRIVSKYDDAT för alla appklienter –
       // även för medlemmar och för övergångsvägen med gammal kod. Det skrivs bara med Google-servicekontot (scripts/content.mjs deploy),
