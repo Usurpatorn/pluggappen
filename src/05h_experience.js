@@ -212,12 +212,19 @@ const EXP = {
   upcomingCard(kid) {
     const all = EXP.upcoming(kid); if (!all.length) return '';
     const rel = (d) => (d === 0 ? 'idag' : d === 1 ? 'imorgon' : `om ${d} dagar`);
-    const kindOf = (e) => (e.kind === 'homework' ? 'Läxa' : e.kind === 'vocab' ? 'Glosor' : 'Prov');   // samma typer som skoluppgifterna (FAMILY.WORK_TYPES); egna inlagda prov utan typ är prov
-    const has = (e) => V2.examCidsActive(kid, e).length > 0; const withC = all.filter(x => has(x.e)).length;   // ärligt: Kör! övar bara det som finns i appen
-    const rows = all.slice(0, EXP.UPCOMING_MAX).map(({ e, d }) => `<li class="up-row${d <= 3 ? ' soon' : ''}"><span class="up-kind k-${kindOf(e) === 'Prov' ? 'ex' : 'hw'}">${kindOf(e)}</span><span class="up-title">${esc(e.title)}</span><span class="up-when"><span class="nw">${esc(fmtDate(e.date))}</span> · <b class="nw">${rel(d)}</b>${has(e) ? '' : ' · inte inlagt i appen ännu'}</span></li>`).join('');
+    // Typ: skoluppgifternas typ (FAMILY.WORK_TYPES); ett prov som föräldern lagt in utan typ är "Förhör" när det är mindre (läx- eller glosförhör)
+    const kindOf = (e) => (e.kind === 'homework' ? 'Läxa' : e.kind === 'vocab' ? 'Glosor' : LE.isMajor(e) ? 'Prov' : 'Förhör');
+    // Granskning P2-1: före första synken får kortet inte röra motorns tillstånd (LE.state skulle migrera en kanske inaktuell profil) – då bara listan
+    const can = LE.canStart(kid, prof(kid.id));
+    const has = can ? (e) => V2.examCidsActive(kid, e).length > 0 : () => true;
+    // Ärligt (granskning P2-2/P3-3): Kör! övar inför ett mål först inom motorns horisont – längre bort, och mål utan innehåll i appen, lovas inte
+    const H = LE2.CFG.exam.horizon; const near = all.filter(x => x.d < H && has(x.e)).length; const far = all.filter(x => x.d >= H && has(x.e)).length;
+    const foot = !can || (!near && !far) ? '' : !near ? 'Kör! börjar öva inför dem när det närmar sig.'
+      : near === all.length ? (near > 1 ? 'Kör! fördelar övningen mellan dem.' : 'Kör! övar inför det här.')
+      : `Kör! övar nu inför ${near > 1 ? `${near} av dem` : 'ett av dem'}${far ? ' och tar med fler när det närmar sig' : ''}.`;
+    const rows = all.slice(0, EXP.UPCOMING_MAX).map(({ e, d }) => { const k = kindOf(e); return `<li class="up-row${d <= 3 ? ' soon' : ''}"><span class="up-kind k-${k === 'Prov' ? 'ex' : 'hw'}">${k}</span><span class="up-title">${esc(e.title)}</span><span class="up-when"><span class="nw">${esc(fmtDate(e.date))}</span> · <b class="nw">${rel(d)}</b>${has(e) ? '' : ' · inte inlagt i appen ännu'}</span></li>`; }).join('');
     const more = all.length > EXP.UPCOMING_MAX ? `<div class="muted" style="font-size:.9rem">och ${all.length - EXP.UPCOMING_MAX} till längre fram</div>` : '';
-    return `<section class="card upcoming stack" aria-label="Kommande prov och läxor"><div class="eyebrow">KOMMANDE PROV OCH LÄXOR</div><ul class="up-list">${rows}</ul>${more}
-      ${withC ? '<div class="muted" style="font-size:.9rem">' : ''}${!withC ? '' : withC < all.length ? 'Kör! övar inför det som finns i appen.' : all.length > 1 ? 'Kör! fördelar övningen mellan dem.' : 'Kör! övar inför det här.'}${withC ? '</div>' : ''}</section>`;
+    return `<section class="card upcoming stack" aria-label="Kommande prov och läxor"><div class="eyebrow">KOMMANDE PROV OCH LÄXOR</div><ul class="up-list" role="list">${rows}</ul>${more}${foot ? `<div class="muted" style="font-size:.9rem">${foot}</div>` : ''}</section>`;
   },
   // Läget per område – hopfällt, med motorns tre lägen (aldrig procent). Testa mig är en sekundär knapp här.
   goalDetail(kid, m) {

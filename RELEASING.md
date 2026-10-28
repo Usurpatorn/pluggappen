@@ -400,6 +400,14 @@ med `PREVIEW=1` till `<sajten>/preview/`. Produktionen publiceras som vanligt. M
   - **Ärligt:** ett mål vars områden inte finns i appen får texten "inte inlagt i appen ännu", och kortet lovar då inte att Kör! övar
     det.
   - Inget kort när barnet inte har några kommande mål.
+- **Rättelser efter den oberoende granskningen:**
+  - **Före första synken** rör kortet inte motorns tillstånd. Det visar då bara listan, utan löften. `LE.canStart` gäller också
+    kortet "Läget inför" i grow-upplevelsen. Det kortet kunde redan i 3.5 migrera en kanske inaktuell profil före första synken.
+  - **Ärlig fot:** Kör! övar inför ett mål först inom motorns horisont (21 dygn). Mål längre bort får "när det närmar sig". Mål
+    utan innehåll i appen lovas inte. Med "Bara prov och läxor" säger korten samma sak.
+  - **Förhör:** ett mindre prov som föräldern lagt in utan typ (läx- eller glosförhör) heter "Förhör", inte "Prov".
+  - **Kontrast:** typetiketten och markeringen för nära mål har kontrast på alla papper och färger, också rymdpapperet (axe).
+  - **Listsemantik:** `role="list"`. Testet täcker nu också tvätt av titeln, ordningen i grow och explore och "och N till".
 - **Motorn är orörd.** Planen, belöningarna och synken är oförändrade. Kortet läser bara.
 - **Test:** `tests/test_kommande.js`. Webbläsartestet (axe, ingen sidledsscroll) går över startsidan i alla storlekar.
 - **Dokumentation:** `docs/CONTENT_PUBLISHING.md` säger nu att en framtida Storage-lösning ska läsa genom reglerna och aldrig dela ut
