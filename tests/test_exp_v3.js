@@ -187,7 +187,7 @@ function runLog(T, D, wrongFn = () => false) {
       ok(selfChecked, 'självkontrollen prövad');
       // "Kommer tillbaka" bygger på motorns förfallodag
       // Testa mig: digitalt först, 2–3 papper sist, inga ledtrådar eller svar under testet, lösningar efteråt, rapport per målområde
-      openKid(T, 'k8'); const det = $('details.goal-detail'); ok(!!det, 'läget per område finns (hopfällt)');
+      openKid(T, 'k8'); const det = $('details.goal-detail') || $('.upcoming details.up-state[data-goal="w:syn-alg"]'); ok(!!det && !det.open, 'läget per område finns (hopfällt) – 3.6: i kortet Kommande, per mål');
       click($('[data-v2="testa"]')); const order = []; let g2 = 0;
       while (PA().S && PA().S.v2 && $('#qcard') && g2++ < 30) { const it = PA().S.queue[PA().S.i]; order.push(!!it.paper); ok(!$('#hintBtn') && !$('#explainBtn'), 'Testa mig: inga ledtrådar'); D.answer(() => rnd() < 0.3); ok(!$('#fb .feedback'), 'Testa mig: ingen omedelbar återkoppling'); }
       const np = order.filter(Boolean).length; const firstPaper = order.indexOf(true);

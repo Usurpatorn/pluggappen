@@ -389,3 +389,70 @@ med `PREVIEW=1` till `<sajten>/preview/`. Produktionen publiceras som vanligt. M
   har skapats.
 - **Rollback:** 3.4-bygget (`release-3.4.0-f286ba6`) eller 3.3-bygget (`release-3.3.0-4ca940f`). Äldre appar ignorerar `visual` och `assets`. Reglerna kan ligga kvar, eftersom de bara lägger
   till en läsväg för medlemmar.
+
+## 3.6.0 – Kommande prov och läxor på barnets startsida
+- **Ägarens önskemål:** barnet ska själv se alla kommande prov och läxor och förstå varför det pluggar. Startsidan visade bara nästa
+  mål och en rad "Sedan".
+- **Kortet "Kommande prov och läxor"** ligger direkt under dagens kort, före "Läget inför", i alla tre upplevelserna.
+  - Alla barnets mål de närmaste 60 dygnen, i datumordning, högst sex (resten som "och N till").
+  - Typ (Prov, Läxa, Glosor), datum och "idag", "imorgon" eller "om X dagar". Mål inom tre dygn markeras.
+  - Bara barnets egna mål (samma källa som planen). Inga betyg, inga procent, ingen jämförelse.
+  - **Ärligt:** ett mål vars områden inte finns i appen får texten "inte inlagt i appen ännu", och kortet lovar då inte att Kör! övar
+    det.
+  - Inget kort när barnet inte har några kommande mål.
+- **Kör och Testa mig per mål** (ägarens andra önskemål): varje rad med innehåll i appen har två knappar.
+  - **"Kör · N min"** övar bara det målet. Det är samma läge som den befintliga "Öva inför provet" (`mission`): bara målets
+    koncept, dygnets gräns för nytt, och det räknas som ett av dygnets extrapass.
+  - **"Testa mig"** prövar om det sitter. Det är samma prov som i "Läget inför", med en belönad omgång per dygn.
+  - **En regel** (`EXP.goalPractice`) för radernas Kör och startkortets "Öva mer inför". Före dagens pass gäller som för "Öva inför
+    provet". Efter dagens pass erbjuds Kör bara när målets träning gör nytta (`EXP.useful`), och efter dygnets belönade extrapass
+    står det "utan poäng".
+  - När motorn inte ger något extrapass idag (t.ex. kvällen före ett prov) erbjuds ingen Kör alls. Då säger raden, precis som
+    startkortet, "Inget mer som gör nytta idag".
+  - Inget att öva: "Inget att öva just nu". Ingen utfyllnad, ingen ändlös upprepning och ingen belönad upprepning.
+  - Startkortet erbjuder "Öva mer inför" för det första målet där träningen gör nytta. Skärmen säger därför aldrig "inget mer som
+    gör nytta" samtidigt som en rad erbjuder Kör.
+  - Före första synken och för mål utan innehåll finns inga knappar.
+- **Läget per mål i samma rad** (ägarens tredje önskemål): varje rad med innehåll har ett hopfällt "Läget".
+  - Sammanfattningen säger till exempel "2 bra koll · 1 öva lite mer" eller "för lite underlag ännu".
+  - Utfällt visar det motorns läge per område, aldrig procent. Det är samma källa som det tidigare kortet "Läget inför"
+    (`V2.examStatus`/`EXP.goalAreas`).
+  - Kortet säger en gång att lägena inte är en prognos.
+  - Det separata kortet "Läget inför" visas inte för ett mål som har en rad i Kommande (`EXP.goalDetailUnless`).
+- **Foten säger vad nästa pass på startsidan faktiskt övar.** Den räknar på samma plan som startkortets rubrik (`EXP.examShare`).
+  - Före dagens pass: "Dagens pass övar inför …".
+  - Efter dagens pass: "Nästa extrapass övar inför …", men bara medan ett extrapass erbjuds.
+  - Utan plan finns ingen fot.
+- **"Bara prov och läxor"** med mål längre bort än fyra veckor: startkortet säger att Kör! börjar fyra veckor före.
+  - Hänvisningen "tryck Kör på raden" visas bara när en sådan rad faktiskt erbjuder Kör (`EXP.goalPractice`).
+  - När raden säger "Inget mer som gör nytta idag" hänvisar startkortet inte dit.
+- **Före första synken** rör kortet inte motorns tillstånd. Det visar då bara listan, utan knappar, läge eller löften.
+  - `LE.canStart` gäller också kortet "Läget inför" i grow-upplevelsen.
+  - Det kortet kunde redan i 3.5 migrera en kanske inaktuell profil före första synken.
+- **Rättelse, dygnets gräns för nytt i provträningen:** motorn kunde planera ett aldrig sett provkoncept som "fokus" ("provet närmar
+  sig") trots att dygnets gräns för nytt var nådd. `V2.plan('mission')` tar nu in högst så många nya koncept som gränsen tillåter.
+  - Felet fanns redan i 3.4/3.5 men nåddes inte av testerna.
+  - "Sett" betyder `n > 0` eller `fs`, som i `V2.newToday` och motorn. Koncept som migrerats från v1 har inget `fs`.
+  - Glosdäck räknas inte in i gränsen, precis som i `V2.newToday`.
+  - Verifierat mot 3.5.0 med fixturen ur `test_ova_mer.js` (sex frön, provträning för båda målen efter dagens pass och
+    extrapass): 3.5.0 går över gränsen med ett koncept i alla sex. 3.6 går aldrig över.
+  - Dagens pass (motorns 3.4-regel M8) kan som förut ta in aldrig sedda provkoncept utöver `pol.maxNew`. Det gäller koncept vars
+    förkunskaper inte sitter, så länge provet ligger mer än tre dygn bort.
+    - I matrisen blev det högst ett över, alltså 4 per dygn för de äldre.
+    - Det är en observation, inte en garanti: syntetiska planer kan ge fler.
+    - Det är oförändrat och inte en del av den här rättelsen; motorn ändras bara med simuleringsstöd.
+  - Grenen i `test_ova_mer.js` som prövar "Öva mer inför" efter dygnets extrapass körs nu (106 kontroller, tidigare 101) och
+    fångar felet. Den letar efter knappen i dagens kort (`.mission`), eftersom radens egna knappar prövas i `test_kommande.js`.
+  - Motorns kärna är orörd; spärren ligger i appens planlager.
+- **Före första synken med "Bara prov och läxor":** startkortet byggde motorns tillstånd före spärren för första synken. Felet fanns
+  sedan 3.1. Spärren (`LE.canStart`) gäller nu i `V2.scopeCard` självt (alla upplevelser, också klassisk), så kortet Kommande visar bara listan också i det läget.
+- **Typ och kontrast:**
+  - Ett mindre prov som föräldern lagt in utan typ (läx- eller glosförhör) heter "Förhör".
+  - Etiketter och knappar har kontrast på alla papper, färger och accenter (axe).
+  - `role="list"`.
+- `test_exp_v3.js` letar efter det hopfällda läget där det nu ligger: `details.goal-detail` eller kortets `details.up-state`.
+- **Motorns kärna är orörd.** Belöningarna och synken är oförändrade. Knapparna startar befintliga lägen.
+- **Test:** `tests/test_kommande.js` (88 kontroller). Webbläsartestet (axe, ingen sidledsscroll) går över startsidan i alla storlekar.
+- **Dokumentation:** `docs/CONTENT_PUBLISHING.md` säger nu att en framtida Storage-lösning ska läsa genom reglerna och aldrig dela ut
+  nedladdningslänkar (anmärkning från granskningen av 3.5).
+- **Rollback:** 3.5.0-bygget.

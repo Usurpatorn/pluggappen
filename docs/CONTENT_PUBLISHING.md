@@ -157,7 +157,11 @@ gäller:
   styras per paket, inte kopieras in i varje familj;
 - **större bilder** (fotografier, skannade sidor) som närmar sig dokumentgränsen på 1 MiB, eller annat än PNG/JPEG (ljud, PDF);
 - **många bilder per familj**, där base64 i dokument kostar läsningar och lokalt lagringsutrymme i onödan;
-- behov av **CDN-cache, nedladdning med token eller automatisk livscykel** för gamla revisioner.
+- behov av **CDN-cache eller automatisk livscykel** för gamla revisioner.
+
+En framtida Storage-lösning ska läsa bilderna **genom reglerna** (t.ex. `getBytes`/`getBlob` med inloggning) och aldrig dela ut
+nedladdningslänkar (`getDownloadURL`). Sådana länkar är långlivade, fungerar för vem som helst som har dem och går förbi reglerna,
+vilket bryter kravet att det inte finns några offentliga länkar.
 
 Ett byte kräver ett eget beslut: Storage-bucket, fakturering (Blaze), regler, IAM för publiceringen och en flytt av manifestet så att
 `rev` fortfarande är sha256 (appens kontroll är oförändrad). Inget av detta är skapat.

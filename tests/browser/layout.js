@@ -12,7 +12,7 @@
 'use strict';
 process.env.TZ = 'Europe/Stockholm';
 const fs = require('fs'); const path = require('path');
-let chromium; try { ({ chromium } = require('playwright')); } catch (e) { console.log('playwright saknas – installera i CI-jobbet'); process.exit(1); }
+let chromium; try { ({ chromium } = require('playwright')); } catch (e) { console.log('playwright saknas – installera i CI-jobbet'); if (process.env.GITHUB_ACTIONS) console.log('::error::layout: playwright saknas'); process.exit(1); }
 const ROOT = path.join(__dirname, '..', '..'); const APP = path.join(ROOT, 'dist', 'pluggappen.html');
 const FIX = require(path.join(ROOT, 'tests', 'test_fixture_family.json'));
 const AXE = fs.readFileSync(require.resolve('axe-core/axe.min.js'), 'utf8');
@@ -21,7 +21,9 @@ const T_FIXED = Date.UTC(2026, 9, 25, 15, 0, 0); const KB = 290;
 const SIZES = (process.env.SIZES || '375x667,390x844,820x1180,1180x820').split(',').map(s => s.split('x').map(Number));
 const DAYS = +(process.env.DAYS || 3);
 let rs = 20261027; const rnd = () => { rs = (rs * 1103515245 + 12345) & 0x7fffffff; return rs / 0x7fffffff; };   // fast slump även i testet (samma körning varje gång)
-let fails = 0, checks = 0; const ok = (c, m) => { checks++; if (!c) { fails++; console.log('FAIL', m); } };
+// I CI syns bara anteckningar (inte loggen) – varje fel skrivs därför också som ::error (högst 20, en rad var)
+const GHA = !!process.env.GITHUB_ACTIONS; let notes = 0; const note = (m) => { if (GHA && notes++ < 20) console.log('::error::' + String(m).replace(/\r?\n/g, ' ⏎ ').slice(0, 900)); };
+let fails = 0, checks = 0; const ok = (c, m) => { checks++; if (!c) { fails++; console.log('FAIL', m); note('layout: ' + m); } };
 
 async function run(VW, VH) {
   const phone = VW < 600; const b = await chromium.launch(); const ctx = await b.newContext({ viewport: { width: VW, height: VH }, deviceScaleFactor: 1, hasTouch: true });
@@ -87,5 +89,5 @@ async function run(VW, VH) {
   ok(C.items > 20 && C.fb > 10 && C.klar >= 3 && C.axe > 10 && (!phone || C.sub > 5), `${tag}: tillräckligt mycket prövat`);
   await b.close();
 }
-(async () => { try { for (const [w, h] of SIZES) await run(w, h); } catch (e) { fails++; console.log('FAIL undantag', e && e.stack || e); }
+(async () => { try { for (const [w, h] of SIZES) await run(w, h); } catch (e) { fails++; console.log('FAIL undantag', e && e.stack || e); note('layout undantag: ' + (e && e.stack || e)); }
   console.log(`\n${checks} kontroller, ${fails} fel`); console.log(fails ? 'BROWSER LAYOUT TEST FAILED' : 'BROWSER LAYOUT TEST OK'); process.exit(fails ? 1 : 0); })();

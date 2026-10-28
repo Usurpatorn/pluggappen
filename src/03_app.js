@@ -541,8 +541,7 @@ function homeV3(kid, p, o) {
   render(`
   ${topbar(esc(kid.name), 'start', `${p.gems ? `<button class="pill" data-go="shop" style="min-height:36px"><span class="gem">${ICON.gem} ${p.gems}</span></button>` : ''}${typeof TM !== 'undefined' && TM.on ? '' : `<button class="icon-btn" data-go="sync" aria-label="Synka enheter" title="Synka telefon och iPad">${ICON.sync}</button>`}<button class="icon-btn" data-act="sound" aria-label="Ljud">${DB.settings.sound ? ICON.speaker : ICON.mute}</button>`)}
   <div class="stack home-v3" style="margin-top:6px">
-    ${EXP.home(kid)}
-    ${e === 'grow' ? EXP.goalDetail(kid, EXP.goalOf(kid).now) : ''}
+    ${(() => { const hh = EXP.home(kid); const u = /class="card upcoming/.test(hh) ? '' : EXP.upcomingSafe(kid); return hh + u + (e === 'grow' && LE.canStart(kid, p) ? EXP.goalDetailUnless(kid, EXP.goalOf(kid).now, hh + u) : ''); })()}
     ${ident}
     ${typeof TM !== 'undefined' && TM.on ? '' : PUSH.card(kid.id, 'kid')}
     <div class="card more-group">

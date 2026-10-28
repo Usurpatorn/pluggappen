@@ -38,8 +38,8 @@ const V2 = {
   peekPlan(kid) { const C = LE.state(kid); const now = LE.sessClock(C); const { plan } = LE.plan(kid, V2.n(kid, C), now); return { plan, C, now }; },
   korBtn(kid) {
     return V2.safe(() => {
-      { const sc = V2.scopeCard(kid); if (sc) return sc; }
       const p = prof(kid.id); if (!LE.canStart(kid, p)) return `<button class="go-btn" data-v2="kor"><div><div class="t">${LBL(kid).go}</div><div class="s">Hämtar det senaste …</div></div><div class="arrow">${ICON.arrow}</div></button>`;
+      { const sc = V2.scopeCard(kid); if (sc) return sc; }   // 3.6 (granskning): först efter spärren för första synken – scopeCard bygger motorns tillstånd
       const { plan } = V2.peekPlan(kid);
       if (plan.light && V2.doneToday(p)) return `<div class="card pad-lg stack" style="gap:6px;text-align:center"><div style="font-size:1.6rem">✅</div><div style="font-weight:800;font-family:var(--display);font-size:1.15rem">Bra jobbat. Du är klar för idag.</div><button class="link" data-v2="extra" style="align-self:center">Öva extra</button></div>`;
       const n = plan.length; const mi = V2.missionInfo(kid); const m = mi && mi.m;
@@ -66,16 +66,19 @@ const V2 = {
   scopeOn(p) { return !!(p && p.settings && p.settings.scope === 'exams' && V2.engineOf(p) === 'v2'); },
   // Hemmet när "Bara prov och läxor" inte har något att öva: ett ärligt kort i stället för en knapp som startar något annat.
   scopeCard(kid) {
-    const p = prof(kid.id); if (!V2.scopeOn(p) || (typeof EXP !== 'undefined' && EXP.on(kid) && EXP.coreDone(p))) return '';
+    const p = prof(kid.id); if (!V2.scopeOn(p) || !LE.canStart(kid, p) || (typeof EXP !== 'undefined' && EXP.on(kid) && EXP.coreDone(p))) return '';   // före första synken: inget (bygger annars motorns tillstånd – också i klassiskt läge)
     const pl = V2.peekPlan(kid).plan; if (!pl.scopeEmpty) return '';
     // Proven/läxorna inom horisonten: de med inlagda områden (det som tränas) och de utan (säg det ärligt, inte "inget prov")
     const win = LE.exams(kid, p).map(e => ({ e, d: daysUntil(e.date) })).filter(x => x.d >= 0 && x.d <= V2.MISSION_DAYS).sort((a, b) => a.d - b.d);
     const mapped = win.filter(x => V2.examCidsActive(kid, x.e).length); const unm = win.filter(x => !V2.examCidsActive(kid, x.e).length);
+    const later = typeof EXP !== 'undefined' && EXP.on(kid) ? (EXP.upcoming(kid) || []).slice(0, EXP.UPCOMING_MAX).map(x => x.e).filter(e => daysUntil(e.date) > V2.MISSION_DAYS && V2.examCidsActive(kid, e).length) : [];   // samma rader som kortet Kommande visar
     const T = (e) => String((e && e.title) || 'provet'); const kindOf = (e) => (typeof EXP !== 'undefined' && EXP.isExam(e) ? 'Provets' : 'Läxans');
     const g = mapped[0] || null;
     const head = pl.scopeEmpty === 'idle' ? 'INGET ATT ÖVA IDAG' : unm.length ? `${esc(T(unm[0].e).toUpperCase())} · INTE INLAGT ÄNNU` : 'INGA PROV ELLER LÄXOR JUST NU';
     const txt = pl.scopeEmpty === 'idle' ? `Allt inför ${esc(T(g && g.e))} är övat för idag. Kom tillbaka imorgon.`
-      : unm.length ? `${kindOf(unm[0].e)} områden är inte inlagda i appen ännu. När de läggs in börjar Kör! med dem.` : 'Kör! tränar bara inlagda prov och läxor. När något läggs in börjar du här.';
+      : unm.length ? `${kindOf(unm[0].e)} områden är inte inlagda i appen ännu. När de läggs in börjar Kör! med dem.`
+      : later.length ? `Kör! börjar öva inför ett prov eller en läxa fyra veckor före.${later.some(e => EXP.goalPractice(kid, e).ok) ? ' Vill du börja redan nu: tryck Kör på raden under Kommande prov och läxor.' : ''}`   // 3.6: samma besked som raderna i Kommande – hänvisa bara till en rad som faktiskt erbjuder Kör
+      : 'Kör! tränar bara inlagda prov och läxor. När något läggs in börjar du här.';
     const more = pl.scopeEmpty === 'idle' && unm.length ? `<div class="muted" style="font-size:.9rem">${unm.map(x => esc(T(x.e))).join(', ')}: områdena är inte inlagda i appen ännu.</div>` : '';
     return `<section class="card pad-lg mission stack" aria-label="${esc(head)}"><div class="eyebrow">${head}</div><div style="font-size:1rem">${txt}</div>${more}${g ? `<button class="btn ghost wide" data-v2="testa" data-exam="${esc(g.e.id)}">Testa mig</button>` : ''}</section>`;
   },
@@ -167,7 +170,11 @@ const V2 = {
     if (mode === 'mission') { const e = LE.exams(kid, p).find(x => x.id === extra.examId); if (!e) return []; const cids = V2.examCidsActive(kid, e); if (!cids.length) return []; const plan0 = LE.plan(kid, V2.n(kid, C), now, id, { only: cids, newCap: V2.newCapToday(C, now, EXP.on(kid) ? p : null) }).plan; const set = new Set(cids);
       // Granskning: bara provets koncept (även Bossen), och inget pass alls när inget av provet går att öva just nu (t.ex. kvällen före provet
       // med opåbörjade områden) – då visas en ärlig text i stället för en knapp som startar något annat
-      const plan = plan0.filter(s => set.has(s.cid)); if (!plan.some(s => s.role !== 'boss')) return [];
+      // 3.6 rättelse (dygnets gräns för nytt): motorn kan planera ett aldrig sett provkoncept som "fokus" (provet närmar sig) trots att
+      // dygnets gräns för nytt är nådd. Provträningen tar därför in högst så många nya koncept som gränsen tillåter – resten väntar till imorgon.
+      const capN = V2.newCapToday(C, now, EXP.on(kid) ? p : null); const fresh = new Set();
+      const plan = plan0.filter(s => set.has(s.cid)).filter(s => { const c = C.L.c[s.cid]; if ((C.cat[s.cid] || {}).kind === 'deck' || (c && (c.fs || c.n > 0))) return true;   /* sett = som V2.newToday och motorn (n > 0; v1-migrerade har inget fs); glosdäck räknas inte in i gränsen */ if (fresh.has(s.cid)) return true; if (fresh.size < capN) { fresh.add(s.cid); return true; } return false; });
+      if (!plan.some(s => s.role !== 'boss')) return [];
       Object.assign(plan, { light: plan0.light, restart: plan0.restart, maxItems: plan0.maxItems, maxNew: plan0.maxNew, examDays: plan0.examDays, only: set, examId: e.id }); return plan; }
     if (mode === 'readclose') { const cids = LE.cidsOfSkill(C, extra.skillId); if (!cids.length) return []; const start = Math.floor(Math.random() * cids.length); const plan = [0, 1, 2].map(i => ({ cid: cids[(start + i) % cids.length], role: 'readclose', why: 'läst, stängt – minns du?' })); plan.maxItems = 3; return plan; }
     // v3 (granskning M2) och 2.1.1: ett nytt Kör! efter dagens CORE eller efter provträning samma dag får bara det som är kvar av dygnets gräns för nytt
