@@ -123,8 +123,8 @@ jobs:
       - run: npm run build
       - name: Verktyg (bara i detta jobb)
         run: |
-          npm install --no-save --no-audit --no-fund playwright@1.63.0 axe-core@4.10.2
-          npx playwright install --with-deps chromium
+          npm install --no-save --no-audit --no-fund playwright@1.63.0 axe-core@4.10.2 || { echo "::error::layout: npm install av playwright/axe-core föll"; exit 1; }
+          npx playwright install --with-deps chromium || { echo "::error::layout: playwright install --with-deps chromium föll (runner: $ImageOS $ImageVersion)"; exit 1; }
       - name: Layout och tillgänglighet (375×667, 390×844, 820×1180, 1180×820)
         run: node tests/browser/layout.js
   deploy:
