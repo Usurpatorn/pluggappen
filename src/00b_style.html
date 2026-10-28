@@ -458,6 +458,13 @@ html { overflow-x: clip; }
 .plan-meta { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 12px; row-gap: 2px; }
 .plan-meta .mins { font-weight: 800; font-size: 1.05rem; }
 .plan-meta .share { color: var(--muted); font-size: .92rem; }
+/* 3.6.1: nästa deadline är en liten rad ovanför dagens plan – inte passets rubrik */
+.deadline { padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+.deadline .dl-line { font-size: 1rem; margin-top: 2px; }
+.deadline .dl-share { font-size: .9rem; margin-top: 2px; }
+.deadline .dl-share .share { color: inherit; font-size: inherit; }
+.plan-meta .split { color: var(--muted); font-size: .92rem; }
+.train .order { font-size: .9rem; margin-top: 4px; }
 @media (max-width: 420px) { .more-fold > summary .muted { display: none; } }
 .btn.btn-2l { display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 2px; line-height: 1.15; padding-top: 10px; padding-bottom: 10px; }
 .btn-2l .btn-sub { font-size: .8em; font-weight: 650; text-transform: none; letter-spacing: 0; opacity: .85; }

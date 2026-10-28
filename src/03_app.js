@@ -1167,7 +1167,9 @@ VIEWS.parent = () => {
   }
   const tab = state.tab || (KIDS[0] ? KIDS[0].id : 'settings'); const kid = kidById(tab);
   const sub = state.sub || 'overview';
-  if (tab === 'settings' && SYNC.active && !PUSH.lastStatus) PUSH.loadStatus().then(() => { if (state.screen === 'parent' && state.tab === 'settings') VIEWS.parent(); });
+  // Påminnelsernas senaste körning: hämtas en gång per sidladdning, och sidan ritas om bara när något kom. Förut hämtades den igen vid varje
+  // omritning när dokumentet saknades eller nätet var borta – en ändlös hämta-rita-om-slinga på ⚙ (hittad av observationstestet, 3.6.1).
+  if (tab === 'settings' && SYNC.active && !PUSH.lastStatus && !PUSH.statusTried) { PUSH.statusTried = true; PUSH.loadStatus().then(() => { if (PUSH.lastStatus && state.screen === 'parent' && state.tab === 'settings') VIEWS.parent(); }); }
   let body = '', nav = '';   // 3.3 slutpasset: navigeringen (barn, flikar, Testa som barnet) för sig – två spalter på iPad, samma ordning på telefon
   if (kid) {
     const p = prof(kid.id);

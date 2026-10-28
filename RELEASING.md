@@ -456,3 +456,36 @@ med `PREVIEW=1` till `<sajten>/preview/`. Produktionen publiceras som vanligt. M
 - **Dokumentation:** `docs/CONTENT_PUBLISHING.md` säger nu att en framtida Storage-lösning ska läsa genom reglerna och aldrig dela ut
   nedladdningslänkar (anmärkning från granskningen av 3.5).
 - **Rollback:** 3.5.0-bygget.
+
+## 3.6.1 – Dagens plan skild från nästa deadline (Achieve)
+- **Ägarens fynd:** startkortet hade läxförhöret som rubrik ("NÄSTA MÅL · LÄXFÖRHÖR ORIENTERING", "Det här tränar vi idag:
+  Orienteringsbegrepp"), men passet började med algebra. Motorn blandar målen och lägger ett ämne som väntat länge tidigt; kortet
+  grupperade målets moment först.
+- **Ägarens beslut:** motorns val av innehåll **och** ordning behålls. Bara presentationen ändras, och bara i Achieve-kortet.
+  - **NÄSTA DEADLINE:** det närmaste målet på en liten rad (titel, datum, "om N dagar") med andelen i dagens plan: "4 av 9
+    uppgifter inför läxförhöret i dagens plan", "Dagens plan övar annat" eller "Läxförhörets områden är inte inlagda i appen ännu".
+    Det är inte längre kortets stora rubrik.
+  - **DAGENS PLAN:** rubriken är ämnena i den ordning de först kommer i passet ("MATTE + ORIENTERING"), sedan "9 uppgifter ·
+    cirka 10 min" och fördelningen ("4 matte · 4 orientering · 1 bossuppgift"). Bossen väljs under passet bland det som gått bra
+    och räknas därför för sig, inte som ett ämne.
+  - **Det här tränar vi idag:** områdena per ämne, ämnena i passets ordning. "Först matte, sedan orientering." bara när ämnena
+    verkligen kommer i block; annars "Ämnena blandas i passet. Det börjar med matte."
+  - **Ett Kör** för den blandade planen. Kör på varje rad i Kommande startar som förut bara målets träning (också Boss, Rescue och
+    omförsök). Deadlinens egen knapp visas bara när dagens plan inte övar målet och målets träning har något som gör nytta.
+- **Rätt ord för målet** (`EXP.noun`): "inför läxförhöret", "inför glosförhöret", "inför provet" – typen går före titeln, och
+  förälderns egna mål känns igen på titeln. Gäller andelen, "Öva inför …", "FORTSÄTT MOT …", KLAR-chipet och "… områden är inte
+  inlagda". Ett läxförhör kallades tidigare "provet".
+- **Ämnesnamn** (`EXP.subjLabel`): paketets ämne ("orientering", "kemi"), glosor efter språk, inbyggd matte som "matte".
+- **Grow och Explore** ändras inte utom ordet för målet. Grow-kortets rubrik "DAGENS MISSION · <mål>" har samma inramning; det är
+  noterat för ägaren och inte ändrat (ingen bred UI-iteration).
+- **Motorns kärna är orörd.** Planen, ordningen, belöningarna och synken är oförändrade; `test_promise_exec.js` visar fortfarande
+  att knappen startar det kortet lovar.
+- **Test:** `tests/test_kortplan.js` (103 kontroller). Kortet jämförs med det pass som faktiskt spelas, sex dygn i följd:
+  rubrikens mål är inte passets första ämne (fem av sex dygn), visad fördelning = spelade platser, visad startordning = första
+  aktiviteten, "Först … sedan" bara för block. Målradens Kör håller sig inom målet också med stöd och omförsök. Mål utan innehåll
+  ger ingen Kör-hänvisning. Befintliga test som läste den gamla rubriken ("NÄSTA MÅL", "Också idag") läser nu den nya.
+- **Rättelse som följer med:** ⚙ i föräldraläget hämtade påminnelsernas senaste körning igen vid varje omritning när dokumentet saknades
+  i molnet eller nätet var borta – en ändlös hämta-rita-om-slinga så länge ⚙ var öppet (fanns sedan 1.1.0, hittad av
+  observationstestet i 3.7). Nu hämtas den en gång per sidladdning och sidan ritas om bara när något kom. `tests/test_parent_status.js`
+  (10 kontroller; den gamla raden ger 6 fel).
+- **Rollback:** 3.6.0-bygget.

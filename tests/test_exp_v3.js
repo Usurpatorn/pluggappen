@@ -139,7 +139,7 @@ function runLog(T, D, wrongFn = () => false) {
     { const { w, T, D } = await boot(51, { content: CONTENT }); T.w = w; const PA = T.PA; const { $, click } = T;
       const kid = () => PA().KIDS.find(k => k.id === 'k8');
       openKid(T, 'k8'); const home = txt(T);
-      ok(/NÄSTA MÅL/.test(home) && /ALGEBRAPROV/.test(home) && /DET HÄR TRÄNAR VI IDAG/.test(home) && /cirka \d+ min/.test(home), 'Achieve-hem: närmaste riktiga mål, dagens plan, cirka-tid');
+      ok(/NÄSTA DEADLINE ?Algebraprov/.test(home) && /DAGENS PLAN/.test(home) && /DET HÄR TRÄNAR VI IDAG/.test(home) && /cirka \d+ min/.test(home) && !/ALGEBRAPROV/.test(($('.mission .goal-title') || {}).textContent || ''), 'Achieve-hem: närmaste riktiga mål som deadline (3.6.1), dagens plan, cirka-tid');
       ok(/Sedan: KEMIPROV/.test(home) && (home.match(/DET HÄR TRÄNAR VI IDAG/g) || []).length === 1, 'nästa mål sekundärt ("Sedan: KEMIPROV") – aldrig två planer');
       ok(!/Saknas i underlaget|PDF saknas|Provets format/.test(home), 'luckorna i underlaget visas inte för barnet');
       ok(!DISHONEST.test(home), 'Achieve-hem: inga löften eller procent');

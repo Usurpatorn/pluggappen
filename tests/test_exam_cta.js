@@ -108,7 +108,7 @@ const txt = (T, sel = '#app') => (T.$(sel) || { textContent: '' }).textContent.r
         w3.__advance(DAY);   // nytt dygn: dagens plan är inte gjord
         pr.exams = [{ id: 'tom', title: 'Engelskaprov', date: iso3(w3.Date.now() + 5 * DAY), skillIds: [], deckIds: [] }]; P3().save(); P3().LE.invalidate(id);
         open3(id); const h3 = home3();
-        ok(/inte inlagda i appen ännu/.test(h3) && !T3.$('[data-v2="mission"]') && !T3.$('[data-v2="testa"][data-exam="tom"]') && !/ENGELSKAPROV ·|NÄSTA MÅL ENGELSKAPROV/i.test(h3.replace(/Nästa (mål|prov):.*$/s, '')), `${exp}: prov utan områden – ärlig text, ingen provträning, ingen Testa mig`);
+        ok(/inte inlagda i appen ännu/.test(h3) && !T3.$('[data-v2="mission"]') && !T3.$('[data-v2="testa"][data-exam="tom"]') && !/ENGELSKAPROV ·|NÄSTA MÅL ENGELSKAPROV/i.test(h3.replace(/Nästa (mål|prov):.*$/s, '').replace(/NÄSTA DEADLINE ?Engelskaprov · [^.]*?Provets områden är inte inlagda i appen ännu\./, '')), `${exp}: prov utan områden – ärlig text, ingen provträning, ingen Testa mig`);
         pr.exams = []; P3().save(); P3().LE.invalidate(id);
       }
       ok(P3().LE.errors.length === 0, 'v3: inga fel i v2-lagret ' + JSON.stringify(P3().LE.errors.slice(0, 2))); }
