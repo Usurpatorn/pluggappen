@@ -112,6 +112,34 @@ const EXP = {
     if (plan.some(x => x.role === 'revansch' && !inExam.has(x.cid))) also.push('Revansch');
     return { n: plan.length, mins: EXP.mins(plan, kid), list, exList: ex.slice(0, 4), alsoList: also.slice(0, 3), stations: st, light: !!plan.light, plan, C };
   },
+  /* 3.6.1 (ägarens fynd): dagens plan visas i den ordning passet faktiskt startar, grupperad per ämne, med fördelningen – skild från nästa
+     deadline. Motorns val av innehåll och ordning är orörda; det här är bara presentationen av samma plan som Kör! startar. */
+  SUBJ: { math: 'matte', sv: 'svenska', no: 'NO', so: 'SO', lang: 'språk', en: 'engelska' },
+  low(t) { t = String(t || '').trim(); return t.length > 1 && t[1] === t[1].toLowerCase() ? t[0].toLowerCase() + t.slice(1) : t; },
+  subjLabel(kid, C, cid) {
+    const d = C.cat[cid] || {};
+    if (d.kind === 'deck') { const r = EXP.repLabel(kid, C, [{ cid }]); return r.replace(/^Repetition: /, '') === 'Repetition' ? 'glosor' : r.replace(/^Repetition: /, ''); }
+    const pk = d.kind === 'kp' && typeof PACKS !== 'undefined' && PACKS.REG && PACKS.REG.packs[d.pack]; if (pk && pk.topic) return EXP.low(pk.topic);
+    const sk = d.kind === 'skill' ? V2.skillOf(kid, cid) : null; if (sk && sk.pack && sk.subject) return EXP.low(sk.subject);
+    return EXP.SUBJ[d.subject] || EXP.low(d.subject) || 'övrigt';
+  },
+  // Planens delar: ämnen i den ordning de först dyker upp, områden per ämne, antal uppgifter per ämne. Bossen väljs under passet bland det
+  // som gått bra och räknas därför för sig ("1 bossuppgift"), aldrig som ett visst ämne.
+  planParts(kid, C, plan) {
+    const fullName = (cid) => { const d = C.cat[cid] || {}; return d.kind === 'kp' ? (PACKS.skillFor(kid, d.ref) || {}).name || EXP.nameOf(kid, C, cid) : d.kind === 'skill' ? ((V2.skillOf(kid, cid) || {}).name || d.name) : EXP.nameOf(kid, C, cid); };
+    const REP = new Set(['remember', 'warmup']); const groups = []; const seq = []; let boss = 0;
+    for (const s of plan) {
+      if (s.role === 'boss') { boss++; continue; }
+      const lbl = EXP.subjLabel(kid, C, s.cid); seq.push(lbl); let g = groups.find(x => x.label === lbl); if (!g) groups.push(g = { label: lbl, n: 0, areas: [] }); g.n++;
+      const nm = fullName(s.cid); if (!nm) continue; let a = g.areas.find(x => x.name === nm); if (!a) g.areas.push(a = { name: nm, roles: new Set() }); a.roles.add(s.role);
+    }
+    for (const g of groups) g.items = g.areas.map(a => a.name + ([...a.roles].every(r => REP.has(r)) ? ' (repetition)' : [...a.roles].every(r => r === 'revansch') ? ' (revansch)' : ''));
+    const runs = seq.filter((x, i) => i === 0 || seq[i - 1] !== x); const blocks = runs.length === groups.length;
+    return { groups, seq, boss, blocks, first: seq[0] || null };
+  },
+  planTitle(parts) { const ls = parts.groups.map(g => g.label); const t = ls.length > 3 ? ls.slice(0, 2).join(' + ') + ` + ${ls.length - 2} till` : ls.join(' + '); return t ? t[0].toUpperCase() + t.slice(1) : ''; },
+  splitText(parts) { return [...parts.groups.map(g => `${g.n} ${g.label}`), ...(parts.boss ? [`${parts.boss} ${parts.boss === 1 ? 'bossuppgift' : 'bossuppgifter'}`] : [])].join(' · '); },
+  orderText(parts) { if (parts.groups.length < 2) return ''; const ls = parts.groups.map(g => g.label); return parts.blocks ? `Först ${ls[0]}, sedan ${ls.slice(1).join(', sedan ')}.` : `Ämnena blandas i passet. Det börjar med ${parts.first}.`; },
   // Framsteg med betydelse (Grow/Achieve): motorns barnetiketter för koncept som barnet har övat. Inga procent.
   progress(kid) { const C = LE.state(kid); const now = LE.now(); const out = { 'Säker': 0, 'På väg': 0, 'Tränar': 0, 'Behöver repetition': 0 }; for (const [id, c] of Object.entries(C.L.c)) { const d = C.cat[id]; if (!d || d.active === false || d.kind === 'deck' || !c.n) continue; const l = LE2.childLabel(c, now, C.pol, C.L); if (l in out) out[l]++; } return out; },
   /* ---------- Startsidan ---------- */
@@ -161,7 +189,7 @@ const EXP = {
     const mb = m && !ex ? EXP.missionBtn(kid, m, 'btn wide secondary') : ''; const mbBtn = /<button/.test(mb);
     const goalRow = m && !ex ? `<div class="goal-row"><span aria-hidden="true">📅</span> ${EXP.isExam(m.e) ? 'Nästa prov' : 'Nästa uppgift'}: <b>${esc(m.e.title)}</b> · ${esc(fmtDate(m.e.date))}${V2.examCidsActive(kid, m.e).length ? ' – dagens runda övar annat' : ' – områdena är inte inlagda i appen ännu'}</div>${mbBtn ? mb : ''}` : '';
     return `<section class="card pad-lg mission grow stack" aria-label="Dagens runda"><div class="eyebrow">${ex ? `DAGENS MISSION · ${esc(m.e.title.toUpperCase())} · ${esc(fmtDate(m.e.date).toUpperCase())}` : 'DAGENS RUNDA'}</div>
-      <div class="mission-title">${s.n} uppgifter · cirka ${s.mins} min</div>${ex ? `<div class="muted" style="font-size:.95rem">${esc(EXP.shareText(sh))}</div>` : ''}
+      <div class="mission-title">${s.n} uppgifter · cirka ${s.mins} min</div>${ex ? `<div class="muted" style="font-size:.95rem">${esc(EXP.shareText(sh, m.e))}</div>` : ''}
       ${s.list.length ? `<div class="muted" style="font-size:.95rem">Idag: ${s.list.map(esc).join(' · ')}</div>` : ''}${prog}
       ${EXP.go(kid, label)}
       ${goalRow}
@@ -181,31 +209,37 @@ const EXP = {
   // v3: "N av M": M = alla platser (samma antal som passets räknare "Uppgift 1 av M", UX-granskning); N räknar inte Bossen. Klassisk: som 2.1.1.
   examShare(kid, m, plan) { if (!m) return { cids: [], n: 0, of: 0 }; const cids = V2.examCidsActive(kid, m.e); const set = new Set(cids); const pl = plan || []; const bossIn = !!(pl.only && [...pl.only].every(c => set.has(c))); return { cids, n: pl.filter(s => (s.role !== 'boss' || bossIn) && set.has(s.cid)).length, of: pl.length }; },   // Bossens plats väljs om under passet och räknas därför inte som prov – utom med Bara prov och läxor och bara det här provet (3.1.2): då väljs den om bland provets områden och räknas. Passets längd gäller alltid.
   mostly(sh) { return sh.n > 0 && sh.n * 2 >= sh.of; },   // "MOT PROVET" på FLOW-knappen bara när minst hälften av extrapasset hör till provet (granskning)
-  shareText(sh) { return sh.n === sh.of ? 'Allt inför provet' : `${sh.n} av ${sh.of} uppgifter inför provet`; },
+  // 3.6.1: rätt ord för målet – "inför läxförhöret" för ett läxförhör, inte "inför provet"
+  noun(e) { const k = e && e.kind; const t = String((e && e.title) || ''); return k === 'exam' ? 'provet' : k === 'homework' ? 'läxförhöret' : k === 'vocab' ? 'glosförhöret' : /läxförhör/i.test(t) ? 'läxförhöret' : /glos/i.test(t) ? 'glosförhöret' : /prov|test/i.test(t) ? 'provet' : /förhör/i.test(t) ? 'förhöret' : 'uppgiften'; },
+  nounGen(e) { const w = EXP.noun(e) + 's'; return w[0].toUpperCase() + w.slice(1); },   // "Läxförhörets områden"
+  shareText(sh, e) { const w = e ? EXP.noun(e) : 'provet'; return sh.n === sh.of ? `Allt inför ${w}` : `${sh.n} av ${sh.of} uppgifter inför ${w}`; },
   missionBtn(kid, m, cls = 'btn big wide secondary') {
     if (!m) return ''; const cids = V2.examCidsActive(kid, m.e);
-    if (!cids.length) return `<div class="muted" style="font-size:.95rem">${EXP.isExam(m.e) ? 'Provets' : 'Uppgiftens'} områden är inte inlagda i appen ännu – Kör! övar annat under tiden.</div>`;   // UX: ingen uppgift till barnet (föräldern ser luckan i sin vy)
+    if (!cids.length) return `<div class="muted" style="font-size:.95rem">${EXP.nounGen(m.e)} områden är inte inlagda i appen ännu – Kör! övar annat under tiden.</div>`;   // UX: ingen uppgift till barnet (föräldern ser luckan i sin vy)
     const mp = EXP.safe(() => V2.plan(kid, 'mission', LE.state(kid), LE.now(), null, { examId: m.e.id }), 'missionPeek', []);
-    const lbl = EXP.isExam(m.e) ? 'Öva inför provet' : 'Öva på ' + m.e.title;
+    const lbl = EXP.isExam(m.e) ? 'Öva inför ' + EXP.noun(m.e) : 'Öva på ' + m.e.title;
     return mp.length ? `<button class="${cls}" data-v2="mission" data-exam="${esc(m.e.id)}">${esc(lbl)} · cirka ${EXP.mins(mp, kid)} min</button>`
-      : `<div class="muted" style="font-size:.95rem">Inget behöver övas för ${EXP.isExam(m.e) ? 'provet' : 'uppgiften'} just nu – appen tar det när det är dags.</div>`;
+      : `<div class="muted" style="font-size:.95rem">Inget behöver övas för ${EXP.noun(m.e)} just nu – appen tar det när det är dags.</div>`;
   },
   achieveHome(kid, p) {
     const plan0 = V2.peekPlan(kid).plan; const g = EXP.coreDone(p) ? EXP.goalOf(kid, EXP.peekFlow(kid)) : EXP.goalOf(kid, plan0); const m = g.now;
     const sedan = g.next ? `<div class="then">${m && g.next.d < m.d ? 'Före det' : 'Sedan'}: <b>${esc(g.next.e.title.toUpperCase())}</b> · <span class="nw">${esc(fmtDate(g.next.e.date).toUpperCase())}</span></div>` : '';
-    if (EXP.coreDone(p)) { const fsh = EXP.examShare(kid, m, EXP.peekFlow(kid)); return EXP.doneCard(kid, p, 'DAGENS PLAN KLAR', 'Appen håller koll på resten.', m && EXP.isExam(m.e) && EXP.mostly(fsh) ? 'FORTSÄTT MOT PROVET' : 'FORTSÄTT') + (() => { const u = EXP.upcomingSafe(kid); return u + EXP.goalDetailUnless(kid, m, u); })(); }
+    if (EXP.coreDone(p)) { const fsh = EXP.examShare(kid, m, EXP.peekFlow(kid)); return EXP.doneCard(kid, p, 'DAGENS PLAN KLAR', 'Appen håller koll på resten.', m && EXP.isExam(m.e) && EXP.mostly(fsh) ? 'FORTSÄTT MOT ' + EXP.noun(m.e).toUpperCase() : 'FORTSÄTT') + (() => { const u = EXP.upcomingSafe(kid); return u + EXP.goalDetailUnless(kid, m, u); })(); }
     const s = EXP.summary(kid, plan0); if (!s.n) return EXP.emptyCard(kid, 'DAGENS PLAN', sedan) + (() => { const u = EXP.upcomingSafe(kid); return u + EXP.goalDetailUnless(kid, m, u); })();
-    const sh = EXP.examShare(kid, m, s.plan); const ex = m && sh.n > 0;   // provrubrik bara när dagens pass innehåller provet
-    const when = m ? `${esc(fmtDate(m.e.date).toUpperCase())} · ${m.d === 0 ? 'idag' : m.d === 1 ? 'imorgon' : `om ${m.d} dagar`}` : '';
-    const head = ex ? `<div class="eyebrow">NÄSTA MÅL</div><div class="goal-title">${esc(m.e.title.toUpperCase())}</div><div class="goal-date">${when}</div>`
-      : `<div class="eyebrow">DAGENS PLAN</div>${s.list[0] ? `<div class="goal-title">${esc(s.list[0].toUpperCase())}</div>` : ''}`;
-    const main = ex ? s.exList : s.list.slice(1); const also = ex ? s.alsoList : [];   // utan prov i passet: dagens starkaste mål är rubriken
-    const nextGoal = m && !ex ? `<div class="then">Nästa mål: <b>${esc(m.e.title.toUpperCase())}</b> · ${when}. Dagens pass övar annat.</div>${EXP.missionBtn(kid, m)}` : '';
-    return `<section class="card pad-lg mission achieve stack" aria-label="Dagens plan">${head}
-      ${main.length ? `<div class="train"><div class="eyebrow">${ex ? 'DET HÄR TRÄNAR VI IDAG' : 'OCKSÅ IDAG'}</div><ul>${main.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
-      ${also.length ? `<div class="muted" style="font-size:.95rem">${main.length ? 'Också idag' : 'Idag'}: ${also.map(esc).join(' · ')}</div>` : ''}
-      <div class="plan-meta"><span class="mins">cirka ${s.mins} min</span>${ex ? `<span class="share">${esc(EXP.shareText(sh))}</span>` : ''}</div>
-      ${EXP.go(kid, LBL(kid).go.toUpperCase())}${nextGoal}${sedan}</section>` + (() => { const u = EXP.upcomingSafe(kid); return u + EXP.goalDetailUnless(kid, m, u); })();
+    // 3.6.1 (ägarens beslut): NÄSTA DEADLINE (närmaste målet, litet) skilt från DAGENS PLAN (hela passet, i passets egen ordning per ämne,
+    // med fördelningen). Rubriken lovar aldrig att passet består av målet; andelen säger hur mycket som hör dit, med målets eget ord.
+    const dl = (g.all || []).find(x => x.d <= EXP.UPCOMING_DAYS) || null; const after = dl ? (g.all || []).find(x => x !== dl && x.d <= EXP.UPCOMING_DAYS) || null : null;
+    const dsh = EXP.examShare(kid, dl, s.plan); const dlIn = !!dl && dsh.n > 0; const hasC = !!dl && V2.examCidsActive(kid, dl.e).length > 0;
+    const dlWhen = dl ? `${esc(fmtDate(dl.e.date))} · ${dl.d === 0 ? 'idag' : dl.d === 1 ? 'imorgon' : `om ${dl.d} dagar`}` : '';
+    const parts = EXP.planParts(kid, s.C, s.plan); const ord = EXP.orderText(parts);
+    const deadline = dl ? `<div class="deadline"><div class="eyebrow">NÄSTA DEADLINE</div><div class="dl-line"><b>${esc(dl.e.title)}</b> · ${dlWhen}</div>
+      <div class="dl-share muted">${dlIn ? `<span class="share">${esc(EXP.shareText(dsh, dl.e))}</span> i dagens plan` : hasC ? 'Dagens plan övar annat.' : `${EXP.nounGen(dl.e)} områden är inte inlagda i appen ännu.`}</div></div>` : '';
+    const sedan2 = after ? `<div class="then">Sedan: <b>${esc(after.e.title.toUpperCase())}</b> · <span class="nw">${esc(fmtDate(after.e.date).toUpperCase())}</span></div>` : '';
+    return `<section class="card pad-lg mission achieve stack" aria-label="Dagens plan">${deadline}
+      <div class="eyebrow">DAGENS PLAN</div><div class="goal-title">${esc(EXP.planTitle(parts).toUpperCase())}</div>
+      <div class="plan-meta"><span class="mins">${s.n} ${s.n === 1 ? 'uppgift' : 'uppgifter'} · cirka ${s.mins} min</span><span class="split">${esc(EXP.splitText(parts))}</span></div>
+      ${parts.groups.length ? `<div class="train"><div class="eyebrow">DET HÄR TRÄNAR VI IDAG</div><ul>${parts.groups.slice(0, 4).map(gr => `<li data-subj="${esc(gr.label)}"><b>${esc(gr.label[0].toUpperCase() + gr.label.slice(1))}:</b> ${gr.items.slice(0, 4).map(esc).join(' · ')}${gr.items.length > 4 ? ` · +${gr.items.length - 4}` : ''}</li>`).join('')}</ul>${ord ? `<div class="muted order">${esc(ord)}</div>` : ''}</div>` : ''}
+      ${EXP.go(kid, LBL(kid).go.toUpperCase())}${dl && !dlIn && hasC ? EXP.missionBtn(kid, dl) : ''}${sedan2}</section>` + (() => { const u = EXP.upcomingSafe(kid); return u + EXP.goalDetailUnless(kid, m, u); })();
   },
   /* 3.6: målets egen träning ("Kör" på en rad i Kommande, "Öva mer inför" efter dygnets extrapass) – EN regel för båda, så att skärmen
      aldrig säger emot sig själv (granskning P2-A): planen för målet, och efter dygnets belönade extrapass bara när den gör nytta. */
@@ -463,7 +497,7 @@ const EXP = {
         const lead = po ? 'Bra övat! Extraövning ger inga poäng – den är bara för att lära.' : e === 'achieve' && !mission ? 'Appen håller koll på resten.' : e === 'explore' && flow ? 'Ett äventyr till – klart!' : up ? `${up === 1 ? 'Ett område' : `${up} områden`} blev starkare.` : V.mode === 'revansch' ? 'Revanschen är gjord.' : mission ? 'Provträningen är gjord.' : flow ? (e === 'grow' ? 'Extrarundan är gjord.' : 'Extrapasset är gjort.') : V.mode !== 'kor' ? 'Passet är gjort.' : e === 'explore' ? 'Du klarade dagens äventyr.' : e === 'grow' ? 'Du klarade dagens runda.' : 'Passet är gjort.';   // "dagens runda/äventyr" bara när det verkligen var dagens plan
         const chips = [];
         if (bossWon) chips.push(e === 'achieve' ? 'Bossuppgiften klar' : 'Bossen klarad');   /* 3.3 slutpasset: chips är text – samma form överallt */
-        if (sh.n > 0) chips.push(`${sh.n} ${sh.n === 1 ? 'uppgift' : 'uppgifter'} inför ${EXP.isExam(g.e) ? 'provet' : 'uppgiften'}`);
+        if (sh.n > 0) chips.push(`${sh.n} ${sh.n === 1 ? 'uppgift' : 'uppgifter'} inför ${EXP.noun(g.e)}`);
         if (up && e === 'achieve' && V.mode === 'kor') chips.push(`${up === 1 ? 'Ett område' : `${up} områden`} starkare`);
         for (const k of kinds) chips.push(EXP.DELIGHT_CHIP[k] || EXP.DELIGHT[k]);
         if (gems && e === 'grow') chips.push(`+${gems} 💎`);

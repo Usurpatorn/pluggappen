@@ -134,7 +134,7 @@ const DISHONEST = /Du är redo|kommer (att )?klara provet|Du kan detta|\b\d{1,3}
       ok(seenSk.length >= 1, 'Äldre har övat matte i testet'); }
     /* 5. Achieve-hemmet: tid och andel ordagrant, inga procent */
     { toStart(T); openKid(T, 'k8'); const kid = kidOf('k8'); const home = norm(T.$('#app').textContent); const meta = T.$('.plan-meta'); ok(meta || T.$('.mission.done'), 'Achieve-hemmet visar planens tid (eller dagens plan klar)');
-      if (meta) { const s = PA().EXP.summary(kid); ok(norm(meta.querySelector('.mins').textContent) === `cirka ${s.mins} min`, `Achieve: "cirka N min" = planen (${norm(meta.textContent)})`);
+      if (meta) { const s = PA().EXP.summary(kid); ok(norm(meta.querySelector('.mins').textContent) === `${s.n} ${s.n === 1 ? 'uppgift' : 'uppgifter'} · cirka ${s.mins} min`, `Achieve: "cirka N min" = planen (${norm(meta.textContent)})`);
         const sh = meta.querySelector('.share'); if (sh) ok(/^(Allt inför provet|\d+ av \d+ uppgifter inför provet)$/.test(norm(sh.textContent)), 'Achieve: andelen inför provet står kvar'); }
       ok(!DISHONEST.test(home), 'Achieve-hem: inga löften eller procent'); }
 

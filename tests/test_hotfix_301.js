@@ -24,9 +24,10 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms)); const DAY = 86400000;
       const card = norm(($('section.mission') || {}).textContent);
       const go = $('.go-btn[data-v2="kor"]') || $('[data-v2="kor"]'); if (!go) { w.__advance(DAY); continue; }
       if (deckFirst) {
-        found++; const exam = /NÄSTA MÅL/.test(card) && /DET HÄR TRÄNAR VI IDAG/.test(card); if (exam) foundExam++;
-        ok(/Repetition: engelska glosor|Repetition: spanska glosor/.test(card), `seed ${seed} dag ${d}: hemmet säger vad som repeteras (${card.slice(0, 160)})`);
-        if (exam) ok(/(Också idag|Idag): Repetition: (engelska|spanska) glosor/.test(card), `seed ${seed} dag ${d}: med prov står repetitionen först i "Också idag" (${card.slice(0, 200)})`);
+        found++; const exam = /NÄSTA DEADLINE/.test(card) && /inför provet i dagens plan/.test(card); if (exam) foundExam++;   // 3.6.1: provet i dagens plan står som deadline med andel
+        const li0 = $('section.mission .train li'); const ttl = norm(($('section.mission .goal-title') || {}).textContent);
+        ok(li0 && /^(engelska|spanska) glosor$/.test(li0.dataset.subj) && /\(repetition\)/.test(li0.textContent) && /^(ENGELSKA|SPANSKA) GLOSOR/.test(ttl), `seed ${seed} dag ${d}: hemmet säger vad som repeteras, och att passet börjar där (${card.slice(0, 160)})`);
+        if (exam) ok(li0 && /glosor/.test(li0.dataset.subj) && card.indexOf('NÄSTA DEADLINE') < card.indexOf('DAGENS PLAN'), `seed ${seed} dag ${d}: med prov i passet står glosrepetitionen ändå först i dagens plan (${card.slice(0, 200)})`);
         click(go); const it = PA().S.queue[PA().S.i]; const title = norm($('.topbar .title').textContent);
         if (it.cat === 'word') { firstWord++;
           ok(/^(Engelska|Spanska) glosor$/.test(title) && !title.includes(it.deck.name), `seed ${seed} dag ${d}: passets första uppgift (glosor) har ämnet som rubrik, inte glosbokens namn (${title})`);

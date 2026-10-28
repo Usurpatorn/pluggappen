@@ -51,6 +51,8 @@ async function run(kidId, exp) {
     // Provlöften: provknapparna spelar bara provets koncept; Kör! nämner ett prov bara om passet innehåller det (och med rätt andel)
     for (const e of exams) {
       const set = cidsOf(e); const share = PA().V2.missionShare(plan, [...set]); const t = e.title.toUpperCase();
+      // 3.6.1: NÄSTA DEADLINE med andel "… i dagens plan" är ett löfte om att passet innehåller målet; "Dagens plan övar annat" lovar inget
+      { const u = cardTxt.toUpperCase(); const at = u.search(new RegExp('NÄSTA DEADLINE ?' + t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))); if (act === 'kor' && at >= 0) { const seg = (u.slice(at).match(/I DAGENS PLAN|ÖVAR ANNAT|INTE INLAGDA/) || [''])[0]; /* deadline-radens första besked */ if (seg === 'I DAGENS PLAN') ok(share.n > 0, `${tag} ${state} kor: deadlinen ${e.title} sägs ingå i dagens plan – passet innehåller den (${share.n} av ${share.of})`); else if (seg === 'ÖVAR ANNAT') ok(share.n === 0, `${tag} ${state} kor: "övar annat" för ${e.title} – passet innehåller den inte (${share.n})`); } }
       if ((act === 'kor' || act === 'flow') && (label.toUpperCase().includes(t) || (cardTxt.toUpperCase().includes('NÄSTA MÅL' + t) || cardTxt.toUpperCase().includes('DAGENS MISSION · ' + t)) || /MOT PROVET/.test(label))) {
         if (label.toUpperCase().includes(t) || /NÄSTA MÅL|DAGENS MISSION/.test(cardTxt.toUpperCase()) || /MOT PROVET/.test(label)) ok(share.n > 0 || !set.size, `${tag} ${state} ${act}: "${label.slice(0, 40)}" lovar ${e.title} – passet innehåller provet (${share.n} av ${share.of})`);
       }

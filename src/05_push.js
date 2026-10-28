@@ -4,7 +4,7 @@ const PUSH = {
   supported() { return !!(PUSH.key && typeof navigator !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window); },
   needsInstall() { return typeof navigator !== 'undefined' && /iPhone|iPad/.test(navigator.userAgent) && !(window.navigator.standalone || matchMedia('(display-mode: standalone)').matches); },
   current() { return DB.settings.push || null; },
-  lastStatus: null,
+  lastStatus: null, statusTried: false,
   async loadStatus() { if (!SYNC.active) return; try { const r = await SYNC.fetch(SYNC.url('push_log'), { cache: 'no-store' }); if (!r.ok) return; const doc = await r.json(); PUSH.lastStatus = JSON.parse(doc.fields?.json?.stringValue || 'null'); } catch (e) { /* ignore */ } },
   urlB64(b64) { const pad = '='.repeat((4 - b64.length % 4) % 4); const raw = atob((b64 + pad).replace(/-/g, '+').replace(/_/g, '/')); return Uint8Array.from([...raw].map(c => c.charCodeAt(0))); },
   async enable(kidId) {

@@ -58,6 +58,8 @@ const suites = [
   ['3.4 Öva mer: lärandet fortsätter efter dygnets belöningar – utan poäng, utan autostart, dygnets gräns för nytt, inom målet, två enheter', 'test_ova_mer.js'],
   ['3.5 privata bilder: kontroll av varje bild, ingen textuppgift i stället, neutral alt-text, cache per familj, äldre klienter oförändrade', 'test_private_images.js'],
   ['3.6 Kommande: barnets alla kommande prov och läxor på startsidan – i datumordning, bara egna, ärligt om det som saknas i appen', 'test_kommande.js'],
+  ['3.6.1 Dagens plan skild från nästa deadline: passets ordning, fördelning och första aktivitet som kortet visar', 'test_kortplan.js'],
+  ['3.6.1 ⚙: påminnelsernas status hämtas en gång per sidladdning – ingen hämta-rita-om-slinga utan logg eller nät', 'test_parent_status.js'],
 ];
 let failed = 0; const rows = [];
 for (const [name, file, opts = {}] of suites) {
