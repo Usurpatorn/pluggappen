@@ -129,6 +129,7 @@ const fsRequests = (cloud, from, dev) => cloud.log.slice(from).filter(x => x.dev
       C.PA.DB.profiles.k8.exams = [{ id: 'e1', title: 'Algebraprov', date: iso(10), skillIds: ['forenkla', 'ekvation', 'multin', 'blandat'], deckIds: [] }];
       C.PA.DB.profiles.k8.removedDefaults = [...(C.PA.DB.profiles.k8.removedDefaults || []), ...((k8.workExams || []).map(x => x.id))];
       C.PA.DB.profiles.k8.settings.scope = 'exams'; C.PA.DB.profiles.k8.settings.scopeAt = C.__now(); C.PA.save();
+      C.PA.DB.profiles.k8.settings.obs = { on: true, salt: '5a17'.repeat(4), days: 30, at: C.__now() }; C.PA.DB.profiles.k8.settings.obsAt = C.__now(); C.PA.save();   // 3.7: observationer PÅ för Åttan – testläget får ändå aldrig registrera något
       await childPlays(C, 'k8', 0.3, 5); await childPlays(C, 'k2', 0.3, 6); await childPlays(C, 'k4', 0.3, 7); C.__advance(DAY);
       const P = await parentDevice(cloud, 41, C.__now()); const A = cloud.prof('k8');
       ok(learnOf(P.PA.DB.profiles.k8) === learnOf(A), 'Åttan: förälderns enhet har det riktiga läget');
@@ -152,6 +153,10 @@ const fsRequests = (cloud, from, dev) => cloud.log.slice(from).filter(x => x.dev
       P.PA.save(); P.PA.SYNC.schedulePush('k8'); await P.PA.SYNC.refreshAll(); P.document.dispatchEvent(new P.Event('visibilitychange')); P.dispatchEvent(new P.Event('offline')); P.dispatchEvent(new P.Event('online')); await sleep(1700);
       ok(fsRequests(cloud, logTm, 'parent').length === 0, `Åttan: förälderns enhet skickade ingenting under testet (${fsRequests(cloud, logTm, 'parent').length})`);
       ok(same(allStored(P), all0), 'Åttan: lagrad data på förälderns enhet oförändrad under testet');
+      { const o = P.PA.DB.profiles.k8.settings.obs; const nq = P.OBS.q ? P.OBS.q.ev.length : 0; const obsReq = cloud.log.slice(logTm).filter(x => /\/obs|documents:commit/.test(x.path || '') && x.dev === 'parent');
+        ok(!!(o && o.on === true), `Åttan: förutsättning – observationer PÅ har synkats till förälderns enhet (${JSON.stringify(o && { on: o.on })})`);
+        ok(nq === 0, `Åttan: inga observationshändelser i testläget (${nq}: ${P.OBS.q ? P.OBS.q.ev.map(e => e.y).join(',') : '-'})`);
+        ok(!obsReq.some(x => /\/obs/.test(x.path || '')), `Åttan: inget till observationslagringen under testet (${obsReq.map(x => x.method + ' ' + x.path).slice(0, 3).join(' | ')})`); }
       ok(P.PA.DB.profiles.k8.xp > xp0 && hasTestDev(JSON.stringify(P.PA.DB.profiles.k8.le)), 'Åttan: testet ändrade bara kopian (XP och ~t-bevis i minnet)');
       const { P2, reloaded, hash } = await exitProd(P, cloud, 42);
       ok(reloaded && hash === '#foralder-tm1' && P2.document.querySelector('[data-pin]') && /Inget från testet sparades/.test(P2.document.body.textContent), 'Avsluta: kontroll byte för byte, omladdning, föräldraläget med beskedet');

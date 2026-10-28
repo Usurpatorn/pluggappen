@@ -27,7 +27,7 @@ const PUSH = {
     try { await SYNC.fetch(SYNC.url(cur.id), { method: 'DELETE' }); } catch (e) { /* ignore */ }
     DB.settings.push = null; try { localStorage.setItem(STORE_KEY, dbJSON()); } catch (e) { /* ignore */ }
   },
-  /* 3.6.2 (ägarens önskemål): påminnelserna är en inställning, inte något på barnets startsida. ⚙ i föräldraläget väljer vem DEN HÄR
+  /* 3.7.1 (ägarens önskemål): påminnelserna är en inställning, inte något på barnets startsida. ⚙ i föräldraläget väljer vem DEN HÄR
      enheten påminner – föräldern eller ett av barnen, högst en (samma prenumeration som förut; att välja en annan byter). */
   settingsCard() {
     if (!PUSH.key || !SYNC.cfg) return '';

@@ -490,7 +490,63 @@ med `PREVIEW=1` till `<sajten>/preview/`. Produktionen publiceras som vanligt. M
   (10 kontroller; den gamla raden ger 6 fel).
 - **Rollback:** 3.6.0-bygget.
 
-## 3.6.2 – Påminnelser är en inställning
+## 3.7.0 – Product Learning Loop v1: privata observationer (gren `learning-loop`, bygger på 3.6.1)
+- **Av som standard.** Föräldern slår på det per barn under ⚙ → Observationer. Kortet förklarar:
+  - vad som sparas och vad som aldrig sparas;
+  - att barnet anges med en pseudonym och att det **inte** är anonymt;
+  - att varje parkopplad enhet i familjen kan läsa (det är inget föräldraskydd i molnet);
+  - hur och när rensningen sker.
+- **Inventering först:** se `docs/LEARNING_LOOP.md`. Passposterna (`le.shadow`, 40 pass), bevisloggen och Felboken återanvänds.
+  - Nya händelser bara där inget fanns: pass startat, uppgift inlämnad (med form, hjälp och uppläsning), avslutat eller uttryckligen
+    lämnat, erbjudanden och val efter dagens pass, tekniskt fel (plats och typ).
+  - Okänt utfall härleds och kallas aldrig avbrutet.
+  - Ingen svarstid. Aktiv tid mäts per pass, bara i förgrunden och grovt.
+- **Aldrig från testlägen:** Testa som barnet, förhandsvisningen, testadressen och automatiserade webbläsare registreras aldrig, och
+  lagringen rörs inte. Det prövas i `test_obs.js` och i `test_parent_test_mode_prod.js` med observationer PÅ.
+- **Skild från lärandet:** modulen (`src/05k_obs.js`) lindar in appens funktioner och läser bara.
+  - Profilen är byte för byte densamma med observationer på och av (prövat).
+  - Ett fel i modulen stoppar aldrig ett pass eller synken.
+  - Modulen använder aldrig `Math.random`.
+- **Lagring:**
+  - en begränsad kö på enheten (3 000 händelser och 400 000 tecken; bortfall räknas och syns i exporten);
+  - i molnet små oföränderliga satser (`families/{familj}/obs/{pseudonym}-{enhet}-{sidladdning}{nr}`, en per pseudonym och dag) vid
+    passets slut, aldrig per tryck;
+  - en omsändning läser först satsen och skapar den bara om den saknas; dubbletter tas bort på id.
+  - Id i fri text sparas bara som korta tekniska id, annars som en hash. Uppgifter bär passets starttid, så ingen svarstid går att
+    räkna fram, och den aktiva tiden sparas bara som ett intervall.
+- **Regler:** `match /obs/{doc}` finns i `firestore.rules` och prövas i emulatorn. De är **inte publicerade**. Tills ägaren publicerar dem
+  nekar molnet (403) och allt stannar på enheten.
+- **Lagringstid:** 30 dygn som standard; 14 eller 7 kan väljas.
+  - På enheten rensas vid start och högst en gång i minuten när något registreras.
+  - I molnet rensas när en föräldraenhet öppnar ⚙, exporterar eller raderar, och bara om enheten har hämtat alla barnens profiler.
+    Det finns ingen schemalagd rensning på servern. Exporten tar aldrig med något utanför lagringstiden.
+- **Radera:** på enheten direkt, på andra enheter efter synk och i molnet direkt (eller vid nästa start utan nät; ett senare försök
+  tar aldrig bort nya satser). ”Radera familjens data” och ”Radera barnets data” tar också bort observationerna.
+- **Export:** en JSON-fil per datumintervall, bara när föräldern ber om det.
+  - Den innehåller en sammanfattning per profil med nämnare, förbehåll och valfritt de enskilda händelserna.
+  - Barnen jämförs aldrig med varandra.
+  - Exempel med syntetiska data: `tests/obs_example_export.json`. Analysmallen (A–G) står i `docs/LEARNING_LOOP.md`.
+- **Synk:** `settings.obs` slås ihop fält för fält (`SYNC.mergeObs`): på/av och lagringstid efter sin egen ändringstid, äldsta saltet,
+  senaste raderingen. En enhet med gamla inställningar kan inte slå på igen eller ångra en radering.
+- **Test:** `tests/test_obs.js` (101 kontroller) och emulatorfall för `obs` (skapa, läsa, lista, radera; ändring och omsändning
+  nekas; fel id, fält, `k` och storlek nekas; oinloggade, främlingar och en annan familj nekas). Mutationer av undantagen, samtycket,
+  utgången, förgrundstiden, radering, av-läget, felmeddelandet och omsändningen fångas. Efter den oberoende integritetsgranskningen:
+  sammanslagning av inställningar från en gammal enhet, exporten mot lagringstiden, id i fri text, ingen svarstid, osynkad enhet
+  rensar inte molnet, en senare radering tar inte nya satser, två flikar, bortfall per barn, radering av familjens och barnets data,
+  och att molnrensningen startar en gång från ⚙.
+- **Andra granskningsrundan:**
+  - En ej uppladdad händelse vars pseudonym inte längre har samtycke (barnets data raderad på en annan enhet, barnet borttaget, ett
+    salt som förlorade sammanslagningen) laddas aldrig upp och släpps lokalt.
+  - Id ur familjens egna källor (skoluppgifter, förälderns prov, egna glosdäck) sparas alltid som en kontrollsumma med barnets salt;
+    bara inbyggda färdigheter (`s:`) och de inbyggda paketens kunskapspunkter (`k:`) står i klartext (privata paket hashas).
+  - `se` bär passets starttid och `of`/`sl`/`er` avrundas nedåt till en kvartstimme, så passets exakta längd går inte att räkna ut.
+  - ”Radera familjens data” avbryts, och inget raderas, när observationerna i molnet inte gick att nå eller radera.
+  - Omsändningens ”satsen finns redan”-gren (läsning 200, ingen ny skrivning) prövas nu.
+- **Rättelse som också kom ut i 3.6.1:** ⚙ hämtade påminnelsernas status igen vid varje omritning när dokumentet saknades
+  eller nätet var borta – en ändlös hämta-rita-om-slinga. Hittad av observationstestet.
+- **Rollback:** 3.6.1-bygget. Händelser som redan finns i kön ligger kvar orörda i lagringen. Äldre appar läser dem inte.
+
+## 3.7.1 – Påminnelser är en inställning
 - **Ägarens önskemål:** påminnelsekortet låg på barnens startsidor ("Påminnelser … Bara på den här enheten", "Den här enheten påminner
   just nu föräldern"). Det är en inställning för enheten, inte något för barnet.
 - **Nu:** inget påminnelsekort på barnens startsidor (alla upplevelser). I föräldraläget ⚙ finns "Påminnelser på den här enheten" med
@@ -498,4 +554,4 @@ med `PREVIEW=1` till `<sajten>/preview/`. Produktionen publiceras som vanligt. M
   inget ändras för en enhet som redan har påminnelser på.
 - Utan stöd (t.ex. appen inte på hemskärmen på iPad): hjälptexten står i ⚙, inte på startsidan.
 - **Test:** `tests/test_push_settings.js` (11 kontroller; den gamla koden ger 4 fel).
-- **Rollback:** 3.6.1-bygget.
+- **Rollback:** 3.7.0-bygget.

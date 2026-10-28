@@ -11,7 +11,7 @@ PACKS_DIR="$ROOT/content/packs"; PACK_FILES="$(cd "$PACKS_DIR" 2>/dev/null && LC
 SHA="${BUILD_SHA:-$( { cat "$SRC"/*.js "$SRC"/*.html "$ROOT/VERSION" "$ROOT/sw.js"; for f in $PACK_FILES; do cat "$PACKS_DIR/$f"; done; } | sha256sum | cut -c1-7)}"
 BUILD_ID="v${VERSION} (${SHA})"
 # Ordningen spelar roll: hjälpfunktioner → innehåll → synk/familj/auth/push → appkärnan sist.
-JS="01_math.js 02_content.js 02b_lang.js 02c_so.js 02d_kemi.js 02e_open.js 02g_visual.js 02f_math_more.js 02h_svenska.js 02i_naso.js 02j_math_ak2.js 02k_math_ak2_v2.js 04_sync.js 04a_family.js 04b_auth.js 05_push.js 05a_concepts.js 05d_packs.js 05b_engine2.js 05e_runner.js 05c_shadow.js 05f_content2.js 05h_experience.js 05g_v2app.js 05i_testmode.js 05j_assets.js 03_app.js"
+JS="01_math.js 02_content.js 02b_lang.js 02c_so.js 02d_kemi.js 02e_open.js 02g_visual.js 02f_math_more.js 02h_svenska.js 02i_naso.js 02j_math_ak2.js 02k_math_ak2_v2.js 04_sync.js 04a_family.js 04b_auth.js 05_push.js 05a_concepts.js 05d_packs.js 05b_engine2.js 05e_runner.js 05c_shadow.js 05f_content2.js 05h_experience.js 05g_v2app.js 05i_testmode.js 05j_assets.js 03_app.js 05k_obs.js"
 cd "$SRC"
 for f in $JS 00_head.html 00b_style.html 99_body.html; do [ -f "$f" ] || { echo "saknar $f" >&2; exit 1; }; done
 pack_data() { local pf; echo "const PACK_DATA = ["; for pf in $PACK_FILES; do cat "$PACKS_DIR/$pf"; echo ","; done; echo "];"; }

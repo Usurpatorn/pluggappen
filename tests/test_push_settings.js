@@ -1,4 +1,4 @@
-/* 3.6.2 Påminnelser är en inställning (ägarens önskemål): inget påminnelsekort på barnens startsidor; i ⚙ väljer föräldern vem den här
+/* 3.7.1 Påminnelser är en inställning (ägarens önskemål): inget påminnelsekort på barnens startsidor; i ⚙ väljer föräldern vem den här
    enheten påminner – föräldern eller ett av barnen, högst en. Riktiga appen i jsdom, SYNTETISK familj; push och nät ersätts (inga notiser). */
 'use strict';
 process.env.TZ = 'Europe/Stockholm';

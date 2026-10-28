@@ -1,0 +1,327 @@
+{
+ "schema": 1,
+ "skapad": "2026-10-25",
+ "fran": "2026-10-19",
+ "till": "2026-10-26",
+ "profiler": {
+  "p0123456789ab": {
+   "observationsdagar": 3,
+   "forstaDag": "2026-10-20",
+   "sistaDag": "2026-10-24",
+   "pass": {
+    "started": 3,
+    "completed": 1,
+    "exited": 1,
+    "outcomeUnknown": 1
+   },
+   "passPerLage": {
+    "kor": 1,
+    "flow": 1,
+    "mission": 1
+   },
+   "fortsattning": {
+    "erbjudanden": {
+     "hem": 1,
+     "klar": 1,
+     "ingetAttErbjuda": 0
+    },
+    "valEfterDagensPass": {
+     "flow": 1
+    },
+    "notering": "Ett erbjudande registreras när uppsättningen knappar ändras, inte vid varje visning. Val räknas per tryck."
+   },
+   "uppgifter": {
+    "inlamnade": 8,
+    "visadeMenInteInlamnade": 1,
+    "perAktivitet": {
+     "mc": {
+      "n": 3,
+      "ratt": 2,
+      "hjalp": 0,
+      "upplasning": 0
+     },
+     "free": {
+      "n": 3,
+      "ratt": 1,
+      "hjalp": 1,
+      "upplasning": 0
+     },
+     "sort": {
+      "n": 2,
+      "ratt": 2,
+      "hjalp": 1,
+      "upplasning": 1
+     }
+    }
+   },
+   "felPerKoncept": {
+    "s:forenkla": {
+     "fel": 2,
+     "forsok": 3
+    },
+    "s:multin": {
+     "fel": 1,
+     "forsok": 3
+    }
+   },
+   "malPass": {
+    "h1a2b3c4d5e6f": {
+     "pass": 1,
+     "dagar": 1
+    }
+   },
+   "uppehall": [],
+   "tekniskaFel": {
+    "v2:observe": 1
+   },
+   "aktivTid": {
+    "passPerIntervallMinuter": {
+     "5-15": 1,
+     "<5": 1
+    },
+    "notering": "Bara tid med appen i förgrunden, i grova intervall per pass. Pass där tiden är osäker räknas inte. Ingen tid per uppgift. Säger inget om fokus, förmåga eller motivation."
+   },
+   "versioner": {
+    "app": [
+     "v3.7.0 (exempel)"
+    ],
+    "innehall": [
+     1
+    ]
+   }
+  }
+ },
+ "forbehall": [
+  "Pseudonymt, inte anonymt: den som har appen kan koppla pseudonymen till barnet, och pass-id:t kan kopplas till appens egna passposter.",
+  "Få pass och få dagar: mönster är utforskande, inte bevis.",
+  "Inget i exporten visar orsak, bättre lärande eller motivation.",
+  "Pass utan slut-händelse har okänt utfall (appen stängd, sidan omladdad, enheten avstängd) – de räknas aldrig som avbrutna.",
+  "Bara Learning Engine v2-pass observeras; glosor och klassiska pass syns inte här."
+ ],
+ "analysmall": "Se docs/LEARNING_LOOP.md, avsnitt \"Analysmall\".",
+ "handelser": [
+  {
+   "i": "exdevice-1",
+   "y": "ss",
+   "t": 1792508400,
+   "k": "p0123456789ab",
+   "s": "S1",
+   "m": "kor",
+   "x": "achieve",
+   "po": 0,
+   "n": 6,
+   "b": "v3.7.0 (exempel)",
+   "c": 1
+  },
+  {
+   "i": "exdevice-10",
+   "y": "sl",
+   "t": 1792508400,
+   "k": "p0123456789ab",
+   "w": "klar",
+   "a": "flow",
+   "cd": 1
+  },
+  {
+   "i": "exdevice-8",
+   "y": "se",
+   "t": 1792508400,
+   "k": "p0123456789ab",
+   "s": "S1",
+   "o": "done",
+   "a": 6,
+   "p": 6,
+   "am": "5-15",
+   "tq": "fg"
+  },
+  {
+   "i": "exdevice-9",
+   "y": "of",
+   "t": 1792508400,
+   "k": "p0123456789ab",
+   "w": "klar",
+   "s": "S1",
+   "bt": {
+    "flow": 1
+   }
+  },
+  {
+   "i": "exdevice-2",
+   "y": "it",
+   "t": 1792508400,
+   "k": "p0123456789ab",
+   "s": "S1",
+   "q": 1,
+   "c": "s:multin",
+   "f": "mc",
+   "ok": 0,
+   "h": "n",
+   "r": 0,
+   "x": "f",
+   "v": 0
+  },
+  {
+   "i": "exdevice-3",
+   "y": "it",
+   "t": 1792508400,
+   "k": "p0123456789ab",
+   "s": "S1",
+   "q": 2,
+   "c": "s:forenkla",
+   "f": "free",
+   "ok": 1,
+   "h": "n",
+   "r": 0,
+   "x": "f",
+   "v": 0
+  },
+  {
+   "i": "exdevice-4",
+   "y": "it",
+   "t": 1792508400,
+   "k": "p0123456789ab",
+   "s": "S1",
+   "q": 3,
+   "c": "k:ori8/skala",
+   "f": "sort",
+   "ok": 1,
+   "h": "h",
+   "r": 0,
+   "x": "f",
+   "v": 0
+  },
+  {
+   "i": "exdevice-5",
+   "y": "it",
+   "t": 1792508400,
+   "k": "p0123456789ab",
+   "s": "S1",
+   "q": 4,
+   "c": "s:multin",
+   "f": "mc",
+   "ok": 1,
+   "h": "n",
+   "r": 0,
+   "x": "f",
+   "v": 0
+  },
+  {
+   "i": "exdevice-6",
+   "y": "it",
+   "t": 1792508400,
+   "k": "p0123456789ab",
+   "s": "S1",
+   "q": 5,
+   "c": "s:forenkla",
+   "f": "free",
+   "ok": 0,
+   "h": "n",
+   "r": 0,
+   "x": "f",
+   "v": 0
+  },
+  {
+   "i": "exdevice-7",
+   "y": "it",
+   "t": 1792508400,
+   "k": "p0123456789ab",
+   "s": "S1",
+   "q": 6,
+   "c": "k:ori8/skala",
+   "f": "sort",
+   "ok": 1,
+   "h": "n",
+   "r": 1,
+   "x": "f",
+   "v": 0
+  },
+  {
+   "i": "exdevice-11",
+   "y": "ss",
+   "t": 1792508730,
+   "k": "p0123456789ab",
+   "s": "S2",
+   "m": "flow",
+   "x": "achieve",
+   "po": 0,
+   "n": 4,
+   "b": "v3.7.0 (exempel)",
+   "c": 1
+  },
+  {
+   "i": "exdevice-12",
+   "y": "it",
+   "t": 1792508730,
+   "k": "p0123456789ab",
+   "s": "S2",
+   "q": 1,
+   "c": "s:multin",
+   "f": "mc",
+   "ok": 1,
+   "h": "n",
+   "r": 0,
+   "x": "r",
+   "v": 0
+  },
+  {
+   "i": "exdevice-13",
+   "y": "ss",
+   "t": 1792681200,
+   "k": "p0123456789ab",
+   "s": "S3",
+   "m": "mission",
+   "x": "achieve",
+   "po": 0,
+   "g": "h1a2b3c4d5e6f",
+   "n": 5,
+   "b": "v3.7.0 (exempel)",
+   "c": 1
+  },
+  {
+   "i": "exdevice-15",
+   "y": "se",
+   "t": 1792681200,
+   "k": "p0123456789ab",
+   "s": "S3",
+   "o": "exit",
+   "a": 1,
+   "p": 2,
+   "am": "<5",
+   "tq": "fg"
+  },
+  {
+   "i": "exdevice-14",
+   "y": "it",
+   "t": 1792681200,
+   "k": "p0123456789ab",
+   "s": "S3",
+   "q": 1,
+   "c": "s:forenkla",
+   "f": "free",
+   "ok": 0,
+   "h": "s",
+   "r": 0,
+   "x": "f",
+   "v": 0
+  },
+  {
+   "i": "exdevice-16",
+   "y": "of",
+   "t": 1792854000,
+   "k": "p0123456789ab",
+   "w": "home",
+   "bt": {
+    "flow": 1,
+    "rad": 2
+   }
+  },
+  {
+   "i": "exdevice-17",
+   "y": "er",
+   "t": 1792854000,
+   "k": "p0123456789ab",
+   "w": "v2:observe",
+   "n": "TypeError"
+  }
+ ]
+}
