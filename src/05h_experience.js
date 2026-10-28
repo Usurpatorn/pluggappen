@@ -80,8 +80,8 @@ const EXP = {
     const btns = [];
     if (EXP.canMore(kid)) btns.push(`<button class="btn wide secondary btn-2l" data-v2="ovamer">Öva mer<span class="btn-sub"><span class="sep"> · </span>utan poäng, cirka ${EXP.flowMins(kid)} min</span></button>`);
     // 3.6: samma regel som Kör på raderna i Kommande (EXP.goalPractice) – först målet m, annars nästa kommande mål där träningen gör nytta
-    { const cand = [m, ...EXP.upcoming(kid)].filter((x, i, a) => x && V2.examCidsActive(kid, x.e).length && a.findIndex(y => y && y.e.id === x.e.id) === i); let hit = null, mp = [];
-      for (const x of cand) { const g = EXP.goalPractice(kid, x.e); if (g.mp.length && EXP.useful(g.mp, kid)) { hit = x; mp = g.mp; break; } }
+    { const cand = [m, ...EXP.upcoming(kid).slice(0, EXP.UPCOMING_MAX)].filter((x, i, a) => x && V2.examCidsActive(kid, x.e).length && a.findIndex(y => y && y.e.id === x.e.id) === i); let hit = null, mp = [];
+      for (const x of cand) { const g = EXP.goalPractice(kid, x.e); if (g.ok && EXP.useful(g.mp, kid)) { hit = x; mp = g.mp; break; } }
       if (hit) { m = hit; btns.push(`<button class="btn wide ghost btn-2l" data-v2="mission" data-exam="${esc(m.e.id)}">Öva mer inför ${esc(m.e.title)}<span class="btn-sub"><span class="sep"> · </span>${EXP.practiceOnly(kid, 'mission') ? 'utan poäng, ' : ''}cirka ${EXP.mins(mp, kid)} min</span></button>`); } }
     return btns.join('');
   },
@@ -209,7 +209,12 @@ const EXP = {
   },
   /* 3.6: målets egen träning ("Kör" på en rad i Kommande, "Öva mer inför" efter dygnets extrapass) – EN regel för båda, så att skärmen
      aldrig säger emot sig själv (granskning P2-A): planen för målet, och efter dygnets belönade extrapass bara när den gör nytta. */
-  goalPractice(kid, e, C, now) { const mp = EXP.safe(() => V2.plan(kid, 'mission', C || LE.state(kid), now || LE.now(), null, { examId: e.id }), 'goalPeek', []); const po = EXP.on(kid) && EXP.practiceOnly(kid, 'mission'); return { mp, po, ok: mp.length > 0 && (!po || EXP.useful(mp, kid)) }; },
+  // Efter dagens pass (granskning P1-B): bara när det gör nytta, och inte alls när motorn inte ger något extrapass idag (t.ex. kvällen före ett
+  // prov) – då säger startkortet "Allt för idag är gjort … inget mer som gör nytta", och raderna säger samma sak.
+  goalPractice(kid, e, C, now) { const mp = EXP.safe(() => V2.plan(kid, 'mission', C || LE.state(kid), now || LE.now(), null, { examId: e.id }), 'goalPeek', []); const p = prof(kid.id);
+    const po = EXP.on(kid) && EXP.practiceOnly(kid, 'mission'); const done = EXP.on(kid) && EXP.coreDone(p); const rest = EXP.flowsToday(p) >= EXP.FLOW_MAX || EXP.extraDone(p) >= EXP.FLOW_MAX;
+    const blocked = done && !rest && !po && !EXP.canFlow(kid); const needUseful = po || done;
+    return { mp, po, ok: mp.length > 0 && !blocked && (!needUseful || EXP.useful(mp, kid)) }; },
   /* 3.6 Kommande: barnet ser alla sina kommande prov och läxor på en gång (ägarens önskemål) – i datumordning, med "om X dagar".
      Bara barnets egna mål (samma LE.exams som planen), inget om resultat, inga betyg, ingen jämförelse. Visas bara när det finns något. */
   UPCOMING_DAYS: 60, UPCOMING_MAX: 6,
@@ -232,7 +237,7 @@ const EXP = {
     const foot = !can || !withC || !plan.length ? '' : !inPlan ? `${pre} övar annat. Kör på en rad övar bara det målet.`
       : inPlan === all.length ? `${pre} övar inför ${inPlan > 1 ? 'alla de här' : 'det här'}.`
       : `${pre} övar inför ${inPlan > 1 ? `${inPlan} av dem` : 'ett av dem'}. Kör på en rad övar bara det målet.`;
-    /* 3.7 Kör och Testa mig per mål (ägarens önskemål): "Kör" övar bara det målet – samma läge som "Öva inför provet" (V2.plan 'mission':
+    /* 3.6 Kör och Testa mig per mål (ägarens önskemål): "Kör" övar bara det målet – samma läge som "Öva inför provet" (V2.plan 'mission':
        bara målets koncept, dygnets gräns för nytt, räknas som ett av dygnets extrapass, utan poäng efter dygnets tak). "Testa mig" prövar
        om det sitter – samma prov som i "Läget inför" (en belönad omgång per dygn). Inga knappar före första synken eller för mål utan
        innehåll i appen; när inget av målet går att öva just nu säger raden det i stället för en knapp som inte gör något. */
@@ -247,13 +252,13 @@ const EXP = {
       const sum = thin ? 'för lite underlag ännu' : [['Bra koll', 'bra koll'], ['Öva lite mer', 'öva lite mer'], ['För lite underlag', 'för lite underlag']].filter(([r]) => cnt(r)).map(([r, t]) => `${cnt(r)} ${t}`).join(' · ');
       return `<details class="up-state" data-goal="${esc(e.id)}"><summary><b>Läget</b> <span class="up-sum">· ${sum}</span></summary>${thin ? '<p class="muted" style="margin:6px 0 0;font-size:.9rem">Kör några pass så syns det här vad som sitter.</p>' : `<div class="stack" style="gap:6px;margin-top:6px">${per.slice(0, 8).map(x => `<div class="row" style="justify-content:space-between;gap:8px"><span>${esc(x.name)}</span><span class="pill ${V2.READY_CLS[x.ready]}" style="font-size:.75rem">${V2.READY_TXT[x.ready]}</span></div>`).join('')}</div>`}</details>`; };
     let anyState = false;
-    const rows = all.slice(0, EXP.UPCOMING_MAX).map(({ e, d }) => { const k = kindOf(e); const sh = state(e); if (sh) anyState = true; return `<li class="up-row${d <= 3 ? ' soon' : ''}"><span class="up-kind k-${k === 'Prov' ? 'ex' : 'hw'}">${k}</span><span class="up-title">${esc(e.title)}</span><span class="up-when"><span class="nw">${esc(fmtDate(e.date))}</span> · <b class="nw">${rel(d)}</b>${has(e) ? '' : ' · inte inlagt i appen ännu'}</span>${acts(e)}${sh}</li>`; }).join('');
+    const rows = all.slice(0, EXP.UPCOMING_MAX).map(({ e, d }) => { const k = kindOf(e); const sh = state(e); if (sh) anyState = true; return `<li class="up-row${d <= 3 ? ' soon' : ''}" data-row="${esc(e.id)}"><span class="up-kind k-${k === 'Prov' ? 'ex' : 'hw'}">${k}</span><span class="up-title">${esc(e.title)}</span><span class="up-when"><span class="nw">${esc(fmtDate(e.date))}</span> · <b class="nw">${rel(d)}</b>${has(e) ? '' : ' · inte inlagt i appen ännu'}</span>${acts(e)}${sh}</li>`; }).join('');
     const more = all.length > EXP.UPCOMING_MAX ? `<div class="muted" style="font-size:.9rem">och ${all.length - EXP.UPCOMING_MAX} till längre fram</div>` : '';
     return `<section class="card upcoming stack" aria-label="Kommande prov och läxor"><div class="eyebrow">KOMMANDE PROV OCH LÄXOR</div><ul class="up-list" role="list">${rows}</ul>${more}${foot ? `<div class="muted" style="font-size:.9rem">${foot}</div>` : ''}${anyState ? '<div class="muted" style="font-size:.85rem">Lägena bygger på hur det gått hittills – de säger inget om provresultatet.</div>' : ''}</section>`;
   },
   // Läget per område – hopfällt, med motorns tre lägen (aldrig procent). Testa mig är en sekundär knapp här.
   // 3.6: kortet Kommande visar läget för varje mål – då behövs inte det separata kortet för samma mål
-  goalDetailUnless(kid, m, html) { return m && html && html.includes(`data-goal="${esc(m.e.id)}"`) ? '' : EXP.goalDetail(kid, m); },
+  goalDetailUnless(kid, m, html) { return m && html && html.includes(`data-row="${esc(m.e.id)}"`) ? '' : EXP.goalDetail(kid, m); },   // målet har en rad i kortet (med läge, eller "inte inlagt") – inget separat kort
   goalDetail(kid, m) {
     if (!m) return '';
     const C = LE.state(kid); const st = V2.examStatus(kid, m.e, C, LE.now()); const per = EXP.goalAreas(kid, m.e, C) || st.per;

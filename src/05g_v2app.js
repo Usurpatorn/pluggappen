@@ -75,7 +75,9 @@ const V2 = {
     const g = mapped[0] || null;
     const head = pl.scopeEmpty === 'idle' ? 'INGET ATT ÖVA IDAG' : unm.length ? `${esc(T(unm[0].e).toUpperCase())} · INTE INLAGT ÄNNU` : 'INGA PROV ELLER LÄXOR JUST NU';
     const txt = pl.scopeEmpty === 'idle' ? `Allt inför ${esc(T(g && g.e))} är övat för idag. Kom tillbaka imorgon.`
-      : unm.length ? `${kindOf(unm[0].e)} områden är inte inlagda i appen ännu. När de läggs in börjar Kör! med dem.` : 'Kör! tränar bara inlagda prov och läxor. När något läggs in börjar du här.';
+      : unm.length ? `${kindOf(unm[0].e)} områden är inte inlagda i appen ännu. När de läggs in börjar Kör! med dem.`
+      : LE.exams(kid, p).some(e => { const d = daysUntil(e.date); return d > V2.MISSION_DAYS && d <= 60 && V2.examCidsActive(kid, e).length; }) ? 'Kör! börjar öva inför ett prov eller en läxa fyra veckor före. Vill du börja redan nu: tryck Kör på raden under Kommande prov och läxor.'   // 3.6: samma besked som raderna i Kommande
+      : 'Kör! tränar bara inlagda prov och läxor. När något läggs in börjar du här.';
     const more = pl.scopeEmpty === 'idle' && unm.length ? `<div class="muted" style="font-size:.9rem">${unm.map(x => esc(T(x.e))).join(', ')}: områdena är inte inlagda i appen ännu.</div>` : '';
     return `<section class="card pad-lg mission stack" aria-label="${esc(head)}"><div class="eyebrow">${head}</div><div style="font-size:1rem">${txt}</div>${more}${g ? `<button class="btn ghost wide" data-v2="testa" data-exam="${esc(g.e.id)}">Testa mig</button>` : ''}</section>`;
   },
@@ -170,7 +172,7 @@ const V2 = {
       // 3.6 rättelse (dygnets gräns för nytt): motorn kan planera ett aldrig sett provkoncept som "fokus" (provet närmar sig) trots att
       // dygnets gräns för nytt är nådd. Provträningen tar därför in högst så många nya koncept som gränsen tillåter – resten väntar till imorgon.
       const capN = V2.newCapToday(C, now, EXP.on(kid) ? p : null); const fresh = new Set();
-      const plan = plan0.filter(s => set.has(s.cid)).filter(s => { const c = C.L.c[s.cid]; if (c && c.fs) return true; if (fresh.has(s.cid)) return true; if (fresh.size < capN) { fresh.add(s.cid); return true; } return false; });
+      const plan = plan0.filter(s => set.has(s.cid)).filter(s => { const c = C.L.c[s.cid]; if ((C.cat[s.cid] || {}).kind === 'deck' || (c && (c.fs || c.n > 0))) return true;   /* sett = som V2.newToday och motorn (n > 0; v1-migrerade har inget fs); glosdäck räknas inte in i gränsen */ if (fresh.has(s.cid)) return true; if (fresh.size < capN) { fresh.add(s.cid); return true; } return false; });
       if (!plan.some(s => s.role !== 'boss')) return [];
       Object.assign(plan, { light: plan0.light, restart: plan0.restart, maxItems: plan0.maxItems, maxNew: plan0.maxNew, examDays: plan0.examDays, only: set, examId: e.id }); return plan; }
     if (mode === 'readclose') { const cids = LE.cidsOfSkill(C, extra.skillId); if (!cids.length) return []; const start = Math.floor(Math.random() * cids.length); const plan = [0, 1, 2].map(i => ({ cid: cids[(start + i) % cids.length], role: 'readclose', why: 'läst, stängt – minns du?' })); plan.maxItems = 3; return plan; }

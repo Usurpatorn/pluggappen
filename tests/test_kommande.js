@@ -78,7 +78,7 @@ const rows = (T) => [...T.$('#app').querySelectorAll('.upcoming .up-row')].map(l
       ok(footCheck(b.T, 'k8'), `idag + imorgon: foten stämmer med planen (${card(b.T).textContent.replace(/\s+/g, ' ').slice(-80)})`); }
     { const c8 = { ...CONTENT, work: [{ id: 'a1', kid: 'k8', type: 'exam', title: 'Algebraprov', date: isoIn(8), skills: ['multin', 'forenkla', 'blandat'] }] };
       const b = await boot(c8); openKid(b.T, 'k8'); ok(/Dagens pass övar inför det här\./.test(card(b.T).textContent) && footCheck(b.T, 'k8'), `ett prov om 8 dygn i dagens plan: "övar inför det här" (${card(b.T).textContent.replace(/\s+/g, ' ').slice(-80)})`);
-      // 3.7: Kör och Testa mig per mål – startar målets egen träning respektive Testa mig för just det målet
+      // 3.6: Kör och Testa mig per mål – startar målets egen träning respektive Testa mig för just det målet
       const go = b.T.$('.upcoming [data-v2="mission"][data-exam="w:a1"]'); const te = b.T.$('.upcoming [data-v2="testa"][data-exam="w:a1"]');
       ok(go && /^Kör/.test(go.textContent.trim()) && /min/.test(go.textContent) && te && /Testa mig/.test(te.textContent), 'raden har Kör (med minuter) och Testa mig');
       ok(go && /^Kör bara Algebraprov/.test(go.getAttribute('aria-label') || '') && /^Testa mig på Algebraprov/.test(te.getAttribute('aria-label') || ''), 'knapparnas namn börjar med den synliga texten och säger målet');
@@ -160,6 +160,55 @@ const rows = (T) => [...T.$('#app').querySelectorAll('.upcoming .up-row')].map(l
         ok(row ? !!top && !none : true, `steg ${n}: en rad erbjuder Kör – startkortet erbjuder också övning och säger inte "inget mer" (${top ? top.textContent.trim().slice(0, 40) : 'ingen'})`);
         if (!top) break; click(top); D.run(() => false); n++; openKid(T2, 'k8'); }
       ok(n < 8 && !$('[data-v2="mission"]') && /inget mer som gör nytta/i.test($('#app').textContent), `till slut: inget mer någonstans, samma besked (${n} block)`); }
+    // Granskning P1-A: "aldrig sett" i provträningens spärr för nytt = som V2.newToday (n > 0 eller fs; glosdäck räknas inte) –
+    // ett glosförhör och v1-migrerade koncept får sin träning även när dygnets gräns är nådd
+    { const b = await boot(null); const PA = b.T.PA(); const p = PA.DB.profiles.k8; const kid = PA.KIDS.find(k => k.id === 'k8'); const dk = (p.enabledDecks || [])[0];
+      p.exams = [{ id: 'gl', title: 'Glosförhör', date: isoIn(6), skillIds: [], deckIds: [dk], weight: 'minor' }]; PA.save(); PA.LE.invalidate('k8'); const { v2tools } = require('./le/v2driver.js'); const D = v2tools(b.w, b.T);
+      for (let d = 0; d < 2; d++) { openKid(b.T, 'k8'); b.T.click(b.T.$('.go-btn[data-v2="kor"]')); D.run(() => false); PA.V2.start(kid, 'mission', { examId: 'gl' }); if (PA.S && PA.S.v2) D.run(() => false); b.w.__advance(DAY); }
+      const C = PA.LE.state(kid); const orig = PA.V2.newCapToday; PA.V2.newCapToday = () => 0; const pl = PA.V2.plan(kid, 'mission', C, PA.LE.now(), null, { examId: 'gl' }); PA.V2.newCapToday = orig;
+      ok(pl.length > 0 && pl.some(x => x.cid === 'd:' + dk), `glosförhör: glosorna övas även när dygnets gräns för nytt är nådd (${pl.map(x => x.role + ':' + x.cid).join(' ')})`);
+      openKid(b.T, 'k8'); const sum = (b.T.$('.upcoming details.up-state summary') || {}).textContent || '';
+      ok(/\d+ öva lite mer/.test(sum) || /\d+ bra koll/.test(sum), `Läget räknar lägena när det finns underlag (${sum.trim()})`); }
+    { const b = await boot({ ...CONTENT, work: [{ id: 'mg', kid: 'k8', type: 'exam', title: 'Algebraprov', date: isoIn(12), skills: ['multin', 'forenkla', 'blandat'] }] }); const PA = b.T.PA(); const p = PA.DB.profiles.k8; const kid = PA.KIDS.find(k => k.id === 'k8');
+      delete p.le; p.skills = p.skills || {}; for (const sk of ['multin', 'forenkla', 'blandat']) p.skills[sk] = { lvl: 2, att: 12, cor: 10, m: 80, last: b.w.Date.now() - 5 * DAY }; PA.save(); PA.LE.invalidate('k8');
+      const C = PA.LE.state(kid); const migr = Object.entries(C.L.c).filter(([c, x]) => x.n > 0 && !x.fs).map(([c]) => c);
+      const base = (cap) => { const o = PA.V2.newCapToday; PA.V2.newCapToday = () => cap; const r = PA.V2.plan(kid, 'mission', C, PA.LE.now(), null, { examId: 'w:mg' }); PA.V2.newCapToday = o; return r; };
+      const p0 = base(0); ok(migr.length > 0 && p0.length > 0 && p0.every(x => migr.includes(x.cid) || (C.L.c[x.cid] && C.L.c[x.cid].fs)), `v1-migrerade koncept räknas som sedda: provträningen finns även vid nådd gräns (${p0.length} platser, ${migr.length} migrerade)`); }
+    // Granskning P1-B: kvällen före ett prov ger motorn inget extrapass – då ingen Kör på raden heller, inga belöningar för upprepning, samma besked
+    { const b = await boot({ ...CONTENT, work: [{ id: 'e1', kid: 'k8', type: 'exam', title: 'Algebraprov', date: isoIn(4), skills: ['multin', 'forenkla', 'blandat'] }] }); const PA = b.T.PA(); const kid = PA.KIDS.find(k => k.id === 'k8'); const p = PA.DB.profiles.k8;
+      const { v2tools } = require('./le/v2driver.js'); const D = v2tools(b.w, b.T);
+      for (let d = 0; d < 3; d++) { openKid(b.T, 'k8'); b.T.click(b.T.$('.go-btn[data-v2="kor"]')); D.run(() => D.log.items % 3 === 0); b.w.__advance(DAY); }
+      openKid(b.T, 'k8'); b.T.click(b.T.$('.go-btn[data-v2="kor"]')); D.run(() => false); openKid(b.T, 'k8');
+      const none = /inget mer som gör nytta att öva i appen idag/i.test(b.T.$('#app').textContent); const row = b.T.$('.upcoming [data-v2="mission"]');
+      ok(!(none && row), `kvällen före: startkortet och raderna säger samma sak (inget mer: ${none}, Kör på raden: ${!!row})`);
+      if (!PA.EXP.canFlow(kid)) ok(!row && /Inget mer som gör nytta idag/.test(card(b.T).textContent), 'inget extrapass idag: ingen Kör på raden, ärlig text'); }
+    // ... också när målets träning skulle göra nytta (allt fel i dagens pass): inget extrapass idag betyder ingen Kör på raden
+    { const b = await boot({ ...CONTENT, work: [{ id: 'e2', kid: 'k8', type: 'exam', title: 'Algebraprov', date: isoIn(4), skills: ['multin', 'forenkla', 'blandat'] }] }); const PA = b.T.PA(); const kid = PA.KIDS.find(k => k.id === 'k8');
+      const { v2tools } = require('./le/v2driver.js'); const D = v2tools(b.w, b.T);
+      for (let d = 0; d < 3; d++) { openKid(b.T, 'k8'); b.T.click(b.T.$('.go-btn[data-v2="kor"]')); D.run(() => D.log.items % 3 === 0); b.w.__advance(DAY); }
+      openKid(b.T, 'k8'); b.T.click(b.T.$('.go-btn[data-v2="kor"]')); D.run(() => true); openKid(b.T, 'k8');
+      const mp = PA.V2.plan(kid, 'mission', PA.LE.state(kid), PA.LE.now(), null, { examId: 'w:e2' }); const row = b.T.$('.upcoming [data-v2="mission"]'); const none = /inget mer som gör nytta att öva i appen idag/i.test(b.T.$('#app').textContent);
+      ok(!PA.EXP.canFlow(kid) && mp.length && PA.EXP.useful(mp, kid), `förutsättning: inget extrapass idag men målets träning skulle göra nytta (canFlow ${PA.EXP.canFlow(kid)}, plan ${mp.length})`);
+      ok(!row && !(none && row), `kvällen före, fel kvar: ingen Kör på raden – samma besked som startkortet (Kör: ${!!row})`); }
+    // Efter dagens pass med extrapass kvar: Kör på raden bara när målets träning gör nytta (ingen belönad upprepning). EXP.useful styrs här
+    // för att pröva just regeln: före dagens pass påverkar den inte raderna, efter dagens pass tar den bort Kör
+    { const b = await boot({ ...CONTENT, work: [{ id: 'u1', kid: 'k8', type: 'exam', title: 'Algebraprov', date: isoIn(10), skills: ['multin', 'forenkla', 'blandat'] }, { id: 'u2', kid: 'k8', type: 'exam', title: 'Kemiprov', date: isoIn(14), kps: ['k:kemi8-syror-baser/ph-skalan', 'k:kemi8-syror-baser/indikatorer'] }] });
+      const PA = b.T.PA(); const kid = PA.KIDS.find(k => k.id === 'k8'); const { v2tools } = require('./le/v2driver.js'); const D = v2tools(b.w, b.T); const u0 = PA.EXP.useful;
+      openKid(b.T, 'k8'); PA.EXP.useful = () => false; PA.rerender(); openKid(b.T, 'k8'); const before = b.T.$('#app').querySelectorAll('.upcoming [data-v2="mission"]').length; PA.EXP.useful = u0;
+      b.T.click(b.T.$('.go-btn[data-v2="kor"]')); D.run(() => false); openKid(b.T, 'k8'); const flow = PA.EXP.canFlow(kid);
+      PA.EXP.useful = () => false; openKid(b.T, 'k8'); const after = b.T.$('#app').querySelectorAll('.upcoming [data-v2="mission"]').length; const txtA = card(b.T).textContent; PA.EXP.useful = u0;
+      ok(before > 0, `före dagens pass: Kör på raderna som "Öva inför provet" (${before})`);
+      ok(PA.EXP.coreDone(PA.DB.profiles.k8) && after === 0 && /Inget mer som gör nytta idag/.test(txtA), `efter dagens pass (extrapass kvar: ${flow}): ingen Kör när träningen inte gör nytta (${after})`); }
+    // Granskning P2-C: "Bara prov och läxor" med ett mål längre bort än fyra veckor – startkortet och raden säger samma sak
+    { const b = await boot({ ...CONTENT, work: [{ id: 'far', kid: 'k8', type: 'exam', title: 'Prov långt fram', date: isoIn(40), skills: ['multin'] }] }); const p = b.T.PA().DB.profiles.k8;
+      p.settings.scope = 'exams'; p.settings.scopeAt = b.w.Date.now(); b.T.PA().save(); openKid(b.T, 'k8'); const t = b.T.$('#app').textContent.replace(/\s+/g, ' ');
+      ok(!b.T.$('.upcoming [data-v2="mission"]') || /fyra veckor före/.test(t) && /Kör på raden/.test(t), `Bara prov och läxor: startkortet förklarar att man kan börja med Kör på raden (${t.slice(0, 160)})`); }
+    // Granskning P3-1: grow – inget separat "Läget inför" för ett mål som redan har en rad (även "inte inlagt")
+    { const b = await boot({ ...CONTENT, work: [{ id: 'g46', kid: 'k4', type: 'vocab', title: 'Glosor v46', date: isoIn(3) }] }); openKid(b.T, 'k4');
+      ok(card(b.T) && !b.T.$('details.goal-detail'), 'grow: målet har en rad i Kommande – inget separat "Läget inför"'); }
+    // Granskning P3-2: Testa mig-knappens data-exam tvättas
+    { const b = await boot(null); b.T.PA().DB.profiles.k8.exams = [{ id: 'q"x', title: 'Prov', date: isoIn(10), skillIds: ['multin'], deckIds: [] }]; b.T.PA().save(); b.T.PA().LE.invalidate('k8'); openKid(b.T, 'k8');
+      const te = card(b.T) && card(b.T).querySelector('[data-v2="testa"]'); ok(te && te.dataset.exam === 'q"x', `data-exam med citattecken tvättas (${te && te.dataset.exam})`); }
     void w;
   } catch (e) { fails++; console.log('FAIL undantag', e && e.stack || e); }
   console.log(`\n${checks} kontroller, ${fails} fel`); console.log(fails ? 'KOMMANDE TEST FAILED' : 'KOMMANDE TEST OK'); process.exit(fails ? 1 : 0);
