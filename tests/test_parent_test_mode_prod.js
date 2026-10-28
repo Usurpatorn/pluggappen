@@ -153,7 +153,10 @@ const fsRequests = (cloud, from, dev) => cloud.log.slice(from).filter(x => x.dev
       P.PA.save(); P.PA.SYNC.schedulePush('k8'); await P.PA.SYNC.refreshAll(); P.document.dispatchEvent(new P.Event('visibilitychange')); P.dispatchEvent(new P.Event('offline')); P.dispatchEvent(new P.Event('online')); await sleep(1700);
       ok(fsRequests(cloud, logTm, 'parent').length === 0, `Åttan: förälderns enhet skickade ingenting under testet (${fsRequests(cloud, logTm, 'parent').length})`);
       ok(same(allStored(P), all0), 'Åttan: lagrad data på förälderns enhet oförändrad under testet');
-      ok(P.PA.DB.profiles.k8.settings.obs && P.PA.DB.profiles.k8.settings.obs.on === true && !(P.OBS.q && P.OBS.q.ev.length) && !cloud.log.slice(logTm).some(x => /\/obs/.test(x.path || '')), 'Åttan: observationer på – ändå inga händelser i testläget och inget till observationslagringen');
+      { const o = P.PA.DB.profiles.k8.settings.obs; const nq = P.OBS.q ? P.OBS.q.ev.length : 0; const obsReq = cloud.log.slice(logTm).filter(x => /\/obs|documents:commit/.test(x.path || '') && x.dev === 'parent');
+        ok(!!(o && o.on === true), `Åttan: förutsättning – observationer PÅ har synkats till förälderns enhet (${JSON.stringify(o && { on: o.on })})`);
+        ok(nq === 0, `Åttan: inga observationshändelser i testläget (${nq}: ${P.OBS.q ? P.OBS.q.ev.map(e => e.y).join(',') : '-'})`);
+        ok(!obsReq.some(x => /\/obs/.test(x.path || '')), `Åttan: inget till observationslagringen under testet (${obsReq.map(x => x.method + ' ' + x.path).slice(0, 3).join(' | ')})`); }
       ok(P.PA.DB.profiles.k8.xp > xp0 && hasTestDev(JSON.stringify(P.PA.DB.profiles.k8.le)), 'Åttan: testet ändrade bara kopian (XP och ~t-bevis i minnet)');
       const { P2, reloaded, hash } = await exitProd(P, cloud, 42);
       ok(reloaded && hash === '#foralder-tm1' && P2.document.querySelector('[data-pin]') && /Inget från testet sparades/.test(P2.document.body.textContent), 'Avsluta: kontroll byte för byte, omladdning, föräldraläget med beskedet');
