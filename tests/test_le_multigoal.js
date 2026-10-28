@@ -118,10 +118,11 @@ const iso = (t) => new Date(t).toISOString().slice(0, 10);
     ok(C2['mg-alg'].intro >= 6.9 && C2['mg-kemi'].intro >= 12.0, `utan förhöret som förut (algebra ${f(C2['mg-alg'].intro)}, kemi ${f(C2['mg-kemi'].intro)})`);
     for (const [id, x] of Object.entries(T3)) { ok(x.del >= 0.85 * x.intro, `${id}: introducerat övas igen ett senare dygn före datum (${f(x.del)} av ${f(x.intro)})`); ok(x.gap < 5, `${id}: inget uppehåll på fem dygn de sista två veckorna (${x.gap})`); }
     ok(three.maxNewDay <= 4, `högst fyra nya koncept samma dygn (${three.maxNewDay})`);
-    /* 3. Hemmets rubrik = det dagens plan tränar mest */
-    let checked = 0, wrong = 0; const titleOf = { 'LÄXFÖRHÖR SVENSKA': 'mg-quiz', 'ALGEBRAPROV': 'mg-alg', 'KEMIPROV': 'mg-kemi' };
-    for (const h of three.heads) { const shares = Object.entries(h.planNB || {}).filter(([k]) => h.live.includes(k)); /* bara mål som inte passerat; Bossen räknas inte (väljs om under passet) */ if (!shares.length || !h.gt) continue; const top = Math.max(...shares.map(x => x[1])); const tops = shares.filter(x => x[1] === top).map(x => x[0]); if (tops.length !== 1) continue; checked++; if (titleOf[h.gt] !== tops[0]) wrong++; }
-    ok(checked > 40 && wrong === 0, `hemmets rubrik följer dagens plan (${checked} dygn prövade, ${wrong} fel)`);
+    /* 3. 3.6.1 (ägarens beslut): NÄSTA DEADLINE = det närmaste målet; dagens plans rubrik är aldrig ett mål (den är passets ämnen) */
+    let checked = 0, wrong = 0, titled = 0; const titleOf = { 'LÄXFÖRHÖR SVENSKA': 'mg-quiz', 'ALGEBRAPROV': 'mg-alg', 'KEMIPROV': 'mg-kemi' };
+    for (const h of three.heads) { if (titleOf[h.gt]) titled++; if (!h.near || h.near.length !== 1 || !h.dl) continue; checked++; if (titleOf[h.dl.toUpperCase()] !== h.near[0]) wrong++; }
+    ok(checked > 40 && wrong === 0, `NÄSTA DEADLINE är det närmaste målet (${checked} dygn prövade, ${wrong} fel)`);
+    ok(titled === 0, `dagens plans rubrik är aldrig ett mål (${titled})`);
   } catch (e) { fails++; console.log('FAIL undantag', e && e.stack || e); }
   console.log(`\n${checks} kontroller, ${fails} fel`); console.log(fails ? 'LE MULTIGOAL TEST FAILED' : 'LE MULTIGOAL TEST OK'); process.exit(fails ? 1 : 0);
 })();

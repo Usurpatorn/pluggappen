@@ -54,7 +54,9 @@ async function simulate(opts = {}) {
     open(); const card = $('.mission'); const eb = card ? String((card.querySelector('.eyebrow') || {}).textContent || '').trim() : ''; const gt = card ? String((card.querySelector('.goal-title') || {}).textContent || '').trim() : '';
     const train = card ? [...card.querySelectorAll('.train li')].map(li => li.textContent.replace(/\s+/g, ' ').trim()) : [];
     const plan = PA().V2.safe(() => PA().V2.peekPlan(kid()).plan, 'sim', []) || []; const pg = {}, pgNB = {}; for (const s of plan) { const gl = goalOf(s.cid, sets); pg[gl] = (pg[gl] || 0) + 1; if (s.role !== 'boss') for (const id of gl.split('+')) pgNB[id] = (pgNB[id] || 0) + 1; }   // pgNB: per mål utan Bossen (som hemmets examShare), gemensamma koncept räknas för båda
-    R.headlines.push({ date, eb, gt, train, plan: pg, planNB: pgNB, live: goals.filter(g => g.date >= date).map(g => g.id), maxNew: plan.maxNew, examDays: plan.examDays });
+    const dl = card ? String(((card.querySelector('.deadline .dl-line b') || {}).textContent) || '').trim() : '';   // 3.6.1: NÄSTA DEADLINE
+    const liveG = goals.filter(g => g.date >= date); const dMin = liveG.length ? liveG.map(g => g.date).sort()[0] : null;
+    R.headlines.push({ date, eb, gt, dl, near: liveG.filter(g => g.date === dMin).map(g => g.id), train, plan: pg, planNB: pgNB, live: liveG.map(g => g.id), maxNew: plan.maxNew, examDays: plan.examDays });
     const st0 = {}; for (const [c, v] of Object.entries(PA().LE.state(kid()).L.c)) st0[c] = v.st;   // dygnets början: för samma-dygnsmåttet
     const blocks = opts.attend ? opts.attend(d, date) : 1; const before = Object.keys(R.first).length; const xp0 = p().xp, gems0 = p().gems; const pb0 = R.practiceBlocks;
     if (blocks > 0) { const kor = $('.go-btn[data-v2="kor"]') || $('[data-v2="kor"]'); if (kor) { click(kor); R.sessions++; play(sets); }
