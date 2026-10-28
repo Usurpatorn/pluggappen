@@ -55,6 +55,7 @@ const suites = [
   ['3.3 slutpasset: ett tryck = svar vid flerval, knappsatsen under Svara, en etikett per läge, KLAR som ett ögonblick, föräldraläget i två spalter', 'test_ux33_final.js'],
   ['3.3 fas A: "vilket är fel?" lär aldrig ut att något sant är falskt, Testa mig välj + Svara, uppläsning av återkoppling, ingen syskonjämförelse', 'test_fase_a.js'],
   ['3.4 flera mål: bara ett större mål bromsar nytt, förälderns storlek, målrättvisa, rubrik = planen, mål och täckning för föräldern', 'test_le_multigoal.js'],
+  ['3.4 Öva mer: lärandet fortsätter efter dygnets belöningar – utan poäng, utan autostart, dygnets gräns för nytt, inom målet, två enheter', 'test_ova_mer.js'],
 ];
 let failed = 0; const rows = [];
 for (const [name, file, opts = {}] of suites) {

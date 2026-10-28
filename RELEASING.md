@@ -301,3 +301,38 @@ med `PREVIEW=1` till `<sajten>/preview/`. Produktionen publiceras som vanligt. M
   - ett koncept som planen tar två gånger räknas två gånger mot gränsen (som i 3.3), vilket ger något färre nya än gränsen.
 - **Rollback:** 3.3-bygget. Det tillagda fältet `weight` på prov ignoreras av äldre versioner, som då räknar alla mål som större
   (beteendet före 3.4). Inget annat i profilen ändras.
+
+## 3.4.0 (del 2) – Öva mer: belöningar har tak, lärandet inte (gren `le-more`, bygger på `le-multigoal`)
+- **Efter dygnets belönade extrablock** visar hemmet och KLAR först "Bra jobbat idag! Det du har övat sätter sig bäst om du vilar
+  nu." Extrablocken är FLOW och provträning tillsammans, högst `FLOW_MAX` = 3. Därefter kan barnet frivilligt välja:
+  - **Öva mer**: samma plan som FLOW och dygnets gräns för nytt;
+  - **Öva mer inför <mål>**: provträning som alltid håller sig inom målet, också Boss, Rescue och omförsök.
+
+  Båda märks "utan poäng" och erbjuds **bara när planen gör nytta**: något nytt inom dygnets gräns, något som inte blivit rätt idag,
+  en Utmaning, eller något som fortfarande lärs in (stadium ≤ 1) och har färre än tre rätt idag. "Rätt idag" räknas ur bevisen, inte
+  ur `lastOk`, som bara sätts vid kvalificerande svar. Utan det kunde samma block erbjudas gång på gång (andra granskningen). Annars visar appen ärligt "Det finns
+  inget mer som gör nytta att öva i appen idag …" och en befintlig resurs om målet har en. Ingen utfyllnad.
+- **Utan poäng, vid källan:** under ett övningsblock (`S.v2.po`) ger svaren inga XP, och dagens uppdrag, svitbonusen, Utmaningens
+  XP, motorns belöningar, märken och felfritt pass räknas inte. Spärren gäller bara i övningsskärmen och slutar när blocket är slut
+  (`V.ended`). Ett avbrutet block spärrar alltså inte senare.
+  - Ingenting återställs i efterhand. Första versionen återställde allt till blockets start vid varje sparning, vilket enligt den
+    oberoende granskningen kunde ge gratis köp, sudda ut belöningar från en annan enhet och ångra en nollställning.
+  - Motorns belöningsliggare förbrukas inte.
+- **Testa mig:** dagens första omgång ger poäng. Följande omgångar samma dygn är utan poäng, och resultatet säger det.
+- **Lärandet:** svaren blir bevis som vanligt, och fel hanteras med Felboken och motorns sänkning. Motorns regler gäller: högst ett
+  stadiesteg per dygn, flerval samma dygn räknas inte två gånger, och kalibreringen tar inte med samma dygn. Passposten är
+  `po:1` (`m:'more'` eller `'mission'`).
+- **Ingen autostart och tydlig slutpunkt:** "Klar för idag" efter varje block. Prövat med riktig väntan.
+- **Två enheter offline:** Öva mer ger inga XP- eller diamantdelta. Efter sammanslagning finns bara de belönade blocken, och båda
+  enheternas övningsposter finns kvar.
+- **Simulering** (`tests/le/matrix.js`, långa pass med KÖR, 3 FLOW och 2 Öva mer varje dygn): se programrapporten. Samma-dygnssteg
+  0, och dygnets gräns för nytt håller.
+- **Tester och mutationer:** `tests/test_ova_mer.js` (101 kontroller) täcker k8, k4 och k2, två enheter, köp, synk och uppdrag efter
+  ett block, gemensam gräns för extrablock, Testa mig och ärligt slut. Granskarens och egna mutationer fångas, utom räknaren för felfritt pass (ett märke som delas ut en gång). Det gäller också ett
+  avbrutet block, granskarens fall med upprepning (k4, frö 41) och hemmet när provträningar använt dygnets extrablock.
+- **Känt:** märkesräknarna (rätt totalt, säker på ett område) räknar också övning. Ett sådant märke kan alltså nås något tidigare.
+  Varje märke ges en gång.
+- **Kvar utanför v3:** Klassiskt läge och v1 har sina gamla regler för extra pass.
+- **Rollback:** del 1 eller 3.3.
+  - 3.3 räknar bara `m:'flow'` och visar "vila nu" efter tre FLOW.
+  - Passposterna `more`/`po` påverkar inte 3.3.
