@@ -72,7 +72,8 @@ const openKid = (T, id) => { toStart(T); T.click(T.$(`[data-kid="${id}"]`)); if 
       const recs = p().le.shadow.filter(r => r.po === 1); ok(recs.length === blocks && recs.every(r => r.done === 1 && (r.m === 'more' || r.m === 'mission')), `${id}: Öva mer sparas som övningsposter (po:1)`);
       // provträning efter dygnets extrablock: utan poäng, och håller sig inom målet (även Boss, Rescue och omförsök)
       if (id === 'k8') {
-        openKid(T, id); const mb = $('[data-v2="mission"]'); ok(mb ? /Öva mer inför/.test(mb.textContent) && /utan poäng/.test(mb.textContent) : /inget mer som gör nytta/.test(txt(T)), `k8: Öva mer inför ett mål erbjuds när provträningen gör nytta, annars ärlig text (${mb ? mb.textContent.trim() : 'inget kvar'})`);
+        // 3.6: knappen i dagens kort (Kommande-kortets egna Kör-knappar per mål följer samma regler och prövas i test_kommande.js)
+        openKid(T, id); const mb = $('.mission [data-v2="mission"]'); ok(mb ? /Öva mer inför/.test(mb.textContent) && /utan poäng/.test(mb.textContent) : /inget mer som gör nytta/.test(txt(T)), `k8: Öva mer inför ett mål erbjuds när provträningen gör nytta, annars ärlig text (${mb ? mb.textContent.trim() : 'inget kvar'})`);
         if (mb) { const exId = mb.dataset.exam; click(mb); const V = PA().S.v2; ok(V.mode === 'mission' && V.po === true, 'k8: provträning efter dygnets extrablock är utan poäng');
           const e = PA().LE.exams(kid, p()).find(x => x.id === exId); const set = new Set(PA().V2.examCidsActive(kid, e)); const r1 = rewardState(p()); const out = [];
           let n = 0; while (PA().S && PA().S.v2 && $('#qcard') && n++ < 60) { const it = PA().S.queue[PA().S.i]; if (it.spec && it.spec.cid && !set.has(it.spec.cid)) out.push((it.spec.role || '?') + ':' + it.spec.cid); D.answer(() => n % 2 === 0); w.__advance(4000); }

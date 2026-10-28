@@ -408,8 +408,21 @@ med `PREVIEW=1` till `<sajten>/preview/`. Produktionen publiceras som vanligt. M
   - **Förhör:** ett mindre prov som föräldern lagt in utan typ (läx- eller glosförhör) heter "Förhör", inte "Prov".
   - **Kontrast:** typetiketten och markeringen för nära mål har kontrast på alla papper och färger, också rymdpapperet (axe).
   - **Listsemantik:** `role="list"`. Testet täcker nu också tvätt av titeln, ordningen i grow och explore och "och N till".
-- **Motorn är orörd.** Planen, belöningarna och synken är oförändrade. Kortet läser bara.
-- **Test:** `tests/test_kommande.js`. Webbläsartestet (axe, ingen sidledsscroll) går över startsidan i alla storlekar.
+- **Kör och Testa mig per mål** (ägarens andra önskemål): varje rad med innehåll i appen har två knappar.
+  - **"Kör · N min"** övar bara det målet. Det är samma läge som den befintliga "Öva inför provet" (`mission`): bara målets
+    koncept, dygnets gräns för nytt, räknas som ett av dygnets extrapass och ger inga poäng efter dygnets tak.
+  - **"Testa mig"** prövar om det sitter. Det är samma prov som i "Läget inför", med en belönad omgång per dygn.
+  - Går inget av målet att öva just nu står "Inget att öva just nu" i stället för en knapp som inte gör något.
+  - **Efter dygnets belönade extrapass gäller Öva mer-reglerna** (som `EXP.moreBtns`): "Kör · utan poäng" bara när målets träning
+    gör nytta (`EXP.useful`), annars "Inget mer som gör nytta idag". Ingen utfyllnad och ingen ändlös upprepning.
+    `test_ova_mer.js` letar nu efter "Öva mer inför" i dagens kort (`.mission`), eftersom radens egna knappar prövas i
+    `test_kommande.js`. Antalet kontroller är oförändrat.
+  - Före första synken och för mål utan innehåll finns inga knappar.
+- **Foten säger vad dagens Kör! faktiskt övar.** Den räknar på samma plan som startkortets rubrik (`EXP.examShare`): "övar inför
+  alla de här", "övar idag inför N av dem" eller "övar annat idag". Utan plan finns ingen fot. Det ersätter granskningens
+  horisontregel, som kunde säga emot startkortet för ett mål på exakt 21 dygn.
+- **Motorn är orörd.** Planen, belöningarna och synken är oförändrade. Kortet läser; knapparna startar befintliga lägen.
+- **Test:** `tests/test_kommande.js` (43 kontroller). Webbläsartestet (axe, ingen sidledsscroll) går över startsidan i alla storlekar.
 - **Dokumentation:** `docs/CONTENT_PUBLISHING.md` säger nu att en framtida Storage-lösning ska läsa genom reglerna och aldrig dela ut
   nedladdningslänkar (anmärkning från granskningen av 3.5).
 - **Rollback:** 3.5.0-bygget.

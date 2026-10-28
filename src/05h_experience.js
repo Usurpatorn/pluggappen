@@ -217,12 +217,23 @@ const EXP = {
     // Granskning P2-1: före första synken får kortet inte röra motorns tillstånd (LE.state skulle migrera en kanske inaktuell profil) – då bara listan
     const can = LE.canStart(kid, prof(kid.id));
     const has = can ? (e) => V2.examCidsActive(kid, e).length > 0 : () => true;
-    // Ärligt (granskning P2-2/P3-3): Kör! övar inför ett mål först inom motorns horisont – längre bort, och mål utan innehåll i appen, lovas inte
-    const H = LE2.CFG.exam.horizon; const near = all.filter(x => x.d < H && has(x.e)).length; const far = all.filter(x => x.d >= H && has(x.e)).length;
-    const foot = !can || (!near && !far) ? '' : !near ? 'Kör! börjar öva inför dem när det närmar sig.'
-      : near === all.length ? (near > 1 ? 'Kör! fördelar övningen mellan dem.' : 'Kör! övar inför det här.')
-      : `Kör! övar nu inför ${near > 1 ? `${near} av dem` : 'ett av dem'}${far ? ' och tar med fler när det närmar sig' : ''}.`;
-    const rows = all.slice(0, EXP.UPCOMING_MAX).map(({ e, d }) => { const k = kindOf(e); return `<li class="up-row${d <= 3 ? ' soon' : ''}"><span class="up-kind k-${k === 'Prov' ? 'ex' : 'hw'}">${k}</span><span class="up-title">${esc(e.title)}</span><span class="up-when"><span class="nw">${esc(fmtDate(e.date))}</span> · <b class="nw">${rel(d)}</b>${has(e) ? '' : ' · inte inlagt i appen ännu'}</span></li>`; }).join('');
+    // Ärligt (granskning P2-2/P3-3; 3.7): foten säger vad dagens Kör! faktiskt övar – samma plan och samma räkning som startkortets rubrik
+    // (EXP.examShare). Mål utan innehåll räknas aldrig; utan plan (t.ex. "Bara prov och läxor" utan mål inom fyra veckor) ingen fot.
+    const plan = can ? EXP.safe(() => (EXP.coreDone(prof(kid.id)) ? EXP.peekFlow(kid) : V2.peekPlan(kid).plan), 'upPlan', []) : [];
+    const inPlan = can ? all.filter(x => has(x.e) && EXP.examShare(kid, x, plan).n > 0).length : 0; const withC = all.filter(x => has(x.e)).length;
+    const foot = !can || !withC || !plan.length ? '' : !inPlan ? 'Dagens Kör! övar annat idag. Kör på en rad övar bara det målet.'
+      : inPlan === all.length ? (inPlan > 1 ? 'Dagens Kör! övar inför alla de här.' : 'Dagens Kör! övar inför det här.')
+      : `Dagens Kör! övar idag inför ${inPlan > 1 ? `${inPlan} av dem` : 'ett av dem'}. Kör på en rad övar bara det målet.`;
+    /* 3.7 Kör och Testa mig per mål (ägarens önskemål): "Kör" övar bara det målet – samma läge som "Öva inför provet" (V2.plan 'mission':
+       bara målets koncept, dygnets gräns för nytt, räknas som ett av dygnets extrapass, utan poäng efter dygnets tak). "Testa mig" prövar
+       om det sitter – samma prov som i "Läget inför" (en belönad omgång per dygn). Inga knappar före första synken eller för mål utan
+       innehåll i appen; när inget av målet går att öva just nu säger raden det i stället för en knapp som inte gör något. */
+    const C = can ? LE.state(kid) : null; const now = LE.now();
+    // Efter dygnets belönade extrapass gäller Öva mer-reglerna (som EXP.moreBtns): bara när det gör nytta (EXP.useful), och det sägs att det är utan poäng – ingen utfyllnad
+    const po = EXP.on(kid) && EXP.practiceOnly(kid, 'mission');
+    const acts = (e) => { if (!can || !has(e)) return ''; const mp = EXP.safe(() => V2.plan(kid, 'mission', C, now, null, { examId: e.id }), 'upPeek', []); const ok = mp.length > 0 && (!po || EXP.useful(mp, kid)); const n = ok ? EXP.mins(mp, kid) : 0;
+      return `<div class="up-acts">${ok ? `<button class="btn secondary up-go" data-v2="mission" data-exam="${esc(e.id)}" aria-label="Kör bara ${esc(e.title)}, ${po ? 'utan poäng, ' : ''}cirka ${n} minuter">Kör<span class="up-min" aria-hidden="true"> · ${po ? 'utan poäng · ' : ''}${n} min</span></button>` : `<span class="up-none">${mp.length ? 'Inget mer som gör nytta idag' : 'Inget att öva just nu'}</span>`}<button class="btn ghost up-test" data-v2="testa" data-exam="${esc(e.id)}" aria-label="Testa mig på ${esc(e.title)}">Testa mig</button></div>`; };
+    const rows = all.slice(0, EXP.UPCOMING_MAX).map(({ e, d }) => { const k = kindOf(e); return `<li class="up-row${d <= 3 ? ' soon' : ''}"><span class="up-kind k-${k === 'Prov' ? 'ex' : 'hw'}">${k}</span><span class="up-title">${esc(e.title)}</span><span class="up-when"><span class="nw">${esc(fmtDate(e.date))}</span> · <b class="nw">${rel(d)}</b>${has(e) ? '' : ' · inte inlagt i appen ännu'}</span>${acts(e)}</li>`; }).join('');
     const more = all.length > EXP.UPCOMING_MAX ? `<div class="muted" style="font-size:.9rem">och ${all.length - EXP.UPCOMING_MAX} till längre fram</div>` : '';
     return `<section class="card upcoming stack" aria-label="Kommande prov och läxor"><div class="eyebrow">KOMMANDE PROV OCH LÄXOR</div><ul class="up-list" role="list">${rows}</ul>${more}${foot ? `<div class="muted" style="font-size:.9rem">${foot}</div>` : ''}</section>`;
   },

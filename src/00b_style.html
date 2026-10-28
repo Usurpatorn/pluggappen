@@ -211,6 +211,11 @@
 .upcoming > .eyebrow { color: var(--muted); letter-spacing: .08em; font-weight: 800; font-size: .8rem; }
 .up-list { list-style: none; margin: 0; padding: 0; }
 .up-row { display: grid; grid-template-columns: auto 1fr; column-gap: 10px; row-gap: 2px; align-items: baseline; padding: 10px 0; border-top: 1px solid var(--line); }
+.up-acts { grid-column: 2; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 6px; }
+.up-acts .btn { min-height: 44px; padding: 0 16px; font-size: .95rem; }
+.up-acts .btn.up-go { gap: 0; }
+.up-go .up-min { font-weight: 650; opacity: .85; white-space: pre; }
+.up-none { font-size: .85rem; color: var(--muted); }
 .up-row:first-child { border-top: 0; padding-top: 2px; }
 .up-kind { font-size: .75rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; padding: 1px 7px; border-radius: 999px; background: transparent; color: var(--muted); border: 1px solid var(--line); }
 .up-kind.k-ex { background: var(--acc-soft); color: var(--acc-ink); border-color: transparent; }
