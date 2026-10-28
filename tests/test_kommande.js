@@ -105,12 +105,18 @@ const rows = (T) => [...T.$('#app').querySelectorAll('.upcoming .up-row')].map(l
     { const c4 = { ...CONTENT, work: [{ id: 'n1', kid: 'k8', type: 'exam', title: 'Nära prov', date: isoIn(5), skills: ['multin'] }, { id: 'n2', kid: 'k8', type: 'exam', title: 'Senare prov', date: isoIn(35), skills: ['forenkla'] }] };
       const b = await boot(c4); openKid(b.T, 'k8'); ok(footCheck(b.T, 'k8'), `ett nära och ett långt fram: foten stämmer med planen (${card(b.T).textContent.replace(/\s+/g, ' ').slice(-90)})`); }
     // Granskning P2-1: före första synken (synk på, ingen hämtning, ingen motor) rör kortet inte motorns tillstånd
-    for (const [id, title, scope] of [['k8', 'achieve'], ['k4', 'grow'], ['k2', 'explore'], ['k8', 'achieve + Bara prov och läxor', true], ['k4', 'grow + Bara prov och läxor', true]]) {
+    for (const [id, title, scope, xp] of [['k8', 'achieve'], ['k4', 'grow'], ['k2', 'explore'], ['k8', 'achieve + Bara prov och läxor', true], ['k4', 'grow + Bara prov och läxor', true], ['k8', 'klassisk + Bara prov och läxor', true, 'classic']]) {
       const c5 = { ...CONTENT, work: [{ id: 'cs-' + id, kid: id, type: 'exam', title: 'Prov', date: isoIn(10), skills: ['multin'] }] };
-      const b = await boot(c5); const PA = b.T.PA(); delete PA.DB.profiles[id].le; PA.LE.invalidate(id); if (scope) { PA.DB.profiles[id].settings.scope = 'exams'; PA.DB.profiles[id].settings.scopeAt = b.w.Date.now(); }
+      const b = await boot(c5); const PA = b.T.PA(); delete PA.DB.profiles[id].le; PA.LE.invalidate(id); if (scope) { PA.DB.profiles[id].settings.scope = 'exams'; PA.DB.profiles[id].settings.scopeAt = b.w.Date.now(); } if (xp) PA.EXP.set(PA.KIDS.find(k => k.id === id), xp);
       try { Object.defineProperty(PA.SYNC, 'active', { value: true, configurable: true, writable: true }); } catch (e) { PA.SYNC.active = true; } PA.SYNC.lastPull = {};
       openKid(b.T, id); ok(!PA.DB.profiles[id].le, `${title}: kortet skapar inte motorns tillstånd före första synken`);
-      ok(card(b.T) && !/Kör|Testa mig|inte inlagt|Läget/.test(card(b.T).textContent) && !card(b.T).querySelector('button, details'), `${title}: före första synken bara listan, inga knappar, inga löften`); }
+      if (xp === 'classic') ok(/Hämtar det senaste/.test(b.T.$('#app').textContent) && !/INGA PROV ELLER LÄXOR/.test(b.T.$('#app').textContent), `${title}: före första synken "Hämtar det senaste", inget startkort som bygger motorns tillstånd`);
+      else ok(card(b.T) && !/Kör|Testa mig|inte inlagt|Läget/.test(card(b.T).textContent) && !card(b.T).querySelector('button, details'), `${title}: före första synken bara listan, inga knappar, inga löften`); }
+    // Granskning P3-b: hänvisningen räknar bara de rader kortet visar (högst sex) – ett sjunde mål med innehåll ger ingen hänvisning
+    { const work = Array.from({ length: 7 }, (_, i) => ({ id: 'sx' + i, kid: 'k8', type: 'homework', title: 'Läxa ' + (i + 1), date: isoIn(30 + i * 4), ...(i === 6 ? { skills: ['multin'] } : {}) }));
+      const b = await boot({ ...CONTENT, work }); const p = b.T.PA().DB.profiles.k8; p.settings.scope = 'exams'; p.settings.scopeAt = b.w.Date.now(); b.T.PA().save(); openKid(b.T, 'k8');
+      const t = b.T.$('#app').textContent.replace(/\s+/g, ' ');
+      ok(rows(b.T).length === 6 && !b.T.$('.upcoming [data-v2="mission"]') && /och 1 till längre fram/.test(t) && !/Kör på raden/.test(t), `sju mål, bara det sjunde (inte visat) i appen: ingen hänvisning till Kör på raden (${t.slice(0, 150)})`); }
     // Granskning P3-4: ordningen i grow och explore, och "och N till"
     for (const [id, exp] of [['k4', 'grow'], ['k2', 'explore']]) {
       const c6 = { ...CONTENT, work: [{ id: 'o-' + id, kid: id, type: 'exam', title: 'Prov', date: isoIn(5), skills: ['multin'] }] };
