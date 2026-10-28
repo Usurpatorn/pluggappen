@@ -71,12 +71,13 @@ const V2 = {
     // Proven/läxorna inom horisonten: de med inlagda områden (det som tränas) och de utan (säg det ärligt, inte "inget prov")
     const win = LE.exams(kid, p).map(e => ({ e, d: daysUntil(e.date) })).filter(x => x.d >= 0 && x.d <= V2.MISSION_DAYS).sort((a, b) => a.d - b.d);
     const mapped = win.filter(x => V2.examCidsActive(kid, x.e).length); const unm = win.filter(x => !V2.examCidsActive(kid, x.e).length);
+    const later = typeof EXP !== 'undefined' && EXP.on(kid) ? (EXP.upcoming(kid) || []).map(x => x.e).filter(e => daysUntil(e.date) > V2.MISSION_DAYS && V2.examCidsActive(kid, e).length) : [];   // samma rader som kortet Kommande visar
     const T = (e) => String((e && e.title) || 'provet'); const kindOf = (e) => (typeof EXP !== 'undefined' && EXP.isExam(e) ? 'Provets' : 'Läxans');
     const g = mapped[0] || null;
     const head = pl.scopeEmpty === 'idle' ? 'INGET ATT ÖVA IDAG' : unm.length ? `${esc(T(unm[0].e).toUpperCase())} · INTE INLAGT ÄNNU` : 'INGA PROV ELLER LÄXOR JUST NU';
     const txt = pl.scopeEmpty === 'idle' ? `Allt inför ${esc(T(g && g.e))} är övat för idag. Kom tillbaka imorgon.`
       : unm.length ? `${kindOf(unm[0].e)} områden är inte inlagda i appen ännu. När de läggs in börjar Kör! med dem.`
-      : LE.exams(kid, p).some(e => { const d = daysUntil(e.date); return d > V2.MISSION_DAYS && d <= 60 && V2.examCidsActive(kid, e).length; }) ? 'Kör! börjar öva inför ett prov eller en läxa fyra veckor före. Vill du börja redan nu: tryck Kör på raden under Kommande prov och läxor.'   // 3.6: samma besked som raderna i Kommande
+      : later.length ? `Kör! börjar öva inför ett prov eller en läxa fyra veckor före.${later.some(e => EXP.goalPractice(kid, e).ok) ? ' Vill du börja redan nu: tryck Kör på raden under Kommande prov och läxor.' : ''}`   // 3.6: samma besked som raderna i Kommande – hänvisa bara till en rad som faktiskt erbjuder Kör
       : 'Kör! tränar bara inlagda prov och läxor. När något läggs in börjar du här.';
     const more = pl.scopeEmpty === 'idle' && unm.length ? `<div class="muted" style="font-size:.9rem">${unm.map(x => esc(T(x.e))).join(', ')}: områdena är inte inlagda i appen ännu.</div>` : '';
     return `<section class="card pad-lg mission stack" aria-label="${esc(head)}"><div class="eyebrow">${head}</div><div style="font-size:1rem">${txt}</div>${more}${g ? `<button class="btn ghost wide" data-v2="testa" data-exam="${esc(g.e.id)}">Testa mig</button>` : ''}</section>`;

@@ -423,8 +423,9 @@ med `PREVIEW=1` till `<sajten>/preview/`. Produktionen publiceras som vanligt. M
   - Före dagens pass: "Dagens pass övar inför …".
   - Efter dagens pass: "Nästa extrapass övar inför …", men bara medan ett extrapass erbjuds.
   - Utan plan finns ingen fot.
-- **"Bara prov och läxor"** med mål längre bort än fyra veckor: startkortet säger att Kör! börjar fyra veckor före, och att man kan
-  börja redan nu med Kör på raden. Korten säger alltså samma sak.
+- **"Bara prov och läxor"** med mål längre bort än fyra veckor: startkortet säger att Kör! börjar fyra veckor före.
+  - Hänvisningen "tryck Kör på raden" visas bara när en sådan rad faktiskt erbjuder Kör (`EXP.goalPractice`).
+  - När raden säger "Inget mer som gör nytta idag" hänvisar startkortet inte dit.
 - **Före första synken** rör kortet inte motorns tillstånd. Det visar då bara listan, utan knappar, läge eller löften.
   - `LE.canStart` gäller också kortet "Läget inför" i grow-upplevelsen.
   - Det kortet kunde redan i 3.5 migrera en kanske inaktuell profil före första synken.
@@ -433,6 +434,10 @@ med `PREVIEW=1` till `<sajten>/preview/`. Produktionen publiceras som vanligt. M
   - Felet fanns redan i 3.4/3.5 men nåddes inte av testerna.
   - "Sett" betyder `n > 0` eller `fs`, som i `V2.newToday` och motorn. Koncept som migrerats från v1 har inget `fs`.
   - Glosdäck räknas inte in i gränsen, precis som i `V2.newToday`.
+  - Verifierat mot 3.5.0 med fixturen ur `test_ova_mer.js` (sex frön, provträning för båda målen efter dagens pass och
+    extrapass): 3.5.0 går över gränsen med ett koncept i alla sex. 3.6 går aldrig över.
+  - Dagens pass (motorns 3.4-regel M8) kan som förut ta in ett aldrig sett provkoncept utöver `pol.maxNew` (högst 4 per dygn för
+    de äldre i matrisen). Det är oförändrat och inte en del av den här rättelsen.
   - Grenen i `test_ova_mer.js` som prövar "Öva mer inför" efter dygnets extrapass körs nu (106 kontroller, tidigare 101) och
     fångar felet. Den letar efter knappen i dagens kort (`.mission`), eftersom radens egna knappar prövas i `test_kommande.js`.
   - Motorns kärna är orörd; spärren ligger i appens planlager.
@@ -442,7 +447,7 @@ med `PREVIEW=1` till `<sajten>/preview/`. Produktionen publiceras som vanligt. M
   - `role="list"`.
 - `test_exp_v3.js` letar efter det hopfällda läget där det nu ligger: `details.goal-detail` eller kortets `details.up-state`.
 - **Motorns kärna är orörd.** Belöningarna och synken är oförändrade. Knapparna startar befintliga lägen.
-- **Test:** `tests/test_kommande.js` (78 kontroller). Webbläsartestet (axe, ingen sidledsscroll) går över startsidan i alla storlekar.
+- **Test:** `tests/test_kommande.js` (81 kontroller). Webbläsartestet (axe, ingen sidledsscroll) går över startsidan i alla storlekar.
 - **Dokumentation:** `docs/CONTENT_PUBLISHING.md` säger nu att en framtida Storage-lösning ska läsa genom reglerna och aldrig dela ut
   nedladdningslänkar (anmärkning från granskningen av 3.5).
 - **Rollback:** 3.5.0-bygget.
