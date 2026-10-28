@@ -545,3 +545,13 @@ med `PREVIEW=1` till `<sajten>/preview/`. Produktionen publiceras som vanligt. M
 - **Rättelse som också kom ut i 3.6.1:** ⚙ hämtade påminnelsernas status igen vid varje omritning när dokumentet saknades
   eller nätet var borta – en ändlös hämta-rita-om-slinga. Hittad av observationstestet.
 - **Rollback:** 3.6.1-bygget. Händelser som redan finns i kön ligger kvar orörda i lagringen. Äldre appar läser dem inte.
+
+## 3.7.1 – Påminnelser är en inställning
+- **Ägarens önskemål:** påminnelsekortet låg på barnens startsidor ("Påminnelser … Bara på den här enheten", "Den här enheten påminner
+  just nu föräldern"). Det är en inställning för enheten, inte något för barnet.
+- **Nu:** inget påminnelsekort på barnens startsidor (alla upplevelser). I föräldraläget ⚙ finns "Påminnelser på den här enheten" med
+  en rad för föräldern och en per barn – högst en på (att välja en annan byter). Samma prenumeration och samma påminnelser som förut;
+  inget ändras för en enhet som redan har påminnelser på.
+- Utan stöd (t.ex. appen inte på hemskärmen på iPad): hjälptexten står i ⚙, inte på startsidan.
+- **Test:** `tests/test_push_settings.js` (11 kontroller; den gamla koden ger 4 fel).
+- **Rollback:** 3.7.0-bygget.

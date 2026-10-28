@@ -66,7 +66,7 @@ const disconnect = (b) => { b.PA.SYNC.cfg = null; };
       const raw = b.w.localStorage.getItem(KEY); const kid = b.PA.KIDS.find(k => k.id === 'k8');
       ok(!raw.includes(kid.name) && !raw.includes('"k8"') && !/zzqx|987654/i.test(raw) && !raw.includes('famsynthetic'), 'inga namn, inget barn-id i klartext, inga skrivna svar, ingen familj');
       ok(ev.every(e => /^p[0-9a-f]{12}$/.test(e.k)), 'pseudonym på alla händelser');
-      ok(y('ss')[0].b && /^v3\.7\.0/.test(y('ss')[0].b), `appversion på passets start (${y('ss')[0].b})`); }
+      ok(y('ss')[0].b && y('ss')[0].b.startsWith('v' + fs.readFileSync(path.join(__dirname, '..', 'VERSION'), 'utf8').trim() + ' '), `appversion på passets start (${y('ss')[0].b})`); }
 
     void ('== test 3'); /* 3. Lärande, belöningar och schema identiska med observationer på och av */
     { const run = async (on) => { const b = await boot({ seed: 21 }); if (on) consent(b.PA, 'k8'); for (let d = 0; d < 2; d++) { kor(b, 'k8', (it) => it.cat !== 'learn' && b.D.log.items % 3 === 0); b.T.click(b.T.$('[data-go="home"]')); b.w.__advance(DAY); }
