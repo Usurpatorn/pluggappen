@@ -389,3 +389,19 @@ med `PREVIEW=1` till `<sajten>/preview/`. Produktionen publiceras som vanligt. M
   har skapats.
 - **Rollback:** 3.4-bygget (`release-3.4.0-f286ba6`) eller 3.3-bygget (`release-3.3.0-4ca940f`). Äldre appar ignorerar `visual` och `assets`. Reglerna kan ligga kvar, eftersom de bara lägger
   till en läsväg för medlemmar.
+
+## 3.6.0 – Kommande prov och läxor på barnets startsida
+- **Ägarens önskemål:** barnet ska själv se alla kommande prov och läxor och förstå varför det pluggar. Startsidan visade bara nästa
+  mål och en rad "Sedan".
+- **Kortet "Kommande prov och läxor"** ligger direkt under dagens kort, före "Läget inför", i alla tre upplevelserna.
+  - Alla barnets mål de närmaste 60 dygnen, i datumordning, högst sex (resten som "och N till").
+  - Typ (Prov, Läxa, Glosor), datum och "idag", "imorgon" eller "om X dagar". Mål inom tre dygn markeras.
+  - Bara barnets egna mål (samma källa som planen). Inga betyg, inga procent, ingen jämförelse.
+  - **Ärligt:** ett mål vars områden inte finns i appen får texten "inte inlagt i appen ännu", och kortet lovar då inte att Kör! övar
+    det.
+  - Inget kort när barnet inte har några kommande mål.
+- **Motorn är orörd.** Planen, belöningarna och synken är oförändrade. Kortet läser bara.
+- **Test:** `tests/test_kommande.js`. Webbläsartestet (axe, ingen sidledsscroll) går över startsidan i alla storlekar.
+- **Dokumentation:** `docs/CONTENT_PUBLISHING.md` säger nu att en framtida Storage-lösning ska läsa genom reglerna och aldrig dela ut
+  nedladdningslänkar (anmärkning från granskningen av 3.5).
+- **Rollback:** 3.5.0-bygget.

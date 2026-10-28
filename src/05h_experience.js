@@ -190,8 +190,8 @@ const EXP = {
   achieveHome(kid, p) {
     const plan0 = V2.peekPlan(kid).plan; const g = EXP.coreDone(p) ? EXP.goalOf(kid, EXP.peekFlow(kid)) : EXP.goalOf(kid, plan0); const m = g.now;
     const sedan = g.next ? `<div class="then">${m && g.next.d < m.d ? 'Före det' : 'Sedan'}: <b>${esc(g.next.e.title.toUpperCase())}</b> · <span class="nw">${esc(fmtDate(g.next.e.date).toUpperCase())}</span></div>` : '';
-    if (EXP.coreDone(p)) { const fsh = EXP.examShare(kid, m, EXP.peekFlow(kid)); return EXP.doneCard(kid, p, 'DAGENS PLAN KLAR', 'Appen håller koll på resten.', m && EXP.isExam(m.e) && EXP.mostly(fsh) ? 'FORTSÄTT MOT PROVET' : 'FORTSÄTT') + EXP.goalDetail(kid, m); }
-    const s = EXP.summary(kid, plan0); if (!s.n) return EXP.emptyCard(kid, 'DAGENS PLAN', sedan) + EXP.goalDetail(kid, m);
+    if (EXP.coreDone(p)) { const fsh = EXP.examShare(kid, m, EXP.peekFlow(kid)); return EXP.doneCard(kid, p, 'DAGENS PLAN KLAR', 'Appen håller koll på resten.', m && EXP.isExam(m.e) && EXP.mostly(fsh) ? 'FORTSÄTT MOT PROVET' : 'FORTSÄTT') + EXP.upcomingSafe(kid) + EXP.goalDetail(kid, m); }
+    const s = EXP.summary(kid, plan0); if (!s.n) return EXP.emptyCard(kid, 'DAGENS PLAN', sedan) + EXP.upcomingSafe(kid) + EXP.goalDetail(kid, m);
     const sh = EXP.examShare(kid, m, s.plan); const ex = m && sh.n > 0;   // provrubrik bara när dagens pass innehåller provet
     const when = m ? `${esc(fmtDate(m.e.date).toUpperCase())} · ${m.d === 0 ? 'idag' : m.d === 1 ? 'imorgon' : `om ${m.d} dagar`}` : '';
     const head = ex ? `<div class="eyebrow">NÄSTA MÅL</div><div class="goal-title">${esc(m.e.title.toUpperCase())}</div><div class="goal-date">${when}</div>`
@@ -202,7 +202,22 @@ const EXP = {
       ${main.length ? `<div class="train"><div class="eyebrow">${ex ? 'DET HÄR TRÄNAR VI IDAG' : 'OCKSÅ IDAG'}</div><ul>${main.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
       ${also.length ? `<div class="muted" style="font-size:.95rem">${main.length ? 'Också idag' : 'Idag'}: ${also.map(esc).join(' · ')}</div>` : ''}
       <div class="plan-meta"><span class="mins">cirka ${s.mins} min</span>${ex ? `<span class="share">${esc(EXP.shareText(sh))}</span>` : ''}</div>
-      ${EXP.go(kid, LBL(kid).go.toUpperCase())}${nextGoal}${sedan}</section>` + EXP.goalDetail(kid, m);
+      ${EXP.go(kid, LBL(kid).go.toUpperCase())}${nextGoal}${sedan}</section>` + EXP.upcomingSafe(kid) + EXP.goalDetail(kid, m);
+  },
+  /* 3.6 Kommande: barnet ser alla sina kommande prov och läxor på en gång (ägarens önskemål) – i datumordning, med "om X dagar".
+     Bara barnets egna mål (samma LE.exams som planen), inget om resultat, inga betyg, ingen jämförelse. Visas bara när det finns något. */
+  UPCOMING_DAYS: 60, UPCOMING_MAX: 6,
+  upcoming(kid) { return (EXP.goalOf(kid, null).all || []).filter(x => x.d <= EXP.UPCOMING_DAYS); },
+  upcomingSafe(kid) { return EXP.safe(() => EXP.upcomingCard(kid), 'upcoming', ''); },   // direkt under hjältekortet: före "Läget inför"
+  upcomingCard(kid) {
+    const all = EXP.upcoming(kid); if (!all.length) return '';
+    const rel = (d) => (d === 0 ? 'idag' : d === 1 ? 'imorgon' : `om ${d} dagar`);
+    const kindOf = (e) => (e.kind === 'homework' ? 'Läxa' : e.kind === 'vocab' ? 'Glosor' : 'Prov');   // samma typer som skoluppgifterna (FAMILY.WORK_TYPES); egna inlagda prov utan typ är prov
+    const has = (e) => V2.examCidsActive(kid, e).length > 0; const withC = all.filter(x => has(x.e)).length;   // ärligt: Kör! övar bara det som finns i appen
+    const rows = all.slice(0, EXP.UPCOMING_MAX).map(({ e, d }) => `<li class="up-row${d <= 3 ? ' soon' : ''}"><span class="up-kind k-${kindOf(e) === 'Prov' ? 'ex' : 'hw'}">${kindOf(e)}</span><span class="up-title">${esc(e.title)}</span><span class="up-when"><span class="nw">${esc(fmtDate(e.date))}</span> · <b class="nw">${rel(d)}</b>${has(e) ? '' : ' · inte inlagt i appen ännu'}</span></li>`).join('');
+    const more = all.length > EXP.UPCOMING_MAX ? `<div class="muted" style="font-size:.9rem">och ${all.length - EXP.UPCOMING_MAX} till längre fram</div>` : '';
+    return `<section class="card upcoming stack" aria-label="Kommande prov och läxor"><div class="eyebrow">KOMMANDE PROV OCH LÄXOR</div><ul class="up-list">${rows}</ul>${more}
+      ${withC ? '<div class="muted" style="font-size:.9rem">' : ''}${!withC ? '' : withC < all.length ? 'Kör! övar inför det som finns i appen.' : all.length > 1 ? 'Kör! fördelar övningen mellan dem.' : 'Kör! övar inför det här.'}${withC ? '</div>' : ''}</section>`;
   },
   // Läget per område – hopfällt, med motorns tre lägen (aldrig procent). Testa mig är en sekundär knapp här.
   goalDetail(kid, m) {

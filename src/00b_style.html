@@ -207,6 +207,16 @@
 .train ul { margin: 6px 0 0; padding-left: 20px; font-size: 1.05rem; font-weight: 600; }
 .train li { margin: 2px 0; }
 .then { font-size: .95rem; color: var(--muted); }
+.upcoming { gap: 10px; }
+.upcoming > .eyebrow { color: var(--muted); letter-spacing: .08em; font-weight: 800; font-size: .8rem; }
+.up-list { list-style: none; margin: 0; padding: 0; }
+.up-row { display: grid; grid-template-columns: auto 1fr; column-gap: 10px; row-gap: 2px; align-items: baseline; padding: 10px 0; border-top: 1px solid var(--line); }
+.up-row:first-child { border-top: 0; padding-top: 2px; }
+.up-kind { font-size: .75rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; background: var(--soft); color: var(--ink-2); }
+.up-kind.k-ex { background: var(--acc-soft); color: var(--acc-ink); }
+.up-title { font-weight: 800; color: var(--ink); overflow-wrap: anywhere; }
+.up-when { grid-column: 2; color: var(--muted); font-size: .95rem; }
+.up-row.soon .up-when b { color: var(--acc-ink); }
 .goal-detail summary, .quests-fold > summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; gap: 8px; }
 .quests-fold .card { box-shadow: none; border: 0; padding: 0; background: transparent; }
 .welcome { border: 2px solid var(--acc); }
