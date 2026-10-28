@@ -57,7 +57,8 @@ skoldokument eller bildinnehåll.
 
 **Ingen svarstid och ingen exakt passlängd går att räkna fram:** `it` och `se` bär passets starttid (`it` med ett löpnummer), aldrig när
 svaret lämnades eller passet slutade. Passets aktiva tid är bara ett grovt intervall. `of`, `sl` och `er` avrundas nedåt till en
-kvartstimme (nedåt, så att en händelse aldrig ser ut att vara från efter en radering). **Id:** bara appens inbyggda färdigheter (`s:`) och paketens kunskapspunkter (`k:`) står i klartext. Id ur familjens egna
+kvartstimme (nedåt, så att en händelse aldrig ser ut att vara från efter en radering). **Id:** bara appens inbyggda färdigheter (`s:`) och de inbyggda paketens kunskapspunkter (`k:`) står i klartext;
+kunskapspunkter ur familjens privata paket (lärarens material) hashas också. Id ur familjens egna
 källor (skoluppgifter, förälderns prov, egna glosdäck) sparas alltid som `h` + 12 hex av en hash med barnets salt – också när de ser ut
 som ett id – så en titel eller ett namn följer aldrig med och går inte att slå upp med en lista över titlar.
 

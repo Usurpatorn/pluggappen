@@ -37,9 +37,10 @@ var OBS = {   // var (inte const): föräldravyn kan fråga typeof OBS även fö
   // Id som kan vara fritext (skoluppgiftens id, glosdäckens id): bara säkra tecken får stå kvar, annars en kontrollsumma
   safeId(x) { const s = String(x == null ? '' : x); return OBS.ID_OK.test(s) ? s : 'h' + OBS.hex('id:' + s).slice(0, 12); },
   // Granskning P3: id ur familjens egna källor (skoluppgifter, förälderns prov, egna glosdäck) kan bära namn även när de ser ut som ett id
-  // ("w:anna-…-prov"). De sparas alltid som en kontrollsumma med barnets salt; bara appens inbyggda färdigheter (s:) och paketens
-  // kunskapspunkter (k:) står i klartext.
-  idFor(kid, x) { const s = String(x == null ? '' : x); if (/^[sk]:/.test(s) && OBS.ID_OK.test(s)) return s; const o = OBS.cfg(prof(kid.id)) || {}; return 'h' + OBS.hex(`${o.salt}:id:${s}`).slice(0, 12); },
+  // ("w:anna-…-prov"). De sparas alltid som en kontrollsumma med barnets salt; bara appens inbyggda färdigheter (s:) och de inbyggda
+  // paketens kunskapspunkter (k:) står i klartext.
+  idFor(kid, x) { const s = String(x == null ? '' : x); const priv = (() => { try { const m = /^k:([^/]+)\//.exec(s); return !!m && typeof PACKS !== 'undefined' && PACKS.REG && PACKS.REG.priv.has(m[1]); } catch (e) { return true; } })();
+    if (/^[sk]:/.test(s) && OBS.ID_OK.test(s) && !priv) return s; /* granskning P3: kunskapspunkter ur familjens privata paket (lärarens material) hashas också */ const o = OBS.cfg(prof(kid.id)) || {}; return 'h' + OBS.hex(`${o.salt}:id:${s}`).slice(0, 12); },
   // Slump för enhets-id, sidladdning och salt: crypto när det finns. Aldrig Math.random – den styr appens egna val och får inte påverkas.
   rnd(n) { const a = new Uint8Array(n); let okc = false; try { if (typeof crypto !== 'undefined' && crypto.getRandomValues) { crypto.getRandomValues(a); okc = true; } } catch (e) { okc = false; }
     if (!okc) { let x = (Date.now() ^ ((OBS._rc = (OBS._rc || 0) + 1) * 0x9e3779b1)) >>> 0; for (let i = 0; i < n; i++) { x = (Math.imul(x, 1664525) + 1013904223) >>> 0; a[i] = x >>> 24; } }

@@ -505,7 +505,7 @@ med `PREVIEW=1` till `<sajten>/preview/`. Produktionen publiceras som vanligt. M
   - En ej uppladdad händelse vars pseudonym inte längre har samtycke (barnets data raderad på en annan enhet, barnet borttaget, ett
     salt som förlorade sammanslagningen) laddas aldrig upp och släpps lokalt.
   - Id ur familjens egna källor (skoluppgifter, förälderns prov, egna glosdäck) sparas alltid som en kontrollsumma med barnets salt;
-    bara inbyggda färdigheter (`s:`) och paketens kunskapspunkter (`k:`) står i klartext.
+    bara inbyggda färdigheter (`s:`) och de inbyggda paketens kunskapspunkter (`k:`) står i klartext (privata paket hashas).
   - `se` bär passets starttid och `of`/`sl`/`er` avrundas nedåt till en kvartstimme, så passets exakta längd går inte att räkna ut.
   - ”Radera familjens data” avbryts, och inget raderas, när observationerna i molnet inte gick att nå eller radera.
   - Omsändningens ”satsen finns redan”-gren (läsning 200, ingen ny skrivning) prövas nu.
