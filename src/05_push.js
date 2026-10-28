@@ -27,12 +27,17 @@ const PUSH = {
     try { await SYNC.fetch(SYNC.url(cur.id), { method: 'DELETE' }); } catch (e) { /* ignore */ }
     DB.settings.push = null; try { localStorage.setItem(STORE_KEY, dbJSON()); } catch (e) { /* ignore */ }
   },
-  card(kidId, who) {
+  /* 3.6.2 (ägarens önskemål): påminnelserna är en inställning, inte något på barnets startsida. ⚙ i föräldraläget väljer vem DEN HÄR
+     enheten påminner – föräldern eller ett av barnen, högst en (samma prenumeration som förut; att välja en annan byter). */
+  settingsCard() {
     if (!PUSH.key || !SYNC.cfg) return '';
-    const cur = PUSH.current(); const on = cur && cur.kid === kidId;
-    const text = who === 'parent' ? 'Få ett meddelande om något barn inte övat på tre dagar.' : 'En tyst påminnelse kl 18.30 på vardagar, och kl 20 om streaken är i fara. Bara på den här enheten.';
-    if (!PUSH.supported()) return `<div class="card stack" style="gap:6px"><div class="eyebrow">Påminnelser</div><p class="muted" style="font-size:.95rem">${PUSH.needsInstall() ? 'Lägg till appen på hemskärmen (dela-knappen i Safari → Lägg till på hemskärmen) så kan den skicka påminnelser.' : 'Den här webbläsaren stöder inte påminnelser.'}</p></div>`;
+    if (!PUSH.supported()) return `<div class="card stack" style="gap:6px"><div class="eyebrow">Påminnelser på den här enheten</div><p class="muted" style="font-size:.95rem">${PUSH.needsInstall() ? 'Lägg till appen på hemskärmen (dela-knappen i Safari → Lägg till på hemskärmen) så kan den skicka påminnelser.' : 'Den här webbläsaren stöder inte påminnelser.'}</p></div>`;
+    const cur = PUSH.current(); const KIDTXT = 'En tyst påminnelse kl 18.30 på vardagar, och kl 20 om streaken är i fara.';
+    const rows = [['parent', 'Föräldern', 'Ett meddelande om något barn inte övat på tre dagar.'], ...(typeof KIDS !== 'undefined' ? KIDS : []).map(k => [k.id, k.name, KIDTXT])];
     const st = PUSH.lastStatus; const stTxt = st ? `Senaste körning ${new Date(st.at).toLocaleString('sv-SE', { dateStyle: 'short', timeStyle: 'short' })}: ${st.ok ? `${st.sent} skickade till ${st.subs} enheter` : 'misslyckades'}${st.log && st.log.length ? ` · ${esc(st.log[st.log.length - 1]).slice(0, 140)}` : ''}` : 'Ingen körning registrerad ännu.';
-    return `<div class="card stack" style="gap:8px"><div class="toggle"><div><div class="tl">Påminnelser</div><div class="td">${text}</div></div><button class="switch ${on ? 'on' : ''}" data-push="${kidId}" aria-label="Påminnelser"></button></div>${who === 'parent' && stTxt ? `<p class="muted" style="font-size:.85rem">${stTxt}</p>` : ''}${cur && cur.kid !== kidId ? `<p class="muted" style="font-size:.85rem">Den här enheten påminner just nu ${cur.kid === 'parent' ? 'föräldern' : (kidById(cur.kid)?.name || cur.kid)}. Slå på här för att byta.</p>` : ''}</div>`;
+    return `<div class="card stack push-set" style="gap:8px"><div class="eyebrow">Påminnelser på den här enheten</div>
+      <p class="muted" style="font-size:.9rem">Välj vem den här enheten ska påminna – högst en. Slå på barnets påminnelse på barnets egen enhet.</p>
+      ${rows.map(([id, n, d]) => { const on = !!(cur && cur.kid === id); return `<div class="toggle"><div><div class="tl">${esc(n)}</div><div class="td">${d}</div></div><button class="switch ${on ? 'on' : ''}" data-push="${esc(id)}" role="switch" aria-checked="${on}" aria-label="Påminnelser: ${esc(n)}"></button></div>`; }).join('')}
+      <p class="muted" style="font-size:.85rem">${stTxt}</p></div>`;
   },
 };

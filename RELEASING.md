@@ -489,3 +489,13 @@ med `PREVIEW=1` till `<sajten>/preview/`. Produktionen publiceras som vanligt. M
   observationstestet i 3.7). Nu hämtas den en gång per sidladdning och sidan ritas om bara när något kom. `tests/test_parent_status.js`
   (10 kontroller; den gamla raden ger 6 fel).
 - **Rollback:** 3.6.0-bygget.
+
+## 3.6.2 – Påminnelser är en inställning
+- **Ägarens önskemål:** påminnelsekortet låg på barnens startsidor ("Påminnelser … Bara på den här enheten", "Den här enheten påminner
+  just nu föräldern"). Det är en inställning för enheten, inte något för barnet.
+- **Nu:** inget påminnelsekort på barnens startsidor (alla upplevelser). I föräldraläget ⚙ finns "Påminnelser på den här enheten" med
+  en rad för föräldern och en per barn – högst en på (att välja en annan byter). Samma prenumeration och samma påminnelser som förut;
+  inget ändras för en enhet som redan har påminnelser på.
+- Utan stöd (t.ex. appen inte på hemskärmen på iPad): hjälptexten står i ⚙, inte på startsidan.
+- **Test:** `tests/test_push_settings.js` (11 kontroller; den gamla koden ger 4 fel).
+- **Rollback:** 3.6.1-bygget.

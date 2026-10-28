@@ -521,7 +521,6 @@ VIEWS.home = () => {
       <div class="week" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line)"><div class="grow"><div class="qt" style="font-weight:700;font-size:.95rem">${LBL(kid).week}: ${weekTarget} rätt</div><div class="mastery mid" style="margin-top:4px"><i style="width:${Math.min(100, Math.round((p.weekCorrect || 0) / weekTarget * 100))}%"></i></div></div><span class="m">${p.weekCorrect || 0}/${weekTarget}</span></div>
     </div>
     ${v2 ? V2.examCards(kid) : examCards}
-    ${typeof TM !== 'undefined' && TM.on ? '' : PUSH.card(kid.id, 'kid')}
     ${v2 ? V2.felbokCard(kid) : (p.mistakes || []).length ? `<button class="card tap row" data-act="felbok" style="gap:12px"><div class="ic" style="width:44px;height:44px;border-radius:12px;background:var(--bad-soft);color:var(--bad);display:grid;place-items:center;font-size:1.3rem">📕</div><div class="grow"><div style="font-weight:800;font-family:var(--display)">Felboken · ${p.mistakes.length} ${p.mistakes.length === 1 ? 'uppgift' : 'uppgifter'}</div><div class="muted" style="font-size:.9rem">Allt du svarat fel på. Klara dem för att tömma boken.</div></div><span class="chev">›</span></button>` : ''}
     ${subjectsHtml}
     ${kid.note && kid.note.lines.length ? `<div class="card teacher"><div class="eyebrow">${esc(kid.note.title || 'Kommentar från skolan')}</div><ul style="margin-top:6px">${kid.note.lines.map(l => `<li>${esc(l)}</li>`).join('')}</ul></div>` : ''}
@@ -543,7 +542,6 @@ function homeV3(kid, p, o) {
   <div class="stack home-v3" style="margin-top:6px">
     ${(() => { const hh = EXP.home(kid); const u = /class="card upcoming/.test(hh) ? '' : EXP.upcomingSafe(kid); return hh + u + (e === 'grow' && LE.canStart(kid, p) ? EXP.goalDetailUnless(kid, EXP.goalOf(kid).now, hh + u) : ''); })()}
     ${ident}
-    ${typeof TM !== 'undefined' && TM.on ? '' : PUSH.card(kid.id, 'kid')}
     <div class="card more-group">
     ${EXP.coreDone(p) ? '' : V2.felbokCard(kid)}
     <details class="more-fold"><summary><b>Öva på egen hand</b> <span class="muted" style="font-size:.85rem">välj ämne och moment</span></summary>${o.subjectsHtml}</details>
@@ -1188,7 +1186,7 @@ VIEWS.parent = () => {
       <button class="btn secondary" data-act="savePin">Spara kod</button></div>
       ${typeof TM !== 'undefined' && TM.preview ? `<div class="card"><p class="muted" style="font-size:.95rem">Familjen, enheterna, påminnelserna och radering hanteras i den vanliga appen – inte i testversionen.</p></div>` : familyCard()}
       ${LE.summaryCard()}
-      ${SYNC.cfg && !(typeof TM !== 'undefined' && TM.preview) ? `${syncCard()}${PUSH.card('parent', 'parent')}${deleteCard()}` : ''}
+      ${SYNC.cfg && !(typeof TM !== 'undefined' && TM.preview) ? `${syncCard()}${PUSH.settingsCard()}${deleteCard()}` : ''}
       <div class="card stack" style="gap:8px"><div class="eyebrow">Så fungerar appen</div>
       <p style="font-size:.95rem"><b>Kör! (Learning Engine v2):</b> appen håller koll på vad varje barn kan och när det behöver repeteras. Kör! sätter ihop ett kort pass: något att minnas, dagens fokus, revansch på det som gick fel och ibland en utmaning. Fel blir Felboken – en ny fråga om samma sak ett annat pass. När inget mer är värdefullt säger appen "Du är klar för idag". Om något inte fungerar: välj v1 per barn under barnet → Motor v2.</p>
       <p style="font-size:.95rem"><b>Matte (v1):</b> alla uppgifter slumpas – obegränsat med övning. Svårigheten höjs efter fyra rätt i rad och sänks efter tre fel. "Kör!" väljer det barnet behöver mest: prov inom 30 dagar, annars dagens uppdrag. Fel svar återkommer senare i sprinten.</p>
