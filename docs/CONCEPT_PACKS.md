@@ -146,3 +146,31 @@ generatortäckning; id-låset; legacy-täckning; recepten (NY ≥ 70 % igenkänn
 ersätter **inte** faktagranskningen: varje paket granskas oberoende (sakfel, språk, ålder, tvetydighet, felalternativ,
 formmatchning, källor, utmaningens giltighet) innan det släpps. Ett felaktigt faktum i ett system med varaktig inlärning
 är ett allvarligt fel. Försvaga aldrig ett test för att få grönt.
+
+## 9. Bilduppgifter (3.5, bara privata paket)
+Bilderna och bilduppgifterna ligger bara i det privata innehållsrepot:
+- `content/assets/<paket>/manifest.json` och bildfilerna (PNG eller JPEG);
+- `content/visual/<paket>.visual.json`.
+
+`bundle` för in uppgifterna i paketet som `visual` och bildernas revisioner i `_content.assets` (se `docs/CONTENT_PUBLISHING.md`).
+
+```json
+{ "id": "sm-stig", "form": "symbol-meaning", "kp": "<punkt>", "prompt": "Vilket karttecken är det här?", "image": "stig",
+  "options": [{ "text": "Stig" }, { "text": "…" }, { "text": "…" }], "answer": 0, "why": "…" }
+```
+- **Former:**
+  - `symbol-meaning`/`compare`: bild → text, igenkänning.
+  - `meaning-symbol`/`find-symbol`: text → välj bild, omvänt.
+  - `recall`: bild → skriv namnet (`accept`).
+  - `match`: 3–6 par av bild och namn (`kps`). Används inte i Testa mig.
+  - `sort`: `bins` och `cards` med `answer` per bild.
+- `answer` är index i den lagrade ordningen. Appen blandar alltid och följer facit genom blandningen.
+- **Kvalitetsgrinden kontrollerar:**
+  - att bilden finns i manifestet och att punkten finns i paketet;
+  - minst tre olika alternativ och ett giltigt svar;
+  - att varje sorteringskort har en grupp;
+  - att två tecken i `neverTogether` inte står i samma uppgift.
+- Alt-texten skrivs av appen och är neutral. Ingen HTML från innehållet används för bilderna.
+- En bildigenkänning är flerval och räknas aldrig ensam som säker kunskap. Motorns befintliga flervalsregel gäller, och punktens
+  textformer finns kvar.
+- Äldre appversioner läser inte `visual`. De ser paketets textuppgifter som förut, vilket är prövat mot 2.0.0–3.3.

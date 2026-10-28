@@ -284,11 +284,19 @@ const V2 = {
     const q = t.not.length >= 2 ? PACKS.mc(esc(t.q), t.a, t.not.slice(0, 3), [], why, Math.random, { alias: t.alias }) : PACKS.typed(esc(t.q), [t.a, ...t.alias], why, { pool: t.not });   // alternativen escapas när de ritas
     return { ...q, level: 2, teacher: { n: t.n }, kp: cid };
   },
+  visualSolution(q) {
+    if (typeof ASSETS === 'undefined') return null; const S0 = (id, alt) => ASSETS.slot(id, alt);
+    if (q.choiceAssets) return { fig: S0(q.choiceAssets[q.answer], 'Rätt bild'), answer: 'bilden ovan' };
+    if (q.type === 'sort' && q.itemAssets) return { fig: q.bins.map(b => `<div><b>${esc(b)}</b> ${q.items.map((t, i) => (q.answer[t] === b ? S0(q.itemAssets[i], b) : '')).join('')}</div>`).join(''), answer: 'se bilderna ovan' };
+    if (q.type === 'match' && q.pairAssets) return { fig: q.pairs.map((x, i) => `<div>${S0(q.pairAssets[i], x[1])} <b>${esc(x[1])}</b></div>`).join(''), answer: 'se bilderna ovan' };
+    return { fig: q.fig, answer: answerDisplay(q) };
+  },
   teachExample(skill, spec) {
     if (spec.cid && spec.cid.startsWith('k:')) {   // 2.1: kunskapspunktens förklaring + senaste felet (eller ett löst exempel)
       const t = PACKS.teach(spec.cid, S.v2.C.pol.name); if (t && spec.role === 'intro') return { intro: { name: t.name, explain: t.explain }, text: '', steps: [], answer: '' }; const last = [...S.queue].reverse().find(x => x.cat === 'math' && x.kp === spec.cid);
       const q = last || (t && t.q); if (!t) return null;
-      return { text: q ? q.text : t.name, fig: q && q.fig, answer: q ? answerDisplay(q) : '', steps: [`<b>${esc(t.name)}</b>: ${t.explain}`, ...t.mistakes.map(m => `Vanligt fel: <i>${m.wrong}</i> – ${m.right}`)], fromFail: !!last };
+      const vis = q && q.vid ? V2.visualSolution(q) : null;   // 3.5: bilduppgifter visar lösningen med bilderna, aldrig bara etiketter som "Bild 3"
+      return { text: q ? q.text : t.name, fig: vis ? vis.fig : q && q.fig, answer: vis ? vis.answer : q ? answerDisplay(q) : '', steps: [`<b>${esc(t.name)}</b>: ${t.explain}`, ...t.mistakes.map(m => `Vanligt fel: <i>${m.wrong}</i> – ${m.right}`)], fromFail: !!last };
     }
     // Senaste felet på konceptet i passet (Rescue) – annars ett nytt löst exempel
     const last = [...S.queue].reverse().find(x => x.cat === 'math' && x.skill && x.skill.id === skill.id);
@@ -433,7 +441,7 @@ const V2 = {
   },
   examAnswered(q, correct, raw) {
     const V = S.v2; const your = q.cat === 'word' ? raw : q.type === 'choicetext' ? (q.choices || [])[S.selected] : q.choices ? T.n(Number(S.selected)) : q.type === 'order' ? 'din ordning' : q.type === 'sort' ? 'din sortering' : q.type === 'match' ? 'dina par' : raw;
-    V.answers.push({ text: q.cat === 'word' ? String(q.prompt || q.word.t) : q.text, html: q.cat !== 'word', your: your == null ? '' : String(your), correct: q.cat === 'word' ? q.word.w : answerDisplay(q), ok: !!correct, isError: q.isError === true, spot: q.challenge === 'spot', falseChal: q.challenge === 'false', paper: !!q.paper, steps: q.cat === 'word' ? [`${esc(q.word.w)} = ${esc(q.word.t)}`] : (q.steps || []), lvl: q.level || 1 });
+    V.answers.push({ text: q.cat === 'word' ? String(q.prompt || q.word.t) : q.text, html: q.cat !== 'word', your: your == null ? '' : String(your), correct: q.cat === 'word' ? q.word.w : answerDisplay(q), ok: !!correct, isError: q.isError === true, spot: q.challenge === 'spot', falseChal: q.challenge === 'false', paper: !!q.paper, steps: q.cat === 'word' ? [`${esc(q.word.w)} = ${esc(q.word.t)}`] : (q.steps || []), lvl: q.level || 1 , fig: q.vassets && q.fig ? q.vassets[0] : undefined, vsol: q.vid && (q.type === 'sort' || q.type === 'match') ? V2.visualSolution(q).fig : undefined, yourA: q.choiceAssets ? q.choiceAssets[S.selected] : undefined, correctA: q.choiceAssets ? q.choiceAssets[q.answer] : undefined});
     nextQuestion();
   },
   /* ---------- Slut på passet ---------- */
@@ -490,12 +498,15 @@ const V2 = {
         : `<button class="btn big wide" data-v2="kor">Ett pass till</button><button class="btn ghost wide" data-go="home">Till startsidan</button>`}
     </div>`);
   },
+  // 3.5: provets bilduppgifter som inte kunde visas (bilderna saknas eller är skadade på enheten) – sägs ärligt, ersätts aldrig av text
+  visMissing(V) { try { if (typeof ASSETS === 'undefined') return false; const cids = new Set((V.plan || []).map(s => s.cid)); for (const pid of PACKS.REG.priv) { const pk = PACKS.REG.packs[pid]; for (const it of (pk && Array.isArray(pk.visual) ? pk.visual : [])) { const kps = it.form === 'match' ? it.kps || [] : [it.kp]; if (it.form !== 'match' && kps.some(k => cids.has(PACKS.cidOf(pid, k))) && !ASSETS.allReady(PACKS.vAssets(pk, it))) return true; } } } catch (e) { /* ignore */ } return false; },
   examResult(won) {
     const V = S.v2; const ok = V.answers.filter(a => a.ok).length; const n = V.answers.length;
     beep(won.length ? 'badge' : 'win');
     render(`${topbar('Testa mig', 'home')}
     <div class="stack" style="margin-top:6px">
     ${V.po ? '<div class="muted" style="font-size:.9rem">Dagens första Testa mig gav poäng – den här omgången är bara för att se läget.</div>' : ''}
+    ${V2.visMissing(V) ? '<div class="card muted" style="font-size:.95rem">Bilduppgifterna kunde inte visas på den här enheten och var inte med i testet. De kommer med när bilderna har laddats.</div>' : ''}
       ${V.exp ? (() => { const f = EXP.examFocus(S.kid, V); return `<div class="card pad-lg summary-hero stack exam-hero" style="gap:6px"><div class="eyebrow">Testa mig${f.title ? ' · ' + esc(f.title) : ''}</div>
         <div class="exam-head">${ok === n ? 'Alla svar stämde den här gången.' : 'Bra att du testade. Nu vet appen vad du ska öva på.'}</div>${f.more.length ? `<div class="exam-focus">Öva mer: <b>${f.more.map(esc).join(', ')}</b></div>` : ''}</div>`; })()
       : `<div class="card pad-lg summary-hero stack" style="gap:6px;text-align:center"><div class="eyebrow">Testa mig · ${fmtTime(Date.now() - S.startedAt)}</div><div class="big">${ok}/${n}</div>
@@ -503,8 +514,8 @@ const V2 = {
       ${V.exp ? EXP.examReport(S.kid, V) : ''}
       <div class="card exam-list"><div class="eyebrow" style="margin-bottom:8px">Svar och förklaringar</div>
         ${V.answers.map((a, i) => `<details style="padding:8px 0;border-top:1px solid var(--line)" ${a.ok ? '' : 'open'}><summary style="cursor:pointer"><b>${i + 1}.</b> ${V.exp ? `<span class="sdot ${a.ok ? 'ok' : 'todo'}" role="img" aria-label="${a.ok ? 'Stämde' : 'Öva mer'}"></span>` : a.ok ? '✅' : '🔁'} <span class="muted" style="font-size:.9rem">${esc(RECALL.strip(a.text).slice(0, 70))}${RECALL.strip(a.text).length > 70 ? '…' : ''}</span></summary>
-          <div style="margin-top:6px">${a.html ? safeHtml(a.text) : esc(a.text)}</div>
-          <div style="margin-top:4px;font-size:.95rem">${a.paper ? '✏️ På papper · ' : ''}${a.isError ? (a.ok ? `Du hittade felet: <s>${esc(a.correct)}</s> – det påståendet stämmer inte.` : `Ditt val: <b>${esc(a.your || '–')}</b>${a.your ? ' – det stämmer, men det var inte felet' : ''}. Felet var: <s>${esc(a.correct)}</s> (stämmer inte).`) : a.falseChal ? (a.ok ? `Du hittade felet: <b>${esc(a.correct)}</b> stämmer inte.` : `Ditt val: <b>${esc(a.your || '–')}</b>${a.your ? ' – det stämmer, men det var inte felet' : ''}. Felet var: <b>${esc(a.correct)}</b> (stämmer inte).`) : a.spot && !a.ok ? `Ditt val: <b>${esc(a.your || '–')}</b> – den lösningen stämmer. Felet fanns i: <b>${esc(a.correct)}</b>.` : `Ditt svar: <b>${esc(a.your || '–')}</b> · Rätt svar: <b>${esc(a.correct)}</b>`}${a.paper ? `<div class="muted" style="font-size:.85rem">${a.ok ? 'Ditt svar stämmer.' : 'Svaret stämmer inte.'} Jämför din uträkning med lösningen – appen har bara sett svaret.</div>` : ''}</div>
+          <div style="margin-top:6px">${a.html ? safeHtml(a.text) : esc(a.text)}</div>${a.fig && typeof ASSETS !== 'undefined' ? `<div class="figwrap">${ASSETS.slot(a.fig, 'Bilden i uppgiften')}</div>` : ''}${a.vsol ? `<div class="figwrap vans">${safeHtml(a.vsol)}</div>` : ''}
+          <div style="margin-top:4px;font-size:.95rem">${a.paper ? '✏️ På papper · ' : ''}${a.isError ? (a.ok ? `Du hittade felet: <s>${esc(a.correct)}</s> – det påståendet stämmer inte.` : `Ditt val: <b>${esc(a.your || '–')}</b>${a.your ? ' – det stämmer, men det var inte felet' : ''}. Felet var: <s>${esc(a.correct)}</s> (stämmer inte).`) : a.falseChal ? (a.ok ? `Du hittade felet: <b>${esc(a.correct)}</b> stämmer inte.` : `Ditt val: <b>${esc(a.your || '–')}</b>${a.your ? ' – det stämmer, men det var inte felet' : ''}. Felet var: <b>${esc(a.correct)}</b> (stämmer inte).`) : a.spot && !a.ok ? `Ditt val: <b>${esc(a.your || '–')}</b> – den lösningen stämmer. Felet fanns i: <b>${esc(a.correct)}</b>.` : a.correctA && typeof ASSETS !== 'undefined' ? `<span class="vans">Ditt svar: ${a.yourA ? ASSETS.slot(a.yourA, 'Din bild') : '–'} · Rätt svar: ${ASSETS.slot(a.correctA, 'Rätt bild')}</span>` : `Ditt svar: <b>${esc(a.your || '–')}</b> · Rätt svar: <b>${esc(a.correct)}</b>`}${a.paper ? `<div class="muted" style="font-size:.85rem">${a.ok ? 'Ditt svar stämmer.' : 'Svaret stämmer inte.'} Jämför din uträkning med lösningen – appen har bara sett svaret.</div>` : ''}</div>
           ${a.steps.length ? `<div class="steps" style="margin-top:6px"><ol>${a.steps.map(st => `<li>${safeHtml(st)}</li>`).join('')}</ol></div>` : ''}</details>`).join('')}
       </div>
       <button class="btn big wide" data-v2="kor">Öva på det som behövs</button>

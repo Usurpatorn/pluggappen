@@ -176,8 +176,55 @@ const PACKS = (() => {
   const formOk = (f, form, pol) => (f.ages ? f.ages.includes(pol) : POLICY_FORMS[pol].has(form)) && !(f.not_forms || []).includes(form);
   const vLvl = (f, form) => Math.min(3, Math.max(f.lvl || 1, BASE_LVL[form] || 1));
   const shortTerm = (t, pol) => { const n = norm(t); return n.length >= 2 && n.length <= (pol === 'younger' ? 12 : 28) && n.split(' ').length <= 3 && !/\d/.test(n); };
+  /* ---------- 3.5 Bilduppgifter i familjens privata paket (pack.visual) ----------
+     Äldre versioner läser och validerar inte fältet: de ser bara paketets textuppgifter (som finns kvar som komplement).
+     Bilderna anges med namn inom paketet → tillgångs-id "paket/namn" i manifestet (src/05j_assets.js). Ingen HTML från innehållet:
+     bilden sätts in av koden via ASSETS.slot/hydrate. Alt-texten skrivs av koden och är neutral (avslöjar aldrig svaret).
+     En uppgift byggs bara när ALLA dess bilder är kontrollerade – annars finns den inte (blir aldrig en textuppgift utan bild). */
+  const VFORMS = { 'symbol-meaning': 'recognition', compare: 'recognition', 'meaning-symbol': 'reverse', 'find-symbol': 'reverse', recall: 'recall', match: 'relationship', sort: 'relationship' };
+  const VNAME = /^[a-z0-9-]{1,48}$/; const VID = /^[a-z0-9-]{2,48}$/;
+  const vNames = (it) => { const L = []; if (it.image) L.push(it.image); for (const o of it.options || []) if (o && o.image) L.push(o.image); for (const p of it.pairs || []) if (p && p.image) L.push(p.image); for (const c of it.cards || []) if (c && c.image) L.push(c.image); return L; };
+  const vAssets = (pack, it) => vNames(it).map(n => pack.id + '/' + n);
+  // Sortering: kortets grupp står på kortet (bin) – bundle flyttar dit den ur answer, eftersom paketets tvätt bara behåller enkla nycklar
+  const vBin = (it, c) => (c && typeof c.bin === 'string' ? c.bin : it.answer && typeof it.answer === 'object' ? it.answer[c && c.image] : undefined);
+  // Fel i en bilduppgift (tom lista = giltig). opts.assets: Set med tillgångs-id som finns i manifestet (kvalitetsgrinden och appen).
+  function visualErrors(pack, it, opts = {}) {
+    const e = []; const kps = new Set((pack.kps || []).map(k => k.id)); const str = (x) => typeof x === 'string' && x.trim().length > 0;
+    if (!it || typeof it !== 'object') return ['inte ett objekt'];
+    if (!VID.test(it.id || '')) e.push('id saknas eller har fel form'); if (!VFORMS[it.form]) e.push(`okänd form ${it.form}`);
+    const kpl = it.form === 'match' ? it.kps : [it.kp]; if (!Array.isArray(kpl) || !kpl.length || !kpl.every(k => kps.has(k))) e.push('kp/kps finns inte i paketet');
+    if (!str(it.prompt)) e.push('prompt saknas');
+    const names = vNames(it); if (!names.length || !names.every(n => VNAME.test(n))) e.push('bildnamn saknas eller har fel form');
+    if (opts.assets && !vAssets(pack, it).every(id => opts.assets.has(id))) e.push('en bild finns inte i manifestet');
+    const idx = (n) => Number.isInteger(it.answer) && it.answer >= 0 && it.answer < n;
+    if (it.form === 'symbol-meaning' || it.form === 'compare') { const t = (it.options || []).map(o => o && o.text); if (!it.image || t.length < 3 || !t.every(str) || new Set(t.map(norm)).size !== t.length || !idx(t.length)) e.push('bild + minst tre olika textalternativ och ett giltigt svar krävs'); }
+    if (it.form === 'meaning-symbol' || it.form === 'find-symbol') { const t = (it.options || []).map(o => o && o.image); if (t.length < 3 || !t.every(Boolean) || new Set(t).size !== t.length || !idx(t.length)) e.push('minst tre olika bilder och ett giltigt svar krävs'); }
+    if (it.form === 'recall' && !(it.image && Array.isArray(it.accept) && it.accept.length && it.accept.every(str))) e.push('bild och minst ett godkänt svar krävs');
+    if (it.form === 'match') { const P = it.pairs || []; if (P.length < 3 || P.length > 6 || !P.every(p => p && p.image && str(p.text)) || new Set(P.map(p => p.image)).size !== P.length || new Set(P.map(p => norm(p.text))).size !== P.length) e.push('3–6 par med olika bilder och olika namn krävs'); }
+    if (it.form === 'sort') { const B = it.bins || []; const C = it.cards || []; if (B.length < 2 || !B.every(str) || new Set(B).size !== B.length || C.length < 3 || new Set(C.map(c => c && c.image)).size !== C.length || !C.every(c => c && B.includes(vBin(it, c)))) e.push('minst två grupper och tre olika bilder, alla med rätt grupp, krävs'); }
+    // Två tecken som inte får stå tillsammans (tvetydigt) – paketets egen lista
+    // (utom en uppgift som uttryckligen frågar efter just den ena varianten, variant: true – t.ex. "det NYA tecknet för …")
+    if (it.variant !== true) for (const [a, b] of (pack.visualRules && pack.visualRules.neverTogether) || []) if (names.includes(a) && names.includes(b)) e.push(`${a} och ${b} får inte stå i samma uppgift (tvetydigt)`);
+    return e;
+  }
+  function visualVariants(pack, kp) {
+    const list = Array.isArray(pack.visual) ? pack.visual : []; if (!list.length || typeof ASSETS === 'undefined' || !REG.priv.has(pack.id)) return [];   // bara familjens privata paket
+    const out = []; const why = (it) => (typeof it.why === 'string' ? it.why : '');
+    for (const it of list) {
+      if (!(it.form === 'match' ? (it.kps || []).includes(kp.id) : it.kp === kp.id)) continue;
+      if (visualErrors(pack, it).length) continue; const ids = vAssets(pack, it); if (!ASSETS.allReady(ids)) continue;
+      const A = (n) => pack.id + '/' + n; const form = VFORMS[it.form]; const base = { vid: pack.id + '/' + it.id, vassets: ids };
+      const mk = (build, extra = {}) => out.push({ key: `${kp.id}|v:${it.id}|${form}|v`, form, lvl: it.form === 'compare' ? 2 : 1, ch: false, f: it, build, visual: true, ...extra });
+      if (it.form === 'symbol-meaning' || it.form === 'compare') mk((r) => { const t = it.options.map(o => o.text); const q = mc(it.prompt, t[it.answer], t.filter((_, i) => i !== it.answer), [], why(it), r, { exactD: t.length - 1 }); return { ...q, fig: ASSETS.slot(A(it.image), 'Bilden i uppgiften'), ...base }; });
+      if (it.form === 'meaning-symbol' || it.form === 'find-symbol') mk((r) => { const order = shuffle(it.options.map((_, i) => i), r); return { type: 'choicetext', text: it.prompt, choices: order.map((_, k) => `Bild ${k + 1}`), answer: order.indexOf(it.answer), choiceAssets: order.map(i => A(it.options[i].image)), steps: [why(it)].filter(Boolean), hint: HINT.recognition, ...base }; });
+      if (it.form === 'recall') mk(() => ({ ...typed(it.prompt, it.accept.slice(), why(it)), fig: ASSETS.slot(A(it.image), 'Bilden i uppgiften'), ...base }));
+      if (it.form === 'match') mk((r) => { const ord = shuffle(it.pairs.map((_, i) => i), r); const pairs = ord.map((j, i) => [`Bild ${i + 1}`, it.pairs[j].text]); const answer = {}; for (const [a, b] of pairs) answer[a] = b; return { type: 'match', text: it.prompt, pairs, answer, k: pairs.length, pairAssets: ord.map(j => A(it.pairs[j].image)), steps: [why(it)].filter(Boolean), hint: 'Börja med det du är säkrast på.', v2check: 'pack', ...base }; }, { ui: 'match' });
+      if (it.form === 'sort') mk((r) => { const cards = shuffle(it.cards.map(c => c.image), r); const lab = (n) => `Tecken ${cards.indexOf(n) + 1}`; const answer = {}; for (const n of cards) answer[lab(n)] = vBin(it, it.cards.find(c => c.image === n)); return { type: 'sort', text: it.prompt, bins: it.bins.slice(), items: cards.map(lab), answer, k: it.bins.length, itemAssets: cards.map(A), steps: [why(it)].filter(Boolean), hint: 'Ta ett kort i taget. Var hör det hemma?', v2check: 'pack', ...base }; }, { ui: 'sort' });
+    }
+    return out;
+  }
   function variants(cid, pol) {
-    const key = cid + '|' + pol; if (VCACHE.has(key)) return VCACHE.get(key);
+    const key = cid + '|' + pol + '|' + (typeof ASSETS !== 'undefined' ? ASSETS.ver : 0); if (VCACHE.has(key)) return VCACHE.get(key);   // 3.5: bilduppgifter tillkommer när bilderna är kontrollerade
     const ent = REG.kp[cid]; if (!ent) return [];
     const { pack, kp } = ent; const out = [];
     const sameSkill = pack.kps.filter(k => k.skill === kp.skill);
@@ -284,6 +331,7 @@ const PACKS = (() => {
           return { type: 'sort', text: 'Stämmer det? Sortera.', bins: ['Stämmer', 'Stämmer inte'], items: shuffle(items.map(x => x.t), r), answer, k: 4, steps: [`<b>Stämmer:</b> ${tr.map(f => esc(f.s)).join(' · ')}`, kp.explain].filter(Boolean), hint: 'Läs ett påstående i taget. Stämmer det med det du har lärt dig?', v2check: 'pack' };
         }, { ui: 'sort', lvl: f0.lvl });
       } }
+    for (const v of visualVariants(pack, kp)) out.push(v);   // 3.5 privata bilder (bara privata paket, bara när alla bilder är kontrollerade)
     for (const v of out) { v.speak = v.f.k !== 'read' && v.f.speak !== false; if (!v.ui) v.ui = v.form === 'recall' ? 'type' : v.f.k === 'num' ? 'num' : 'choice'; }
     VCACHE.set(key, out); return out;
   }
@@ -437,14 +485,14 @@ const PACKS = (() => {
      granskas av Claude. Söker paketens varianter (samma id som i passet) och gamla frågebankens rader. Cache per policy och paketversion. */
   const ITEMS = {};
   function findItem(item, pol, itemId, kid) {
-    const k = (pol || 'middle') + '#' + (kid ? kid.template + '/' + kid.id : '*') + '#' + regKey(); let ix = ITEMS[k];
+    const k = (pol || 'middle') + '#' + (kid ? kid.template + '/' + kid.id : '*') + '#' + regKey() + '#' + (typeof ASSETS !== 'undefined' ? ASSETS.ver : 0); let ix = ITEMS[k];
     if (!ix) {
       ix = ITEMS[k] = new Map();
       for (const [cid, ent] of Object.entries(REG.kp)) { if (kid && !forTarget(ent.pack, kid)) continue;
         for (const v of variants(cid, pol || 'middle')) { try { const q = v.build(seeded(7)); ix.set(itemId(q), { cid, pack: ent.pack.id, kp: ent.kp.id, text: String(q.text || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160), form: v.form, src: ent.kp.src || null }); } catch (e) { /* hoppa över */ } }
       }
       for (const pack of Object.values(REG.packs)) if (!kid || forTarget(pack, kid)) for (const [kpId, type, text, ans] of pack.legacy || []) { const cid = cidOf(pack.id, kpId); if (!ix.has(legacyId(type, text, ans))) ix.set(legacyId(type, text, ans), { cid, pack: pack.id, kp: kpId, text: String(text).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160), form: 'legacy', src: null }); }
-      for (const old of Object.keys(ITEMS)) if (!old.endsWith('#' + regKey())) delete ITEMS[old];   // gamla paketversioner bort, övriga barn kvar
+      for (const old of Object.keys(ITEMS)) if (!old.endsWith('#' + regKey() + '#' + (typeof ASSETS !== 'undefined' ? ASSETS.ver : 0))) delete ITEMS[old];   // gamla paketversioner bort, övriga barn kvar
     }
     return ix.get(item) || null;
   }
@@ -463,7 +511,7 @@ const PACKS = (() => {
   }
   // Hashar för cachning: ändras när paketen ändras (ny rev eller nya privata paket)
   const regKey = () => Object.values(REG.packs).map(p => p.id + '@' + p.rev).sort().join(',');
-  return { TYPES, typeOf, RECIPE, bandOf, key, buildVariant, cleanPack, cleanHtml, VERSION, FORMS, FCODE, DEPTH, BASE_LVL, POLICY_FORMS, TEXT, KINDS, validate, register, clearPrivate, REG, newSkillsFor, kpsFor, skillFor, variants, question, check, teach, info, findItem, mc, typed, practiceQuestion, catalogEntries, legacyId, cidOf, regKey, v1Question, seeded, norm, normT, strip, words, toks, shuffle, lev, ALLOWED_TAGS };
+  return { visualErrors, visualVariants, vAssets, VFORMS, TYPES, typeOf, RECIPE, bandOf, key, buildVariant, cleanPack, cleanHtml, VERSION, FORMS, FCODE, DEPTH, BASE_LVL, POLICY_FORMS, TEXT, KINDS, validate, register, clearPrivate, REG, newSkillsFor, kpsFor, skillFor, variants, question, check, teach, info, findItem, mc, typed, practiceQuestion, catalogEntries, legacyId, cidOf, regKey, v1Question, seeded, norm, normT, strip, words, toks, shuffle, lev, ALLOWED_TAGS };
 })();
 // Inbyggda paket (PACK_DATA byggs in av scripts/build.sh från content/packs/*.json)
 if (typeof PACK_DATA !== 'undefined') for (const p of PACK_DATA) PACKS.register(p);

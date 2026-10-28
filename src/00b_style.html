@@ -696,6 +696,16 @@ html { overflow-x: clip; }
 /* Lägespiller med läsbar kontrast (WCAG AA) i ljust och mörkt läge – alla lägen, med avsikt */
 .pill.warn { color: color-mix(in srgb, var(--warn) 45%, var(--ink)); } .pill.bad { color: color-mix(in srgb, var(--bad) 60%, var(--ink)); } .pill.good { color: color-mix(in srgb, var(--good) 55%, var(--ink)); }
 #qcard #submit { scroll-margin-bottom: 16px; }
+/* 3.5 privata bilder: alltid på vit bakgrund, aldrig inverterade eller färgfiltrerade (även i mörkt läge), naturlig storlek eller större */
+.vimg { display: inline-flex; align-items: center; justify-content: center; background: #fff; border-radius: 10px; padding: 6px; }
+.vimg img { display: block; max-width: 100%; height: auto; min-width: 48px; image-rendering: auto; filter: none !important; }
+.figwrap .vimg img { min-width: 96px; max-height: 40vh; width: auto; }
+.vchoices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.vchoices .wchoice { flex-direction: column; gap: 6px; }
+.vchoices .wchoice .vimg img { max-height: 120px; width: auto; }
+.vtile .vimg { margin-right: 6px; } .vtile .vimg img { max-height: 64px; width: auto; }
+.vimg-missing { background: var(--card); color: var(--muted); font-size: .85rem; padding: 10px; }
+.vans .vimg { vertical-align: middle; } .vans .vimg img { max-height: 56px; width: auto; }
 .q-pane { display: contents; }
 @media (prefers-reduced-motion: reduce) { .hero-pet, .stile.placed, .klar-icon, .xp-pop { animation: none !important; } }
 </style>

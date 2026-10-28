@@ -336,3 +336,56 @@ med `PREVIEW=1` till `<sajten>/preview/`. Produktionen publiceras som vanligt. M
 - **Rollback:** del 1 eller 3.3.
   - 3.3 räknar bara `m:'flow'` och visar "vila nu" efter tre FLOW.
   - Passposterna `more`/`po` påverkar inte 3.3.
+
+## 3.5.0 – Privata bilder (gren `private-images`, ombaserad på 3.4.0)
+- **Bara familjens privata lagring:** `families/{familj}/assets/{sha256}`.
+  - Läses bara av familjens medlemmar (`firestore.rules`). Ingen appklient får skriva.
+  - Inga offentliga länkar. Inga bilder i repot, bygget eller CI.
+  - `_content.assets` är manifestet. Innehållet hänvisar till id:n, aldrig till HTML.
+- **Appen** (`src/05j_assets.js`) kontrollerar varje bild innan den visas: typ ur filens byte (PNG/JPEG), högst 200 000 byte och
+  1024 × 1024, upplösning ur bildens huvud och sha256 = revision.
+  - En bilduppgift (`pack.visual`) byggs bara när **alla** dess bilder är hela. Annars finns den inte. Den blir aldrig en
+    textuppgift utan bild.
+  - Alt-texten skrivs av appen och är neutral. Bilden sätts in via DOM, och textens tvätt är oförändrad.
+  - Testa mig utan bilder säger ärligt att bilduppgifterna inte var med.
+  - Cache per familj. Den töms vid familjebyte och bortkoppling. En redan nedladdad kopia kan inte raderas på distans.
+- **Former:** bild → text, text → bild, skriv namnet, para ihop (inte i Testa mig) och sortera. Flerval räknas enligt motorns
+  befintliga regel och blir aldrig ensamt säker kunskap.
+- **Äldre klienter** läser inte `visual`. Paketet godtas och textuppgifterna är byte-identiska, så ingen versionsspärr behövs.
+  - CI prövar 1.2.0–2.1.1 (referensbyggena i `tests/golden`).
+  - 3.3 är prövat lokalt (`OLD33=<bygge>`), också av granskaren.
+- **Rättelser efter den oberoende säkerhetsgranskningen:**
+  - **Felboken i v1:** en fel besvarad bilduppgift hamnar aldrig i v1:s Felbok, som bara sparar text och därför skulle visa uppgiften
+    utan bild.
+  - **Visning:** förklaringskortet och Testa mig-resultatet visar lösningen med bilderna (sortera och para ihop också).
+  - **Hämtning:** en hämtning där allt redan fanns låste tidigare kommande hämtningar. Det är rättat.
+  - **Rensning:** bilder som inte längre finns i manifestet rensas ur minnet och cachen.
+  - **Validering:**
+    - ärvda egenskaper godtas inte som bildtyp;
+    - etiketterna i para ihop blandas;
+    - kvalitetsgrinden stoppar dubblerade bild-id:n, symboliska länkar, fler än 200 bilder och bilduppgifter som ligger direkt i
+      paketet.
+- **Kända begränsningar:**
+  - Bildens namn syns som `data-asset` i sidans kod, men inte för hjälpmedel. Använd därför neutrala namn i manifestet om namnet
+    vore svaret.
+  - Ursprung och rätt att använda finns bara i det privata repot, inte i lagringen.
+  - Cachen delar webbläsarens lagringsutrymme med framstegen. Den har ett tak, 1,5 miljoner tecken.
+- **Publicering:**
+  - Ordningen: `bundle` (kontroll) → `fetch` → `assets` (oföränderliga revisioner, kan köras om) → `verify-assets` →
+    `publish --expect` (vägrar om en refererad bild saknas) → `verify`.
+  - `restore` gör samma kontroll. Bilder raderas aldrig av verktygen.
+  - Prövat i emulatorn (`tests/rules/publish.test.mjs`) och för åtkomst (`tests/rules/rules.test.mjs`).
+- **Regler:** de nya `firestore.rules` (bara blocket `match /assets/{rev}`) är **publicerade i produktion av ägaren**, efter
+  granskning och Rules Playground-fallen A–E (medlem läser: tillåtet; oinloggad, icke-medlem, annan familj och skrivning: nekat;
+  befintlig profilläsning: tillåten). Appen ändrar inte regler.
+- **Ägarsteg:**
+  - ~~publicera de nya reglerna (Firebase-konsolen)~~ – klart;
+  - merga och släpp appen;
+  - lägg till stegen `assets`/`verify-assets` i det privata repots publicering (förberett i innehålls-PR:en).
+
+  Inga nya molnresurser, ingen ny IAM och ingen ny nyckel behövs.
+- **Arkitektur:** Firestore `assets/{sha256}` är den pragmatiska lösningen för en familj, inte automatiskt slutarkitekturen för
+  School Packs. Se `docs/CONTENT_PUBLISHING.md` (”När Firebase Storage behövs”). Ingen Storage, ingen fakturering och ingen ny IAM
+  har skapats.
+- **Rollback:** 3.4-bygget (`release-3.4.0-f286ba6`) eller 3.3-bygget (`release-3.3.0-4ca940f`). Äldre appar ignorerar `visual` och `assets`. Reglerna kan ligga kvar, eftersom de bara lägger
+  till en läsväg för medlemmar.
