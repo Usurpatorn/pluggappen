@@ -375,11 +375,17 @@ med `PREVIEW=1` till `<sajten>/preview/`. Produktionen publiceras som vanligt. M
     `publish --expect` (vägrar om en refererad bild saknas) → `verify`.
   - `restore` gör samma kontroll. Bilder raderas aldrig av verktygen.
   - Prövat i emulatorn (`tests/rules/publish.test.mjs`) och för åtkomst (`tests/rules/rules.test.mjs`).
+- **Regler:** de nya `firestore.rules` (bara blocket `match /assets/{rev}`) är **publicerade i produktion av ägaren**, efter
+  granskning och Rules Playground-fallen A–E (medlem läser: tillåtet; oinloggad, icke-medlem, annan familj och skrivning: nekat;
+  befintlig profilläsning: tillåten). Appen ändrar inte regler.
 - **Ägarsteg:**
-  - publicera de nya reglerna (Firebase-konsolen);
+  - ~~publicera de nya reglerna (Firebase-konsolen)~~ – klart;
   - merga och släpp appen;
   - lägg till stegen `assets`/`verify-assets` i det privata repots publicering (förberett i innehålls-PR:en).
 
   Inga nya molnresurser, ingen ny IAM och ingen ny nyckel behövs.
-- **Rollback:** 3.4- eller 3.3-bygget. Äldre appar ignorerar `visual` och `assets`. Reglerna kan ligga kvar, eftersom de bara lägger
+- **Arkitektur:** Firestore `assets/{sha256}` är den pragmatiska lösningen för en familj, inte automatiskt slutarkitekturen för
+  School Packs. Se `docs/CONTENT_PUBLISHING.md` (”När Firebase Storage behövs”). Ingen Storage, ingen fakturering och ingen ny IAM
+  har skapats.
+- **Rollback:** 3.4-bygget (`release-3.4.0-f286ba6`) eller 3.3-bygget (`release-3.3.0-4ca940f`). Äldre appar ignorerar `visual` och `assets`. Reglerna kan ligga kvar, eftersom de bara lägger
   till en läsväg för medlemmar.

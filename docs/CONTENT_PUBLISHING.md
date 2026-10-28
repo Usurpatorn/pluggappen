@@ -149,9 +149,22 @@ Cachen töms vid familjebyte och när enheten kopplas bort. **En kopia som redan
 Delad enhet: alla profiler på enheten tillhör samma familj och ser samma bilder, precis som resten av familjens innehåll. Separation
 per barn kommer först med Family Platform.
 
+**När Firebase Storage behövs.** Firestore `assets/{sha256}` är den pragmatiska lösningen för **en familj** med några tiotal små
+bilder: inga nya resurser, samma behörighet och samma tjänstekonto som resten av innehållet. Det är inte automatiskt
+slutarkitekturen för School Packs. Firebase Storage (med egna `storage.rules`) bör ersätta eller komplettera den när något av detta
+gäller:
+- **fler familjer**, eller innehåll som delas mellan familjer eller en hel klass – då ska en bild lagras en gång och läsrätten
+  styras per paket, inte kopieras in i varje familj;
+- **större bilder** (fotografier, skannade sidor) som närmar sig dokumentgränsen på 1 MiB, eller annat än PNG/JPEG (ljud, PDF);
+- **många bilder per familj**, där base64 i dokument kostar läsningar och lokalt lagringsutrymme i onödan;
+- behov av **CDN-cache, nedladdning med token eller automatisk livscykel** för gamla revisioner.
+
+Ett byte kräver ett eget beslut: Storage-bucket, fakturering (Blaze), regler, IAM för publiceringen och en flytt av manifestet så att
+`rev` fortfarande är sha256 (appens kontroll är oförändrad). Inget av detta är skapat.
+
 **Ägarsteg innan bilder kan användas:**
-1. Publicera de nya `firestore.rules` i Firebase-konsolen (Firestore → Regler) efter granskning. Kontrollera dem i Rules Playground:
-   en medlem får läsa `families/<familj>/assets/<64 hex>`, en icke-medlem nekas.
+1. ~~Publicera de nya `firestore.rules`~~ – **klart**: publicerade av ägaren efter granskning och Rules Playground (en medlem får
+   läsa `families/<familj>/assets/<64 hex>`, oinloggad, icke-medlem och annan familj nekas, ingen skrivning).
 2. Merga app-PR:en och release.
 3. Lägg in stegen `assets` och `verify-assets` i publiceringsworkflowen i det privata repot. Det är förberett i innehålls-PR:en.
 
