@@ -436,8 +436,13 @@ med `PREVIEW=1` till `<sajten>/preview/`. Produktionen publiceras som vanligt. M
   - Glosdäck räknas inte in i gränsen, precis som i `V2.newToday`.
   - Verifierat mot 3.5.0 med fixturen ur `test_ova_mer.js` (sex frön, provträning för båda målen efter dagens pass och
     extrapass): 3.5.0 går över gränsen med ett koncept i alla sex. 3.6 går aldrig över.
-  - Dagens pass (motorns 3.4-regel M8) kan som förut ta in ett aldrig sett provkoncept utöver `pol.maxNew` (högst 4 per dygn för
-    de äldre i matrisen). Det är oförändrat och inte en del av den här rättelsen.
+  - Dagens pass (motorns 3.4-regel M8) kan som förut ta in aldrig sedda provkoncept utöver `pol.maxNew`. Det gäller koncept vars
+    förkunskaper inte sitter, så länge provet ligger mer än tre dygn bort.
+    - I matrisen blev det högst ett över, alltså 4 per dygn för de äldre.
+    - Det är en observation, inte en garanti: syntetiska planer kan ge fler.
+    - Det är oförändrat och inte en del av den här rättelsen; motorn ändras bara med simuleringsstöd.
+- **Före första synken med "Bara prov och läxor":** startkortet byggde motorns tillstånd före spärren för första synken. Felet fanns
+  sedan 3.1. Spärren (`LE.canStart`) kommer nu först, så kortet Kommande visar bara listan också i det läget.
   - Grenen i `test_ova_mer.js` som prövar "Öva mer inför" efter dygnets extrapass körs nu (106 kontroller, tidigare 101) och
     fångar felet. Den letar efter knappen i dagens kort (`.mission`), eftersom radens egna knappar prövas i `test_kommande.js`.
   - Motorns kärna är orörd; spärren ligger i appens planlager.

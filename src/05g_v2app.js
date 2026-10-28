@@ -38,8 +38,8 @@ const V2 = {
   peekPlan(kid) { const C = LE.state(kid); const now = LE.sessClock(C); const { plan } = LE.plan(kid, V2.n(kid, C), now); return { plan, C, now }; },
   korBtn(kid) {
     return V2.safe(() => {
-      { const sc = V2.scopeCard(kid); if (sc) return sc; }
       const p = prof(kid.id); if (!LE.canStart(kid, p)) return `<button class="go-btn" data-v2="kor"><div><div class="t">${LBL(kid).go}</div><div class="s">Hämtar det senaste …</div></div><div class="arrow">${ICON.arrow}</div></button>`;
+      { const sc = V2.scopeCard(kid); if (sc) return sc; }   // 3.6 (granskning): först efter spärren för första synken – scopeCard bygger motorns tillstånd
       const { plan } = V2.peekPlan(kid);
       if (plan.light && V2.doneToday(p)) return `<div class="card pad-lg stack" style="gap:6px;text-align:center"><div style="font-size:1.6rem">✅</div><div style="font-weight:800;font-family:var(--display);font-size:1.15rem">Bra jobbat. Du är klar för idag.</div><button class="link" data-v2="extra" style="align-self:center">Öva extra</button></div>`;
       const n = plan.length; const mi = V2.missionInfo(kid); const m = mi && mi.m;
@@ -71,7 +71,7 @@ const V2 = {
     // Proven/läxorna inom horisonten: de med inlagda områden (det som tränas) och de utan (säg det ärligt, inte "inget prov")
     const win = LE.exams(kid, p).map(e => ({ e, d: daysUntil(e.date) })).filter(x => x.d >= 0 && x.d <= V2.MISSION_DAYS).sort((a, b) => a.d - b.d);
     const mapped = win.filter(x => V2.examCidsActive(kid, x.e).length); const unm = win.filter(x => !V2.examCidsActive(kid, x.e).length);
-    const later = typeof EXP !== 'undefined' && EXP.on(kid) ? (EXP.upcoming(kid) || []).map(x => x.e).filter(e => daysUntil(e.date) > V2.MISSION_DAYS && V2.examCidsActive(kid, e).length) : [];   // samma rader som kortet Kommande visar
+    const later = typeof EXP !== 'undefined' && EXP.on(kid) ? (EXP.upcoming(kid) || []).slice(0, EXP.UPCOMING_MAX).map(x => x.e).filter(e => daysUntil(e.date) > V2.MISSION_DAYS && V2.examCidsActive(kid, e).length) : [];   // samma rader som kortet Kommande visar
     const T = (e) => String((e && e.title) || 'provet'); const kindOf = (e) => (typeof EXP !== 'undefined' && EXP.isExam(e) ? 'Provets' : 'Läxans');
     const g = mapped[0] || null;
     const head = pl.scopeEmpty === 'idle' ? 'INGET ATT ÖVA IDAG' : unm.length ? `${esc(T(unm[0].e).toUpperCase())} · INTE INLAGT ÄNNU` : 'INGA PROV ELLER LÄXOR JUST NU';
