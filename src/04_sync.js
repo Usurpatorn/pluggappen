@@ -223,7 +223,7 @@ function mergeProfiles(a, b, base, opts) {
   if (!base && opts && opts.serverWins) {   // utan bas (första synken efter uppdateringen, granskning B2): familjens värde för inställningar och övriga fält
     out.settings = { ...(a.settings || {}), ...(b.settings || {}) }; out.pet = b.pet || a.pet;
     for (const k of Object.keys(b)) if (!MERGED_KEYS.has(k) && !SYNC_META.has(k)) out[k] = b[k];
-    for (const k of ['engine', 'lePolicy', 'exp', 'scope']) { const sa = a.settings || {}, sb = b.settings || {}; if ((sa[k + 'At'] || 0) > (sb[k + 'At'] || 0)) { if (sa[k] === undefined) delete out.settings[k]; else out.settings[k] = sa[k]; out.settings[k + 'At'] = sa[k + 'At']; } }   // val med egen tidsstämpel: senaste gäller
+    for (const k of ['engine', 'lePolicy', 'exp', 'scope', 'obs']) { const sa = a.settings || {}, sb = b.settings || {}; if ((sa[k + 'At'] || 0) > (sb[k + 'At'] || 0)) { if (sa[k] === undefined) delete out.settings[k]; else out.settings[k] = sa[k]; out.settings[k + 'At'] = sa[k + 'At']; } }   // val med egen tidsstämpel: senaste gäller
   }
   if (base) {   // trevägs per inställning och per övrigt fält: oförändrat här sedan basen → familjens värde (även borttaget)
     const sa = a.settings || {}, sb = b.settings || {}, none = SYNC.hash(undefined);
@@ -233,7 +233,7 @@ function mergeProfiles(a, b, base, opts) {
   // Granskning H1: förälderns motorval och policy följer SENASTE ändringen (egen tidsstämpel), inte "lokal enhet vinner" –
   // annars kunde en barnenhet med osynkade ändringar slå på v2 igen efter att föräldern stängt av den.
   // v3: upplevelsen (Explore/Grow/Achieve/Klassisk, settings.exp/expAt) följer samma regel.
-  for (const k of ['engine', 'lePolicy', 'exp', 'scope']) { const sa = a.settings || {}, sb = b.settings || {}; if ((sb[k + 'At'] || 0) > (sa[k + 'At'] || 0)) { if (sb[k] === undefined) delete out.settings[k]; else out.settings[k] = sb[k]; out.settings[k + 'At'] = sb[k + 'At']; } }
+  for (const k of ['engine', 'lePolicy', 'exp', 'scope', 'obs']) { const sa = a.settings || {}, sb = b.settings || {}; if ((sb[k + 'At'] || 0) > (sa[k + 'At'] || 0)) { if (sb[k] === undefined) delete out.settings[k]; else out.settings[k] = sb[k]; out.settings[k + 'At'] = sb[k + 'At']; } }
   // Två motorval inom tio minuter som säger olika (t.ex. en förälderenhet vars klocka går fel): välj det säkra läget v1.
   { const sa = a.settings || {}, sb = b.settings || {}; if (sa.engineAt && sb.engineAt && sa.engine !== sb.engine && Math.abs(sa.engineAt - sb.engineAt) < 600000) { out.settings.engine = 'v1'; out.settings.engineAt = Math.max(sa.engineAt, sb.engineAt); } }
   // Felboken (v1): union av båda enheternas poster minus det som klarats (gravstenar). Tidigare skrev den lokala listan över den andra.

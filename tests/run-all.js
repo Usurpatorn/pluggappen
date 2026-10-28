@@ -58,6 +58,7 @@ const suites = [
   ['3.4 Öva mer: lärandet fortsätter efter dygnets belöningar – utan poäng, utan autostart, dygnets gräns för nytt, inom målet, två enheter', 'test_ova_mer.js'],
   ['3.5 privata bilder: kontroll av varje bild, ingen textuppgift i stället, neutral alt-text, cache per familj, äldre klienter oförändrade', 'test_private_images.js'],
   ['3.6 Kommande: barnets alla kommande prov och läxor på startsidan – i datumordning, bara egna, ärligt om det som saknas i appen', 'test_kommande.js'],
+  ['3.7 Observationer (Product Learning Loop v1): av som standard, testläget aldrig, lärandet orört, utgång/okänt utfall, förgrundstid, moln utan dubbletter, lagringstid, radering, export', 'test_obs.js'],
 ];
 let failed = 0; const rows = [];
 for (const [name, file, opts = {}] of suites) {

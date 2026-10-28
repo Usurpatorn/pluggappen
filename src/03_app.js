@@ -1186,6 +1186,7 @@ VIEWS.parent = () => {
       <button class="btn secondary" data-act="savePin">Spara kod</button></div>
       ${typeof TM !== 'undefined' && TM.preview ? `<div class="card"><p class="muted" style="font-size:.95rem">Familjen, enheterna, påminnelserna och radering hanteras i den vanliga appen – inte i testversionen.</p></div>` : familyCard()}
       ${LE.summaryCard()}
+      ${typeof OBS !== 'undefined' && OBS ? OBS.card() : ''}
       ${SYNC.cfg && !(typeof TM !== 'undefined' && TM.preview) ? `${syncCard()}${PUSH.card('parent', 'parent')}${deleteCard()}` : ''}
       <div class="card stack" style="gap:8px"><div class="eyebrow">Så fungerar appen</div>
       <p style="font-size:.95rem"><b>Kör! (Learning Engine v2):</b> appen håller koll på vad varje barn kan och när det behöver repeteras. Kör! sätter ihop ett kort pass: något att minnas, dagens fokus, revansch på det som gick fel och ibland en utmaning. Fel blir Felboken – en ny fråga om samma sak ett annat pass. När inget mer är värdefullt säger appen "Du är klar för idag". Om något inte fungerar: välj v1 per barn under barnet → Motor v2.</p>

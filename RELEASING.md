@@ -456,3 +456,39 @@ med `PREVIEW=1` till `<sajten>/preview/`. Produktionen publiceras som vanligt. M
 - **Dokumentation:** `docs/CONTENT_PUBLISHING.md` säger nu att en framtida Storage-lösning ska läsa genom reglerna och aldrig dela ut
   nedladdningslänkar (anmärkning från granskningen av 3.5).
 - **Rollback:** 3.5.0-bygget.
+
+## 3.7.0 – Product Learning Loop v1: privata observationer (gren `learning-loop`, bygger på 3.6 / PR #29)
+- **Av som standard.** Föräldern slår på det per barn under ⚙ → Observationer. Kortet förklarar:
+  - vad som sparas och vad som aldrig sparas;
+  - att barnet anges med en pseudonym och att det **inte** är anonymt;
+  - att varje parkopplad enhet i familjen kan läsa (det är inget föräldraskydd i molnet);
+  - hur och när rensningen sker.
+- **Inventering först:** se `docs/LEARNING_LOOP.md`. Passposterna (`le.shadow`, 40 pass), bevisloggen och Felboken återanvänds.
+  - Nya händelser bara där inget fanns: pass startat, uppgift inlämnad (med form, hjälp och uppläsning), avslutat eller uttryckligen
+    lämnat, erbjudanden och val efter dagens pass, tekniskt fel (plats och typ).
+  - Okänt utfall härleds och kallas aldrig avbrutet.
+  - Ingen svarstid. Aktiv tid mäts per pass, bara i förgrunden och grovt.
+- **Aldrig från testlägen:** Testa som barnet, förhandsvisningen, testadressen och automatiserade webbläsare registreras aldrig, och
+  lagringen rörs inte. Det prövas i `test_obs.js` och i `test_parent_test_mode_prod.js` med observationer PÅ.
+- **Skild från lärandet:** modulen (`src/05k_obs.js`) lindar in appens funktioner och läser bara.
+  - Profilen är byte för byte densamma med observationer på och av (prövat).
+  - Ett fel i modulen stoppar aldrig ett pass eller synken.
+  - Modulen använder aldrig `Math.random`.
+- **Lagring:**
+  - en begränsad kö på enheten (3 000 händelser och 400 000 tecken; bortfall räknas och syns i exporten);
+  - i molnet små oföränderliga satser (`families/{familj}/obs/{pseudonym}-{enhet}-{nr}`) vid passets slut, aldrig per tryck;
+  - dubbletter och omsändningar tas bort på id.
+- **Regler:** `match /obs/{doc}` finns i `firestore.rules` och prövas i emulatorn. De är **inte publicerade**. Tills ägaren publicerar dem
+  nekar molnet (403) och allt stannar på enheten.
+- **Lagringstid:** 30 dygn som standard; 14 eller 7 kan väljas.
+  - På enheten rensas vid varje start.
+  - I molnet rensas när en föräldraenhet öppnar ⚙, exporterar eller raderar. Det finns ingen schemalagd rensning på servern.
+- **Radera:** på enheten direkt, på andra enheter efter synk och i molnet direkt (eller vid nästa start utan nät).
+- **Export:** en JSON-fil per datumintervall, bara när föräldern ber om det.
+  - Den innehåller en sammanfattning per profil med nämnare, förbehåll och valfritt de enskilda händelserna.
+  - Barnen jämförs aldrig med varandra.
+  - Exempel med syntetiska data: `tests/obs_example_export.json`. Analysmallen (A–G) står i `docs/LEARNING_LOOP.md`.
+- **Synk:** `settings.obs` följer samma regel som `engine` och `scope`, så den senaste ändringen vinner (`obsAt`).
+- **Test:** `tests/test_obs.js` (61 kontroller) och emulatorfall för `obs`. Mutationer av undantagen, samtycket, utgången,
+  förgrundstiden, radering, av-läget, felmeddelandet och omsändningen fångas.
+- **Rollback:** 3.6-bygget. Händelser som redan finns i kön ligger kvar orörda i lagringen. Äldre appar läser dem inte.
