@@ -66,7 +66,7 @@ const V2 = {
   scopeOn(p) { return !!(p && p.settings && p.settings.scope === 'exams' && V2.engineOf(p) === 'v2'); },
   // Hemmet när "Bara prov och läxor" inte har något att öva: ett ärligt kort i stället för en knapp som startar något annat.
   scopeCard(kid) {
-    const p = prof(kid.id); if (!V2.scopeOn(p) || (typeof EXP !== 'undefined' && EXP.on(kid) && EXP.coreDone(p))) return '';
+    const p = prof(kid.id); if (!V2.scopeOn(p) || !LE.canStart(kid, p) || (typeof EXP !== 'undefined' && EXP.on(kid) && EXP.coreDone(p))) return '';   // före första synken: inget (bygger annars motorns tillstånd – också i klassiskt läge)
     const pl = V2.peekPlan(kid).plan; if (!pl.scopeEmpty) return '';
     // Proven/läxorna inom horisonten: de med inlagda områden (det som tränas) och de utan (säg det ärligt, inte "inget prov")
     const win = LE.exams(kid, p).map(e => ({ e, d: daysUntil(e.date) })).filter(x => x.d >= 0 && x.d <= V2.MISSION_DAYS).sort((a, b) => a.d - b.d);

@@ -441,18 +441,18 @@ med `PREVIEW=1` till `<sajten>/preview/`. Produktionen publiceras som vanligt. M
     - I matrisen blev det högst ett över, alltså 4 per dygn för de äldre.
     - Det är en observation, inte en garanti: syntetiska planer kan ge fler.
     - Det är oförändrat och inte en del av den här rättelsen; motorn ändras bara med simuleringsstöd.
-- **Före första synken med "Bara prov och läxor":** startkortet byggde motorns tillstånd före spärren för första synken. Felet fanns
-  sedan 3.1. Spärren (`LE.canStart`) kommer nu först, så kortet Kommande visar bara listan också i det läget.
   - Grenen i `test_ova_mer.js` som prövar "Öva mer inför" efter dygnets extrapass körs nu (106 kontroller, tidigare 101) och
     fångar felet. Den letar efter knappen i dagens kort (`.mission`), eftersom radens egna knappar prövas i `test_kommande.js`.
   - Motorns kärna är orörd; spärren ligger i appens planlager.
+- **Före första synken med "Bara prov och läxor":** startkortet byggde motorns tillstånd före spärren för första synken. Felet fanns
+  sedan 3.1. Spärren (`LE.canStart`) gäller nu i `V2.scopeCard` självt (alla upplevelser, också klassisk), så kortet Kommande visar bara listan också i det läget.
 - **Typ och kontrast:**
   - Ett mindre prov som föräldern lagt in utan typ (läx- eller glosförhör) heter "Förhör".
   - Etiketter och knappar har kontrast på alla papper, färger och accenter (axe).
   - `role="list"`.
 - `test_exp_v3.js` letar efter det hopfällda läget där det nu ligger: `details.goal-detail` eller kortets `details.up-state`.
 - **Motorns kärna är orörd.** Belöningarna och synken är oförändrade. Knapparna startar befintliga lägen.
-- **Test:** `tests/test_kommande.js` (81 kontroller). Webbläsartestet (axe, ingen sidledsscroll) går över startsidan i alla storlekar.
+- **Test:** `tests/test_kommande.js` (88 kontroller). Webbläsartestet (axe, ingen sidledsscroll) går över startsidan i alla storlekar.
 - **Dokumentation:** `docs/CONTENT_PUBLISHING.md` säger nu att en framtida Storage-lösning ska läsa genom reglerna och aldrig dela ut
   nedladdningslänkar (anmärkning från granskningen av 3.5).
 - **Rollback:** 3.5.0-bygget.
