@@ -34,7 +34,7 @@ async function boot(seed) { const w = mkWin({ seed, fixedClock: true }); await s
         open(); const home = norm(T.$('#app').textContent); const pk = PA().V2.peekPlan(kid()).plan;
         ok(pk.length > 0 && pk.every(s => U.has(s.cid)), `seed ${seed} dag ${d}: hemmets plan är bara provets områden (${pk.map(s => s.cid).join(', ')})`);
         ok(!/glosor|Repetition: (engelska|spanska)/i.test(home), `seed ${seed} dag ${d}: hemmet lovar inga glosor`);
-        if (/NÄSTA MÅL/.test(home)) ok(/Allt inför provet/.test(home) && !/\d+ av \d+ uppgifter inför provet/.test(home), `seed ${seed} dag ${d}: ett prov med valet på – "Allt inför provet" (Bossen räknas) (${home.slice(0, 160)})`);
+        if (/NÄSTA MÅL|NÄSTA DEADLINE/.test(home)) ok(/Allt inför provet/.test(home) && !/\d+ av \d+ uppgifter inför provet/.test(home), `seed ${seed} dag ${d}: ett prov med valet på – "Allt inför provet" (Bossen räknas) (${home.slice(0, 160)})`);
         const g = T.$('[data-v2="kor"]'); if (!g) { ok(/DAGENS PLAN KLAR|INGET ATT ÖVA/.test(home), `seed ${seed} dag ${d}: utan Kör! är det ett ärligt läge`); w.__advance(DAY); continue; }
         T.click(g); ok(JSON.stringify(PA().S.v2.plan.map(s => s.cid)) === JSON.stringify(pk.map(s => s.cid)), `seed ${seed} dag ${d}: KÖR startar den visade planen`);
         const played = []; let n = 0; while (PA().S && PA().S.v2 && T.$('#qcard') && n++ < 60) { const q = PA().S.queue[PA().S.i]; if (q.spec && q.cat !== 'learn') played.push(q.cat === 'word' ? 'ORD' : q.spec.cid); D.answer(() => r() < 0.3); w.__advance(4000); }
