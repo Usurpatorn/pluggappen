@@ -36,6 +36,10 @@ var OBS = {   // var (inte const): föräldravyn kan fråga typeof OBS även fö
   hex(str) { const b = unescape(encodeURIComponent(String(str))); const u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return ASSETS.sha256(u); },   // UTF-8 utan TextEncoder (finns inte överallt)
   // Id som kan vara fritext (skoluppgiftens id, glosdäckens id): bara säkra tecken får stå kvar, annars en kontrollsumma
   safeId(x) { const s = String(x == null ? '' : x); return OBS.ID_OK.test(s) ? s : 'h' + OBS.hex('id:' + s).slice(0, 12); },
+  // Granskning P3: id ur familjens egna källor (skoluppgifter, förälderns prov, egna glosdäck) kan bära namn även när de ser ut som ett id
+  // ("w:anna-…-prov"). De sparas alltid som en kontrollsumma med barnets salt; bara appens inbyggda färdigheter (s:) och paketens
+  // kunskapspunkter (k:) står i klartext.
+  idFor(kid, x) { const s = String(x == null ? '' : x); if (/^[sk]:/.test(s) && OBS.ID_OK.test(s)) return s; const o = OBS.cfg(prof(kid.id)) || {}; return 'h' + OBS.hex(`${o.salt}:id:${s}`).slice(0, 12); },
   // Slump för enhets-id, sidladdning och salt: crypto när det finns. Aldrig Math.random – den styr appens egna val och får inte påverkas.
   rnd(n) { const a = new Uint8Array(n); let okc = false; try { if (typeof crypto !== 'undefined' && crypto.getRandomValues) { crypto.getRandomValues(a); okc = true; } } catch (e) { okc = false; }
     if (!okc) { let x = (Date.now() ^ ((OBS._rc = (OBS._rc || 0) + 1) * 0x9e3779b1)) >>> 0; for (let i = 0; i < n; i++) { x = (Math.imul(x, 1664525) + 1013904223) >>> 0; a[i] = x >>> 24; } }
@@ -73,7 +77,8 @@ var OBS = {   // var (inte const): föräldravyn kan fråga typeof OBS även fö
     try {
       if (OBS.excluded()) return 0;
       const q = OBS.load(); OBS.lastPrune = Date.now(); const rules = OBS.rules(now); const n0 = q.ev.length;
-      q.ev = q.ev.filter(e => { if (!OBS.keep(e, rules)) return false; const r = rules[e.k]; if (r && r.off && !e._u) return false; return true; });   // avstängt: ej uppladdade släpps (laddas aldrig upp)
+      const known = (typeof KIDS !== 'undefined' && KIDS.length > 0);
+      q.ev = q.ev.filter(e => { if (!OBS.keep(e, rules)) return false; const r = rules[e.k]; if (r && r.off && !e._u) return false; if (!r && !e._u && known) return false; return true; });   // avstängt: ej uppladdade släpps (laddas aldrig upp). Okänd pseudonym (barnets data raderad, barnet borttaget, ett salt som förlorade sammanslagningen): inget samtycke finns längre – ej uppladdade släpps och laddas aldrig upp
       if (q.ev.length !== n0) OBS.save(); return n0 - q.ev.length;
     } catch (e) { return 0; }
   },
@@ -84,7 +89,8 @@ var OBS = {   // var (inte const): föräldravyn kan fråga typeof OBS även fö
       if (!OBS.on(kid)) return null;
       if (Date.now() - OBS.lastPrune > 60000) OBS.prune();
       const q = OBS.load(); q.seq = (q.seq || 0) + 1;
-      const ev = { ...data, i: `${q.dev}-${OBS.runId()}-${q.seq}`, y, t: tSec != null ? tSec : Math.round(Date.now() / 1000), k: OBS.pseud(kid) };   // grundfälten sist: kan aldrig skrivas över
+      const now = Math.round(Date.now() / 1000); const t = tSec != null ? tSec : (y === 'ss' ? now : now - (now % 900));   // of/sl/er: nedåt till kvartstimme (slutet på ett pass syns inte exakt). Nedåt, aldrig uppåt: en händelse får aldrig se ut att vara från efter en radering eller lagringstidens gräns
+      const ev = { ...data, i: `${q.dev}-${OBS.runId()}-${q.seq}`, y, t, k: OBS.pseud(kid) };   // grundfälten sist: kan aldrig skrivas över
       q.ev.push(ev); OBS.trim(q, false); OBS.save(); return ev;
     } catch (e) { return null; }
   },
@@ -93,7 +99,7 @@ var OBS = {   // var (inte const): föräldravyn kan fråga typeof OBS även fö
       if (typeof S === 'undefined' || !S || !S.v2 || !S.kid || !OBS.on(S.kid)) { OBS.cur = null; return; }
       const V = S.v2; const now = Date.now();
       OBS.cur = { sid: V.id, kid: S.kid, act: 0, t0: OBS.visible() ? now : null, gapMax: 0, sub: 0, ts: Math.round(now / 1000), flags: { h: 0, r: 0 }, done: false };
-      OBS.record(S.kid, 'ss', { s: V.id, m: String(V.mode || ''), x: String(V.exp || 'classic'), po: V.po ? 1 : 0, g: V.extra && V.extra.examId ? OBS.safeId(V.extra.examId) : undefined, n: V.planN || 0, ...OBS.ctx() });
+      OBS.record(S.kid, 'ss', { s: V.id, m: String(V.mode || ''), x: String(V.exp || 'classic'), po: V.po ? 1 : 0, g: V.extra && V.extra.examId ? OBS.idFor(S.kid, V.extra.examId) : undefined, n: V.planN || 0, ...OBS.ctx() });
     } catch (e) { /* ignore */ }
   },
   // Uppgift: passets starttid + löpnummer (aldrig uppgiftens egen tid → ingen svarstid går att räkna ut)
@@ -103,7 +109,7 @@ var OBS = {   // var (inte const): föräldravyn kan fråga typeof OBS även fö
       const spec = q && q.spec; if (!spec) return; OBS.tick(); c.sub++;
       const kind = typeof V2 !== 'undefined' && V2.kindOf ? V2.kindOf(q) : (q.type || q.kind || '');
       const help = S.v2.exam ? 'n' : spec.help === 'rescue' ? 'r' : S.revealed ? 's' : (S.usedHelp || spec.help === 'hint') ? 'h' : 'n';
-      OBS.record(c.kid, 'it', { s: c.sid, q: c.sub, c: OBS.safeId(spec.cid), f: String(kind).replace(/[^a-z0-9_-]/gi, '').slice(0, 16), ok: correct ? 1 : 0, h: help, r: c.flags.r ? 1 : 0, x: String(spec.ctx || 'first').slice(0, 1), v: q.vid ? 1 : 0 }, c.ts);
+      OBS.record(c.kid, 'it', { s: c.sid, q: c.sub, c: OBS.idFor(c.kid, spec.cid), f: String(kind).replace(/[^a-z0-9_-]/gi, '').slice(0, 16), ok: correct ? 1 : 0, h: help, r: c.flags.r ? 1 : 0, x: String(spec.ctx || 'first').slice(0, 1), v: q.vid ? 1 : 0 }, c.ts);
       c.flags = { h: 0, r: 0 };
     } catch (e) { /* ignore */ }
   },
@@ -113,7 +119,7 @@ var OBS = {   // var (inte const): föräldravyn kan fråga typeof OBS även fö
       const c = OBS.cur; if (!c || c.done) return; c.done = true; OBS.tick();
       const shown = c.sub + (outcome === 'exit' && typeof document !== 'undefined' && document.getElementById('qcard') && S && !S.answered ? 1 : 0);
       const tq = c.gapMax > 20 * 60000 ? 'u' : 'fg';   // u: osäker (över 20 min utan någon händelse – enheten kan ha legat i bakgrunden utan signal)
-      OBS.record(c.kid, 'se', { s: c.sid, o: outcome, a: c.sub, p: shown, am: OBS.bucket(c.act), tq });
+      OBS.record(c.kid, 'se', { s: c.sid, o: outcome, a: c.sub, p: shown, am: OBS.bucket(c.act), tq }, c.ts);   // passets starttid: passets längd går inte att räkna ut ur tiderna (bara intervallet am)
       OBS.cur = null; OBS.flushSoon();
     } catch (e) { /* ignore */ }
   },
@@ -170,7 +176,7 @@ var OBS = {   // var (inte const): föräldravyn kan fråga typeof OBS även fö
       await OBS.purgeRetry();
       const q = OBS.load(); let nb = 0;
       while (nb < OBS.MAX_BATCHES && OBS.cloudOk()) {
-        const pend = q.ev.filter(e => !e._u); if (!pend.length) break;
+        const rl = OBS.rules(); const pend = q.ev.filter(e => !e._u && rl[e.k] && !rl[e.k].off); if (!pend.length) break;   // bara pseudonymer med samtycke nu
         const old = pend.find(e => e._b); let batch;
         if (old) batch = q.ev.filter(e => e._b === old._b && !e._u);
         else { const k = pend[0].k, d = OBS.day(pend[0].t); q.bseq = ((q.bseq || 0) + 1) % 100000; const id = `${k}-${q.dev}-${OBS.runId()}${String(q.bseq).padStart(5, '0')}`; batch = pend.filter(e => e.k === k && OBS.day(e.t) === d).slice(0, OBS.BATCH); for (const e of batch) e._b = id; OBS.save(); }
@@ -196,7 +202,7 @@ var OBS = {   // var (inte const): föräldravyn kan fråga typeof OBS även fö
     if (!OBS.cloudOk()) return null; const out = []; let tok = '';
     for (let i = 0; i < 20; i++) {
       const r = await SYNC.fetch(OBS.docUrl('') + `&pageSize=300${tok ? '&pageToken=' + encodeURIComponent(tok) : ''}`, { cache: 'no-store' });
-      if (r.status === 403) { OBS.cloudOff = true; return null; } if (!r.ok) return null; const j = await r.json();
+      if (r.status === 403) { OBS.cloudOff = true; return null; } if (r.status === 404) return out; if (!r.ok) return null; const j = await r.json();
       for (const d of j.documents || []) { const id = String(d.name || '').split('/').pop(); if (!OBS.DOC_RE.test(id)) continue; const f = d.fields || {}; let ev = []; try { ev = JSON.parse((f.json && f.json.stringValue) || '[]'); } catch (e) { ev = []; } out.push({ id, k: (f.k && f.k.stringValue) || id.slice(0, 13), t: Number((f.t && f.t.integerValue) || 0), ev: Array.isArray(ev) ? ev : [] }); }
       tok = j.nextPageToken || ''; if (!tok) break;
     }
@@ -230,7 +236,14 @@ var OBS = {   // var (inte const): föräldravyn kan fråga typeof OBS även fö
     q.purgeQ = left; OBS.save(); return !left.length;
   },
   // Radera familjens data (deleteFamilyData): alla observationssatser i familjen – innan enheternas medlemskap tas bort (sedan går det inte)
-  async purgeFamilyCloud() { if (OBS.excluded()) return 0; const docs = await OBS.listCloud(); let n = 0; for (const d of docs || []) if (await OBS.delCloud(d.id)) n++; try { localStorage.removeItem(OBS.KEY); } catch (e) { /* ignore */ } OBS.q = null; return n; },
+  // { ok, n }: ok = inget finns kvar som appen kan nå. Gick molnet inte att lista (utan nät, tillfälligt fel) eller misslyckades en radering:
+  // ok false – då avbryter deleteFamilyData innan medlemskapen tas bort (annars blir satserna kvar utan att någon app kan nå dem).
+  // 403 (reglerna inte publicerade, eller enheten inte medlem) eller ingen molnkoppling: inget att nå.
+  async purgeFamilyCloud() {
+    if (OBS.excluded()) return { ok: true, n: 0 }; let docs = []; if (OBS.cloudOk()) { docs = await OBS.listCloud(); if (!docs && !OBS.cloudOff) return { ok: false, n: 0 }; }
+    let n = 0; for (const d of docs || []) if (await OBS.delCloud(d.id)) n++; if (docs && n < docs.length) return { ok: false, n };
+    try { localStorage.removeItem(OBS.KEY); } catch (e) { /* ignore */ } OBS.q = null; return { ok: true, n };
+  },
   /* ---------- export (bara på förälderns uttryckliga begäran) ---------- */
   dedup(list) { const m = new Map(); for (const e of list) if (e && typeof e.i === 'string' && !m.has(e.i)) { const { _u, _b, ...x } = e; m.set(e.i, x); } return [...m.values()].sort((a, b) => a.t - b.t || (a.s === b.s ? (a.q || 0) - (b.q || 0) : 0) || (a.i < b.i ? -1 : 1)); },
   /* Sammanfattning per profil (aldrig mellan syskon). Alla tal har sin nämnare; inget tolkas. */

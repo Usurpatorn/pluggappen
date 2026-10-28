@@ -25,12 +25,12 @@ const ALLOWED = { ss: ['s', 'm', 'x', 'po', 'g', 'n', 'b', 'c'], it: ['s', 'q', 
 
 /* låtsad Firestore för observationssatserna (REST: commit, lista, radera); mode: 'ok' | '403' | 'offline' */
 function mkCloud() {
-  const docs = {}; const st = { mode: 'ok', calls: 0 };
+  const docs = {}; const st = { mode: 'ok', calls: 0, commits: 0, gets: 0 };
   const fetch = async (url, opts = {}) => {
     st.calls++; const method = String(opts.method || 'GET').toUpperCase(); url = String(url);
     if (st.mode === 'offline') throw new TypeError('Failed to fetch');
     const deny = { ok: false, status: 403, json: async () => ({ error: { status: 'PERMISSION_DENIED' } }) };
-    if (/documents:commit/.test(url)) {
+    if (/documents:commit/.test(url)) { st.commits++;
       const body = JSON.parse(opts.body); const wr = body.writes[0]; const name = wr.update.name; const id = name.split('/').pop();
       if (!/\/obs\//.test(name)) return deny; if (st.mode === '403') return deny;
       if (wr.currentDocument && wr.currentDocument.exists === false && docs[id]) return { ok: false, status: 409, json: async () => ({ error: { status: 'ALREADY_EXISTS' } }) };
@@ -39,6 +39,7 @@ function mkCloud() {
     const m = url.match(/\/documents\/(.+?)(\?|$)/); const p = m ? decodeURIComponent(m[1]) : '';
     if (!/\/obs(\/|$)/.test(p) || st.mode === '403') return deny;
     if (method === 'DELETE') { delete docs[p.split('/').pop()]; return { ok: true, status: 200, json: async () => ({}) }; }
+    if (method === 'GET' && !/\/obs$/.test(p)) { st.gets++; const d = docs[p.split('/').pop()]; if (d) return { ok: true, status: 200, json: async () => ({ name: p, fields: d.fields }) }; }   // en enskild sats som finns: 200 (granskning P3-4)
     if (/\/obs$/.test(p)) return { ok: true, status: 200, json: async () => ({ documents: Object.entries(docs).map(([id, d]) => ({ name: `projects/x/databases/(default)/documents/${p}/${id}`, fields: d.fields })) }) };
     return { ok: false, status: 404, json: async () => ({}) };
   };
@@ -123,7 +124,8 @@ const disconnect = (b) => { b.PA.SYNC.cfg = null; };
       const doc = cloud.docs[ids[0]].fields; ok(Object.keys(doc).sort().join(',') === 'json,k,n,t,v' && !/_u|_b/.test(doc.json.stringValue), 'satsens fält som reglerna kräver, inga interna fält');
       ok((await b.OBS.flush()) === 0 && Object.keys(cloud.docs).length === 1, 'igen: inget skickas två gånger');
       // svaret gick förlorat: samma sats skickas om med samma id → finns redan → räknas som skickad, ingen dubblett
-      for (const e of b.OBS.q.ev) { delete e._u; e._b = ids[0]; } ok((await b.OBS.flush()) === n && Object.keys(cloud.docs).length === 1 && b.OBS.q.ev.every(e => e._u), 'omsändning av samma sats: ingen dubblett');
+      for (const e of b.OBS.q.ev) { delete e._u; e._b = ids[0]; } const c0 = cloud.st.commits, g0 = cloud.st.gets; ok((await b.OBS.flush()) === n && Object.keys(cloud.docs).length === 1 && b.OBS.q.ev.every(e => e._u), 'omsändning av samma sats: ingen dubblett');
+      ok(cloud.st.gets === g0 + 1 && cloud.st.commits === c0, `omsändning: satsen finns (200) → räknas som skickad utan ny skrivning (${cloud.st.gets - g0} läsning, ${cloud.st.commits - c0} skrivningar)`);
       disconnect(b); kor(b, 'k8'); b.T.click(b.T.$('[data-go="home"]')); connect(b, cloud); cloud.st.mode = '403'; const pend = b.OBS.q.ev.filter(e => !e._u).length;
       await b.OBS.flush(); ok(b.OBS.cloudOff && b.OBS.q.ev.filter(e => !e._u).length === pend && pend > 0, '403 (regler inte publicerade): allt stannar lokalt, inget förloras');
       cloud.st.mode = 'offline'; b.OBS.cloudOff = false; await b.OBS.flush(); ok(b.OBS.q.ev.filter(e => !e._u).length === pend, 'utan nät: kvar i kön');
@@ -246,11 +248,44 @@ const disconnect = (b) => { b.PA.SYNC.cfg = null; };
       b.PA.SYNC.lastPull = Object.fromEntries(b.PA.KIDS.map(k => [k.id, Date.now()])); b.w.eval("go('parent')"); ok(n === 1, 'synkad: molnrensningen startar när föräldern öppnar ⚙'); b.w.eval("go('parent')"); ok(n === 1, 'en gång per sidladdning');
       await sleep(200); ok(ls === 1, `⚙ utan påminnelselogg i molnet: hämtas en gång, ingen hämta-rita-om-slinga (${ls} hämtningar)`); }
 
+    void ('== test 30'); /* 30. Granskning P2: barnets data raderad på en annan enhet – ej uppladdade händelser här släpps och laddas aldrig upp */
+    { const cloud = mkCloud(); const B = await boot({ seed: 9 }); consent(B.PA, 'k8'); kor(B, 'k8'); B.T.click(B.T.$('[data-go="home"]')); await sleep(10);
+      const n = B.OBS.q.ev.filter(e => !e._u).length; ok(n > 0, `enheten har ej uppladdade händelser (${n})`);
+      B.PA.DB.profiles.k8.settings.obs = undefined; B.PA.save();   // som efter synk av en återställd profil (deleteKidData på föräldrarnas enhet)
+      connect(B, cloud); await B.OBS.flush(); ok(Object.keys(cloud.docs).length === 0 && cloud.st.commits === 0, 'okänd pseudonym: inget laddas upp');
+      ok(B.OBS.q.ev.filter(e => !e._u).length === 0, 'okänd pseudonym: ej uppladdade händelser släpps lokalt');
+      // ett salt som förlorade sammanslagningen: samma sak
+      const C2 = await boot({ seed: 11 }); consent(C2.PA, 'k8'); kor(C2, 'k8'); C2.T.click(C2.T.$('[data-go="home"]')); C2.PA.DB.profiles.k8.settings.obs = { ...C2.PA.DB.profiles.k8.settings.obs, salt: 'f'.repeat(32) }; const cl2 = mkCloud(); connect(C2, cl2); await C2.OBS.flush();
+      ok(Object.keys(cl2.docs).length === 0 && C2.OBS.q.ev.filter(e => !e._u).length === 0, 'salt bytt vid sammanslagning: gamla ej uppladdade händelser laddas inte upp'); }
+
+    void ('== test 31'); /* 31. Granskning P3: id ur familjens egna källor står aldrig i klartext, inte heller när de ser ut som ett id */
+    { const b = await boot(); consent(b.PA, 'k8'); const kid = b.PA.KIDS.find(k => k.id === 'k8'); const I = (x) => b.OBS.idFor(kid, x);
+      ok(I('s:blandat') === 's:blandat' && I('k:kemi8-syror-baser/ph-skalan') === 'k:kemi8-syror-baser/ph-skalan', 'inbyggda färdigheter och kunskapspunkter i klartext');
+      ok(/^h[0-9a-f]{12}$/.test(I('w:anna-svensson-8b-prov')) && /^h[0-9a-f]{12}$/.test(I('d:engelska-larare-berg')) && /^h[0-9a-f]{12}$/.test(I('e1')), 'skoluppgifter, förälderns prov och glosdäck: alltid kontrollsumma');
+      const h1 = I('w:anna-svensson-8b-prov'); b.PA.DB.profiles.k8.settings.obs.salt = 'a'.repeat(32); ok(I('w:anna-svensson-8b-prov') !== h1, 'kontrollsumman beror på barnets salt (går inte att slå upp med en lista över titlar)');
+      const c0 = { v: 1, updatedAt: 1, packs: [], work: [{ id: 'anna-svensson-prov', kid: 'k8', type: 'exam', title: 'Prov', date: new Date(Date.now() + 9 * DAY).toISOString().slice(0, 10), skills: ['multin'] }] };
+      const b2 = await boot({ seed: 13 }); b2.PA.FAMILY.applyContent(c0); b2.PA.rerender(); consent(b2.PA, 'k8'); const kid2 = b2.PA.KIDS.find(k => k.id === 'k8'); b2.PA.V2.start(kid2, 'mission', { examId: 'w:anna-svensson-prov' }); b2.D.run(() => false);
+      const raw = JSON.stringify(queue(b2.w) || {}); ok(!/anna|svensson/i.test(raw) && (queue(b2.w).ev || []).some(e => e.y === 'ss' && /^h[0-9a-f]{12}$/.test(e.g || '')), 'målets id i passet: kontrollsumma, inget namn i kön'); }
+
+    void ('== test 32'); /* 32. Granskning P3: passets längd går inte att räkna ut – slutet bär passets starttid, erbjudanden och val en kvartstimme */
+    { const b = await boot(); consent(b.PA, 'k8'); b.w.__advance(7 * 60000 + 13000); kor(b, 'k8'); b.T.click(b.T.$('[data-go="home"]')); const ev = queue(b.w).ev;   // klockan mitt i en kvartstimme
+      const ss = ev.find(e => e.y === 'ss'), se = ev.find(e => e.y === 'se' && e.s === ss.s); ok(ss && se && se.t === ss.t, `se.t = ss.t (${se && se.t - ss.t} s)`);
+      ok(ev.filter(e => e.y === 'it' && e.s === ss.s).every(e => e.t === ss.t), 'uppgifterna bär passets starttid');
+      const late = ev.filter(e => ['of', 'sl', 'er'].includes(e.y)); ok(late.every(e => e.t % 900 === 0), `erbjudanden, val och fel: kvartstimme (${late.length})`); }
+
+    void ('== test 33'); /* 33. Granskning P3: Radera familjens data avbryts när observationerna i molnet inte gick att nå */
+    { const cloud = mkCloud(); const b = await boot(); consent(b.PA, 'k8'); kor(b, 'k8'); b.T.click(b.T.$('[data-go="home"]')); connect(b, cloud); await b.OBS.flush(); ok(Object.keys(cloud.docs).length === 1, 'en sats i molnet');
+      try { Object.defineProperty(b.PA.SYNC, 'active', { value: true, configurable: true, writable: true }); } catch (e) { b.PA.SYNC.active = true; }
+      cloud.st.mode = 'offline'; const r = await b.OBS.purgeFamilyCloud(); ok(r && r.ok === false, 'utan nät: rensningen säger att den inte blev klar');
+      let threw = false; try { await b.PA.deleteFamilyData(); } catch (e) { threw = /obs-purge/.test(String(e && e.message)); } ok(threw && b.PA.DB.settings.family === 'famsynthetic01' && Object.keys(cloud.docs).length === 1, 'deleteFamilyData avbryts: familjen och satsen finns kvar');
+      cloud.st.mode = 'ok'; const r2 = await b.OBS.purgeFamilyCloud(); ok(r2.ok === true && r2.n === 1 && Object.keys(cloud.docs).length === 0, 'med nät: allt raderat');
+      cloud.st.mode = '403'; b.OBS.cloudOff = false; const r3 = await b.OBS.purgeFamilyCloud(); ok(r3.ok === true, '403 (regler inte publicerade): inget i molnet som appen kan nå – raderingen går vidare'); }
+
     void ('== test 18'); /* 18. Exemplet (syntetiskt) i tests/obs_example_export.json stämmer med sammanfattningen */
-    { const b = await boot(); const OBS = b.OBS; const k = 'p' + '0123456789ab'; const t0 = Math.round(T_FIXED / 1000) - 5 * 86400; const ev = []; let n = 0; const E = (dt, y, f) => ev.push({ i: `exdevice-${++n}`, y, t: t0 + dt, k, ...f });
-      E(0, 'ss', { s: 'S1', m: 'kor', x: 'achieve', po: 0, n: 6, b: 'v3.7.0 (exempel)', c: 1 }); for (let i = 0; i < 6; i++) E(0, 'it', { s: 'S1', q: i + 1, c: ['s:multin', 's:forenkla', 'k:ori8/skala'][i % 3], f: ['mc', 'free', 'sort'][i % 3], ok: i % 4 ? 1 : 0, h: i === 2 ? 'h' : 'n', r: i === 5 ? 1 : 0, x: 'f', v: 0 }); E(300, 'se', { s: 'S1', o: 'done', a: 6, p: 6, am: '5-15', tq: 'fg' });
+    { const b = await boot(); const OBS = b.OBS; const k = 'p' + '0123456789ab'; const t0 = Math.round(T_FIXED / 1000) - 5 * 86400; const ev = []; let n = 0; const q15 = (t) => t - (t % 900); const E = (dt, y, f) => ev.push({ i: `exdevice-${++n}`, y, t: ['of', 'sl', 'er'].includes(y) ? q15(t0 + dt) : t0 + dt, k, ...f });   // som appen: se bär passets start, of/sl/er en kvartstimme
+      E(0, 'ss', { s: 'S1', m: 'kor', x: 'achieve', po: 0, n: 6, b: 'v3.7.0 (exempel)', c: 1 }); for (let i = 0; i < 6; i++) E(0, 'it', { s: 'S1', q: i + 1, c: ['s:multin', 's:forenkla', 'k:ori8/skala'][i % 3], f: ['mc', 'free', 'sort'][i % 3], ok: i % 4 ? 1 : 0, h: i === 2 ? 'h' : 'n', r: i === 5 ? 1 : 0, x: 'f', v: 0 }); E(0, 'se', { s: 'S1', o: 'done', a: 6, p: 6, am: '5-15', tq: 'fg' });
       E(310, 'of', { w: 'klar', s: 'S1', bt: { flow: 1 } }); E(320, 'sl', { w: 'klar', a: 'flow', cd: 1 }); E(330, 'ss', { s: 'S2', m: 'flow', x: 'achieve', po: 0, n: 4, b: 'v3.7.0 (exempel)', c: 1 }); E(330, 'it', { s: 'S2', q: 1, c: 's:multin', f: 'mc', ok: 1, h: 'n', r: 0, x: 'r', v: 0 });
-      E(2 * 86400, 'ss', { s: 'S3', m: 'mission', x: 'achieve', po: 0, g: 'w:a1', n: 5, b: 'v3.7.0 (exempel)', c: 1 }); E(2 * 86400, 'it', { s: 'S3', q: 1, c: 's:forenkla', f: 'free', ok: 0, h: 's', r: 0, x: 'f', v: 0 }); E(2 * 86400 + 90, 'se', { s: 'S3', o: 'exit', a: 1, p: 2, am: '<5', tq: 'fg' });
+      E(2 * 86400, 'ss', { s: 'S3', m: 'mission', x: 'achieve', po: 0, g: 'h1a2b3c4d5e6f', n: 5, b: 'v3.7.0 (exempel)', c: 1 }); E(2 * 86400, 'it', { s: 'S3', q: 1, c: 's:forenkla', f: 'free', ok: 0, h: 's', r: 0, x: 'f', v: 0 }); E(2 * 86400, 'se', { s: 'S3', o: 'exit', a: 1, p: 2, am: '<5', tq: 'fg' });
       E(4 * 86400, 'of', { w: 'home', bt: { flow: 1, rad: 2 } }); E(4 * 86400 + 5, 'er', { w: 'v2:observe', n: 'TypeError' });
       const sum = OBS.summarize(ev, { from: t0 - 86400, to: t0 + 6 * 86400 }); const file = path.join(__dirname, 'obs_example_export.json');
       const example = { ...sum, analysmall: 'Se docs/LEARNING_LOOP.md, avsnitt "Analysmall".', handelser: OBS.dedup(ev) };

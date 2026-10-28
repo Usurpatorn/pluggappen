@@ -495,12 +495,20 @@ med `PREVIEW=1` till `<sajten>/preview/`. Produktionen publiceras som vanligt. M
   - Exempel med syntetiska data: `tests/obs_example_export.json`. Analysmallen (A–G) står i `docs/LEARNING_LOOP.md`.
 - **Synk:** `settings.obs` slås ihop fält för fält (`SYNC.mergeObs`): på/av och lagringstid efter sin egen ändringstid, äldsta saltet,
   senaste raderingen. En enhet med gamla inställningar kan inte slå på igen eller ångra en radering.
-- **Test:** `tests/test_obs.js` (84 kontroller) och emulatorfall för `obs` (skapa, läsa, lista, radera; ändring och omsändning
+- **Test:** `tests/test_obs.js` (101 kontroller) och emulatorfall för `obs` (skapa, läsa, lista, radera; ändring och omsändning
   nekas; fel id, fält, `k` och storlek nekas; oinloggade, främlingar och en annan familj nekas). Mutationer av undantagen, samtycket,
   utgången, förgrundstiden, radering, av-läget, felmeddelandet och omsändningen fångas. Efter den oberoende integritetsgranskningen:
   sammanslagning av inställningar från en gammal enhet, exporten mot lagringstiden, id i fri text, ingen svarstid, osynkad enhet
   rensar inte molnet, en senare radering tar inte nya satser, två flikar, bortfall per barn, radering av familjens och barnets data,
   och att molnrensningen startar en gång från ⚙.
+- **Andra granskningsrundan:**
+  - En ej uppladdad händelse vars pseudonym inte längre har samtycke (barnets data raderad på en annan enhet, barnet borttaget, ett
+    salt som förlorade sammanslagningen) laddas aldrig upp och släpps lokalt.
+  - Id ur familjens egna källor (skoluppgifter, förälderns prov, egna glosdäck) sparas alltid som en kontrollsumma med barnets salt;
+    bara inbyggda färdigheter (`s:`) och paketens kunskapspunkter (`k:`) står i klartext.
+  - `se` bär passets starttid och `of`/`sl`/`er` avrundas nedåt till en kvartstimme, så passets exakta längd går inte att räkna ut.
+  - ”Radera familjens data” avbryts, och inget raderas, när observationerna i molnet inte gick att nå eller radera.
+  - Omsändningens ”satsen finns redan”-gren (läsning 200, ingen ny skrivning) prövas nu.
 - **Rättelse som följer med (finns också i 3.6.1):** ⚙ hämtade påminnelsernas status igen vid varje omritning när dokumentet saknades
   eller nätet var borta – en ändlös hämta-rita-om-slinga. Hittad av observationstestet.
 - **Rollback:** 3.6-bygget. Händelser som redan finns i kön ligger kvar orörda i lagringen. Äldre appar läser dem inte.

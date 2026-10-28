@@ -47,7 +47,7 @@ Alla: `i` (unikt: enhet-sidladdning-löpnummer, så två flikar på samma enhet 
 |---|---|---|
 | `ss` | `s` pass-id, `m` läge, `x` upplevelse, `po`, `g` mål-id (provträning/Testa mig), `n` planens längd, `b` bygge, `c` innehållsversion | v2-pass startar |
 | `it` | `s`, `q` löpnummer i passet, `c` koncept, `f` form (mc, type, sort …), `ok`, `h` hjälp (`n`/`h` ledtråd/`s` lösning/`r` Rescue), `r` uppläsning, `x` sammanhang, `v` bilduppgift. `t` är **passets starttid**, inte svarets | svar lämnat |
-| `se` | `s`, `o` (`done`/`exit`), `a` inlämnade, `p` visade, `am` aktiv tid som intervall, `tq` (`fg`/`u`) | slut eller uttrycklig utgång |
+| `se` | `s`, `o` (`done`/`exit`), `a` inlämnade, `p` visade, `am` aktiv tid som intervall, `tq` (`fg`/`u`). `t` är **passets starttid** | slut eller uttrycklig utgång |
 | `of` | `w` (`home`/`klar`), `bt` knappar → antal, `s` | erbjudandet ändras efter dagens pass |
 | `sl` | `w` (`rad`/`klar`/`hem`/`annat`), `a` (kor, flow, ovamer, mission, testa, revansch), `cd` dagens pass klart | tryck |
 | `er` | `w` plats, `n` feltyp | tekniskt fel (högst 20 per dygn) |
@@ -55,9 +55,11 @@ Alla: `i` (unikt: enhet-sidladdning-löpnummer, så två flikar på samma enhet 
 **Samlas aldrig:** namn, e-post, familjekod, skrivna svar, ljud, bild, video, skärm, klickspår, diagnoser, känslor, svarstid,
 skoldokument eller bildinnehåll.
 
-**Ingen svarstid går att räkna fram:** `it` bär passets starttid och ett löpnummer, aldrig när svaret lämnades, och passets aktiva tid är
-bara ett grovt intervall. **Id i fri text** (mål och koncept) sparas bara om de är korta tekniska id (`a–z 0–9 : _ / . -`, högst 80
-tecken). Annars ersätts de med `h` + 12 hex av en hash, så en titel eller ett namn som råkat hamna i ett id följer aldrig med.
+**Ingen svarstid och ingen exakt passlängd går att räkna fram:** `it` och `se` bär passets starttid (`it` med ett löpnummer), aldrig när
+svaret lämnades eller passet slutade. Passets aktiva tid är bara ett grovt intervall. `of`, `sl` och `er` avrundas nedåt till en
+kvartstimme (nedåt, så att en händelse aldrig ser ut att vara från efter en radering). **Id:** bara appens inbyggda färdigheter (`s:`) och paketens kunskapspunkter (`k:`) står i klartext. Id ur familjens egna
+källor (skoluppgifter, förälderns prov, egna glosdäck) sparas alltid som `h` + 12 hex av en hash med barnets salt – också när de ser ut
+som ett id – så en titel eller ett namn följer aldrig med och går inte att slå upp med en lista över titlar.
 
 ## 4. Arkitektur och integritet
 
@@ -88,6 +90,8 @@ tecken). Annars ersätts de med `h` + 12 hex av en hash, så en titel eller ett 
     Exporten tar också bort dubbletter på händelse-id och sorterar på tid.
   - Svarar molnet 403 (reglerna inte publicerade) stannar allt lokalt till nästa start.
   - Testa som barnet, förälderns förhandsvisning och testadressen gör inga anrop alls till observationslagringen.
+  - **Bara med samtycke nu:** en ej uppladdad händelse vars pseudonym inte längre hör till ett barn med observationer på (barnets data
+    raderad på en annan enhet, barnet borttaget, ett salt som förlorade sammanslagningen) laddas aldrig upp och släpps lokalt.
 - **Vem kan läsa i molnet:** varje parkopplad enhet i familjen. Det är **inte** ett föräldraskydd. Föräldrarollen väljs i dag av enheten
   själv (se `docs/PLAN_FAMILY_PLATFORM.md`). Exporten finns bara i föräldraläget (PIN-koden), men det är inget serverskydd.
 - **Lagringstid:** 30 dygn som standard; 14 eller 7 kan väljas.
@@ -102,7 +106,10 @@ tecken). Annars ersätts de med `h` + 12 hex av en hash, så en titel eller ett 
   - på andra enheter efter synk (`settings.obs.purge`: händelser till och med den tiden släpps);
   - i molnet direkt, eller vid nästa start om enheten är utan nät (`purgeQ`, prövas igen). Ett försök senare tar bara bort satser vars
     senaste händelse är från före raderingen, aldrig nya;
-  - ”Radera familjens data” och ”Radera barnets data” i föräldraläget tar också bort observationerna i molnet och på enheten.
+  - ”Radera familjens data” och ”Radera barnets data” i föräldraläget tar också bort observationerna i molnet och på enheten. Andra
+    enheter släpper sina ej uppladdade händelser för barnet efter synk och laddar aldrig upp dem.
+  - ”Radera familjens data” avbryts (inget raderas) om observationerna i molnet inte gick att nå eller radera, eftersom ingen app kan nå
+    dem när medlemskapen väl är borta. Föräldern ombeds försöka igen med nät.
 - **Av:** inget nytt sparas. Ej uppladdade händelser släpps på alla enheter efter synk. Uppladdade ligger kvar tills lagringstiden gått
   ut eller föräldern raderar.
 - **Inga** offentliga exporter, loggar eller CI-artefakter med riktig användning. Testerna använder syntetiska barn.
