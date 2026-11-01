@@ -585,3 +585,13 @@ med `PREVIEW=1` till `<sajten>/preview/`. Produktionen publiceras som vanligt. M
   - `test_study_mission.js` använde nodens riktiga klocka för syntetiska bevis och började fallera när kalendern passerade november
     (också på main). Det använder nu fönstrets fasta klocka.
 - **Rollback:** 3.7.1-bygget.
+
+## 3.7.3 – Mål nära datum: barnet kan träna på alla delar
+- **Ägarens beslut:** lägger man in ett prov, en läxa eller ett glosförhör kort tid innan – eller börjar barnet först två dagar innan – ska
+  barnet ändå kunna träna på alla delar, också dagen före.
+- De sista tre dygnen före målet tar målets egen träning (Kör på raden, "Öva inför …") in målets osedda områden utan dygnets gräns för
+  nytt, högst fem nya per runda – resten i nästa. Själva provdagen: inget nytt. Dagens Kör! och motorns regler är oförändrade.
+- (3.7.2 mergades utan den här ändringen; beskrivningen i 3.7.2 ovan om "nära datum" gäller från 3.7.3.)
+- **Test:** `tests/test_goal_mission_min.js` (319 kontroller) prövar att passet de sista tre dygnen tar in målets delar.
+- **Rollback:** 3.7.2-bygget.
+
