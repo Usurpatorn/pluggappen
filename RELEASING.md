@@ -567,15 +567,16 @@ med `PREVIEW=1` till `<sajten>/preview/`. Produktionen publiceras som vanligt. M
   - efter dagens pass erbjuds Kör för glosorna bara när något ord är nytt eller förfallet (`EXP.useful` för målets plan).
 - **Alla mål:** målets egen träning ger minst sex uppgifter (`V2.MISSION_MIN`). Ett kort pass fylls med mer övning på de områden av
   målet som redan finns i passet (inga nya utöver dygnets gräns).
-- **Nytt mål nära datum:** när inget av målet gick att planera men osedda områden finns, introducerar målets egen träning högst dygnets
-  rest av nytt – också de sista dygnen före målet, när dagens pass inte tar in något nytt. Själva provdagen: inget nytt (ärlig text).
-  Dagens Kör! och motorns regler är oförändrade; det här gäller bara när barnet självt väljer att öva på målet.
+- **Mål nära datum (ägarens beslut):** de sista tre dygnen före målet, också dagen före, tar målets egen träning in målets osedda
+  områden utan dygnets gräns för nytt – högst fem nya per runda, resten i nästa. Barnet ska kunna träna på alla delar även när ett prov
+  läggs in sent. Tidigare dygn: ett mål där inget gick att planera introducerar högst dygnets rest av nytt. Själva provdagen: inget nytt
+  (ärlig text). Dagens Kör! och motorns regler är oförändrade; det här gäller bara när barnet självt väljer att öva på målet.
 - **Öva på egen hand:** ett ämnesbyte stängde hela delen (sidan ritades om). Nu förblir den öppen, i alla upplevelser.
 - **Oförändrat:** motorns kärna, dagens Kör!, Testa mig (högst fyra ord) och glosornas Leitner-boxar.
 - **Test:**
   - `tests/test_glosor_mission.js` (18 kontroller): alla ord första rundan, fel ord tillbaka en gång, Leitner dag för dag tills allt
     sitter, att raden tar slut samma kväll även med vartannat svar fel, Testa mig och dagens Kör! oförändrade;
-  - `tests/test_goal_mission_min.js` (295 kontroller): nio former av mål × 14, 7, 3, 1, 0 dygn × före/efter dagens pass – erbjuds Kör
+  - `tests/test_goal_mission_min.js` (319 kontroller): nio former av mål × 14, 7, 3, 1, 0 dygn × före/efter dagens pass – erbjuds Kör
     är passet minst sex uppgifter, bara målets innehåll och "Kör · N min" stämmer; annars ärlig text. Den gamla koden ger 43 fel;
   - `tests/test_fold_subject.js` (12 kontroller; den gamla koden ger 3 fel);
   - `test_ova_mer.js` prövar nu att också glosförhörets träning tar slut av sig själv.
