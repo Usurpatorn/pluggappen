@@ -110,7 +110,7 @@ setTimeout(() => { try {
   // ---- 7) Föräldern ser flaggorna (bara i Motor v2)
   ok(!/Innehållshälsa/.test(T.$('#app').textContent), 'barnet ser aldrig flaggorna');
   // syntetiska bevis: en fråga fel varje gång medan resten av punkten går bra → "avviker"; markerad två dygn → "flera gånger"
-  const kp0 = KP + 'syra-exempel'; const bad = 'ibadbad1'; let seq = 9000; const t0 = Date.now() - 6 * 86400000;
+  const kp0 = KP + 'syra-exempel'; const bad = 'ibadbad1'; let seq = 9000; const t0 = w.Date.now() - 6 * 86400000;   // fönstrets fasta klocka (inte nodens riktiga tid – annars ändrades testet med kalendern)
   const ev = (item, okk, kind, dd) => p.le.log.push(PA.LE2.encodeEv({ t: t0 + dd * 3600000 + seq * 1000, dev: 'syn', seq: ++seq, cid: kp0, ok: okk, kind, k: kind === 'mc' ? 4 : 0, help: 'none', ctx: 'first', item, sess: 'syn:1', lvl: 1 }));
   for (let i = 0; i < 4; i++) ev(bad, false, 'mc', i); for (let i = 0; i < 6; i++) ev('igood' + i, true, i % 2 ? 'free' : 'mc', i);
   p.le.seqs = { ...(p.le.seqs || {}), syn: seq }; const today = Number(qr[0].split('|')[0]); PA.LE2.reportItem(p.le, today - 3, bad, kp0); PA.LE2.reportItem(p.le, today - 1, bad, kp0); PA.LE.invalidate('k8');

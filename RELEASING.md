@@ -555,3 +555,32 @@ med `PREVIEW=1` till `<sajten>/preview/`. Produktionen publiceras som vanligt. M
 - Utan stöd (t.ex. appen inte på hemskärmen på iPad): hjälptexten står i ⚙, inte på startsidan.
 - **Test:** `tests/test_push_settings.js` (11 kontroller; den gamla koden ger 4 fel).
 - **Rollback:** 3.7.0-bygget.
+
+## 3.7.2 – Målets Kör ger alltid ett riktigt pass; glosförhör övar alla glosor; Öva på egen hand stängs inte
+- **Ägarens fynd:** "Kör" på raden för ett glosförhör gav en enda fråga ("1 av 1"), och barnet tappade fokus. Motorn ser en glosbok som ETT
+  koncept, och ett koncept får högst en eller två platser i ett pass. Samma sak gällde ett prov eller en läxa med ett enda område (två
+  frågor), och ett nytt mål de sista tre dygnen gav inget pass alls. Ägarens krav: det ska inte hända igen för prov, läxor eller glosor.
+- **Glosor (bara i målets egen träning: Kör på raden, "Öva inför …"):**
+  - varje nytt eller förfallet ord får en egen plats, högst 20 per pass; ett ord som blev fel kommer tillbaka en gång i samma pass;
+  - ett ord som blev rätt väntar till sin box-dag (Leitner), så rundorna tar slut samma kväll även när vartannat svar blir fel – och
+    raden erbjuder Kör igen nästa dag; när inget är nytt eller förfallet blir det en kort repetition (högst sex ord);
+  - efter dagens pass erbjuds Kör för glosorna bara när något ord är nytt eller förfallet (`EXP.useful` för målets plan).
+- **Alla mål:** målets egen träning ger minst sex uppgifter (`V2.MISSION_MIN`). Ett kort pass fylls med mer övning på de områden av
+  målet som redan finns i passet (inga nya utöver dygnets gräns).
+- **Nytt mål nära datum:** när inget av målet gick att planera men osedda områden finns, introducerar målets egen träning högst dygnets
+  rest av nytt – också de sista dygnen före målet, när dagens pass inte tar in något nytt. Själva provdagen: inget nytt (ärlig text).
+  Dagens Kör! och motorns regler är oförändrade; det här gäller bara när barnet självt väljer att öva på målet.
+- **Öva på egen hand:** ett ämnesbyte stängde hela delen (sidan ritades om). Nu förblir den öppen, i alla upplevelser.
+- **Oförändrat:** motorns kärna, dagens Kör!, Testa mig (högst fyra ord) och glosornas Leitner-boxar.
+- **Test:**
+  - `tests/test_glosor_mission.js` (18 kontroller): alla ord första rundan, fel ord tillbaka en gång, Leitner dag för dag tills allt
+    sitter, att raden tar slut samma kväll även med vartannat svar fel, Testa mig och dagens Kör! oförändrade;
+  - `tests/test_goal_mission_min.js` (295 kontroller): nio former av mål × 14, 7, 3, 1, 0 dygn × före/efter dagens pass – erbjuds Kör
+    är passet minst sex uppgifter, bara målets innehåll och "Kör · N min" stämmer; annars ärlig text. Den gamla koden ger 43 fel;
+  - `tests/test_fold_subject.js` (12 kontroller; den gamla koden ger 3 fel);
+  - `test_ova_mer.js` prövar nu att också glosförhörets träning tar slut av sig själv.
+  - `test_cta_paths.js`: blandad träning i vanligt Kör! prövas över nio dygn (motorns ämnesrättvisa: sju dygn) i stället för sex – med
+    sex hängde glosorna på ett enda pass och föll bort när målens egen träning gav mer att repetera;
+  - `test_study_mission.js` använde nodens riktiga klocka för syntetiska bevis och började fallera när kalendern passerade november
+    (också på main). Det använder nu fönstrets fasta klocka.
+- **Rollback:** 3.7.1-bygget.
