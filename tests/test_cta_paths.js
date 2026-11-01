@@ -77,7 +77,9 @@ const txt = (T, sel = '#app') => (T.$(sel) || { textContent: '' }).textContent.r
     else ok(/inget att öva just för provet/.test(txt(T)), 'algebraknappen saknas bara med ärlig text');
 
     /* 3. Vanligt Kör! behåller blandad träning: över en vecka med två prov förekommer även annat än proven (t.ex. glosor) */
-    { const other = new Set(); for (let d = 0; d < 6; d++) { w.__advance(DAY); open(); click($('.go-btn[data-v2="kor"]')); const plan = PA().S.v2.plan; for (const s of plan) if (!cidsOf(eA).has(s.cid) && !cidsOf(eK).has(s.cid)) other.add(s.cid); runAll(() => rnd() < 0.2); }
+    // 3.7.2: nio dygn (motorns ämnesrättvisa tar in ett ämne som väntat sju dygn) – med sex dygn hängde glosorna på ett enda pass och föll
+    // bort när målens egen träning (längre sedan 3.7.2) gav mer att repetera
+    { const other = new Set(); for (let d = 0; d < 9; d++) { w.__advance(DAY); open(); const g0 = $('.go-btn[data-v2="kor"]'); if (!g0) continue; click(g0); const plan = PA().S.v2.plan; for (const s of plan) if (!cidsOf(eA).has(s.cid) && !cidsOf(eK).has(s.cid)) other.add(s.cid); runAll(() => rnd() < 0.2); }
       ok(other.size > 0, `vanligt Kör! med två prov behåller blandad träning (${other.size} andra koncept, t.ex. ${[...other].slice(0, 3).join(' ')})`);
       ok([...other].some(c => c.startsWith('d:')) || PA().LE.state(kid()).L.c && Object.keys(PA().LE.state(kid()).L.c).some(c => c.startsWith('d:')), 'engelska/språk är inte bortvalt (glosgrupper finns kvar i planeringen)'); }
 

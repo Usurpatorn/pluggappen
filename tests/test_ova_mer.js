@@ -96,7 +96,9 @@ const openKid = (T, id) => { toStart(T); T.click(T.$(`[data-kid="${id}"]`)); if 
     // Allt rätt i CORE och FLOW: det som återstår har redan blivit rätt idag – då ingen Öva mer (bara upprepning) utan ärlig text
     { const { T, D } = await boot(13); const { $, click } = T; openKid(T, 'k4'); click($('.go-btn[data-v2="kor"]')); D.run(() => false); click($('[data-go="home"]')); let f = 0; while ($('[data-v2="flow"]') && f++ < 5) { click($('[data-v2="flow"]')); D.run(() => false); click($('[data-go="home"]')); }
       const useful = T.PA().EXP.useful(T.PA().EXP.peekFlow(T.PA().KIDS.find(k => k.id === 'k4')), T.PA().KIDS.find(k => k.id === 'k4')); const t = txt(T);
-      ok(useful ? !!$('[data-v2="ovamer"]') : (!$('[data-v2="ovamer"]') && /inget mer som gör nytta/.test(t)), `allt rätt idag: Öva mer bara om något återstår som inte redan blivit rätt (${useful ? 'återstår' : 'inget kvar – ärlig text'})`); }
+      // 3.7.2: glosförhörets egen träning (nya eller förfallna ord) kan erbjudas i stället för den ärliga texten – men bara när den gör nytta
+      const k4 = T.PA().KIDS.find(k => k.id === 'k4'); const gb = $('.mission [data-v2="mission"]'); const gOk = !!gb && (() => { const g = T.PA().EXP.goalOf(k4, null).all.find(x => x.e.id === gb.dataset.exam); return !!g && (g.e.deckIds || []).length > 0 && T.PA().EXP.goalPractice(k4, g.e).ok; })();
+      ok(useful ? !!$('[data-v2="ovamer"]') : (!$('[data-v2="ovamer"]') && (/inget mer som gör nytta/.test(t) || gOk)), `allt rätt idag: Öva mer bara om något återstår som inte redan blivit rätt (${useful ? 'återstår' : gOk ? 'glosförhörets träning gör nytta' : 'inget kvar – ärlig text'})`); }
     // Ett avbrutet övningsblock spärrar inte senare belöningar
     { const { T, D } = await boot(23); const { $, click, PA } = T; const kid = PA().KIDS.find(k => k.id === 'k8'); openKid(T, 'k8'); click($('.go-btn[data-v2="kor"]')); D.run(() => false);
       const ex = PA().LE.exams(kid, PA().DB.profiles.k8).find(e => e.id === 'w:syn-alg'); for (let i = 0; i < 3; i++) { PA().V2.start(kid, 'mission', { examId: ex.id }); if (PA().S && PA().S.v2) D.run(() => false); }
@@ -105,7 +107,7 @@ const openKid = (T, id) => { toStart(T); T.click(T.$(`[data-kid="${id}"]`)); if 
     // Granskarens fall (k4, frö 41, två dygn historik): Öva mer tar slut av sig själv
     { const { T, D, w } = await boot(41); const { $, click } = T; for (let d = 0; d < 2; d++) { openKid(T, 'k4'); click($('.go-btn[data-v2="kor"]')); D.run((it) => it.cat !== 'learn' && D.log.items % 4 === 0); w.__advance(DAY); }
       openKid(T, 'k4'); click($('.go-btn[data-v2="kor"]')); D.run(() => false); click($('[data-go="home"]')); let f = 0; while ($('[data-v2="flow"]') && f++ < 5) { click($('[data-v2="flow"]')); D.run(() => false); click($('[data-go="home"]')); }
-      let n = 0; while ($('[data-v2="ovamer"]') && n < 25) { click($('[data-v2="ovamer"]')); let k = 0; D.run(() => (++k % 2 === 0)); n++; openKid(T, 'k4'); }
+      let n = 0; while (($('[data-v2="ovamer"]') || $('.mission [data-v2="mission"]')) && n < 25) { click($('[data-v2="ovamer"]') || $('.mission [data-v2="mission"]')); let k = 0; D.run(() => (++k % 2 === 0)); n++; openKid(T, 'k4'); }   // 3.7.2: också glosförhörets träning tar slut
       ok(n < 25 && /inget mer som gör nytta/.test(txt(T)), `k4 frö 41: Öva mer tar slut även när varannan uppgift blir fel (${n} block)`); }
     // Ingen ändlös upprepning: Öva mer gång på gång (allt rätt) tar slut med ärlig text (granskning: samma plan erbjöds 25 gånger)
     for (const [kidId, seed] of [['k4', 41], ['k2', 41], ['k8', 41]]) { const { T, D } = await boot(seed); const { $, click } = T; openKid(T, kidId); let wk = 0; click($('.go-btn[data-v2="kor"]')); D.run((it) => it.cat !== 'learn' && (++wk % 2 === 0)); click($('[data-go="home"]'));

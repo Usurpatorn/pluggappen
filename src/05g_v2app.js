@@ -174,8 +174,21 @@ const V2 = {
       // dygnets gräns för nytt är nådd. Provträningen tar därför in högst så många nya koncept som gränsen tillåter – resten väntar till imorgon.
       const capN = V2.newCapToday(C, now, EXP.on(kid) ? p : null); const fresh = new Set();
       const plan = plan0.filter(s => set.has(s.cid)).filter(s => { const c = C.L.c[s.cid]; if ((C.cat[s.cid] || {}).kind === 'deck' || (c && (c.fs || c.n > 0))) return true;   /* sett = som V2.newToday och motorn (n > 0; v1-migrerade har inget fs); glosdäck räknas inte in i gränsen */ if (fresh.has(s.cid)) return true; if (fresh.size < capN) { fresh.add(s.cid); return true; } return false; });
+      // 3.7.2 (ägarens fynd): ett glosförhör = alla ord. Motorn ser glosboken som ETT koncept (en plats i passet). I målets egen träning
+      // får varje nytt eller förfallet ord en egen plats (högst 20); annars en kort repetition.
+      const dk = V2.deckSlots(p, e, set);
+      if (dk.length) { const isD = (x) => (C.cat[x.cid] || {}).kind === 'deck'; const rest = plan.filter(x => !isD(x)); plan.length = 0; plan.push(...rest.filter(x => x.role !== 'boss'), ...dk, ...rest.filter(x => x.role === 'boss')); }
+      // 3.7.2 (ägarens krav: ett mål ska aldrig ge ett pass på en eller två frågor).
+      // (a) Inget av målet gick att planera men osedda områden finns: målets egen träning (som barnet själv väljer) introducerar högst dygnets
+      //     rest av nytt – också de sista dygnen före målet, då dagens pass inte tar in något nytt. Själva provdagen: inget nytt.
+      const nd = (x) => x.role !== 'boss' && (C.cat[x.cid] || {}).kind !== 'deck'; const seenC = (c) => !!(C.L.c[c] && (C.L.c[c].fs || C.L.c[c].n > 0));
+      if (!plan.some(x => x.role !== 'boss') && daysUntil(e.date) >= 1) { for (const c of cids.filter(c => (C.cat[c] || {}).kind !== 'deck' && !seenC(c)).slice(0, capN)) plan.push({ cid: c, role: 'focus', why: 'nytt inför målet' }, { cid: c, role: 'focus', why: 'nytt inför målet' }); }
+      // (b) Ett kort pass fylls med mer övning på de områden av målet som redan finns i passet (inga nya), till minst MISSION_MIN uppgifter.
+      { const base = [...new Set(plan.filter(nd).map(x => x.cid))]; const bi = plan.findIndex(x => x.role === 'boss'); let k = 0; const add = [];
+        while (base.length && plan.filter(x => x.role !== 'boss').length + add.length < V2.MISSION_MIN) add.push({ cid: base[k++ % base.length], role: 'practice', why: 'mer övning inför målet' });
+        if (add.length) plan.splice(bi >= 0 ? bi : plan.length, 0, ...add); }
       if (!plan.some(s => s.role !== 'boss')) return [];
-      Object.assign(plan, { light: plan0.light, restart: plan0.restart, maxItems: plan0.maxItems, maxNew: plan0.maxNew, examDays: plan0.examDays, only: set, examId: e.id }); return plan; }
+      Object.assign(plan, { light: plan0.light, restart: plan0.restart, maxItems: Math.max(plan0.maxItems || 0, plan.length + 2) + (dk.length ? Math.min(10, dk.length) : 0), maxNew: plan0.maxNew, examDays: plan0.examDays, only: set, examId: e.id }); return plan; }
     if (mode === 'readclose') { const cids = LE.cidsOfSkill(C, extra.skillId); if (!cids.length) return []; const start = Math.floor(Math.random() * cids.length); const plan = [0, 1, 2].map(i => ({ cid: cids[(start + i) % cids.length], role: 'readclose', why: 'läst, stängt – minns du?' })); plan.maxItems = 3; return plan; }
     // v3 (granskning M2) och 2.1.1: ett nytt Kör! efter dagens CORE eller efter provträning samma dag får bara det som är kvar av dygnets gräns för nytt
     const later = (EXP.on(kid) && EXP.coreDone(p)) || V2.missionToday(p);
@@ -220,13 +233,32 @@ const V2 = {
     if (!fresh && q) q = { ...q, onlyVariant: true };   // granskning L7: banken har inget annat – Felboken får verifiera med samma fråga efter några dygn
     return q;
   },
+  DECK_MAX: 20, LEARNED_BOX: 3, MISSION_MIN: 6,   // 3.7.2: målets egen träning ger minst sex uppgifter när målet har något att öva
+  deckNeed(p, d, now = Date.now()) { return d.words.filter(w => { const s = p.words[w.id]; return !s || s.box < V2.LEARNED_BOX || s.due <= now; }); },
+  // Gör nytta att öva IGEN idag: nya ord och ord som är förfallna (ett fel ord är förfallet direkt). Ett ord som blev rätt idag väntar till sin
+  // box-dag (Leitner) – så tar raden slut av sig själv samma kväll, även när vartannat svar blir fel.
+  deckDue(p, d, now = Date.now()) { return d.words.filter(w => { const s = p.words[w.id]; return !s || s.due <= now; }); },
+  deckSlots(p, e, set) {
+    const out = [];
+    for (const id of (e.deckIds || [])) {
+      const cid = LECAT.deckCid(id); if (!set.has(cid)) continue; const d = deckById(p, id); if (!d || !d.words.length) continue;
+      // Nya och förfallna ord (ett fel ord är förfallet direkt) – ett ord som blev rätt väntar till sin box-dag (Leitner), så rundorna tar slut.
+      // Inget nytt eller förfallet: en kort repetition (högst sex ord, de som inte sitter först).
+      const due = V2.deckDue(p, d).length; const n = due || Math.min(d.words.length, 6);
+      for (let i = 0; i < n; i++) out.push({ cid, role: due ? 'focus' : 'remember', why: due ? 'glosorna inför förhöret' : 'repetera glosorna' });
+    }
+    return out.slice(0, V2.DECK_MAX);
+  },
   materialize(spec) {
     const V = S.v2; const kid = S.kid; const p = prof(kid.id); const L = V.C.L; const pol = V.C.pol; const c = L.c[spec.cid];
     if (spec.kind === 'deck') {
       const d = V2.deckOf(p, spec.cid); if (!d || !d.words.length) return [];
       const now = Date.now(); const byDue = d.words.filter(w => p.words[w.id] && p.words[w.id].due <= now && !V.seen.has(w.id)).sort((a, b) => p.words[a.id].due - p.words[b.id].due);
       const fresh = d.words.filter(w => !p.words[w.id] && !V.seen.has(w.id)); const known = d.words.filter(w => p.words[w.id] && !V.seen.has(w.id));
-      const w = V.exam ? R.pick(d.words) : byDue[0] || fresh[0] || (known.length ? R.pick(known) : R.pick(d.words)); V.seen.add(w.id);
+      // 3.7.2: i målets träning – ett ord som var fel kommer tillbaka (spec.wid), och ord som inte sitter går före ord som redan sitter
+      const weak = V.mode === 'mission' ? known.filter(x => p.words[x.id].box < V2.LEARNED_BOX) : [];
+      const again = spec.wid ? d.words.find(x => x.id === spec.wid) : null;
+      const w = again || (V.exam ? R.pick(d.words) : byDue[0] || fresh[0] || weak[0] || (known.length ? R.pick(known) : R.pick(d.words))); V.seen.add(w.id);
       const isNewWord = !p.words[w.id];   // granskning M7: kontrollera FÖRE wordState (som skapar posten)
       const box = isNewWord ? 0 : wordState(p, w.id).box; const kind = V.exam ? 'type' : d.noSpell || box < 2 ? (d.lang === 'sv' ? 'pickRev' : 'pick') : 'type';
       const out = []; if (!V.exam && isNewWord) out.push({ kind: 'intro', deck: d, word: w, title: 'Nytt ord', cat: 'word', spec });
@@ -415,7 +447,9 @@ const V2 = {
     }, 'observe', null);
   },
   observeWord(ex, correct) {
-    V2.safe(() => { const V = S.v2; if (!ex.spec || !ex._slotEnd) return; LER.answered(V.R, V.C.L, ex.spec, correct); const p = prof(S.kid.id); const rec = (p.le.shadow || []).find(r => r.id === V.id); if (rec) { rec.v1.push(ex.spec.cid); rec.w[0]++; if (correct) rec.w[1]++; } }, 'observeWord');
+    V2.safe(() => { const V = S.v2; if (!ex.spec || !ex._slotEnd) return; LER.answered(V.R, V.C.L, ex.spec, correct);
+      // 3.7.2: målets träning – ett fel ord kommer tillbaka en gång senare i samma pass (glosor har annars inga omförsök)
+      if (!correct && V.mode === 'mission' && !V.exam && ex.word && !ex.spec.wid) { V.reask = V.reask || new Set(); if (!V.reask.has(ex.word.id)) { V.reask.add(ex.word.id); V.R.queue.splice(Math.min(V.R.queue.length, V.R.i + 2), 0, { cid: ex.spec.cid, role: 'retry', why: 'samma ord igen om en stund', wid: ex.word.id }); V.R.maxItems = Math.max(V.R.maxItems || 0, V.R.answered + (V.R.queue.length - V.R.i)); } } const p = prof(S.kid.id); const rec = (p.le.shadow || []).find(r => r.id === V.id); if (rec) { rec.v1.push(ex.spec.cid); rec.w[0]++; if (correct) rec.w[1]++; } }, 'observeWord');
   },
   REWARD_TXT: { REMEMBERED: 'Du kom ihåg!', COMEBACK: 'Revansch klar!', CHALLENGE: 'Utmaning klarad!', MASTERY: 'Sitter säkert!', FOCUS: 'Dagens fokus klart!', CONSISTENCY: 'Tre plugg-dagar den här veckan!' },
   grant(p, list, cid) {
