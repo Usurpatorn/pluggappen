@@ -107,13 +107,19 @@ const openKid = (T, id) => { toStart(T); T.click(T.$(`[data-kid="${id}"]`)); if 
     // Granskarens fall (k4, frö 41, två dygn historik): Öva mer tar slut av sig själv
     { const { T, D, w } = await boot(41); const { $, click } = T; for (let d = 0; d < 2; d++) { openKid(T, 'k4'); click($('.go-btn[data-v2="kor"]')); D.run((it) => it.cat !== 'learn' && D.log.items % 4 === 0); w.__advance(DAY); }
       openKid(T, 'k4'); click($('.go-btn[data-v2="kor"]')); D.run(() => false); click($('[data-go="home"]')); let f = 0; while ($('[data-v2="flow"]') && f++ < 5) { click($('[data-v2="flow"]')); D.run(() => false); click($('[data-go="home"]')); }
-      let n = 0; while (($('[data-v2="ovamer"]') || $('.mission [data-v2="mission"]')) && n < 25) { click($('[data-v2="ovamer"]') || $('.mission [data-v2="mission"]')); let k = 0; D.run(() => (++k % 2 === 0)); n++; openKid(T, 'k4'); }   // 3.7.2: också glosförhörets träning tar slut
-      ok(n < 25 && /inget mer som gör nytta/.test(txt(T)), `k4 frö 41: Öva mer tar slut även när varannan uppgift blir fel (${n} block)`); }
+      let n = 0; while ($('[data-v2="ovamer"]') && n < 25) { click($('[data-v2="ovamer"]')); let k = 0; D.run(() => (++k % 2 === 0)); n++; openKid(T, 'k4'); }
+      // 3.7.4 (ägarens beslut): glosförhörets egen träning kan övas obegränsat – den kan stå kvar; själva Öva mer tar slut
+      const k4b = T.PA().KIDS.find(k => k.id === 'k4'); const mb = $('.mission [data-v2="mission"]'); const vocab = !!mb && (() => { const g = T.PA().EXP.goalOf(k4b, null).all.find(x => x.e.id === mb.dataset.exam); return !!g && (g.e.deckIds || []).length > 0; })();
+      ok(n < 25 && !$('[data-v2="ovamer"]') && (/inget mer som gör nytta/.test(txt(T)) || vocab), `k4 frö 41: Öva mer tar slut även när varannan uppgift blir fel (${n} block${vocab ? ', glosförhörets träning står kvar' : ''})`); }
     // Ingen ändlös upprepning: Öva mer gång på gång (allt rätt) tar slut med ärlig text (granskning: samma plan erbjöds 25 gånger)
     for (const [kidId, seed] of [['k4', 41], ['k2', 41], ['k8', 41]]) { const { T, D } = await boot(seed); const { $, click } = T; openKid(T, kidId); let wk = 0; click($('.go-btn[data-v2="kor"]')); D.run((it) => it.cat !== 'learn' && (++wk % 2 === 0)); click($('[data-go="home"]'));
       let f = 0; while ($('[data-v2="flow"]') && f++ < 5) { click($('[data-v2="flow"]')); D.run((it) => it.cat !== 'learn' && (++wk % 2 === 0)); click($('[data-go="home"]')); }
-      let n = 0; while (($('[data-v2="ovamer"]') || $('[data-v2="mission"]')) && n < 25) { click($('[data-v2="ovamer"]') || $('[data-v2="mission"]')); D.run(() => false); n++; openKid(T, kidId); }
-      ok(n < 25 && /inget mer som gör nytta/.test(txt(T)), `${kidId}: Öva mer tar slut när inget gör nytta – ingen ändlös upprepning (${n} block)`); }
+      // 3.7.4 (ägarens beslut): ett glosförhörs egen träning kan övas obegränsat – den räknas inte här; allt annat ska ta slut
+      const kidO = T.PA().KIDS.find(k => k.id === kidId); const isVocab = (b) => { const g = T.PA().EXP.goalOf(kidO, null).all.find(x => x.e.id === b.dataset.exam); return !!g && (g.e.deckIds || []).length > 0 && !(g.e.skillIds || []).length && !(g.e.kps || []).length; };
+      const nextBtn = () => $('[data-v2="ovamer"]') || [...T.$('#app').querySelectorAll('[data-v2="mission"]')].find(b => !isVocab(b));
+      let n = 0; while (nextBtn() && n < 25) { click(nextBtn()); D.run(() => false); n++; openKid(T, kidId); }
+      const vocabLeft = [...T.$('#app').querySelectorAll('[data-v2="mission"]')].some(isVocab);
+      ok(n < 25 && (/inget mer som gör nytta/.test(txt(T)) || vocabLeft), `${kidId}: Öva mer tar slut när inget gör nytta – ingen ändlös upprepning (${n} block${vocabLeft ? ', bara glosförhörets obegränsade träning kvar' : ''})`); }
     // Ett mål med en befintlig extern resurs (kemi) och inget kvar att öva: länken visas, inget genereras
     { const { w, T, PA } = await (async () => { const b = await boot(5); return { ...b, PA: b.T.PA }; })(); const kid = PA().KIDS.find(k => k.id === 'k8');
       const res = PA().EXP.resources(kid, PA().LE.exams(kid, PA().DB.profiles.k8).find(e => e.id === 'w:syn-kemi'));
