@@ -182,7 +182,12 @@ const V2 = {
       // (a) Inget av målet gick att planera men osedda områden finns: målets egen träning (som barnet själv väljer) introducerar högst dygnets
       //     rest av nytt – också de sista dygnen före målet, då dagens pass inte tar in något nytt. Själva provdagen: inget nytt.
       const nd = (x) => x.role !== 'boss' && (C.cat[x.cid] || {}).kind !== 'deck'; const seenC = (c) => !!(C.L.c[c] && (C.L.c[c].fs || C.L.c[c].n > 0));
-      if (!plan.some(x => x.role !== 'boss') && daysUntil(e.date) >= 1) { for (const c of cids.filter(c => (C.cat[c] || {}).kind !== 'deck' && !seenC(c)).slice(0, capN)) plan.push({ cid: c, role: 'focus', why: 'nytt inför målet' }, { cid: c, role: 'focus', why: 'nytt inför målet' }); }
+      // Ägarens beslut (3.7.2): de sista tre dygnen före målet (också dagen före) ska barnet kunna träna på ALLA delar – osedda områden tas in
+      // utan dygnets gräns för nytt, högst MISSION_NEW_LAST per pass (resten i nästa runda). Tidigare: bara när inget annat fanns, inom gränsen.
+      { const dd = daysUntil(e.date); const inPlan = new Set(plan.map(x => x.cid)); const un = cids.filter(c => (C.cat[c] || {}).kind !== 'deck' && !seenC(c) && !inPlan.has(c));
+        const take = dd >= 1 && dd <= 3 ? un.slice(0, V2.MISSION_NEW_LAST) : !plan.some(x => x.role !== 'boss') && dd >= 1 ? un.slice(0, capN) : [];
+        const bi = plan.findIndex(x => x.role === 'boss'); const add = take.flatMap(c => [{ cid: c, role: 'focus', why: 'nytt inför målet' }, { cid: c, role: 'focus', why: 'nytt inför målet' }]);
+        if (add.length) plan.splice(bi >= 0 ? bi : plan.length, 0, ...add); }
       // (b) Ett kort pass fylls med mer övning på de områden av målet som redan finns i passet (inga nya), till minst MISSION_MIN uppgifter.
       { const base = [...new Set(plan.filter(nd).map(x => x.cid))]; const bi = plan.findIndex(x => x.role === 'boss'); let k = 0; const add = [];
         while (base.length && plan.filter(x => x.role !== 'boss').length + add.length < V2.MISSION_MIN) add.push({ cid: base[k++ % base.length], role: 'practice', why: 'mer övning inför målet' });
@@ -233,7 +238,7 @@ const V2 = {
     if (!fresh && q) q = { ...q, onlyVariant: true };   // granskning L7: banken har inget annat – Felboken får verifiera med samma fråga efter några dygn
     return q;
   },
-  DECK_MAX: 20, LEARNED_BOX: 3, MISSION_MIN: 6,   // 3.7.2: målets egen träning ger minst sex uppgifter när målet har något att öva
+  DECK_MAX: 20, LEARNED_BOX: 3, MISSION_MIN: 6, MISSION_NEW_LAST: 5,   // 3.7.2: målets egen träning ger minst sex uppgifter när målet har något att öva
   deckNeed(p, d, now = Date.now()) { return d.words.filter(w => { const s = p.words[w.id]; return !s || s.box < V2.LEARNED_BOX || s.due <= now; }); },
   // Gör nytta att öva IGEN idag: nya ord och ord som är förfallna (ett fel ord är förfallet direkt). Ett ord som blev rätt idag väntar till sin
   // box-dag (Leitner) – så tar raden slut av sig själv samma kväll, även när vartannat svar blir fel.

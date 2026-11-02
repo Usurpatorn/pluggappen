@@ -40,6 +40,8 @@ const DAYS = [14, 7, 3, 1, 0];
       const plan = PA.V2.plan(kid, 'mission', PA.LE.state(kid), PA.LE.now(), 'chk', { examId: 'w:g' }); const nb = plan.filter(s => s.role !== 'boss').length;
       const deckOnly = [...cids].every(c => c.startsWith('d:')); const dueWords = (sh.decks || []).reduce((a, id) => { const dk = PA.V2.deckOf(PA.DB.profiles[sh.kid], 'd:' + id); return a + (dk ? PA.V2.deckDue(PA.DB.profiles[sh.kid], dk).length : 0); }, 0);
       ok(nb >= (deckOnly ? Math.min(PA.V2.MISSION_MIN, Math.max(1, dueWords)) : PA.V2.MISSION_MIN), `${tag}: planen har minst ${PA.V2.MISSION_MIN} uppgifter (${nb})`);
+      // Ägarens beslut: de sista tre dygnen (också dagen före) kan barnet träna på alla delar – passet täcker målets områden (högst MISSION_NEW_LAST nya per runda)
+      if (d >= 1 && d <= 3 && !after) { const goalC = [...cids].filter(c => !c.startsWith('d:')); const inP = new Set(plan.map(s => s.cid).filter(c => !c.startsWith('d:'))); ok(inP.size >= Math.min(goalC.length, PA.V2.MISSION_NEW_LAST), `${tag}: passet tar in målets delar (${inP.size} av ${goalC.length})`); }
       const mins = (btn.textContent.match(/(\d+) min/) || [])[1]; ok(mins && +mins === PA.EXP.mins(plan, kid), `${tag}: "Kör · ${mins} min" = passet (${PA.EXP.mins(plan, kid)})`);
       T.click(btn); let n = 0, foreign = 0, g = 0; while (PA.S && PA.S.v2 && T.$('#qcard') && g++ < 80) { const it = PA.S.queue[PA.S.i]; if (it.cat !== 'learn' && !(it.cat === 'word' && it.kind === 'intro')) { n++; if (it.spec && !cids.has(it.spec.cid)) foreign++; } D.answer(() => false); w.__advance(4000); }
       minPlayed = Math.min(minPlayed, n);
