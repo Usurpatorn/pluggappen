@@ -247,10 +247,9 @@ const V2 = {
     const out = [];
     for (const id of (e.deckIds || [])) {
       const cid = LECAT.deckCid(id); if (!set.has(cid)) continue; const d = deckById(p, id); if (!d || !d.words.length) continue;
-      // Nya och förfallna ord (ett fel ord är förfallet direkt) – ett ord som blev rätt väntar till sin box-dag (Leitner), så rundorna tar slut.
-      // Inget nytt eller förfallet: en kort repetition (högst sex ord, de som inte sitter först).
-      const due = V2.deckDue(p, d).length; const n = due || Math.min(d.words.length, 6);
-      for (let i = 0; i < n; i++) out.push({ cid, role: due ? 'focus' : 'remember', why: due ? 'glosorna inför förhöret' : 'repetera glosorna' });
+      // 3.7.4 (ägarens beslut): VARJE runda tar alla ord i glosboken (högst DECK_MAX) – förfallna och nya först, sedan de som inte sitter,
+      // sedan resten. Barnet kan öva obegränsat; XP och belöningar följer de vanliga reglerna (efter dygnets extrapass: utan poäng).
+      for (let i = 0; i < d.words.length; i++) out.push({ cid, role: 'focus', why: 'glosorna inför förhöret' });
     }
     return out.slice(0, V2.DECK_MAX);
   },

@@ -595,3 +595,15 @@ med `PREVIEW=1` till `<sajten>/preview/`. Produktionen publiceras som vanligt. M
 - **Test:** `tests/test_goal_mission_min.js` (319 kontroller) prövar att passet de sista tre dygnen tar in målets delar.
 - **Rollback:** 3.7.2-bygget.
 
+## 3.7.4 – Glosförhör: alla glosor varje gång, obegränsat
+- **Ägarens fynd och beslut:** efter första rundan gav Kör för glosförhöret bara de ord som var fel (fyra frågor), eftersom ord som blivit
+  rätt väntade till sin box-dag. Barnet ska kunna öva på alla glosor samtidigt, obegränsat; hur det påverkar XP och belöningar spelar
+  ingen roll.
+- **Nu:** varje runda i glosförhörets egen träning tar alla ord i glosboken (högst 20) – förfallna och nya först, sedan de som inte sitter,
+  sedan resten. Ett fel ord kommer fortfarande tillbaka en gång i samma pass. Raden erbjuder alltid Kör, också efter dagens pass.
+- **Oförändrat:** XP och belöningar följer de vanliga reglerna (efter dygnets extrapass: utan poäng), glosornas Leitner-boxar, dagens
+  Kör!, Testa mig, och att Öva mer och FLOW tar slut av sig själva.
+- **Test:** `test_glosor_mission.js` (21 kontroller: alla ord i varje runda, samma kväll och senare dagar, före och efter dagens pass);
+  `test_ova_mer.js` räknar inte glosförhörets obegränsade träning som ändlös upprepning.
+- **Rollback:** 3.7.3-bygget.
+
