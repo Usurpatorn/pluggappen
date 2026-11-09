@@ -97,8 +97,8 @@ const openKid = (T, id) => { toStart(T); T.click(T.$(`[data-kid="${id}"]`)); if 
     { const { T, D } = await boot(13); const { $, click } = T; openKid(T, 'k4'); click($('.go-btn[data-v2="kor"]')); D.run(() => false); click($('[data-go="home"]')); let f = 0; while ($('[data-v2="flow"]') && f++ < 5) { click($('[data-v2="flow"]')); D.run(() => false); click($('[data-go="home"]')); }
       const useful = T.PA().EXP.useful(T.PA().EXP.peekFlow(T.PA().KIDS.find(k => k.id === 'k4')), T.PA().KIDS.find(k => k.id === 'k4')); const t = txt(T);
       // 3.7.2: glosförhörets egen träning (nya eller förfallna ord) kan erbjudas i stället för den ärliga texten – men bara när den gör nytta
-      const k4 = T.PA().KIDS.find(k => k.id === 'k4'); const gb = $('.mission [data-v2="mission"]'); const gOk = !!gb && (() => { const g = T.PA().EXP.goalOf(k4, null).all.find(x => x.e.id === gb.dataset.exam); return !!g && (g.e.deckIds || []).length > 0 && T.PA().EXP.goalPractice(k4, g.e).ok; })();
-      ok(useful ? !!$('[data-v2="ovamer"]') : (!$('[data-v2="ovamer"]') && (/inget mer som gör nytta/.test(t) || gOk)), `allt rätt idag: Öva mer bara om något återstår som inte redan blivit rätt (${useful ? 'återstår' : gOk ? 'glosförhörets träning gör nytta' : 'inget kvar – ärlig text'})`); }
+      const k4 = T.PA().KIDS.find(k => k.id === 'k4'); const gb = $('.mission [data-v2="mission"]'); const gOk = !!gb && (() => { const g = T.PA().EXP.goalOf(k4, null).all.find(x => x.e.id === gb.dataset.exam); return !!g && T.PA().EXP.goalPractice(k4, g.e).ok; })();
+      ok(useful ? !!$('[data-v2="ovamer"]') : (!$('[data-v2="ovamer"]') && (/inget mer som gör nytta/.test(t) || gOk)), `allt rätt idag: Öva mer bara om något återstår som inte redan blivit rätt (${useful ? 'återstår' : gOk ? 'målets egen Kör står kvar (obegränsad)' : 'inget kvar – ärlig text'})`); }
     // Ett avbrutet övningsblock spärrar inte senare belöningar
     { const { T, D } = await boot(23); const { $, click, PA } = T; const kid = PA().KIDS.find(k => k.id === 'k8'); openKid(T, 'k8'); click($('.go-btn[data-v2="kor"]')); D.run(() => false);
       const ex = PA().LE.exams(kid, PA().DB.profiles.k8).find(e => e.id === 'w:syn-alg'); for (let i = 0; i < 3; i++) { PA().V2.start(kid, 'mission', { examId: ex.id }); if (PA().S && PA().S.v2) D.run(() => false); }
@@ -109,17 +109,17 @@ const openKid = (T, id) => { toStart(T); T.click(T.$(`[data-kid="${id}"]`)); if 
       openKid(T, 'k4'); click($('.go-btn[data-v2="kor"]')); D.run(() => false); click($('[data-go="home"]')); let f = 0; while ($('[data-v2="flow"]') && f++ < 5) { click($('[data-v2="flow"]')); D.run(() => false); click($('[data-go="home"]')); }
       let n = 0; while ($('[data-v2="ovamer"]') && n < 25) { click($('[data-v2="ovamer"]')); let k = 0; D.run(() => (++k % 2 === 0)); n++; openKid(T, 'k4'); }
       // 3.7.4 (ägarens beslut): glosförhörets egen träning kan övas obegränsat – den kan stå kvar; själva Öva mer tar slut
-      const k4b = T.PA().KIDS.find(k => k.id === 'k4'); const mb = $('.mission [data-v2="mission"]'); const vocab = !!mb && (() => { const g = T.PA().EXP.goalOf(k4b, null).all.find(x => x.e.id === mb.dataset.exam); return !!g && (g.e.deckIds || []).length > 0; })();
-      ok(n < 25 && !$('[data-v2="ovamer"]') && (/inget mer som gör nytta/.test(txt(T)) || vocab), `k4 frö 41: Öva mer tar slut även när varannan uppgift blir fel (${n} block${vocab ? ', glosförhörets träning står kvar' : ''})`); }
+      const k4b = T.PA().KIDS.find(k => k.id === 'k4'); const mb = $('.mission [data-v2="mission"]'); const vocab = !!mb && (() => { const g = T.PA().EXP.goalOf(k4b, null).all.find(x => x.e.id === mb.dataset.exam); return !!g; })();   // 3.7.5: varje måls egen Kör är obegränsad
+      ok(n < 25 && !$('[data-v2="ovamer"]') && (/inget mer som gör nytta/.test(txt(T)) || vocab), `k4 frö 41: Öva mer tar slut även när varannan uppgift blir fel (${n} block${vocab ? ', målets egen Kör står kvar' : ''})`); }
     // Ingen ändlös upprepning: Öva mer gång på gång (allt rätt) tar slut med ärlig text (granskning: samma plan erbjöds 25 gånger)
     for (const [kidId, seed] of [['k4', 41], ['k2', 41], ['k8', 41]]) { const { T, D } = await boot(seed); const { $, click } = T; openKid(T, kidId); let wk = 0; click($('.go-btn[data-v2="kor"]')); D.run((it) => it.cat !== 'learn' && (++wk % 2 === 0)); click($('[data-go="home"]'));
       let f = 0; while ($('[data-v2="flow"]') && f++ < 5) { click($('[data-v2="flow"]')); D.run((it) => it.cat !== 'learn' && (++wk % 2 === 0)); click($('[data-go="home"]')); }
-      // 3.7.4 (ägarens beslut): ett glosförhörs egen träning kan övas obegränsat – den räknas inte här; allt annat ska ta slut
-      const kidO = T.PA().KIDS.find(k => k.id === kidId); const isVocab = (b) => { const g = T.PA().EXP.goalOf(kidO, null).all.find(x => x.e.id === b.dataset.exam); return !!g && (g.e.deckIds || []).length > 0 && !(g.e.skillIds || []).length && !(g.e.kps || []).length; };
+      // 3.7.4/3.7.5 (ägarens beslut): målets egen Kör kan övas obegränsat – den räknas inte här; Öva mer ska ta slut
+      const kidO = T.PA().KIDS.find(k => k.id === kidId); const isVocab = (b) => { const g = T.PA().EXP.goalOf(kidO, null).all.find(x => x.e.id === b.dataset.exam); return !!g; };   // 3.7.5: varje måls egen Kör är obegränsad – räknas inte här
       const nextBtn = () => $('[data-v2="ovamer"]') || [...T.$('#app').querySelectorAll('[data-v2="mission"]')].find(b => !isVocab(b));
       let n = 0; while (nextBtn() && n < 25) { click(nextBtn()); D.run(() => false); n++; openKid(T, kidId); }
       const vocabLeft = [...T.$('#app').querySelectorAll('[data-v2="mission"]')].some(isVocab);
-      ok(n < 25 && (/inget mer som gör nytta/.test(txt(T)) || vocabLeft), `${kidId}: Öva mer tar slut när inget gör nytta – ingen ändlös upprepning (${n} block${vocabLeft ? ', bara glosförhörets obegränsade träning kvar' : ''})`); }
+      ok(n < 25 && (/inget mer som gör nytta/.test(txt(T)) || vocabLeft), `${kidId}: Öva mer tar slut när inget gör nytta – ingen ändlös upprepning (${n} block${vocabLeft ? ', bara målens obegränsade Kör kvar' : ''})`); }
     // Ett mål med en befintlig extern resurs (kemi) och inget kvar att öva: länken visas, inget genereras
     { const { w, T, PA } = await (async () => { const b = await boot(5); return { ...b, PA: b.T.PA }; })(); const kid = PA().KIDS.find(k => k.id === 'k8');
       const res = PA().EXP.resources(kid, PA().LE.exams(kid, PA().DB.profiles.k8).find(e => e.id === 'w:syn-kemi'));

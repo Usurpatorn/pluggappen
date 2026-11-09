@@ -14,6 +14,7 @@ import { readFileSync, appendFileSync } from 'node:fs';
 
 const RULES_FILE = process.env.RULES_FILE || 'firestore.rules';
 const MODE = process.env.EXPECT || 'new'; const OLD = MODE !== 'new';
+const GRACE_OPEN = Date.now() < Date.UTC(2026, 10, 9);   // reglernas request.time < timestamp.date(2026, 11, 9) (UTC); emulatorn använder verklig tid – efter datumet är övergångsvägen stängd
 const readHole = (fam) => MODE !== 'new' && fam === FAM_LONG;      // v20 + v21: övergångsvägen läser _content
 const writeHole = MODE === 'v20';                                     // v20: medlemmar skriver _content
 const FAM_LONG = 'famsynthetic01', FAM_SHORT = 'fam1', FAM_OTHER = 'famother002';
@@ -79,7 +80,7 @@ for (const fam of [FAM_SHORT, FAM_LONG]) {
   // --- vanlig profilsynk fungerar som förut
   await check(`[${label}] medlem kan synka en profil`, true, () => setDoc(doc(as('kidDevice'), `families/${fam}/profiles/k1`), profile('{"xp":3}')));
   await check(`[${label}] profil med otillåtna fält nekas`, false, () => setDoc(doc(as('kidDevice'), `families/${fam}/profiles/k1`), { ...profile(), extra: 1 }));
-  await check(`[${label}] icke-medlem kan bara synka en profil under övergången (avsiktligt till 2026-11-09)`, fam === FAM_LONG, () => setDoc(doc(as('stranger'), `families/${fam}/profiles/k1`), profile('{"xp":4}')));
+  await check(`[${label}] icke-medlem kan bara synka en profil under övergången (avsiktligt till 2026-11-09)`, fam === FAM_LONG && GRACE_OPEN, () => setDoc(doc(as('stranger'), `families/${fam}/profiles/k1`), profile('{"xp":4}')));
   // --- _content är orört efter alla nekade skrivförsök
   if (!writeHole) { const cur = await adminRead(C);
     results.push(`${cur && cur.json.includes('original') ? 'ok  ' : 'FAIL'} [${label}] _content har kvar originalinnehållet efter försöken`); if (!(cur && cur.json.includes('original'))) fails++; }

@@ -79,9 +79,9 @@ const EXP = {
   moreBtns(kid, m) {
     const btns = [];
     if (EXP.canMore(kid)) btns.push(`<button class="btn wide secondary btn-2l" data-v2="ovamer">Öva mer<span class="btn-sub"><span class="sep"> · </span>utan poäng, cirka ${EXP.flowMins(kid)} min</span></button>`);
-    // 3.6: samma regel som Kör på raderna i Kommande (EXP.goalPractice) – först målet m, annars nästa kommande mål där träningen gör nytta
+    // 3.6/3.7.5: samma regel som Kör på raderna i Kommande (EXP.goalPractice) – först målet m, annars nästa kommande mål med något att öva
     { const cand = [m, ...EXP.upcoming(kid).slice(0, EXP.UPCOMING_MAX)].filter((x, i, a) => x && V2.examCidsActive(kid, x.e).length && a.findIndex(y => y && y.e.id === x.e.id) === i); let hit = null, mp = [];
-      for (const x of cand) { const g = EXP.goalPractice(kid, x.e); if (g.ok && EXP.useful(g.mp, kid)) { hit = x; mp = g.mp; break; } }
+      for (const x of cand) { const g = EXP.goalPractice(kid, x.e); if (g.ok) { hit = x; mp = g.mp; break; } }   // 3.7.5: samma obegränsade regel som raderna
       if (hit) { m = hit; btns.push(`<button class="btn wide ghost btn-2l" data-v2="mission" data-exam="${esc(m.e.id)}">Öva mer inför ${esc(m.e.title)}<span class="btn-sub"><span class="sep"> · </span>${EXP.practiceOnly(kid, 'mission') ? 'utan poäng, ' : ''}cirka ${EXP.mins(mp, kid)} min</span></button>`); } }
     return btns.join('');
   },
@@ -158,7 +158,7 @@ const EXP = {
     const canMore = EXP.canFlow(kid); const rest = EXP.flowsToday(p) >= EXP.FLOW_MAX || EXP.extraDone(p) >= EXP.FLOW_MAX;
     return `<section class="card pad-lg mission done stack" aria-label="${esc(title)}"><div class="mission-icon" aria-hidden="true">✅</div><div class="eyebrow">${esc(title)}</div>
       <div class="mission-sub">${sub}</div>
-      ${canMore ? `<button class="btn big wide secondary btn-2l" data-v2="flow">${esc(flowLabel)}<span class="btn-sub"><span class="sep"> · </span>cirka ${EXP.flowMins(kid)} min</span></button>` : (() => { const m = EXP.goalOf(kid, null).now; const more = rest ? EXP.moreBtns(kid, m) : ''; return `<div class="muted">${rest ? 'Bra jobbat idag! Det du har övat sätter sig bäst om du vilar nu.' : 'Allt för idag är gjort.'}</div>${more || (rest || !EXP.peekFlow(kid).length ? EXP.enoughText(kid, m).replace('class="card muted stack"', 'class="muted stack"') : '')}`; })()}</section>`;
+      ${canMore ? `<button class="btn big wide secondary btn-2l" data-v2="flow">${esc(flowLabel)}<span class="btn-sub"><span class="sep"> · </span>cirka ${EXP.flowMins(kid)} min</span></button>` : (() => { const m = EXP.goalOf(kid, null).now; const more = EXP.moreBtns(kid, m);   /* 3.7.5: målets obegränsade träning erbjuds också före dygnets extrapass är slut (moreBtns visar Öva mer bara när det gäller) */ return `<div class="muted">${rest ? 'Bra jobbat idag! Det du har övat sätter sig bäst om du vilar nu.' : 'Allt för idag är gjort.'}</div>${more || (rest || !EXP.peekFlow(kid).length ? EXP.enoughText(kid, m).replace('class="card muted stack"', 'class="muted stack"') : '')}`; })()}</section>`;
   },
   // 3.4: en tom plan (t.ex. kvällen före ett prov utan något sett att repetera) får ingen KÖR-knapp som inte startar något och inga "0 uppgifter"
   emptyCard(kid, title, extra = '') {
@@ -247,8 +247,10 @@ const EXP = {
   // prov) – då säger startkortet "Allt för idag är gjort … inget mer som gör nytta", och raderna säger samma sak.
   goalPractice(kid, e, C, now) { const mp = EXP.safe(() => V2.plan(kid, 'mission', C || LE.state(kid), now || LE.now(), null, { examId: e.id }), 'goalPeek', []); const p = prof(kid.id);
     const po = EXP.on(kid) && EXP.practiceOnly(kid, 'mission'); const done = EXP.on(kid) && EXP.coreDone(p); const rest = EXP.flowsToday(p) >= EXP.FLOW_MAX || EXP.extraDone(p) >= EXP.FLOW_MAX;
-    const blocked = done && !rest && !po && !EXP.canFlow(kid); const needUseful = po || done;
-    return { mp, po, ok: mp.length > 0 && !blocked && (!needUseful || EXP.useful(mp, kid)) }; },
+    /* 3.7.5 (ägarens beslut): målets egen Kör (prov, läxa, glosförhör) kan alltid övas – obegränsat, så länge målet har innehåll. Ingen
+       "gör nytta"-spärr här. XP följer de vanliga reglerna (efter dygnets extrapass: utan poäng). Öva mer och FLOW tar fortfarande slut. */
+    void done; void rest;
+    return { mp, po, ok: mp.length > 0 }; },
   /* 3.6 Kommande: barnet ser alla sina kommande prov och läxor på en gång (ägarens önskemål) – i datumordning, med "om X dagar".
      Bara barnets egna mål (samma LE.exams som planen), inget om resultat, inga betyg, ingen jämförelse. Visas bara när det finns något. */
   UPCOMING_DAYS: 60, UPCOMING_MAX: 6,
@@ -276,7 +278,7 @@ const EXP = {
        om det sitter – samma prov som i "Läget inför" (en belönad omgång per dygn). Inga knappar före första synken eller för mål utan
        innehåll i appen; när inget av målet går att öva just nu säger raden det i stället för en knapp som inte gör något. */
     const C = can ? LE.state(kid) : null; const now = LE.now();
-    // Efter dygnets belönade extrapass gäller Öva mer-reglerna – samma regel som "Öva mer inför" (EXP.goalPractice): bara när det gör nytta, och det sägs att det är utan poäng
+    // 3.7.5: målets egen Kör erbjuds alltid när målet har innehåll (obegränsat); efter dygnets belönade extrapass sägs att det är utan poäng
     const acts = (e) => { if (!can || !has(e)) return ''; const { mp, po, ok } = EXP.goalPractice(kid, e, C, now); const n = ok ? EXP.mins(mp, kid) : 0;
       return `<div class="up-acts">${ok ? `<button class="btn secondary up-go" data-v2="mission" data-exam="${esc(e.id)}" aria-label="Kör bara ${esc(e.title)}, ${po ? 'utan poäng, ' : ''}cirka ${n} minuter">Kör<span class="up-min" aria-hidden="true"> · ${po ? 'utan poäng · ' : ''}${n} min</span></button>` : `<span class="up-none">${mp.length ? 'Inget mer som gör nytta idag' : 'Inget att öva just nu'}</span>`}<button class="btn ghost up-test" data-v2="testa" data-exam="${esc(e.id)}" aria-label="Testa mig på ${esc(e.title)}">Testa mig</button></div>`; };
     /* 3.6 Läget per mål (ägarens tredje önskemål): "Läget inför" för VARJE mål i samma rad – hopfällt, med motorns lägen per område (aldrig
@@ -485,7 +487,7 @@ const EXP = {
     const back = e === 'explore' ? [] : EXP.comeBack(kid, V);
     const gems = V.rewards.reduce((a, r) => a + r.gems, 0);
     const canMore = !corePending && EXP.canFlow(kid); const rested = EXP.flowsToday(p) >= EXP.FLOW_MAX || EXP.extraDone(p) >= EXP.FLOW_MAX;
-    const moreHtml = !corePending && !canMore && rested ? EXP.moreBtns(kid, mission ? (EXP.goalOf(kid, null).all || []).find(x => x.e.id === (V.extra || {}).examId) || g || EXP.goalOf(kid, null).now : g || EXP.goalOf(kid, null).now) : '';
+    const moreHtml = !corePending && !canMore ? EXP.moreBtns(kid, mission ? (EXP.goalOf(kid, null).all || []).find(x => x.e.id === (V.extra || {}).examId) || g || EXP.goalOf(kid, null).now : g || EXP.goalOf(kid, null).now) : '';
     const fb = V2.felbok(kid, V.C, LE.now()); const todo = fb.items.filter(x => x.state === 'todo').length;
     render(`${topbar('Klart', 'home')}
     <div class="stack" style="margin-top:6px">
