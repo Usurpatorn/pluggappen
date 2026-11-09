@@ -63,7 +63,7 @@ setTimeout(() => { try {
   ok(PA.FAMILY.content === null && !w.localStorage.getItem('pluggappen.content.v1'), 'H4: radering tar bort innehållet');
   // ---- H2: Felboken på ett vilande moment (från 2.0) kan lösas med Revansch
   PA.LE.state(kid); const C = PA.LE.state(kid); const route = C.cat['s:kemi_syror'].route;
-  const D0 = Date.now() - 6 * DAY; const ENC = (t, seq, okk, item) => LE2.encodeEv({ t, dev: 'old', seq, cid: 's:kemi_syror', ok: okk, kind: 'mc', k: 4, help: 'none', ctx: 'first', item, sess: 'old:' + seq, lvl: 1 });
+  const D0 = w.Date.now() - 6 * DAY; /* fönstrets fasta klocka, inte nodens riktiga tid (annars ändrades testet med kalendern) */ const ENC = (t, seq, okk, item) => LE2.encodeEv({ t, dev: 'old', seq, cid: 's:kemi_syror', ok: okk, kind: 'mc', k: 4, help: 'none', ctx: 'first', item, sess: 'old:' + seq, lvl: 1 });
   p.le.log.push(ENC(D0, 1, true, 'iunknown1'), ENC(D0 + 3 * DAY, 2, false, 'iunknown2')); p.le.seqs = { ...(p.le.seqs || {}), old: 2 };
   PA.LE.invalidate('k8'); let L = PA.LE.state(kid).L; ok(L.c['s:kemi_syror'].fb && L.c['s:kemi_syror'].fb.s === 'open' && !route.iunknown2, 'H2: en Felboks-post på det vilande momentet (okänd gammal fråga)');
   let solved = false;

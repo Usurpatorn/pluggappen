@@ -14,7 +14,8 @@ import { readFileSync, appendFileSync } from 'node:fs';
 
 const RULES_FILE = process.env.RULES_FILE || 'firestore.rules';
 const MODE = process.env.EXPECT || 'new'; const OLD = MODE !== 'new';
-const readHole = (fam) => MODE !== 'new' && fam === FAM_LONG;      // v20 + v21: övergångsvägen läser _content
+const GRACE_OPEN = Date.now() < Date.UTC(2026, 10, 9);   // reglernas request.time < timestamp.date(2026, 11, 9) (UTC); emulatorn använder verklig tid – efter datumet är övergångsvägen stängd
+const readHole = (fam) => MODE !== 'new' && fam === FAM_LONG && GRACE_OPEN;      // v20 + v21: övergångsvägen läser _content
 const writeHole = MODE === 'v20';                                     // v20: medlemmar skriver _content
 const FAM_LONG = 'famsynthetic01', FAM_SHORT = 'fam1', FAM_OTHER = 'famother002';
 const CODE = 'synthetic-join-code-001';
@@ -69,8 +70,8 @@ for (const fam of [FAM_SHORT, FAM_LONG]) {
   await check(`[${label}] barnenhet kan inte skriva över _content med set`, writeHole, () => setDoc(doc(as('kidDevice'), C), content('falskt')));
   await check(`[${label}] förälderenhet kan inte ändra _content`, writeHole, () => updateDoc(doc(as('parentDevice'), C), content('falskt')));
   await check(`[${label}] förälderenhet kan inte skriva över _content med set`, writeHole, () => setDoc(doc(as('parentDevice'), C), content('falskt')));
-  await check(`[${label}] övergångsvägen (oinloggad) kan inte skriva _content`, writeHole && fam === FAM_LONG, () => setDoc(doc(as(null), C), content('falskt')));
-  await check(`[${label}] medlem i en annan familj kan inte skriva _content`, writeHole && fam === FAM_LONG, () => setDoc(doc(as('otherFamilyDevice'), C), content('falskt')));
+  await check(`[${label}] övergångsvägen (oinloggad) kan inte skriva _content`, writeHole && fam === FAM_LONG && GRACE_OPEN, () => setDoc(doc(as(null), C), content('falskt')));
+  await check(`[${label}] medlem i en annan familj kan inte skriva _content`, writeHole && fam === FAM_LONG && GRACE_OPEN, () => setDoc(doc(as('otherFamilyDevice'), C), content('falskt')));
   // --- indirekt: en batch med en vanlig profil + _content nekas helt; vanliga profilskrivningar rör inte _content
   await check(`[${label}] batch (profil + _content) nekas i sin helhet`, writeHole, () => { const b = writeBatch(as('kidDevice')); b.set(doc(as('kidDevice'), `families/${fam}/profiles/k1`), profile('{"xp":2}')); b.set(doc(as('kidDevice'), C), content('falskt')); return b.commit(); });
   await check(`[${label}] kontroll: batch med bara en vanlig profil tillåts`, true, () => { const b = writeBatch(as('kidDevice')); b.set(doc(as('kidDevice'), `families/${fam}/profiles/k1`), profile('{"xp":5}')); return b.commit(); });
@@ -79,7 +80,7 @@ for (const fam of [FAM_SHORT, FAM_LONG]) {
   // --- vanlig profilsynk fungerar som förut
   await check(`[${label}] medlem kan synka en profil`, true, () => setDoc(doc(as('kidDevice'), `families/${fam}/profiles/k1`), profile('{"xp":3}')));
   await check(`[${label}] profil med otillåtna fält nekas`, false, () => setDoc(doc(as('kidDevice'), `families/${fam}/profiles/k1`), { ...profile(), extra: 1 }));
-  await check(`[${label}] icke-medlem kan bara synka en profil under övergången (avsiktligt till 2026-11-09)`, fam === FAM_LONG, () => setDoc(doc(as('stranger'), `families/${fam}/profiles/k1`), profile('{"xp":4}')));
+  await check(`[${label}] icke-medlem kan bara synka en profil under övergången (avsiktligt till 2026-11-09)`, fam === FAM_LONG && GRACE_OPEN, () => setDoc(doc(as('stranger'), `families/${fam}/profiles/k1`), profile('{"xp":4}')));
   // --- _content är orört efter alla nekade skrivförsök
   if (!writeHole) { const cur = await adminRead(C);
     results.push(`${cur && cur.json.includes('original') ? 'ok  ' : 'FAIL'} [${label}] _content har kvar originalinnehållet efter försöken`); if (!(cur && cur.json.includes('original'))) fails++; }
