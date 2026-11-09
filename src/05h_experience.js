@@ -247,8 +247,10 @@ const EXP = {
   // prov) – då säger startkortet "Allt för idag är gjort … inget mer som gör nytta", och raderna säger samma sak.
   goalPractice(kid, e, C, now) { const mp = EXP.safe(() => V2.plan(kid, 'mission', C || LE.state(kid), now || LE.now(), null, { examId: e.id }), 'goalPeek', []); const p = prof(kid.id);
     const po = EXP.on(kid) && EXP.practiceOnly(kid, 'mission'); const done = EXP.on(kid) && EXP.coreDone(p); const rest = EXP.flowsToday(p) >= EXP.FLOW_MAX || EXP.extraDone(p) >= EXP.FLOW_MAX;
-    const blocked = done && !rest && !po && !EXP.canFlow(kid); const needUseful = po || done;
-    return { mp, po, ok: mp.length > 0 && !blocked && (!needUseful || EXP.useful(mp, kid)) }; },
+    /* 3.7.5 (ägarens beslut): målets egen Kör (prov, läxa, glosförhör) kan alltid övas – obegränsat, så länge målet har innehåll. Ingen
+       "gör nytta"-spärr här. XP följer de vanliga reglerna (efter dygnets extrapass: utan poäng). Öva mer och FLOW tar fortfarande slut. */
+    void done; void rest;
+    return { mp, po, ok: mp.length > 0 }; },
   /* 3.6 Kommande: barnet ser alla sina kommande prov och läxor på en gång (ägarens önskemål) – i datumordning, med "om X dagar".
      Bara barnets egna mål (samma LE.exams som planen), inget om resultat, inga betyg, ingen jämförelse. Visas bara när det finns något. */
   UPCOMING_DAYS: 60, UPCOMING_MAX: 6,
@@ -276,7 +278,7 @@ const EXP = {
        om det sitter – samma prov som i "Läget inför" (en belönad omgång per dygn). Inga knappar före första synken eller för mål utan
        innehåll i appen; när inget av målet går att öva just nu säger raden det i stället för en knapp som inte gör något. */
     const C = can ? LE.state(kid) : null; const now = LE.now();
-    // Efter dygnets belönade extrapass gäller Öva mer-reglerna – samma regel som "Öva mer inför" (EXP.goalPractice): bara när det gör nytta, och det sägs att det är utan poäng
+    // 3.7.5: målets egen Kör erbjuds alltid när målet har innehåll (obegränsat); efter dygnets belönade extrapass sägs att det är utan poäng
     const acts = (e) => { if (!can || !has(e)) return ''; const { mp, po, ok } = EXP.goalPractice(kid, e, C, now); const n = ok ? EXP.mins(mp, kid) : 0;
       return `<div class="up-acts">${ok ? `<button class="btn secondary up-go" data-v2="mission" data-exam="${esc(e.id)}" aria-label="Kör bara ${esc(e.title)}, ${po ? 'utan poäng, ' : ''}cirka ${n} minuter">Kör<span class="up-min" aria-hidden="true"> · ${po ? 'utan poäng · ' : ''}${n} min</span></button>` : `<span class="up-none">${mp.length ? 'Inget mer som gör nytta idag' : 'Inget att öva just nu'}</span>`}<button class="btn ghost up-test" data-v2="testa" data-exam="${esc(e.id)}" aria-label="Testa mig på ${esc(e.title)}">Testa mig</button></div>`; };
     /* 3.6 Läget per mål (ägarens tredje önskemål): "Läget inför" för VARJE mål i samma rad – hopfällt, med motorns lägen per område (aldrig
