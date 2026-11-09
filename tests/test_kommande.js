@@ -141,8 +141,9 @@ const rows = (T) => [...T.$('#app').querySelectorAll('.upcoming .up-row')].map(l
         ok(JSON.stringify({ xp: PA.DB.profiles.k8.xp, gems: PA.DB.profiles.k8.gems }) === r0, 'inga XP eller diamanter'); }
       else ok(/Inget mer som gör nytta idag|Inget att öva just nu/.test(t), `efter dygnets extrapass: ärlig text när inget gör nytta (${t.replace(/\s+/g, ' ').slice(-90)})`);
       let n = 0; openKid(b.T, 'k8'); while (b.T.$('.upcoming [data-v2="mission"]') && n < 25) { b.T.click(b.T.$('.upcoming [data-v2="mission"]')); D.run(() => false); n++; openKid(b.T, 'k8'); }
-      ok(n < 25 && /Inget mer som gör nytta idag|Inget att öva just nu/.test(card(b.T).textContent), `Kör på raden tar slut när inget gör nytta – ingen ändlös upprepning (${n} block)`);
-      ok(consistent() && !b.T.$('[data-v2="mission"]'), 'när inget gör nytta: ingen knapp någonstans och samma besked på hela skärmen'); }
+      // 3.7.5 (ägarens beslut): målets egen Kör är obegränsad – raden står kvar (utan poäng) och hela skärmen säger samma sak
+      ok(n === 25 && /utan poäng/.test((b.T.$('.upcoming [data-v2="mission"]') || {}).textContent || ''), `Kör på raden står kvar – obegränsad repetition utan poäng (${n} block)`);
+      ok(consistent(), 'obegränsad Kör: startkortet säger inte "inget mer" när raden erbjuder Kör'); }
     // Granskning P2-B: när dagens pass är klart talar foten om nästa extrapass (bara medan det erbjuds), aldrig om "Dagens pass"
     for (const [id, exp] of [['k8', 'achieve'], ['k4', 'grow'], ['k2', 'explore']]) {
       const c10 = { ...CONTENT, work: [{ id: 'fd-' + id, kid: id, type: 'exam', title: 'Prov', date: isoIn(6), skills: ['multin'] }] };
@@ -165,7 +166,8 @@ const rows = (T) => [...T.$('#app').querySelectorAll('.upcoming .up-row')].map(l
       while (n < 8) { const row = !!$('.upcoming [data-v2="mission"]'); const top = $('.mission [data-v2="mission"], .mission [data-v2="ovamer"]'); const none = /inget mer som gör nytta att öva i appen idag/i.test($('#app').textContent);
         ok(row ? !!top && !none : true, `steg ${n}: en rad erbjuder Kör – startkortet erbjuder också övning och säger inte "inget mer" (${top ? top.textContent.trim().slice(0, 40) : 'ingen'})`);
         if (!top) break; click(top); D.run(() => false); n++; openKid(T2, 'k8'); }
-      ok(n < 8 && !$('[data-v2="mission"]') && /inget mer som gör nytta/i.test($('#app').textContent), `till slut: inget mer någonstans, samma besked (${n} block)`); }
+      // 3.7.5: målets egen träning är obegränsad – startkortet och raden fortsätter att erbjuda övning
+      ok(n === 8 && !!$('.upcoming [data-v2="mission"]') && !/inget mer som gör nytta att öva i appen idag/i.test($('#app').textContent), `obegränsat: övning erbjuds fortfarande, samma besked (${n} block)`); }
     // Granskning P1-A: "aldrig sett" i provträningens spärr för nytt = som V2.newToday (n > 0 eller fs; glosdäck räknas inte) –
     // ett glosförhör och v1-migrerade koncept får sin träning även när dygnets gräns är nådd
     { const b = await boot(null); const PA = b.T.PA(); const p = PA.DB.profiles.k8; const kid = PA.KIDS.find(k => k.id === 'k8'); const dk = (p.enabledDecks || [])[0];
@@ -187,7 +189,7 @@ const rows = (T) => [...T.$('#app').querySelectorAll('.upcoming .up-row')].map(l
       openKid(b.T, 'k8'); b.T.click(b.T.$('.go-btn[data-v2="kor"]')); D.run(() => false); openKid(b.T, 'k8');
       const none = /inget mer som gör nytta att öva i appen idag/i.test(b.T.$('#app').textContent); const row = b.T.$('.upcoming [data-v2="mission"]');
       ok(!(none && row), `kvällen före: startkortet och raderna säger samma sak (inget mer: ${none}, Kör på raden: ${!!row})`);
-      if (!PA.EXP.canFlow(kid)) ok(!row && /Inget mer som gör nytta idag/.test(card(b.T).textContent), 'inget extrapass idag: ingen Kör på raden, ärlig text'); }
+      ok(!!row && !none, '3.7.5: kvällen före erbjuder raden alltid Kör (obegränsat), och startkortet säger inte "inget mer"'); }
     // ... också när målets träning skulle göra nytta (allt fel i dagens pass): inget extrapass idag betyder ingen Kör på raden
     { const b = await boot({ ...CONTENT, work: [{ id: 'e2', kid: 'k8', type: 'exam', title: 'Algebraprov', date: isoIn(4), skills: ['multin', 'forenkla', 'blandat'] }] }); const PA = b.T.PA(); const kid = PA.KIDS.find(k => k.id === 'k8');
       const { v2tools } = require('./le/v2driver.js'); const D = v2tools(b.w, b.T);
@@ -195,7 +197,7 @@ const rows = (T) => [...T.$('#app').querySelectorAll('.upcoming .up-row')].map(l
       openKid(b.T, 'k8'); b.T.click(b.T.$('.go-btn[data-v2="kor"]')); D.run(() => true); openKid(b.T, 'k8');
       const mp = PA.V2.plan(kid, 'mission', PA.LE.state(kid), PA.LE.now(), null, { examId: 'w:e2' }); const row = b.T.$('.upcoming [data-v2="mission"]'); const none = /inget mer som gör nytta att öva i appen idag/i.test(b.T.$('#app').textContent);
       ok(!PA.EXP.canFlow(kid) && mp.length && PA.EXP.useful(mp, kid), `förutsättning: inget extrapass idag men målets träning skulle göra nytta (canFlow ${PA.EXP.canFlow(kid)}, plan ${mp.length})`);
-      ok(!row && !(none && row), `kvällen före, fel kvar: ingen Kör på raden – samma besked som startkortet (Kör: ${!!row})`); }
+      ok(!!row && !none, `kvällen före, fel kvar: Kör på raden (obegränsat, 3.7.5) – samma besked som startkortet (Kör: ${!!row})`); }
     // Efter dagens pass med extrapass kvar: Kör på raden bara när målets träning gör nytta (ingen belönad upprepning). EXP.useful styrs här
     // för att pröva just regeln: före dagens pass påverkar den inte raderna, efter dagens pass tar den bort Kör
     { const b = await boot({ ...CONTENT, work: [{ id: 'u1', kid: 'k8', type: 'exam', title: 'Algebraprov', date: isoIn(10), skills: ['multin', 'forenkla', 'blandat'] }, { id: 'u2', kid: 'k8', type: 'exam', title: 'Kemiprov', date: isoIn(14), kps: ['k:kemi8-syror-baser/ph-skalan', 'k:kemi8-syror-baser/indikatorer'] }] });
@@ -204,7 +206,7 @@ const rows = (T) => [...T.$('#app').querySelectorAll('.upcoming .up-row')].map(l
       b.T.click(b.T.$('.go-btn[data-v2="kor"]')); D.run(() => false); openKid(b.T, 'k8'); const flow = PA.EXP.canFlow(kid);
       PA.EXP.useful = () => false; openKid(b.T, 'k8'); const after = b.T.$('#app').querySelectorAll('.upcoming [data-v2="mission"]').length; const txtA = card(b.T).textContent; PA.EXP.useful = u0;
       ok(before > 0, `före dagens pass: Kör på raderna som "Öva inför provet" (${before})`);
-      ok(PA.EXP.coreDone(PA.DB.profiles.k8) && after === 0 && /Inget mer som gör nytta idag/.test(txtA), `efter dagens pass (extrapass kvar: ${flow}): ingen Kör när träningen inte gör nytta (${after})`); }
+      ok(PA.EXP.coreDone(PA.DB.profiles.k8) && after === before && !/Inget mer som gör nytta idag/.test(txtA), `efter dagens pass (extrapass kvar: ${flow}): Kör står kvar på raderna också när Öva mer-regeln säger att inget gör nytta (3.7.5, ${after})`); }
     // Positiv väg (granskning N11): efter dagens pass, med extrapass kvar och träning som gör nytta (fel i dagens pass), erbjuder raden Kör – utan stubbar
     { const b = await boot({ ...CONTENT, work: [{ id: 'pz', kid: 'k8', type: 'exam', title: 'Algebraprov', date: isoIn(10), skills: ['multin', 'forenkla', 'blandat'] }] }); const PA = b.T.PA(); const kid = PA.KIDS.find(k => k.id === 'k8');
       const { v2tools } = require('./le/v2driver.js'); const D = v2tools(b.w, b.T); openKid(b.T, 'k8'); b.T.click(b.T.$('.go-btn[data-v2="kor"]')); D.run(() => true); openKid(b.T, 'k8');
@@ -215,10 +217,10 @@ const rows = (T) => [...T.$('#app').querySelectorAll('.upcoming .up-row')].map(l
     { const b = await boot({ ...CONTENT, work: [{ id: 'far', kid: 'k8', type: 'exam', title: 'Prov långt fram', date: isoIn(40), skills: ['multin'] }] }); const p = b.T.PA().DB.profiles.k8;
       p.settings.scope = 'exams'; p.settings.scopeAt = b.w.Date.now(); b.T.PA().save(); openKid(b.T, 'k8'); const t = b.T.$('#app').textContent.replace(/\s+/g, ' ');
       ok(!!b.T.$('.upcoming [data-v2="mission"]') && /fyra veckor före/.test(t) && /Kör på raden/.test(t), `Bara prov och läxor: startkortet förklarar att man kan börja med Kör på raden (${t.slice(0, 160)})`);
-      // när raden inte längre erbjuder Kör ("Inget mer som gör nytta idag") hänvisar startkortet inte dit
+      // 3.7.5: raden är obegränsad – efter många rundor erbjuder den fortfarande Kör och startkortet hänvisar dit
       const { v2tools } = require('./le/v2driver.js'); const D = v2tools(b.w, b.T); let n = 0; while (b.T.$('.upcoming [data-v2="mission"]') && n++ < 12) { b.T.click(b.T.$('.upcoming [data-v2="mission"]')); D.run(() => false); openKid(b.T, 'k8'); }
       const t2 = b.T.$('#app').textContent.replace(/\s+/g, ' ');
-      ok(n < 12 && !b.T.$('.upcoming [data-v2="mission"]') && /fyra veckor före/.test(t2) && !/Kör på raden/.test(t2), `Bara prov och läxor, raden slut: ingen hänvisning till Kör på raden (${n} block; ${t2.slice(0, 140)})`); }
+      ok(n > 12 && !!b.T.$('.upcoming [data-v2="mission"]') && /fyra veckor före/.test(t2) && /Kör på raden/.test(t2), `Bara prov och läxor: raden är obegränsad (3.7.5) och startkortet hänvisar fortfarande dit (${n} block; ${t2.slice(0, 140)})`); }
     // Granskning P3-1: grow – inget separat "Läget inför" för ett mål som redan har en rad (även "inte inlagt")
     { const b = await boot({ ...CONTENT, work: [{ id: 'g46', kid: 'k4', type: 'vocab', title: 'Glosor v46', date: isoIn(3) }] }); openKid(b.T, 'k4');
       ok(card(b.T) && !b.T.$('details.goal-detail'), 'grow: målet har en rad i Kommande – inget separat "Läget inför"'); }

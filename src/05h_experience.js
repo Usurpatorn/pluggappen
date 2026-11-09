@@ -79,9 +79,9 @@ const EXP = {
   moreBtns(kid, m) {
     const btns = [];
     if (EXP.canMore(kid)) btns.push(`<button class="btn wide secondary btn-2l" data-v2="ovamer">Öva mer<span class="btn-sub"><span class="sep"> · </span>utan poäng, cirka ${EXP.flowMins(kid)} min</span></button>`);
-    // 3.6: samma regel som Kör på raderna i Kommande (EXP.goalPractice) – först målet m, annars nästa kommande mål där träningen gör nytta
+    // 3.6/3.7.5: samma regel som Kör på raderna i Kommande (EXP.goalPractice) – först målet m, annars nästa kommande mål med något att öva
     { const cand = [m, ...EXP.upcoming(kid).slice(0, EXP.UPCOMING_MAX)].filter((x, i, a) => x && V2.examCidsActive(kid, x.e).length && a.findIndex(y => y && y.e.id === x.e.id) === i); let hit = null, mp = [];
-      for (const x of cand) { const g = EXP.goalPractice(kid, x.e); if (g.ok && EXP.useful(g.mp, kid)) { hit = x; mp = g.mp; break; } }
+      for (const x of cand) { const g = EXP.goalPractice(kid, x.e); if (g.ok) { hit = x; mp = g.mp; break; } }   // 3.7.5: samma obegränsade regel som raderna
       if (hit) { m = hit; btns.push(`<button class="btn wide ghost btn-2l" data-v2="mission" data-exam="${esc(m.e.id)}">Öva mer inför ${esc(m.e.title)}<span class="btn-sub"><span class="sep"> · </span>${EXP.practiceOnly(kid, 'mission') ? 'utan poäng, ' : ''}cirka ${EXP.mins(mp, kid)} min</span></button>`); } }
     return btns.join('');
   },
@@ -158,7 +158,7 @@ const EXP = {
     const canMore = EXP.canFlow(kid); const rest = EXP.flowsToday(p) >= EXP.FLOW_MAX || EXP.extraDone(p) >= EXP.FLOW_MAX;
     return `<section class="card pad-lg mission done stack" aria-label="${esc(title)}"><div class="mission-icon" aria-hidden="true">✅</div><div class="eyebrow">${esc(title)}</div>
       <div class="mission-sub">${sub}</div>
-      ${canMore ? `<button class="btn big wide secondary btn-2l" data-v2="flow">${esc(flowLabel)}<span class="btn-sub"><span class="sep"> · </span>cirka ${EXP.flowMins(kid)} min</span></button>` : (() => { const m = EXP.goalOf(kid, null).now; const more = rest ? EXP.moreBtns(kid, m) : ''; return `<div class="muted">${rest ? 'Bra jobbat idag! Det du har övat sätter sig bäst om du vilar nu.' : 'Allt för idag är gjort.'}</div>${more || (rest || !EXP.peekFlow(kid).length ? EXP.enoughText(kid, m).replace('class="card muted stack"', 'class="muted stack"') : '')}`; })()}</section>`;
+      ${canMore ? `<button class="btn big wide secondary btn-2l" data-v2="flow">${esc(flowLabel)}<span class="btn-sub"><span class="sep"> · </span>cirka ${EXP.flowMins(kid)} min</span></button>` : (() => { const m = EXP.goalOf(kid, null).now; const more = EXP.moreBtns(kid, m);   /* 3.7.5: målets obegränsade träning erbjuds också före dygnets extrapass är slut (moreBtns visar Öva mer bara när det gäller) */ return `<div class="muted">${rest ? 'Bra jobbat idag! Det du har övat sätter sig bäst om du vilar nu.' : 'Allt för idag är gjort.'}</div>${more || (rest || !EXP.peekFlow(kid).length ? EXP.enoughText(kid, m).replace('class="card muted stack"', 'class="muted stack"') : '')}`; })()}</section>`;
   },
   // 3.4: en tom plan (t.ex. kvällen före ett prov utan något sett att repetera) får ingen KÖR-knapp som inte startar något och inga "0 uppgifter"
   emptyCard(kid, title, extra = '') {
@@ -487,7 +487,7 @@ const EXP = {
     const back = e === 'explore' ? [] : EXP.comeBack(kid, V);
     const gems = V.rewards.reduce((a, r) => a + r.gems, 0);
     const canMore = !corePending && EXP.canFlow(kid); const rested = EXP.flowsToday(p) >= EXP.FLOW_MAX || EXP.extraDone(p) >= EXP.FLOW_MAX;
-    const moreHtml = !corePending && !canMore && rested ? EXP.moreBtns(kid, mission ? (EXP.goalOf(kid, null).all || []).find(x => x.e.id === (V.extra || {}).examId) || g || EXP.goalOf(kid, null).now : g || EXP.goalOf(kid, null).now) : '';
+    const moreHtml = !corePending && !canMore ? EXP.moreBtns(kid, mission ? (EXP.goalOf(kid, null).all || []).find(x => x.e.id === (V.extra || {}).examId) || g || EXP.goalOf(kid, null).now : g || EXP.goalOf(kid, null).now) : '';
     const fb = V2.felbok(kid, V.C, LE.now()); const todo = fb.items.filter(x => x.state === 'todo').length;
     render(`${topbar('Klart', 'home')}
     <div class="stack" style="margin-top:6px">

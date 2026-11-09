@@ -33,7 +33,7 @@ const SHAPES = [
         T.click(btn); let n = 0, g = 0; while (PA.S && PA.S.v2 && T.$('#qcard') && g++ < 80) { const it = PA.S.queue[PA.S.i]; if (it.cat !== 'learn') { n++; if (it.spec && !cids.has(it.spec.cid)) foreign++; } D.answer(() => true); w.__advance(4000); }
         rounds++; minN = Math.min(minN, n); w.__advance(5 * 60000);
       }
-      // Adams fall: efter dygnets extrapass bedömer Öva mer-regeln (EXP.useful) att inget mer gör nytta idag – målets egen Kör ska ändå stå kvar
+      // Ägarens fall: efter dygnets extrapass bedömer Öva mer-regeln (EXP.useful) att inget mer gör nytta idag – målets egen Kör ska ändå stå kvar
       { const u0 = PA.EXP.useful; PA.EXP.useful = () => false; open(); const btn = T.$('.upcoming [data-v2="mission"][data-exam="w:g"]'); ok(!!btn && /utan poäng/.test(btn.textContent), `${tag}: Kör står kvar (utan poäng) också när Öva mer-regeln säger att inget mer gör nytta`); PA.EXP.useful = u0; }
       ok(rounds === 30, `${tag}: Kör erbjuds efter varje runda (${rounds} av 30, allt rätt)`);
       ok(minN >= 3 && minN >= Math.min(PA.V2.MISSION_MIN, 3), `${tag}: varje runda har uppgifter (kortaste ${minN})`);

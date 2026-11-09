@@ -101,7 +101,7 @@ setTimeout(() => {
     click($('[data-go="home"]')); click($('[data-go="start"]')); click($('[data-go="parent"]'));
     const pins = $$('[data-pin]'); ['1', '2', '3', '4'].forEach((d, i) => { pins[i].value = d; pins[i].dispatchEvent(new window.Event('input', { bubbles: true })); });
     click($('[data-tab="k4"]')); click($('[data-sub="exams"]'));
-    $('#exTitle').value = 'Glosförhör v.45'; $('#exDate').value = '2026-11-05';
+    $('#exTitle').value = 'Glosförhör v.45'; $('#exDate').value = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);   // alltid i framtiden (smoke kör med riktig klocka – ett fast datum föll bort när kalendern passerade det)
     click($('[data-act="addExam"]')); assert(PA().DB.profiles.k4.exams.some(e => e.title === 'Glosförhör v.45') && PA().DB.profiles.k4.exams.length === 2, 'exam added (config exam + new one)');
     click($('[data-sub="decks"]'));
     $('#dkName').value = 'Engelska v.44'; $('#dkWords').value = 'dog = hund = 🐶\ncat = katt\nhouse = hus\nblue = blå\ngreen = grön';

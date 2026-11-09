@@ -613,8 +613,12 @@ med `PREVIEW=1` till `<sajten>/preview/`. Produktionen publiceras som vanligt. M
   inte öva mer, fast Läget sa "öva lite mer". Det ska inte finnas någon gräns – barnet ska kunna repetera obegränsat.
 - **Nu:** Kör på raden under Kommande prov och läxor (målets egen träning) erbjuds alltid när målet har innehåll som går att öva –
   samma regel som glosförhör fick i 3.7.4, nu för alla mål. Ingen "gör nytta"-spärr på raden.
+  Startkortet följer samma regel: "Öva mer inför …" står kvar så länge en rad erbjuder Kör, och säger aldrig "inget mer" samtidigt.
 - **Oförändrat:** XP och belöningar (efter dygnets extrapass: utan poäng), motorns plan för varje runda, dagens Kör!, Testa mig, att Öva
   mer och FLOW tar slut av sig själva, och att själva provdagen inte tar in helt nya områden.
 - **Test:** `test_goal_unlimited.js` (54 kontroller: 30 rundor i rad, kvällen före och tidigare, också när Öva mer-regeln säger att inget
   gör nytta); `test_ova_mer.js` räknar inte målens obegränsade Kör som ändlös upprepning.
+  `test_kommande.js` prövar den nya regeln (raderna och startkortet står kvar och säger samma sak). `smoke.js` och
+  `test_review21.js` använde ett fast datum respektive nodens riktiga klocka och började fallera när kalendern passerade november
+  (också på main) – de använder nu ett datum i framtiden respektive fönstrets fasta klocka.
 - **Rollback:** 3.7.4-bygget.
